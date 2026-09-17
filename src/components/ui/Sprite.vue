@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Mirrors Habitica's ui/sprite.vue pattern: given a bare image name, render
-// the placeholder art from public/sprites/. Real pixel-art sprites can drop
-// in later without any component changes.
+// Mirrors Habitica's ui/sprite.vue pattern: given a bare image name (a
+// path segment relative to public/sprites/), render the art. New sprites
+// can drop in later without any component changes.
 defineProps<{ imageName: string; alt?: string }>();
 </script>
 
@@ -12,8 +12,7 @@ defineProps<{ imageName: string; alt?: string }>();
 <style scoped>
 .sprite {
   display: block;
-  width: 64px;
-  height: 64px;
-  image-rendering: pixelated;
+  width: 96px;
+  height: 96px;
 }
 </style>
