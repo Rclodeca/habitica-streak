@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import { initializeStores, pinia } from './store';
 import './style.css';
+import './assets/scss/main.scss';
 
 const app = createApp(App);
 
