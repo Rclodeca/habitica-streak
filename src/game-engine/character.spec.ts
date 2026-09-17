@@ -32,6 +32,12 @@ describe('createCharacter', () => {
     expect(character.currentHealth).toBe(character.starterStats.health);
   });
 
+  it('starts with no owned or equipped items', () => {
+    const character = createCharacter(createRng(1));
+    expect(character.ownedItemIds).toEqual([]);
+    expect(character.equippedItemIds).toEqual([]);
+  });
+
   it('is deterministic: the same seed produces the same character', () => {
     const characterA = createCharacter(createRng(12345));
     const characterB = createCharacter(createRng(12345));

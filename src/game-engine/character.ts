@@ -14,5 +14,12 @@ export function createCharacter(rng: Rng): Character {
     healing: randomizeStat(TUNING.BASE_STATS.healing, rng),
     health: randomizeStat(TUNING.BASE_STATS.health, rng),
   };
-  return { level: 1, exp: 0, starterStats, currentHealth: starterStats.health };
+  return {
+    level: 1,
+    exp: 0,
+    starterStats,
+    currentHealth: starterStats.health,
+    ownedItemIds: [],
+    equippedItemIds: [],
+  };
 }
