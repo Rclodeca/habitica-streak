@@ -44,3 +44,13 @@ export function pickWeighted<T extends string>(weights: Record<string, number>, 
   // Fallback for floating-point edge cases: return the last key.
   return entries[entries.length - 1][0] as T;
 }
+
+/** Fisher-Yates shuffle. Returns a new array; the input is left untouched. */
+export function shuffle<T>(items: T[], rng: Rng): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}

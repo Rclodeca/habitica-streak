@@ -24,6 +24,6 @@ export {
 } from './combat';
 
 export type { Rng } from './rng';
-export { createRng, pickWeighted } from './rng';
+export { createRng, pickWeighted, shuffle } from './rng';
 
 export { dailyPeriodKey, periodKeyFor, weeklyPeriodKey } from './time';
