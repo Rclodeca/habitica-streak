@@ -26,6 +26,14 @@ const equippedSlots = computed(() =>
 
 const showStatsModal = ref(false);
 
+// Which slot's stats callout is pinned open by a tap/click (persists until
+// tapped again or another slot is tapped) — separate from the CSS-only
+// :hover reveal, which only fires for mouse users.
+const pinnedSlot = ref<number | null>(null);
+function togglePin(i: number) {
+  pinnedSlot.value = pinnedSlot.value === i ? null : i;
+}
+
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
 </script>
 
@@ -37,16 +45,19 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
       <h2>Character — Level {{ character.level }}</h2>
-      <div class="item-grid" @click.stop>
-        <div v-for="(item, i) in equippedSlots" :key="i" class="item-slot">
-          <img
-            v-if="item"
-            class="item-icon"
-            :src="`/sprites/${item.icon}.png`"
-            :title="`${item.name} (+${item.bonusPercent}% ${item.stat})`"
-            :alt="item.name"
-          />
-        </div>
+    </div>
+    <div class="item-grid" @click.stop>
+      <div
+        v-for="(item, i) in equippedSlots"
+        :key="i"
+        class="item-slot"
+        :class="{ pinned: pinnedSlot === i }"
+        @click="item && togglePin(i)"
+      >
+        <template v-if="item">
+          <img class="item-icon" :src="`/sprites/${item.icon}.png`" :alt="item.name" />
+          <div class="item-tooltip">{{ item.name }} — +{{ item.bonusPercent }}% {{ item.stat }}</div>
+        </template>
       </div>
     </div>
     <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
@@ -75,26 +86,51 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .item-grid {
-  margin-left: auto;
-  flex-shrink: 0;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 2px;
-  width: 40px;
-  height: 40px;
-  cursor: default;
+  gap: 6px;
+  width: 132px;
+  height: 132px;
 }
 
 .item-slot {
+  position: relative;
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .item-icon {
   display: block;
   width: 100%;
   height: 100%;
+  pointer-events: none;
+}
+
+.item-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+}
+
+.item-slot:hover .item-tooltip,
+.item-slot.pinned .item-tooltip {
+  opacity: 1;
 }
 
 .sprite-wrapper {
