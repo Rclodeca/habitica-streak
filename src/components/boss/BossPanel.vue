@@ -70,8 +70,9 @@ const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 .stat-list {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.4rem 1rem;
+  gap: 0.3rem 1rem;
   margin: 0;
+  font-size: 0.8rem;
 }
 
 .stat-list dt {
@@ -82,6 +83,7 @@ const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 .stat-list dd {
   margin: 0;
   text-align: right;
+  color: var(--text-h);
 }
 
 .sprite-wrapper {

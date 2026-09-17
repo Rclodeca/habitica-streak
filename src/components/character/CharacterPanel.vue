@@ -15,7 +15,6 @@ const expNeeded = computed(() => expToNextLevel(character.value.level));
 const physicalDamage = computed(() => effectiveStat(character.value, 'physicalDamage'));
 const magicDamage = computed(() => effectiveStat(character.value, 'magicDamage'));
 const healing = computed(() => effectiveStat(character.value, 'healing'));
-const equippedItems = computed(() => ITEM_CATALOG.filter((item) => character.value.equippedItemIds.includes(item.id)));
 
 // Fixed 4 slots, in whatever order they were equipped — empty ones render
 // as blank grid cells rather than being compacted away, so the grid never
@@ -75,12 +74,6 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
       <dt>Healing</dt>
       <dd>{{ healing.toFixed(1) }}</dd>
     </dl>
-
-    <h4 class="equipped-heading">Equipped items</h4>
-    <p v-if="equippedItems.length === 0" class="empty">None equipped.</p>
-    <ul v-else class="equipped-list">
-      <li v-for="item in equippedItems" :key="item.id">{{ item.name }} (+{{ item.bonusPercent }}% {{ item.stat }})</li>
-    </ul>
   </section>
 </template>
 
@@ -97,6 +90,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
 .top-row {
   display: flex;
+  justify-content: space-between;
   gap: 0.75rem;
 }
 
@@ -153,8 +147,9 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 .stat-list {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.4rem 1rem;
+  gap: 0.3rem 1rem;
   margin: 0;
+  font-size: 0.8rem;
 }
 
 .stat-list dt {
@@ -165,20 +160,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 .stat-list dd {
   margin: 0;
   text-align: right;
-}
-
-.equipped-heading {
-  margin: 0.5rem 0 0.4rem;
-}
-
-.empty {
-  opacity: 0.7;
-  margin: 0;
-}
-
-.equipped-list {
-  margin: 0;
-  padding-left: 1.2rem;
+  color: var(--text-h);
 }
 
 .sprite-wrapper {
