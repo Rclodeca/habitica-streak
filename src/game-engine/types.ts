@@ -6,7 +6,6 @@ export type Period = 'daily' | 'weekly';
 
 export type Personality = 'balanced' | 'tank' | 'armored' | 'warded' | 'brute';
 
-// TODO: items — equippedItems: ItemSlot[4] once equipment is implemented
 export interface Character {
   level: number;
   exp: number;
@@ -17,9 +16,10 @@ export interface Character {
     health: number;
   };
   currentHealth: number;
+  ownedItemIds: string[]; // all items ever dropped for this character (equipped + unequipped)
+  equippedItemIds: string[]; // subset of ownedItemIds, length <= 4
 }
 
-// TODO: items — lootTable once item drops are implemented
 export interface Boss {
   index: number;
   personality: Personality;

@@ -19,6 +19,8 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     exp: 0,
     starterStats,
     currentHealth: starterStats.health,
+    ownedItemIds: [],
+    equippedItemIds: [],
     ...overrides,
   };
 }

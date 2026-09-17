@@ -21,7 +21,7 @@ describe('store persistence smoke test', () => {
     vi.useRealTimers();
   });
 
-  it('hydrates fresh state and debounce-writes SaveStateV1 to localStorage on any store mutation', () => {
+  it('hydrates fresh state and debounce-writes SaveStateV2 to localStorage on any store mutation', () => {
     const { characterStore } = initializeStores();
 
     // Fresh bootstrap, no save yet — nothing written until a mutation happens.
@@ -38,7 +38,7 @@ describe('store persistence smoke test', () => {
     expect(raw).not.toBeNull();
 
     const parsed = JSON.parse(raw as string);
-    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.schemaVersion).toBe(2);
     expect(parsed.character.exp).toBe(characterStore.character.exp);
     expect(parsed.boss).toBeDefined();
     expect(parsed.habits).toEqual([]);

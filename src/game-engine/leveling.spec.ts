@@ -41,6 +41,8 @@ describe('addExpAndResolveLevelUps', () => {
       exp: 0,
       starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
       currentHealth: 50,
+      ownedItemIds: [],
+      equippedItemIds: [],
       ...overrides,
     };
   }
