@@ -47,16 +47,19 @@ const showStatsModal = ref(false);
 <style scoped>
 .habit-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.25rem 0.75rem;
   padding: 0.4rem 0;
   cursor: pointer;
 }
 
 .habit-item .name {
   flex: 1;
+  min-width: 0;
   text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .done {

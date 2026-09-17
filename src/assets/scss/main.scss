@@ -4,6 +4,16 @@
 @use 'variables' as v;
 @use 'mixins' as m;
 
+// On a tall phone viewport, `body`'s `place-items: center` (see style.css)
+// vertically centers the whole app when its content is shorter than the
+// screen, leaving dead space above/below rather than the top-anchored feel
+// expected of a mobile app — override to top-align below the breakpoint.
+body {
+  @include m.mobile {
+    align-items: flex-start;
+  }
+}
+
 #app {
   @include m.mobile {
     padding: v.$space-md;

@@ -132,11 +132,22 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
+  max-width: min(220px, 90vw);
   box-shadow: var(--shadow);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
   z-index: 10;
+}
+
+/* Right-column slots sit near the panel's right edge — the grid itself is
+   already right-aligned within the panel (see .top-row) — so a
+   center-anchored tooltip risks clipping off the right edge of a narrow
+   phone screen. Anchor those to their own right edge instead. */
+.item-slot:nth-child(2n) .item-tooltip {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 .item-slot:hover .item-tooltip,
