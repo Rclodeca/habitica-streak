@@ -7,6 +7,7 @@ import { createRng } from '../game-engine';
 import { useBossStore } from './bossStore';
 import { useCharacterStore } from './characterStore';
 import { useHabitStore } from './habitStore';
+import { setupHighScoreTracking } from './plugins/highScoreTracking';
 import { setupPersistence } from './plugins/localStoragePersistence';
 import { loadSaveState } from './plugins/saveState';
 
@@ -37,8 +38,10 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   habitStore.initFromSave(saved?.habits ?? null);
 
   setupPersistence(targetPinia);
+  setupHighScoreTracking(targetPinia);
 
   return { characterStore, bossStore, habitStore };
 }
 
 export { useBossStore, useCharacterStore, useHabitStore };
+export { useHighScoreStore } from './highScoreStore';
