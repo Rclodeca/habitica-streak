@@ -40,7 +40,7 @@
 
 | File | Source |
 |---|---|
-| `player/base-skin.png` | `customize/skin/skin_915533.png` |
+| `player/base-skin.png` | `customize/skin/skin_f5a76e.png` |
 | `player/base-hair.png` | `customize/hair/hair_bangs_1_black.png` |
 | `player/weapon-physical-1.png` | `gear/weapon/weapon_warrior_1.png` |
 | `player/weapon-physical-2.png` | `gear/weapon/weapon_warrior_3.png` |
