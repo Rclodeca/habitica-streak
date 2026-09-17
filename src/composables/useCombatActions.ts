@@ -49,10 +49,17 @@ export function useCombatActions() {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return;
 
+    // Engine-level idempotency guard: this is the authoritative check that a
+    // habit cannot be completed twice in the same period (double streak
+    // increment, double boss damage, double milestone EXP), independent of
+    // any UI-layer `:disabled` binding. Mirrors the `isCompletedThisPeriod`
+    // predicate used in `HabitListItem.vue`.
+    const currentPeriodKey = periodKeyFor(habit.period, new Date());
+    if (habit.lastCompletedPeriodKey === currentPeriodKey) return;
+
     const allHabitsOfSameType = habitStore.habitsOfType(habit.damageType);
     const result = completeHabit(characterStore.character, habit, allHabitsOfSameType, bossStore.boss);
 
-    const currentPeriodKey = periodKeyFor(habit.period, new Date());
     const updatedHabit: Habit = {
       ...result.updatedHabit,
       lastCompletedPeriodKey: currentPeriodKey,
