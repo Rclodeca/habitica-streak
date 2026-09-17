@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import BossPanel from '../boss/BossPanel.vue';
 import CharacterPanel from '../character/CharacterPanel.vue';
+import SkipDayButton from '../debug/SkipDayButton.vue';
 import HabitList from '../habits/HabitList.vue';
 </script>
 
 <template>
   <div class="app-shell">
+    <SkipDayButton />
     <div class="top-panels">
       <CharacterPanel />
       <BossPanel />
