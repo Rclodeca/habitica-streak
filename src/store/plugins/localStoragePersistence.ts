@@ -42,7 +42,6 @@ export function setupPersistence(pinia: Pinia): void {
         character: characterStore.character,
         boss: bossStore.boss,
         habits: habitStore.habits,
-        meta: { lastRolloverCheckedAt: new Date().toISOString() },
       });
     }, DEBOUNCE_MS);
   };

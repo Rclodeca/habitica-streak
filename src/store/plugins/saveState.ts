@@ -11,7 +11,6 @@ export interface SaveStateV1 {
   character: Character;
   boss: Boss;
   habits: Habit[];
-  meta: { lastRolloverCheckedAt: string }; // ISO datetime string
 }
 
 export function serializeSaveState(state: Omit<SaveStateV1, 'schemaVersion'>): string {
