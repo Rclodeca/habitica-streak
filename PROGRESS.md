@@ -21,15 +21,16 @@ The plan (`docs/plan.md`) had a few gaps/bugs surfaced during implementation, re
 
 ## Deferred / not yet built
 
-- **Items/equipment/gear** — the 4-slot equip system and item-drop-on-boss-death from the original seed idea. `Character`/`Boss` types have `// TODO: items` comments marking where this would attach.
-- **Real sprite art** — `public/sprites/player-placeholder.png` / `boss-placeholder.png` are plain placeholder squares. Intended source: `HabitRPG/habitica-images` on GitHub (referenced in the seed idea, not yet pulled in).
-- **Combat animations** — currently just a CSS width transition on health/exp bars; no hit/attack animation.
 - **The ~99 ESLint findings** — all cosmetic `.vue` style warnings plus 2 `multi-word-component-names` errors on `Modal.vue`/`Sprite.vue`.
 - `meta.lastRolloverCheckedAt` in the save-state schema is written but nothing reads it (rollover actually keys off each habit's own `lastCheckedPeriodKey`) — harmless, just vestigial.
 
 ## Testing/debug tooling added post-MVP
 
 `src/store/debugClockStore.ts` + `src/components/debug/SkipDayButton.vue` — a session-only (not persisted) clock offset with a "Skip to next day (testing)" button in the UI, so the daily/weekly miss-rollover path can be exercised without waiting on the real clock. `checkOffHabit` and the habit-row completion check both read from this clock instead of `new Date()` directly, so skipping stays consistent with completions. Safe to remove later if no longer needed — it's fully isolated (one store, one component, three call-site swaps).
+
+## Items/equipment (added post-MVP)
+
+A curated 15-item catalog (3 tiers × 5 stat categories: physical/magic/healing/health/exp-gain) drops off boss kills via a step curve (`TUNING.ITEM_DROP_EVERY_N_BOSSES`/`ITEM_DROP_MAX_COUNT`) and is unique per character — once owned, an item leaves that character's drop pool until the next death/reset. 4 interchangeable equip slots (no slot-type restrictions). `effectiveStat()` in `game-engine/leveling.ts` layers the equipped-item bonus on top of the existing level-scaled stat everywhere `statAtLevel` used to be read directly (`combat.ts`, `CharacterPanel.vue`, `CharacterStatsModal.vue`, `HabitStatsModal.vue`); `addExpAndResolveLevelUps` applies the `expGain` bonus internally so no caller can forget it. New `InventoryModal.vue` (equip/unequip UI) and a loot toast (`useLootToast.ts`/`LootToast.vue`) surface drops. See `docs/superpowers/specs/2026-09-16-items-equipment-design.md` for the full design.
 
 ## Where to resume
 
