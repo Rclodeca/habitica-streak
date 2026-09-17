@@ -23,6 +23,11 @@ export const useCharacterStore = defineStore('character', {
       this.character = saved ?? createCharacter(rng);
     },
 
+    /** Replaces the character wholesale, e.g. after combat resolution elsewhere. */
+    setCharacter(character: Character) {
+      this.character = character;
+    },
+
     /** Grants EXP and resolves any resulting level-ups. Returns levels gained. */
     addExpAndResolveLevelUps(expGained: number): number {
       const { character, levelsGained } = addExpAndResolveLevelUps(this.character, expGained);
