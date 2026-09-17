@@ -50,4 +50,29 @@ describe('useCombatActions', () => {
     expect(bossStore.boss).toEqual(bossSnapshot);
     expect(habitAfterSecondCall).toEqual(habitSnapshot);
   });
+
+  it('checkOffHabit returns the items dropped when completing a habit defeats the boss', () => {
+    const habitStore = useHabitStore();
+    const bossStore = useBossStore();
+    const { checkOffHabit } = useCombatActions();
+
+    const habit = habitStore.addHabit('Slay the boss', 'daily', 'hard', createRng());
+    habitStore.updateHabit({ ...habit, damageType: 'physical' }); // deterministic damage type
+    bossStore.setBoss({ ...bossStore.boss, health: 0.0001, armor: 0 }); // one hit from defeat
+
+    const itemsDropped = checkOffHabit(habit.id);
+
+    expect(itemsDropped.length).toBeGreaterThan(0);
+  });
+
+  it('checkOffHabit returns [] when the habit completion does not defeat the boss', () => {
+    const habitStore = useHabitStore();
+    const { checkOffHabit } = useCombatActions();
+
+    const habit = habitStore.addHabit('Meditate', 'daily', 'easy', createRng());
+
+    const itemsDropped = checkOffHabit(habit.id);
+
+    expect(itemsDropped).toEqual([]);
+  });
 });
