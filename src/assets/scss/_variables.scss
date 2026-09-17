@@ -1,0 +1,17 @@
+// Small, reused palette + spacing scale. Colors mirror the CSS custom
+// properties in src/style.css but as SCSS variables so layout rules below
+// can do simple arithmetic/breakpoints with them at build time.
+
+// Spacing scale
+$space-xs: 0.4rem;
+$space-sm: 0.75rem;
+$space-md: 1rem;
+$space-lg: 1.5rem;
+
+// Bar fill colors (not theme-dependent — readable in both light/dark bg)
+$health-fill: #e5484d;
+$boss-health-fill: #c026d3;
+$exp-fill: #3b82f6;
+
+// Breakpoint below which the layout switches to a single mobile column.
+$breakpoint-mobile: 480px;
