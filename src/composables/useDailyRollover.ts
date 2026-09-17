@@ -1,12 +1,17 @@
 // Composable that walks every habit once per period-boundary crossing and
-// queues a miss (via `useMissedSkillsGate().queueMiss`) for any habit that
-// wasn't completed in the period immediately preceding the current one.
-// Intended to run once on app mount (see `App.vue`) — not on a timer.
+// queues an outcome (via `useMissedSkillsGate`) for any habit that wasn't
+// completed in the period immediately preceding the current one. Intended
+// to run once on app mount (see `App.vue`) — not on a timer.
 //
-// Queuing, not applying: this only detects and records misses. The actual
-// damage and `lastCheckedPeriodKey` stamp are deferred to
+// "Not completed" means opposite things for opposite habit kinds: for a
+// good habit it's a miss (`queueMiss` — penalty); for a bad habit it means
+// the player avoided it, which is the win condition (`queueReward`). See
+// `Habit.isBad` in types.ts and `useCombatActions` for the full reasoning.
+//
+// Queuing, not applying: this only detects and records outcomes. The actual
+// damage/healing and `lastCheckedPeriodKey` stamp are deferred to
 // `useMissedSkillsGate().acknowledge()`, once the player has seen the
-// missed-skills popup and clicked OK — see that composable for why.
+// popup and clicked OK — see that composable for why.
 //
 // MVP scope only: this detects "was the most recently completed period
 // missed", not a backlog of every period missed while the app was closed.
@@ -36,7 +41,7 @@ function previousPeriodKey(period: Period, date: Date): string {
  */
 export function useDailyRollover(now: Date = new Date()): void {
   const habitStore = useHabitStore();
-  const { queueMiss } = useMissedSkillsGate();
+  const { queueMiss, queueReward } = useMissedSkillsGate();
 
   for (const habit of habitStore.habits) {
     const currentPeriodKey = periodKeyFor(habit.period, now);
@@ -44,8 +49,14 @@ export function useDailyRollover(now: Date = new Date()): void {
 
     const precedingPeriodKey = previousPeriodKey(habit.period, now);
     if (habit.lastCompletedPeriodKey !== precedingPeriodKey) {
-      queueMiss(habit, currentPeriodKey);
-      continue; // stamping deferred until the miss is acknowledged
+      // Not completed in the preceding period: a miss for a good habit, but
+      // the win condition (avoided) for a bad one.
+      if (habit.isBad) {
+        queueReward(habit, currentPeriodKey);
+      } else {
+        queueMiss(habit, currentPeriodKey);
+      }
+      continue; // stamping deferred until the outcome is acknowledged
     }
 
     habitStore.updateHabit({ ...habit, lastCheckedPeriodKey: currentPeriodKey });

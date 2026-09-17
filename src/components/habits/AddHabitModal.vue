@@ -15,11 +15,12 @@ const { addHabit } = useCombatActions();
 const name = ref('');
 const period = ref<Period>('daily');
 const difficulty = ref<Difficulty>('easy');
+const habitType = ref<'good' | 'bad'>('good');
 
 function onSubmit() {
   const trimmedName = name.value.trim();
   if (!trimmedName) return;
-  addHabit(trimmedName, period.value, difficulty.value);
+  addHabit(trimmedName, period.value, difficulty.value, habitType.value === 'bad');
   name.value = '';
   emit('update:modelValue', false);
 }
@@ -41,6 +42,10 @@ function onSubmit() {
         <option value="easy">Easy</option>
         <option value="medium">Medium</option>
         <option value="hard">Hard</option>
+      </select>
+      <select v-model="habitType">
+        <option value="good">Good Habit</option>
+        <option value="bad">Bad Habit</option>
       </select>
       <button type="submit">Add habit</button>
     </form>

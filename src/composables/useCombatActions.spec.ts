@@ -34,7 +34,7 @@ describe('useCombatActions', () => {
     const bossStore = useBossStore();
     const { checkOffHabit } = useCombatActions();
 
-    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', createRng());
+    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', false, createRng());
 
     // First call: applies combat effects and stamps the habit as completed
     // for the current period.
@@ -66,7 +66,7 @@ describe('useCombatActions', () => {
     const bossStore = useBossStore();
     const { checkOffHabit } = useCombatActions();
 
-    const habit = habitStore.addHabit('Slay the boss', 'daily', 'hard', createRng());
+    const habit = habitStore.addHabit('Slay the boss', 'daily', 'hard', false, createRng());
     habitStore.updateHabit({ ...habit, damageType: 'physical' }); // deterministic damage type
     bossStore.setBoss({ ...bossStore.boss, health: 0.0001, armor: 0 }); // one hit from defeat
 
@@ -79,7 +79,7 @@ describe('useCombatActions', () => {
     const habitStore = useHabitStore();
     const { checkOffHabit } = useCombatActions();
 
-    const habit = habitStore.addHabit('Meditate', 'daily', 'easy', createRng());
+    const habit = habitStore.addHabit('Meditate', 'daily', 'easy', false, createRng());
 
     const itemsDropped = checkOffHabit(habit.id);
 
@@ -93,7 +93,7 @@ describe('useCombatActions', () => {
     const { checkMissedHabit } = useCombatActions();
     const { isDead } = useDeathScreen();
 
-    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', createRng());
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
     characterStore.character = { ...characterStore.character, currentHealth: 1 };
     bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
 
@@ -112,7 +112,7 @@ describe('useCombatActions', () => {
     const { checkMissedHabit } = useCombatActions();
     const { isDead } = useDeathScreen();
 
-    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', createRng());
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
     // Health bar already displays Math.round(currentHealth), so 0.3 reads
     // as "0 HP" even though it's not literally 0. Zero boss attack means
     // this miss deals 0 damage regardless of the crit/attack-type rng roll,
@@ -134,7 +134,7 @@ describe('useCombatActions', () => {
     const { isDead } = useDeathScreen();
     const { visible: reviveVisible } = useReviveNotice();
 
-    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', createRng());
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
     characterStore.character = {
       ...characterStore.character,
       currentHealth: 1,
@@ -160,7 +160,7 @@ describe('useCombatActions', () => {
     const { checkMissedHabit, restart } = useCombatActions();
     const { isDead } = useDeathScreen();
 
-    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', createRng());
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
     characterStore.character = { ...characterStore.character, currentHealth: 1 };
     bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
     checkMissedHabit(habit.id);
@@ -174,5 +174,88 @@ describe('useCombatActions', () => {
     expect(characterStore.character.currentHealth).toBe(characterStore.character.starterStats.health);
     expect(bossStore.boss.index).toBe(1);
     expect(habitStore.habits).toHaveLength(1); // habit definitions kept, not wiped
+  });
+
+  it('checkOffHabit on a bad habit damages the player (penalty), resets its streak, and stamps completed', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const { checkOffHabit } = useCombatActions();
+
+    const habit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
+    habitStore.updateHabit({ ...habit, streakCount: 4 });
+    const healthBefore = characterStore.character.currentHealth;
+    const bossHealthBefore = bossStore.boss.health;
+
+    const itemsDropped = checkOffHabit(habit.id);
+
+    const currentPeriodKey = periodKeyFor(habit.period, new Date());
+    const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
+
+    expect(characterStore.character.currentHealth).toBeLessThan(healthBefore);
+    expect(bossStore.boss.health).toBe(bossHealthBefore); // tapping a bad habit never damages the boss
+    expect(updatedHabit?.streakCount).toBe(0); // doing the bad thing resets the avoidance streak
+    expect(updatedHabit?.lastCompletedPeriodKey).toBe(currentPeriodKey);
+    expect(itemsDropped).toEqual([]);
+  });
+
+  it('checkOffHabit is a no-op the second time on a bad habit already resolved this period', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const { checkOffHabit } = useCombatActions();
+
+    const habit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
+    checkOffHabit(habit.id);
+    const healthAfterFirstCall = characterStore.character.currentHealth;
+
+    checkOffHabit(habit.id);
+
+    expect(characterStore.character.currentHealth).toBe(healthAfterFirstCall);
+  });
+
+  it('checkOffHabit on a bad habit can flag the death screen, same as a good habit miss', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const { checkOffHabit } = useCombatActions();
+    const { isDead } = useDeathScreen();
+
+    const habit = habitStore.addHabit('Skip dessert', 'daily', 'hard', true, createRng());
+    characterStore.character = { ...characterStore.character, currentHealth: 1 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000 });
+
+    checkOffHabit(habit.id);
+
+    expect(isDead.value).toBe(true);
+  });
+
+  it('checkAvoidedHabit rewards the player by damaging the boss and increments the avoidance streak', () => {
+    const habitStore = useHabitStore();
+    const bossStore = useBossStore();
+    const { checkAvoidedHabit } = useCombatActions();
+
+    const habit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
+    habitStore.updateHabit({ ...habit, damageType: 'physical' }); // deterministic damage type
+    const bossHealthBefore = bossStore.boss.health;
+
+    const itemsDropped = checkAvoidedHabit(habit.id);
+
+    const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
+    expect(bossStore.boss.health).toBeLessThan(bossHealthBefore);
+    expect(updatedHabit?.streakCount).toBe(1);
+    expect(updatedHabit?.lastCompletedPeriodKey).toBeNull(); // a rollover resolution is never an active tap
+    expect(itemsDropped).toEqual([]);
+  });
+
+  it("keeps bad and good habits' damage-split pools separate for the same damage type", () => {
+    const habitStore = useHabitStore();
+
+    const badHabit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
+    habitStore.updateHabit({ ...badHabit, damageType: 'physical' });
+    const goodHabit = habitStore.addHabit('Push-ups', 'daily', 'medium', false, createRng());
+    habitStore.updateHabit({ ...goodHabit, damageType: 'physical' });
+
+    expect(habitStore.habitsOfType('physical', true)).toEqual([{ ...badHabit, damageType: 'physical' }]);
+    expect(habitStore.habitsOfType('physical', false)).toEqual([{ ...goodHabit, damageType: 'physical' }]);
   });
 });

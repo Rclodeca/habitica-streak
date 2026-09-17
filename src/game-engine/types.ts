@@ -60,6 +60,12 @@ export interface Habit {
   period: Period;
   difficulty: Difficulty;
   damageType: DamageType;
+  // Bad habits invert who resolves the reward vs. penalty: checking one off
+  // (you did the bad thing) applies the penalty (damage to the player) that
+  // a good habit only applies on a miss, while leaving one unchecked through
+  // a full period (you avoided it) applies the reward (damage to the boss)
+  // that a good habit only applies when checked off. See `useCombatActions`.
+  isBad: boolean;
   streakCount: number;
   lastCompletedPeriodKey: string | null;
   lastCheckedPeriodKey: string | null;

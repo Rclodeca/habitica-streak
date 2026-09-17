@@ -9,6 +9,7 @@ function makeHabit(overrides: Partial<Habit> = {}): Habit {
     period: 'daily',
     difficulty: 'easy',
     damageType: 'physical',
+    isBad: false,
     streakCount: 0,
     lastCompletedPeriodKey: null,
     lastCheckedPeriodKey: null,

@@ -16,6 +16,16 @@
 // `checkMissedHabit` only detects currentHealth <= 0 and flags it via
 // `useDeathScreen().triggerDeath()`; the actual character/boss/habit reset
 // happens in `restart()`, called once the player dismisses the death popup.
+//
+// Bad habits invert which trigger resolves which outcome (see `Habit.isBad`
+// in types.ts): checking one off resolves the *penalty* (`missHabit` —
+// damage to the player) instead of the reward, and `checkAvoidedHabit`
+// (called by `useMissedSkillsGate` when a rollover finds one un-checked, i.e.
+// avoided) resolves the *reward* (`completeHabit` — damage to the boss)
+// instead of the penalty. `applyReward`/`applyPenalty` below are the shared
+// engine-invoking cores; the four public functions just wire each trigger to
+// the right one and decide whether to stamp `lastCompletedPeriodKey` (only
+// on a live tap, never on a rollover resolution).
 
 import {
   addExpAndResolveLevelUps,
@@ -49,34 +59,27 @@ export function useCombatActions() {
   const { showReviveNotice } = useReviveNotice();
 
   /**
-   * Checks off a habit: resolves its combat outcome (boss damage or player
-   * healing) exactly once via `completeHabit`, writes the single result
-   * back into all three stores, grants any streak-milestone EXP, then
-   * checks for — and applies — a boss defeat.
+   * Shared reward core: resolves the combat outcome (boss damage or player
+   * healing) exactly once via `completeHabit`, writes the result back into
+   * all three stores, grants any streak-milestone EXP, then checks for —
+   * and applies — a boss defeat. Used for both a good habit's checkbox tap
+   * and a bad habit's rollover-detected avoidance. `stampPeriodKey`, when
+   * given, also marks the habit completed for that period — only correct
+   * for a live tap; a rollover resolution leaves it untouched.
    *
-   * Does not check for player death: habit completion never damages the
-   * player, so a single `completeHabit` call cannot kill them.
+   * Never checks for player death: this path never damages the player, so
+   * it cannot kill them.
    */
-  function checkOffHabit(habitId: string): ItemDef[] {
+  function applyReward(habitId: string, stampPeriodKey?: string): ItemDef[] {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return [];
 
-    // Engine-level idempotency guard: this is the authoritative check that a
-    // habit cannot be completed twice in the same period (double streak
-    // increment, double boss damage, double milestone EXP), independent of
-    // any UI-layer `:disabled` binding. Mirrors the `isCompletedThisPeriod`
-    // predicate used in `HabitListItem.vue`.
-    const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
-    if (habit.lastCompletedPeriodKey === currentPeriodKey) return [];
+    const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.isBad);
+    const result = completeHabit(characterStore.character, habit, habitsInPool, bossStore.boss, rng);
 
-    const allHabitsOfSameType = habitStore.habitsOfType(habit.damageType);
-    const result = completeHabit(characterStore.character, habit, allHabitsOfSameType, bossStore.boss, rng);
-
-    const updatedHabit: Habit = {
-      ...result.updatedHabit,
-      lastCompletedPeriodKey: currentPeriodKey,
-      lastCheckedPeriodKey: currentPeriodKey,
-    };
+    const updatedHabit: Habit = stampPeriodKey
+      ? { ...result.updatedHabit, lastCompletedPeriodKey: stampPeriodKey, lastCheckedPeriodKey: stampPeriodKey }
+      : result.updatedHabit;
 
     characterStore.setCharacter(result.character);
     bossStore.setBoss(result.boss);
@@ -97,23 +100,30 @@ export function useCombatActions() {
   }
 
   /**
-   * Marks a habit missed: resolves boss-attack damage to the player exactly
-   * once via `missHabit`, writes the single result back into the character,
-   * boss (a lifesteal boss heals off this same attack), and habit stores. If
-   * that brought currentHealth to 0, checks for an equipped Phoenix Feather:
-   * if present, it's consumed and the character revives immediately (no
-   * death screen); otherwise the death screen is flagged and the actual
-   * reset waits for `restart()`.
+   * Shared penalty core: resolves boss-attack damage to the player exactly
+   * once via `missHabit`, writes the result back into the character, boss
+   * (a lifesteal boss heals off this same attack), and habit stores, then
+   * checks for death. Used for both a good habit's rollover-detected miss
+   * and a bad habit's checkbox tap. `stampPeriodKey` mirrors `applyReward`'s.
+   *
+   * If the damage brought currentHealth to 0, checks for an equipped
+   * Phoenix Feather: if present, it's consumed and the character revives
+   * immediately (no death screen); otherwise the death screen is flagged
+   * and the actual reset waits for `restart()`.
    */
-  function checkMissedHabit(habitId: string): void {
+  function applyPenalty(habitId: string, stampPeriodKey?: string): void {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return;
 
     const result = missHabit(characterStore.character, habit, bossStore.boss, rng);
 
+    const updatedHabit: Habit = stampPeriodKey
+      ? { ...result.updatedHabit, lastCompletedPeriodKey: stampPeriodKey, lastCheckedPeriodKey: stampPeriodKey }
+      : result.updatedHabit;
+
     characterStore.setCharacter(result.character);
     bossStore.setBoss(result.boss);
-    habitStore.updateHabit(result.updatedHabit);
+    habitStore.updateHabit(updatedHabit);
 
     // Rounded, not the raw float: the health bar already displays
     // Math.round(currentHealth), so a tiny positive remainder (e.g. 0.3)
@@ -129,9 +139,55 @@ export function useCombatActions() {
     }
   }
 
+  /**
+   * Checks off a habit. For a good habit this resolves the reward
+   * (`applyReward`); for a bad habit it resolves the penalty
+   * (`applyPenalty` — you just admitted doing the bad thing). Either way,
+   * stamps the habit completed for the current period.
+   *
+   * Engine-level idempotency guard: this is the authoritative check that a
+   * habit cannot be resolved twice in the same period (double streak
+   * change, double damage, double milestone EXP), independent of any
+   * UI-layer `:disabled` binding. Mirrors the `isCompletedThisPeriod`
+   * predicate used in `HabitListItem.vue`.
+   */
+  function checkOffHabit(habitId: string): ItemDef[] {
+    const habit = habitStore.habits.find((h) => h.id === habitId);
+    if (!habit) return [];
+
+    const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
+    if (habit.lastCompletedPeriodKey === currentPeriodKey) return [];
+
+    if (habit.isBad) {
+      applyPenalty(habitId, currentPeriodKey);
+      return [];
+    }
+    return applyReward(habitId, currentPeriodKey);
+  }
+
+  /**
+   * Resolves a good habit's rollover-detected miss (penalty) — called only
+   * from `useMissedSkillsGate.acknowledge()` once the player has seen the
+   * popup. Doesn't stamp `lastCompletedPeriodKey`: a rollover resolution
+   * was never an active tap, so completion status for the period stays
+   * untouched (`lastCheckedPeriodKey` is stamped separately by the gate).
+   */
+  function checkMissedHabit(habitId: string): void {
+    applyPenalty(habitId);
+  }
+
+  /**
+   * Resolves a bad habit's rollover-detected avoidance (reward) — the bad-
+   * habit counterpart to `checkMissedHabit`, called the same way from
+   * `useMissedSkillsGate.acknowledge()`.
+   */
+  function checkAvoidedHabit(habitId: string): ItemDef[] {
+    return applyReward(habitId);
+  }
+
   /** Thin wrapper around `habitStore.addHabit`, sharing this module's Rng. */
-  function addHabit(name: string, period: Period, difficulty: Difficulty): Habit {
-    return habitStore.addHabit(name, period, difficulty, rng);
+  function addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean): Habit {
+    return habitStore.addHabit(name, period, difficulty, isBad, rng);
   }
 
   /**
@@ -149,5 +205,5 @@ export function useCombatActions() {
     dismissDeathScreen();
   }
 
-  return { checkOffHabit, checkMissedHabit, addHabit, restart };
+  return { checkOffHabit, checkMissedHabit, checkAvoidedHabit, addHabit, restart };
 }
