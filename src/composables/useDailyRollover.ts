@@ -1,7 +1,12 @@
 // Composable that walks every habit once per period-boundary crossing and
-// records a miss (via `useCombatActions().checkMissedHabit`) for any habit
-// that wasn't completed in the period immediately preceding the current
-// one. Intended to run once on app mount (see `App.vue`) — not on a timer.
+// queues a miss (via `useMissedSkillsGate().queueMiss`) for any habit that
+// wasn't completed in the period immediately preceding the current one.
+// Intended to run once on app mount (see `App.vue`) — not on a timer.
+//
+// Queuing, not applying: this only detects and records misses. The actual
+// damage and `lastCheckedPeriodKey` stamp are deferred to
+// `useMissedSkillsGate().acknowledge()`, once the player has seen the
+// missed-skills popup and clicked OK — see that composable for why.
 //
 // MVP scope only: this detects "was the most recently completed period
 // missed", not a backlog of every period missed while the app was closed.
@@ -11,7 +16,7 @@
 import { periodKeyFor } from '../game-engine';
 import type { Period } from '../game-engine';
 import { useHabitStore } from '../store/habitStore';
-import { useCombatActions } from './useCombatActions';
+import { useMissedSkillsGate } from './useMissedSkillsGate';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -24,35 +29,25 @@ function previousPeriodKey(period: Period, date: Date): string {
 /**
  * Runs the daily/weekly rollover check against every habit's current
  * state. For each habit whose period has advanced since it was last
- * checked, if it wasn't completed in the immediately-preceding period,
- * records a miss via `checkMissedHabit`. Either way, stamps
- * `lastCheckedPeriodKey` to the current period key afterward.
+ * checked: if it wasn't completed in the immediately-preceding period,
+ * queues a miss (leaving `lastCheckedPeriodKey` untouched until that miss
+ * is acknowledged); otherwise stamps `lastCheckedPeriodKey` to the current
+ * period key immediately, since there's nothing to gate on.
  */
 export function useDailyRollover(now: Date = new Date()): void {
   const habitStore = useHabitStore();
-  const { checkMissedHabit } = useCombatActions();
+  const { queueMiss } = useMissedSkillsGate();
 
-  // Snapshot ids up front: `checkMissedHabit` (and the player-death
-  // resolution it may trigger) can replace habit objects/arrays in the
-  // store mid-loop, so we look each habit up fresh by id on every step
-  // rather than iterating the live array directly.
-  const habitIds = habitStore.habits.map((habit) => habit.id);
-
-  for (const habitId of habitIds) {
-    const habit = habitStore.habits.find((h) => h.id === habitId);
-    if (!habit) continue;
-
+  for (const habit of habitStore.habits) {
     const currentPeriodKey = periodKeyFor(habit.period, now);
     if (habit.lastCheckedPeriodKey === currentPeriodKey) continue; // no boundary crossed
 
     const precedingPeriodKey = previousPeriodKey(habit.period, now);
     if (habit.lastCompletedPeriodKey !== precedingPeriodKey) {
-      checkMissedHabit(habitId);
+      queueMiss(habit, currentPeriodKey);
+      continue; // stamping deferred until the miss is acknowledged
     }
 
-    const latest = habitStore.habits.find((h) => h.id === habitId);
-    if (latest) {
-      habitStore.updateHabit({ ...latest, lastCheckedPeriodKey: currentPeriodKey });
-    }
+    habitStore.updateHabit({ ...habit, lastCheckedPeriodKey: currentPeriodKey });
   }
 }
