@@ -23,6 +23,9 @@ export {
   resolvePlayerDeathIfDead,
 } from './combat';
 
+export type { BoostableStat, ItemDef } from './items';
+export { ITEM_CATALOG, itemBonusPercent, rollItemDrops } from './items';
+
 export type { Rng } from './rng';
 export { createRng, pickWeighted, shuffle } from './rng';
 
