@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addExpAndResolveLevelUps, expToNextLevel, statAtLevel } from './leveling';
+import { addExpAndResolveLevelUps, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
 import { TUNING } from './constants/tuning';
 import type { Character } from './types';
 
@@ -90,5 +90,62 @@ describe('statAtLevel', () => {
     const starter = 37.5;
     const expected = starter * Math.pow(1 + TUNING.LEVEL_STAT_GROWTH_RATE, 9);
     expect(statAtLevel(starter, 10)).toBeCloseTo(expected, 10);
+  });
+});
+
+describe('effectiveStat', () => {
+  function makeCharacter(overrides: Partial<Character> = {}): Character {
+    return {
+      level: 1,
+      exp: 0,
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      currentHealth: 50,
+      ownedItemIds: [],
+      equippedItemIds: [],
+      ...overrides,
+    };
+  }
+
+  it('equals statAtLevel with no equipped items', () => {
+    const character = makeCharacter();
+    expect(effectiveStat(character, 'physicalDamage')).toBeCloseTo(
+      statAtLevel(character.starterStats.physicalDamage, character.level),
+      10,
+    );
+  });
+
+  it('scales up by the equipped item bonus percent', () => {
+    const character = makeCharacter({ ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'] });
+    const base = statAtLevel(character.starterStats.physicalDamage, character.level);
+    expect(effectiveStat(character, 'physicalDamage')).toBeCloseTo(base * 1.03, 10);
+  });
+
+  it('sums bonuses from multiple equipped items on the same stat', () => {
+    const character = makeCharacter({
+      ownedItemIds: ['rusty-blade', 'steel-sword'],
+      equippedItemIds: ['rusty-blade', 'steel-sword'],
+    });
+    const base = statAtLevel(character.starterStats.physicalDamage, character.level);
+    expect(effectiveStat(character, 'physicalDamage')).toBeCloseTo(base * 1.09, 10);
+  });
+});
+
+describe('addExpAndResolveLevelUps with item bonuses', () => {
+  function makeCharacter(overrides: Partial<Character> = {}): Character {
+    return {
+      level: 1,
+      exp: 0,
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      currentHealth: 50,
+      ownedItemIds: [],
+      equippedItemIds: [],
+      ...overrides,
+    };
+  }
+
+  it('scales exp gained by the equipped expGain bonus before applying it', () => {
+    const character = makeCharacter({ ownedItemIds: ['lucky-coin'], equippedItemIds: ['lucky-coin'] });
+    const result = addExpAndResolveLevelUps(character, 10);
+    expect(result.character.exp).toBeCloseTo(10 * 1.03, 10);
   });
 });

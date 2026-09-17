@@ -6,7 +6,7 @@ export type { Boss, Character, DamageType, Difficulty, Habit, Period, Personalit
 
 export { createCharacter, randomizeStat } from './character';
 
-export { addExpAndResolveLevelUps, expToNextLevel, statAtLevel } from './leveling';
+export { addExpAndResolveLevelUps, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
 
 export { computeDamageSplit, createHabit, rerollDamageType } from './habits';
 
