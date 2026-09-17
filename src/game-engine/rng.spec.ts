@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRng, pickWeighted } from './rng';
+import { createRng, pickWeighted, shuffle } from './rng';
 
 describe('createRng', () => {
   it('produces floats in [0, 1) when seeded', () => {
@@ -72,5 +72,37 @@ describe('pickWeighted', () => {
     expect(counts.physical / iterations).toBeCloseTo(0.4, 1);
     expect(counts.magic / iterations).toBeCloseTo(0.4, 1);
     expect(counts.healing / iterations).toBeCloseTo(0.2, 1);
+  });
+});
+
+describe('shuffle', () => {
+  it('returns an array with the same elements (order may differ)', () => {
+    const rng = createRng(5);
+    const result = shuffle([1, 2, 3, 4, 5], rng);
+    expect(result).toHaveLength(5);
+    expect([...result].sort()).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('does not mutate the input array', () => {
+    const rng = createRng(5);
+    const input = [1, 2, 3, 4, 5];
+    shuffle(input, rng);
+    expect(input).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('is deterministic for a given seed', () => {
+    const resultA = shuffle([1, 2, 3, 4, 5], createRng(123));
+    const resultB = shuffle([1, 2, 3, 4, 5], createRng(123));
+    expect(resultA).toEqual(resultB);
+  });
+
+  it('produces a different order than the input across most seeds', () => {
+    let differentCount = 0;
+    for (let seed = 0; seed < 50; seed++) {
+      const input = [1, 2, 3, 4, 5, 6, 7, 8];
+      const result = shuffle(input, createRng(seed));
+      if (!result.every((value, i) => value === input[i])) differentCount += 1;
+    }
+    expect(differentCount).toBeGreaterThan(40);
   });
 });

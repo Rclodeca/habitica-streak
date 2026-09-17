@@ -13,4 +13,6 @@ export const TUNING = {
   MISS_DAMAGE_FACTOR: 0.5,
   HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.4, magic: 0.4, healing: 0.2 },
   BOSS_PERSONALITY_WEIGHTS: { balanced: 0.2, tank: 0.2, armored: 0.2, warded: 0.2, brute: 0.2 },
+  ITEM_DROP_EVERY_N_BOSSES: 3, // bosses 1-3 drop 1 item, 4-6 drop 2, 7+ drop 3 (capped)
+  ITEM_DROP_MAX_COUNT: 3,
 } as const;
