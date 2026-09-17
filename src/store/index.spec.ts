@@ -44,4 +44,21 @@ describe('store persistence smoke test', () => {
     expect(parsed.habits).toEqual([]);
     expect(parsed.meta.lastRolloverCheckedAt).toBeTypeOf('string');
   });
+
+  it('does not accumulate duplicate $subscribe listeners when initializeStores() is called again against the same active pinia', () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+    const first = initializeStores();
+    const second = initializeStores(); // same active pinia — setupPersistence should be a no-op the 2nd time
+    expect(second.characterStore).toBe(first.characterStore); // same store instance, confirming same pinia
+
+    first.characterStore.character.exp += 5;
+    vi.advanceTimersByTime(300);
+
+    // If persistence had been wired twice, this single mutation would have
+    // scheduled two independent debounce timers and produced two writes.
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+
+    setItemSpy.mockRestore();
+  });
 });

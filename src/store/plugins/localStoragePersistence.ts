@@ -11,12 +11,23 @@ import { writeSaveState } from './saveState';
 
 const DEBOUNCE_MS = 250;
 
+// Tracks which `Pinia` instances already have persistence wired up, so a
+// repeat call against the same instance (e.g. `initializeStores()` invoked
+// more than once with the same active Pinia) doesn't stack a second set of
+// `$subscribe` listeners — and thus a second, ever-accumulating debounce
+// timer — on top of the first.
+const wiredPinias = new WeakSet<Pinia>();
+
 /**
  * Subscribes to all three stores and, on any mutation, debounce-writes the
- * combined save shape to localStorage. Safe to call once per `pinia`
- * instance, after the stores have been hydrated by `initFromSave`.
+ * combined save shape to localStorage. Idempotent per `pinia` instance —
+ * calling this again for a `pinia` already wired is a no-op. Call after the
+ * stores have been hydrated by `initFromSave`.
  */
 export function setupPersistence(pinia: Pinia): void {
+  if (wiredPinias.has(pinia)) return;
+  wiredPinias.add(pinia);
+
   const characterStore = useCharacterStore(pinia);
   const bossStore = useBossStore(pinia);
   const habitStore = useHabitStore(pinia);
