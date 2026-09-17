@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import type { Personality } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useBossStore } from '../../store/bossStore';
-import BossStatsModal from './BossStatsModal.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Sprite from '../ui/Sprite.vue';
 
@@ -21,13 +20,11 @@ const bossStore = useBossStore();
 
 const boss = computed(() => bossStore.boss);
 
-const showStatsModal = ref(false);
-
 const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 </script>
 
 <template>
-  <section class="panel boss-panel" @click="showStatsModal = true">
+  <section class="panel boss-panel">
     <div class="panel-header">
       <div class="sprite-wrapper" :class="{ hit: isHit }">
         <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
@@ -36,14 +33,25 @@ const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
       <h2>Boss #{{ boss.index }} — {{ boss.personality }}</h2>
     </div>
     <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
-  </section>
 
-  <BossStatsModal v-model="showStatsModal" :boss="boss" />
+    <dl class="stat-list">
+      <dt>Physical attack</dt>
+      <dd>{{ boss.physicalAttack.toFixed(1) }}</dd>
+
+      <dt>Magic attack</dt>
+      <dd>{{ boss.magicAttack.toFixed(1) }}</dd>
+
+      <dt>Armor</dt>
+      <dd>{{ boss.armor.toFixed(1) }}</dd>
+
+      <dt>Magic resist</dt>
+      <dd>{{ boss.magicResist.toFixed(1) }}</dd>
+    </dl>
+  </section>
 </template>
 
 <style scoped>
 .boss-panel {
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -57,6 +65,23 @@ const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 
 .panel-header h2 {
   margin: 0;
+}
+
+.stat-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+}
+
+.stat-list dt {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.stat-list dd {
+  margin: 0;
+  text-align: right;
 }
 
 .sprite-wrapper {
