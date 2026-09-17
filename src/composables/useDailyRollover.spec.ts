@@ -6,22 +6,29 @@
 // convention used by `store/index.spec.ts`.
 
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createRng, periodKeyFor } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
 import { useDailyRollover } from './useDailyRollover';
+import { useMissedSkillsGate } from './useMissedSkillsGate';
 
 describe('useDailyRollover', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
   });
 
-  it('applies miss damage and resets the streak for a daily habit not completed in the preceding period', () => {
+  afterEach(() => {
+    // `pending` in useMissedSkillsGate is a module-scope singleton — clear
+    // it so a miss queued in one test doesn't leak into the next.
+    useMissedSkillsGate().acknowledge();
+  });
+
+  it('queues a miss (without applying damage) for a daily habit not completed in the preceding period', () => {
     const habitStore = useHabitStore();
     const characterStore = useCharacterStore();
-    useBossStore(); // bootstraps the boss slice used internally by the rollover's miss resolution
+    useBossStore(); // bootstraps the boss slice used internally by miss resolution
 
     const habit = habitStore.addHabit('Meditate', 'daily', 'medium', createRng());
 
@@ -46,9 +53,46 @@ describe('useDailyRollover', () => {
     const currentPeriodKey = periodKeyFor('daily', now);
     const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
 
+    // Detection queues the miss but doesn't resolve it yet — that waits for
+    // the popup to be acknowledged.
+    expect(characterStore.character.currentHealth).toBe(healthBefore);
+    expect(updatedHabit?.streakCount).toBe(3);
+    expect(updatedHabit?.lastCheckedPeriodKey).toBe(yesterdayKey);
+    expect(useMissedSkillsGate().misses.value).toEqual([
+      { habitId: habit.id, habitName: 'Meditate', periodKeyToStamp: currentPeriodKey },
+    ]);
+  });
+
+  it('applies the queued miss (damage, streak reset, stamp) once acknowledged', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    useBossStore();
+
+    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', createRng());
+
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayKey = periodKeyFor('daily', yesterday);
+
+    habitStore.updateHabit({
+      ...habit,
+      streakCount: 3,
+      lastCheckedPeriodKey: yesterdayKey,
+      lastCompletedPeriodKey: null,
+    });
+
+    const healthBefore = characterStore.character.currentHealth;
+
+    useDailyRollover(now);
+    useMissedSkillsGate().acknowledge();
+
+    const currentPeriodKey = periodKeyFor('daily', now);
+    const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
+
     expect(characterStore.character.currentHealth).toBeLessThan(healthBefore);
     expect(updatedHabit?.streakCount).toBe(0);
     expect(updatedHabit?.lastCheckedPeriodKey).toBe(currentPeriodKey);
+    expect(useMissedSkillsGate().misses.value).toEqual([]);
   });
 
   it('does not record a miss for a habit already completed in the preceding period', () => {
@@ -79,6 +123,7 @@ describe('useDailyRollover', () => {
     expect(characterStore.character.currentHealth).toBe(healthBefore);
     expect(updatedHabit?.streakCount).toBe(5); // untouched — no miss recorded
     expect(updatedHabit?.lastCheckedPeriodKey).toBe(currentPeriodKey);
+    expect(useMissedSkillsGate().misses.value).toEqual([]);
   });
 
   it('does not re-check a habit already stamped for the current period (no double-processing)', () => {
@@ -104,5 +149,6 @@ describe('useDailyRollover', () => {
     const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
     expect(characterStore.character.currentHealth).toBe(healthBefore);
     expect(updatedHabit?.streakCount).toBe(2);
+    expect(useMissedSkillsGate().misses.value).toEqual([]);
   });
 });
