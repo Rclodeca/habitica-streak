@@ -15,7 +15,13 @@ export { completeHabitStreak, resetHabitStreak, streakMultiplier } from './strea
 export { applyResist, bossExpReward, bossPowerBudget, damageReductionPct, generateBoss } from './boss';
 
 export type { CombatResult } from './combat';
-export { completeHabit, missHabit, resolveBossDefeatIfDead, resolvePlayerDeathIfDead } from './combat';
+export {
+  completeHabit,
+  DAMAGE_TYPE_STARTER_STAT,
+  missHabit,
+  resolveBossDefeatIfDead,
+  resolvePlayerDeathIfDead,
+} from './combat';
 
 export type { Rng } from './rng';
 export { createRng, pickWeighted } from './rng';

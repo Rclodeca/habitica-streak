@@ -9,7 +9,7 @@ import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './strea
 import type { Boss, Character, DamageType, Habit } from './types';
 
 /** Maps a habit's damage type to the starter-stat field that drives it. */
-const DAMAGE_TYPE_STARTER_STAT: Record<DamageType, keyof Character['starterStats']> = {
+export const DAMAGE_TYPE_STARTER_STAT: Record<DamageType, keyof Character['starterStats']> = {
   physical: 'physicalDamage',
   magic: 'magicDamage',
   healing: 'healing',
