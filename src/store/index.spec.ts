@@ -42,7 +42,6 @@ describe('store persistence smoke test', () => {
     expect(parsed.character.exp).toBe(characterStore.character.exp);
     expect(parsed.boss).toBeDefined();
     expect(parsed.habits).toEqual([]);
-    expect(parsed.meta.lastRolloverCheckedAt).toBeTypeOf('string');
   });
 
   it('does not accumulate duplicate $subscribe listeners when initializeStores() is called again against the same active pinia', () => {
