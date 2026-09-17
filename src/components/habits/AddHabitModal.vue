@@ -1,10 +1,14 @@
 <script setup lang="ts">
-// Dedicated add-habit form. No damage-type field: damage type is randomly
-// assigned by `createHabit` (see `game-engine/habits.ts`), never user-chosen.
+// Add-habit popup. No damage-type field: damage type is randomly assigned
+// by `createHabit` (see `game-engine/habits.ts`), never user-chosen.
 
 import { ref } from 'vue';
 import type { Difficulty, Period } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
+import Modal from '../ui/Modal.vue';
+
+defineProps<{ modelValue: boolean }>();
+const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
 const { addHabit } = useCombatActions();
 
@@ -17,30 +21,36 @@ function onSubmit() {
   if (!trimmedName) return;
   addHabit(trimmedName, period.value, difficulty.value);
   name.value = '';
+  emit('update:modelValue', false);
 }
 </script>
 
 <template>
-  <form class="add-habit-form" @submit.prevent="onSubmit">
-    <input v-model="name" type="text" placeholder="Habit name" required />
-    <select v-model="period">
-      <option value="daily">Daily</option>
-      <option value="weekly">Weekly</option>
-    </select>
-    <select v-model="difficulty">
-      <option value="easy">Easy</option>
-      <option value="medium">Medium</option>
-      <option value="hard">Hard</option>
-    </select>
-    <button type="submit">Add habit</button>
-  </form>
+  <Modal
+    :model-value="modelValue"
+    title="Add habit"
+    @update:model-value="(value) => $emit('update:modelValue', value)"
+  >
+    <form class="add-habit-form" @submit.prevent="onSubmit">
+      <input v-model="name" type="text" placeholder="Habit name" required />
+      <select v-model="period">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+      </select>
+      <select v-model="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <button type="submit">Add habit</button>
+    </form>
+  </Modal>
 </template>
 
 <style scoped>
 .add-habit-form {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
-  margin-top: 1rem;
 }
 </style>
