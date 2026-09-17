@@ -41,7 +41,8 @@
 | File | Source |
 |---|---|
 | `player/base-skin.png` | `customize/skin/skin_f5a76e.png` |
-| `player/base-hair.png` | `customize/hair/hair_bangs_1_black.png` |
+| `player/base-hair.png` | `customize/hair/hair_base_16_black.png` |
+| `player/base-shirt.png` | `customize/shirts/broad_shirt_blue.png` |
 | `player/weapon-physical-1.png` | `gear/weapon/weapon_warrior_1.png` |
 | `player/weapon-physical-2.png` | `gear/weapon/weapon_warrior_3.png` |
 | `player/weapon-physical-3.png` | `gear/weapon/weapon_warrior_5.png` |
