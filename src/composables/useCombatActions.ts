@@ -24,6 +24,7 @@ import {
 import type { Difficulty, Habit, Period } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
+import { useDebugClockStore } from '../store/debugClockStore';
 import { useHabitStore } from '../store/habitStore';
 
 // Shared across calls made through this composable. This is app runtime
@@ -35,6 +36,7 @@ export function useCombatActions() {
   const characterStore = useCharacterStore();
   const bossStore = useBossStore();
   const habitStore = useHabitStore();
+  const debugClockStore = useDebugClockStore();
 
   /**
    * Checks off a habit: resolves its combat outcome (boss damage or player
@@ -54,7 +56,7 @@ export function useCombatActions() {
     // increment, double boss damage, double milestone EXP), independent of
     // any UI-layer `:disabled` binding. Mirrors the `isCompletedThisPeriod`
     // predicate used in `HabitListItem.vue`.
-    const currentPeriodKey = periodKeyFor(habit.period, new Date());
+    const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
     if (habit.lastCompletedPeriodKey === currentPeriodKey) return;
 
     const allHabitsOfSameType = habitStore.habitsOfType(habit.damageType);

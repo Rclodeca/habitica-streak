@@ -3,14 +3,16 @@ import { computed, ref } from 'vue';
 import { periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
+import { useDebugClockStore } from '../../store/debugClockStore';
 import HabitStatsModal from './HabitStatsModal.vue';
 
 const props = defineProps<{ habit: Habit }>();
 
 const { checkOffHabit } = useCombatActions();
+const debugClockStore = useDebugClockStore();
 
 const isCompletedThisPeriod = computed(
-  () => props.habit.lastCompletedPeriodKey === periodKeyFor(props.habit.period, new Date()),
+  () => props.habit.lastCompletedPeriodKey === periodKeyFor(props.habit.period, debugClockStore.now()),
 );
 
 function onCheckOff() {
