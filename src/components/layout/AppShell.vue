@@ -13,6 +13,8 @@ import { useHighScoreStore } from '../../store/highScoreStore';
 const bossStore = useBossStore();
 const highScoreStore = useHighScoreStore();
 
+const isDev = import.meta.env.DEV;
+
 const bossIndex = computed(() => bossStore.boss.index);
 const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
 </script>
@@ -26,7 +28,7 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
     <DeathScreen />
     <ItemDropPopup />
     <ReviveNotice />
-    <SkipDayButton />
+    <SkipDayButton v-if="isDev" />
     <div class="top-panels">
       <BossPanel />
       <CharacterPanel />
