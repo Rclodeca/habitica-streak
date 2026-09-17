@@ -24,6 +24,7 @@ const showStatsModal = ref(false);
   <li class="habit-item" @click="showStatsModal = true">
     <input
       type="checkbox"
+      :aria-label="`Complete ${habit.name}`"
       :checked="isCompletedThisPeriod"
       :disabled="isCompletedThisPeriod"
       @click.stop
