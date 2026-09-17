@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyResist, bossExpReward } from './boss';
+import { MILESTONE_EXP } from './constants/milestones';
 import { addExpAndResolveLevelUps, statAtLevel } from './leveling';
 import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
@@ -51,7 +52,7 @@ function makeHabit(overrides: Partial<Habit> = {}): Habit {
 }
 
 describe('completeHabit', () => {
-  it('deals baseDamage * streakMultiplier reduced by the boss armor for a physical habit, and increments streak', () => {
+  it('deals baseDamage * streakMultiplier reduced by the boss armor for a physical habit, increments streak, and returns milestone exp when the new streak crosses a milestone', () => {
     const character = makeCharacter();
     const habit = makeHabit({ damageType: 'physical', streakCount: 4 });
     const boss = makeBoss({ armor: 15, health: 500 });
@@ -67,9 +68,12 @@ describe('completeHabit', () => {
     expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
     expect(result.boss.health).toBeCloseTo(500 - expectedDealt, 10);
     expect(result.updatedHabit.streakCount).toBe(5);
+    // Streak 4 -> 5 crosses the milestone at 5 (MILESTONE_EXP[5] = 20).
+    expect(result.milestoneExp).toBe(MILESTONE_EXP[5]);
+    expect(result.milestoneExp).toBe(20);
   });
 
-  it('deals baseDamage * streakMultiplier reduced by the boss magicResist for a magic habit', () => {
+  it('deals baseDamage * streakMultiplier reduced by the boss magicResist for a magic habit, and returns 0 milestone exp on a non-milestone completion', () => {
     const character = makeCharacter();
     const habit = makeHabit({ damageType: 'magic', streakCount: 0 });
     const boss = makeBoss({ magicResist: 25, health: 500 });
@@ -82,6 +86,8 @@ describe('completeHabit', () => {
 
     expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
     expect(result.boss.health).toBeCloseTo(500 - expectedDealt, 10);
+    // Streak 0 -> 1 does not cross any milestone.
+    expect(result.milestoneExp).toBe(0);
   });
 
   it('splits damage proportionally to difficulty weight across multiple habits of the same type', () => {
