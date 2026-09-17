@@ -56,15 +56,15 @@ export const useCharacterStore = defineStore('character', {
      * `currentHealth`; damage habits leave the character untouched). Returns
      * the full combat result so callers can apply the boss/habit sides too.
      */
-    completeHabit(habit: Habit, allHabitsOfSameType: Habit[], boss: Boss) {
-      const result = completeHabit(this.character, habit, allHabitsOfSameType, boss);
+    completeHabit(habit: Habit, allHabitsOfSameType: Habit[], boss: Boss, rng: Rng) {
+      const result = completeHabit(this.character, habit, allHabitsOfSameType, boss, rng);
       this.character = result.character;
       return result;
     },
 
     /** Character-side effect of missing a habit: applies boss-attack damage. */
-    missHabit(habit: Habit, boss: Boss) {
-      const result = missHabit(this.character, habit, boss);
+    missHabit(habit: Habit, boss: Boss, rng: Rng) {
+      const result = missHabit(this.character, habit, boss, rng);
       this.character = result.character;
       return result;
     },

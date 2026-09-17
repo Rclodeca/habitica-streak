@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addExpAndResolveLevelUps, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
+import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
 import { TUNING } from './constants/tuning';
 import type { Character } from './types';
 
@@ -43,6 +43,7 @@ describe('addExpAndResolveLevelUps', () => {
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
+      critChance: 0.01,
       ...overrides,
     };
   }
@@ -79,6 +80,40 @@ describe('addExpAndResolveLevelUps', () => {
     expect(result.character.currentHealth).toBe(42);
     expect(result.character.starterStats).toEqual(character.starterStats);
   });
+
+  it('heals a percent of max health on level-up when a lifesteal item is equipped', () => {
+    const character = makeCharacter({
+      currentHealth: 10,
+      ownedItemIds: ['vampiric-fang'],
+      equippedItemIds: ['vampiric-fang'],
+    });
+    const result = addExpAndResolveLevelUps(character, 25); // exactly enough for 1 level
+
+    expect(result.levelsGained).toBe(1);
+    const maxHealthAtNewLevel = statAtLevel(character.starterStats.health, result.character.level);
+    const expectedHeal = maxHealthAtNewLevel * 0.05; // vampiric-fang bonusPercent: 5
+    expect(result.character.currentHealth).toBeCloseTo(10 + expectedHeal, 10);
+  });
+
+  it('does not heal on level-up without a lifesteal item equipped', () => {
+    const character = makeCharacter({ currentHealth: 10 });
+    const result = addExpAndResolveLevelUps(character, 25);
+
+    expect(result.levelsGained).toBe(1);
+    expect(result.character.currentHealth).toBe(10);
+  });
+
+  it('does not heal from lifesteal when no level was gained', () => {
+    const character = makeCharacter({
+      currentHealth: 10,
+      ownedItemIds: ['vampiric-fang'],
+      equippedItemIds: ['vampiric-fang'],
+    });
+    const result = addExpAndResolveLevelUps(character, 5); // below the level-1 threshold
+
+    expect(result.levelsGained).toBe(0);
+    expect(result.character.currentHealth).toBe(10);
+  });
 });
 
 describe('statAtLevel', () => {
@@ -102,6 +137,7 @@ describe('effectiveStat', () => {
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
+      critChance: 0.01,
       ...overrides,
     };
   }
@@ -139,6 +175,7 @@ describe('addExpAndResolveLevelUps with item bonuses', () => {
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
+      critChance: 0.01,
       ...overrides,
     };
   }
@@ -147,5 +184,38 @@ describe('addExpAndResolveLevelUps with item bonuses', () => {
     const character = makeCharacter({ ownedItemIds: ['lucky-coin'], equippedItemIds: ['lucky-coin'] });
     const result = addExpAndResolveLevelUps(character, 10);
     expect(result.character.exp).toBeCloseTo(10 * 1.03, 10);
+  });
+});
+
+describe('effectiveCritChance', () => {
+  function makeCharacter(overrides: Partial<Character> = {}): Character {
+    return {
+      level: 1,
+      exp: 0,
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      currentHealth: 50,
+      ownedItemIds: [],
+      equippedItemIds: [],
+      critChance: 0.01,
+      ...overrides,
+    };
+  }
+
+  it('equals the character base crit chance with no items equipped', () => {
+    expect(effectiveCritChance(makeCharacter())).toBeCloseTo(0.01, 10);
+  });
+
+  it('adds equipped critChance item bonuses (as percentage points) to the base', () => {
+    const character = makeCharacter({ ownedItemIds: ['lucky-dagger'], equippedItemIds: ['lucky-dagger'] });
+    expect(effectiveCritChance(character)).toBeCloseTo(0.01 + 0.02, 10);
+  });
+
+  it('caps at TUNING.CRIT_CHANCE_CAP even when base + item bonuses would exceed it', () => {
+    const character = makeCharacter({
+      critChance: 0.9, // synthetic — real base is always TUNING.BASE_CRIT_CHANCE, but the cap must hold regardless
+      ownedItemIds: ['eagle-eye-lens'],
+      equippedItemIds: ['eagle-eye-lens'],
+    });
+    expect(effectiveCritChance(character)).toBe(TUNING.CRIT_CHANCE_CAP);
   });
 });

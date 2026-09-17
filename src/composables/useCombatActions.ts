@@ -25,6 +25,7 @@ import {
   periodKeyFor,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
+  reviveWithFeatherIfEquipped,
 } from '../game-engine';
 import type { Difficulty, Habit, ItemDef, Period } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
@@ -32,6 +33,7 @@ import { useCharacterStore } from '../store/characterStore';
 import { useDebugClockStore } from '../store/debugClockStore';
 import { useHabitStore } from '../store/habitStore';
 import { useDeathScreen } from './useDeathScreen';
+import { useReviveNotice } from './useReviveNotice';
 
 // Shared across calls made through this composable. This is app runtime
 // code (not `game-engine/`), so an unseeded Math.random()-backed Rng is
@@ -44,6 +46,7 @@ export function useCombatActions() {
   const habitStore = useHabitStore();
   const debugClockStore = useDebugClockStore();
   const { triggerDeath, dismiss: dismissDeathScreen } = useDeathScreen();
+  const { showReviveNotice } = useReviveNotice();
 
   /**
    * Checks off a habit: resolves its combat outcome (boss damage or player
@@ -67,7 +70,7 @@ export function useCombatActions() {
     if (habit.lastCompletedPeriodKey === currentPeriodKey) return [];
 
     const allHabitsOfSameType = habitStore.habitsOfType(habit.damageType);
-    const result = completeHabit(characterStore.character, habit, allHabitsOfSameType, bossStore.boss);
+    const result = completeHabit(characterStore.character, habit, allHabitsOfSameType, bossStore.boss, rng);
 
     const updatedHabit: Habit = {
       ...result.updatedHabit,
@@ -96,20 +99,31 @@ export function useCombatActions() {
   /**
    * Marks a habit missed: resolves boss-attack damage to the player exactly
    * once via `missHabit`, writes the single result back into the character
-   * and habit stores, then flags the death screen if that brought
-   * currentHealth to 0 — the reset itself waits for `restart()`.
+   * and habit stores. If that brought currentHealth to 0, checks for an
+   * equipped Phoenix Feather: if present, it's consumed and the character
+   * revives immediately (no death screen); otherwise the death screen is
+   * flagged and the actual reset waits for `restart()`.
    */
   function checkMissedHabit(habitId: string): void {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return;
 
-    const result = missHabit(characterStore.character, habit, bossStore.boss);
+    const result = missHabit(characterStore.character, habit, bossStore.boss, rng);
 
     characterStore.setCharacter(result.character);
     habitStore.updateHabit(result.updatedHabit);
 
-    if (result.character.currentHealth <= 0) {
-      triggerDeath();
+    // Rounded, not the raw float: the health bar already displays
+    // Math.round(currentHealth), so a tiny positive remainder (e.g. 0.3)
+    // would otherwise show as "0 HP" without actually triggering death.
+    if (Math.round(result.character.currentHealth) <= 0) {
+      const reviveResult = reviveWithFeatherIfEquipped(result.character);
+      if (reviveResult.revived) {
+        characterStore.setCharacter(reviveResult.character);
+        showReviveNotice();
+      } else {
+        triggerDeath();
+      }
     }
   }
 

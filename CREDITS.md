@@ -33,6 +33,21 @@
 | `items/lucky-coin.png` | `misc/Pet_Currency_Gem.png` |
 | `items/shining-star.png` | `misc/seafoam_star.png` |
 | `items/rebirth-orb.png` | `misc/rebirth_orb.png` |
+| `items/lucky-dagger.png` | `gear/weapon/shop/shop_weapon_rogue_1.png` |
+| `items/assassins-edge.png` | `gear/weapon/shop/shop_weapon_rogue_3.png` |
+| `items/eagle-eye-lens.png` | `gear/armoire/shop/shop_weapon_armoire_magnifyingGlass.png` |
+| `items/battlemage-gauntlets.png` | `gear/weapon/shop/shop_weapon_special_fencingFoil.png` |
+| `items/runed-warblade.png` | `gear/weapon/shop/shop_weapon_special_tachi.png` |
+| `items/chaos-blade.png` | `gear/weapon/shop/shop_weapon_special_lunarScythe.png` |
+| `items/dragons-heart.png` | `gear/armoire/shop/shop_armor_armoire_dragonKnightsArmor.png` |
+| `items/void-crystal.png` | `gear/armoire/shop/shop_weapon_armoire_crystalCrescentStaff.png` |
+| `items/berserkers-fury.png` | `gear/armoire/shop/shop_weapon_armoire_battleAxe.png` |
+| `items/phoenix-feather.png` | `gear/armoire/shop/shop_weapon_armoire_featherDuster.png` |
+| `items/vampiric-fang.png` | `gear/weapon/shop/shop_weapon_rogue_6.png` |
+| `items/executioners-axe.png` | `gear/weapon/shop/shop_weapon_warrior_4.png` |
+| `items/godslayer-greatblade.png` | `gear/weapon/shop/shop_weapon_warrior_6.png` |
+| `items/stormcaller-staff.png` | `gear/weapon/shop/shop_weapon_wizard_4.png` |
+| `items/voidcallers-scepter.png` | `gear/weapon/shop/shop_weapon_wizard_6.png` |
 
 ## Player sprite layers
 
@@ -41,7 +56,7 @@
 | File | Source |
 |---|---|
 | `player/base-skin.png` | `customize/skin/skin_f5a76e.png` |
-| `player/base-hair.png` | `customize/hair/hair_base_16_black.png` |
+| `player/base-hair.png` | `customize/hair/hair_bangs_4_brown.png` |
 | `player/base-shirt.png` | `customize/shirts/broad_shirt_blue.png` |
 | `player/weapon-physical-1.png` | `gear/weapon/weapon_warrior_1.png` |
 | `player/weapon-physical-2.png` | `gear/weapon/weapon_warrior_3.png` |

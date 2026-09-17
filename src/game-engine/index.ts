@@ -6,7 +6,7 @@ export type { Boss, Character, DamageType, Difficulty, Habit, Period, Personalit
 
 export { createCharacter, randomizeStat } from './character';
 
-export { addExpAndResolveLevelUps, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
+export { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
 
 export { computeDamageSplit, createHabit, rerollDamageType } from './habits';
 
@@ -19,12 +19,13 @@ export {
   completeHabit,
   DAMAGE_TYPE_STARTER_STAT,
   missHabit,
+  reviveWithFeatherIfEquipped,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
 } from './combat';
 
-export type { BoostableStat, ItemDef } from './items';
-export { bodySpriteFor, ITEM_CATALOG, itemBonusPercent, rollItemDrops } from './items';
+export type { BoostableStat, ItemDef, ItemRarity } from './items';
+export { bodySpriteFor, describeItemBonus, ITEM_CATALOG, itemBonusPercent, rollItemDrops } from './items';
 
 export type { Rng } from './rng';
 export { createRng, pickWeighted, shuffle } from './rng';

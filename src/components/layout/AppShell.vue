@@ -6,6 +6,7 @@ import SkipDayButton from '../debug/SkipDayButton.vue';
 import HabitList from '../habits/HabitList.vue';
 import DeathScreen from '../ui/DeathScreen.vue';
 import ItemDropPopup from '../ui/ItemDropPopup.vue';
+import ReviveNotice from '../ui/ReviveNotice.vue';
 import { useBossStore } from '../../store/bossStore';
 import { useHighScoreStore } from '../../store/highScoreStore';
 
@@ -24,6 +25,7 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
     </div>
     <DeathScreen />
     <ItemDropPopup />
+    <ReviveNotice />
     <SkipDayButton />
     <div class="top-panels">
       <BossPanel />

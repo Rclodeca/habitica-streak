@@ -7,23 +7,25 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRng, periodKeyFor } from '../game-engine';
+import { createRng, effectiveStat, periodKeyFor } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
 import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
+import { useReviveNotice } from './useReviveNotice';
 
 describe('useCombatActions', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
   });
 
-  // `isDead` is a module-scope singleton (see useDeathScreen.ts) — dismiss
-  // it after every test so a death triggered in one test can't leak into
-  // the next.
+  // `isDead`/revive-notice `visible` are module-scope singletons (see
+  // useDeathScreen.ts/useReviveNotice.ts) — dismiss/clear them after every
+  // test so state triggered in one test can't leak into the next.
   afterEach(() => {
     useDeathScreen().dismiss();
+    useReviveNotice().visible.value = false;
   });
 
   it('checkOffHabit is a no-op when called a second time on a habit already completed this period', () => {
@@ -101,6 +103,54 @@ describe('useCombatActions', () => {
     // No auto-reset yet — character/boss are left exactly as the miss left them.
     expect(characterStore.character.currentHealth).toBe(0);
     expect(bossStore.boss.index).toBe(3);
+  });
+
+  it('flags the death screen when currentHealth is a tiny positive fraction that rounds to 0 (not literally 0)', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const { checkMissedHabit } = useCombatActions();
+    const { isDead } = useDeathScreen();
+
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', createRng());
+    // Health bar already displays Math.round(currentHealth), so 0.3 reads
+    // as "0 HP" even though it's not literally 0. Zero boss attack means
+    // this miss deals 0 damage regardless of the crit/attack-type rng roll,
+    // so currentHealth stays at exactly 0.3 — deterministic, no flakiness.
+    characterStore.character = { ...characterStore.character, currentHealth: 0.3 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 0, magicAttack: 0, index: 3 });
+
+    checkMissedHabit(habit.id);
+
+    expect(characterStore.character.currentHealth).toBe(0.3);
+    expect(isDead.value).toBe(true);
+  });
+
+  it('checkMissedHabit revives via an equipped Phoenix Feather instead of triggering the death screen', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const { checkMissedHabit } = useCombatActions();
+    const { isDead } = useDeathScreen();
+    const { visible: reviveVisible } = useReviveNotice();
+
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', createRng());
+    characterStore.character = {
+      ...characterStore.character,
+      currentHealth: 1,
+      ownedItemIds: ['phoenix-feather'],
+      equippedItemIds: ['phoenix-feather'],
+    };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
+
+    checkMissedHabit(habit.id);
+
+    expect(isDead.value).toBe(false);
+    expect(reviveVisible.value).toBe(true);
+    expect(characterStore.character.currentHealth).toBeCloseTo(effectiveStat(characterStore.character, 'health') * 0.5, 5);
+    expect(characterStore.character.equippedItemIds).not.toContain('phoenix-feather');
+    expect(characterStore.character.ownedItemIds).not.toContain('phoenix-feather');
+    expect(bossStore.boss.index).toBe(3); // boss progress untouched by a feather revive
   });
 
   it('restart resets character/boss/habits and clears the death flag', () => {

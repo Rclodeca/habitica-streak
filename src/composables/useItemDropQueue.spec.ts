@@ -10,7 +10,16 @@ import { useCharacterStore } from '../store/characterStore';
 import { useItemDropQueue } from './useItemDropQueue';
 
 function makeItem(overrides: Partial<ItemDef> = {}): ItemDef {
-  return { id: 'rusty-blade', name: 'Rusty Blade', icon: 'items/rusty-blade', stat: 'physicalDamage', bonusPercent: 3, ...overrides };
+  return {
+    id: 'rusty-blade',
+    name: 'Rusty Blade',
+    icon: 'items/rusty-blade',
+    type: 'equipment',
+    rarity: 'common',
+    stat: 'physicalDamage',
+    bonusPercent: 3,
+    ...overrides,
+  };
 }
 
 describe('useItemDropQueue', () => {

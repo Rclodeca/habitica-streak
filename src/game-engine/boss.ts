@@ -56,6 +56,7 @@ export function generateBoss(index: number, rng: Rng): Boss {
     magicAttack: jittered(shares.magicAttack),
     armor: jittered(shares.armor),
     magicResist: jittered(shares.magicResist),
+    critChance: TUNING.BASE_CRIT_CHANCE, // fixed for every boss — difficulty scales via power budget, not crit
   };
 }
 

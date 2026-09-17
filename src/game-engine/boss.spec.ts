@@ -59,6 +59,11 @@ describe('generateBoss', () => {
     }
   });
 
+  it('always spawns with the fixed base crit chance, regardless of index', () => {
+    expect(generateBoss(1, createRng(1)).critChance).toBe(TUNING.BASE_CRIT_CHANCE);
+    expect(generateBoss(20, createRng(1)).critChance).toBe(TUNING.BASE_CRIT_CHANCE);
+  });
+
   it('generates the requested personality when forced', () => {
     for (const personality of Object.keys(FORCED_ROLL_FOR) as Personality[]) {
       const rng = forcedPersonalityRng(FORCED_ROLL_FOR[personality], 1);

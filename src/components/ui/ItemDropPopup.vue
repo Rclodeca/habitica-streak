@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { ITEM_CATALOG } from '../../game-engine';
+import { describeItemBonus, ITEM_CATALOG } from '../../game-engine';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { useCharacterStore } from '../../store/characterStore';
 import Modal from './Modal.vue';
@@ -21,16 +21,17 @@ const equippedItems = computed(() =>
     @update:model-value="dismiss"
   >
     <template v-if="current">
-      <p class="found-item">{{ current.name }} — +{{ current.bonusPercent }}% {{ current.stat }}</p>
+      <p class="found-item">{{ current.name }} — {{ describeItemBonus(current) }}</p>
 
       <template v-if="isFull">
-        <p class="replace-prompt">Your 4 slots are full — choose one to replace:</p>
+        <p class="replace-prompt">Your 4 slots are full — choose one to replace, or drop the new item:</p>
         <ul class="replace-list">
           <li v-for="item in equippedItems" :key="item.id" class="replace-row">
-            <span>{{ item.name }} (+{{ item.bonusPercent }}% {{ item.stat }})</span>
+            <span>{{ item.name }} ({{ describeItemBonus(item) }})</span>
             <button type="button" @click="replace(item.id)">Replace</button>
           </li>
         </ul>
+        <button type="button" class="drop-button" @click="dismiss">Drop {{ current.name }}</button>
       </template>
 
       <button v-else type="button" class="dismiss-button" @click="dismiss">Nice!</button>
@@ -66,5 +67,11 @@ const equippedItems = computed(() =>
 
 .dismiss-button {
   display: block;
+}
+
+.drop-button {
+  display: block;
+  margin-top: 0.75rem;
+  background: transparent;
 }
 </style>
