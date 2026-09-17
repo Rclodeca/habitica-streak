@@ -21,7 +21,7 @@ import {
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
 } from '../game-engine';
-import type { Difficulty, Habit, Period } from '../game-engine';
+import type { Difficulty, Habit, ItemDef, Period } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useDebugClockStore } from '../store/debugClockStore';
@@ -47,9 +47,9 @@ export function useCombatActions() {
    * Does not check for player death: habit completion never damages the
    * player, so a single `completeHabit` call cannot kill them.
    */
-  function checkOffHabit(habitId: string): void {
+  function checkOffHabit(habitId: string): ItemDef[] {
     const habit = habitStore.habits.find((h) => h.id === habitId);
-    if (!habit) return;
+    if (!habit) return [];
 
     // Engine-level idempotency guard: this is the authoritative check that a
     // habit cannot be completed twice in the same period (double streak
@@ -57,7 +57,7 @@ export function useCombatActions() {
     // any UI-layer `:disabled` binding. Mirrors the `isCompletedThisPeriod`
     // predicate used in `HabitListItem.vue`.
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
-    if (habit.lastCompletedPeriodKey === currentPeriodKey) return;
+    if (habit.lastCompletedPeriodKey === currentPeriodKey) return [];
 
     const allHabitsOfSameType = habitStore.habitsOfType(habit.damageType);
     const result = completeHabit(characterStore.character, habit, allHabitsOfSameType, bossStore.boss);
@@ -82,6 +82,8 @@ export function useCombatActions() {
       characterStore.setCharacter(defeatResult.character);
       bossStore.setBoss(defeatResult.boss);
     }
+
+    return defeatResult.itemsDropped;
   }
 
   /**
