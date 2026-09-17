@@ -6,16 +6,24 @@
 // convention used by `store/index.spec.ts` and `useDailyRollover.spec.ts`.
 
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createRng, periodKeyFor } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
 import { useCombatActions } from './useCombatActions';
+import { useDeathScreen } from './useDeathScreen';
 
 describe('useCombatActions', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+  });
+
+  // `isDead` is a module-scope singleton (see useDeathScreen.ts) — dismiss
+  // it after every test so a death triggered in one test can't leak into
+  // the next.
+  afterEach(() => {
+    useDeathScreen().dismiss();
   });
 
   it('checkOffHabit is a no-op when called a second time on a habit already completed this period', () => {
@@ -74,5 +82,47 @@ describe('useCombatActions', () => {
     const itemsDropped = checkOffHabit(habit.id);
 
     expect(itemsDropped).toEqual([]);
+  });
+
+  it('checkMissedHabit flags the death screen instead of resetting immediately when it brings currentHealth to 0', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const { checkMissedHabit } = useCombatActions();
+    const { isDead } = useDeathScreen();
+
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', createRng());
+    characterStore.character = { ...characterStore.character, currentHealth: 1 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
+
+    checkMissedHabit(habit.id);
+
+    expect(isDead.value).toBe(true);
+    // No auto-reset yet — character/boss are left exactly as the miss left them.
+    expect(characterStore.character.currentHealth).toBe(0);
+    expect(bossStore.boss.index).toBe(3);
+  });
+
+  it('restart resets character/boss/habits and clears the death flag', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const { checkMissedHabit, restart } = useCombatActions();
+    const { isDead } = useDeathScreen();
+
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', createRng());
+    characterStore.character = { ...characterStore.character, currentHealth: 1 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
+    checkMissedHabit(habit.id);
+    expect(isDead.value).toBe(true);
+
+    restart();
+
+    expect(isDead.value).toBe(false);
+    expect(characterStore.character.level).toBe(1);
+    expect(characterStore.character.exp).toBe(0);
+    expect(characterStore.character.currentHealth).toBe(characterStore.character.starterStats.health);
+    expect(bossStore.boss.index).toBe(1);
+    expect(habitStore.habits).toHaveLength(1); // habit definitions kept, not wiped
   });
 });

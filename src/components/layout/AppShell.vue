@@ -4,6 +4,7 @@ import BossPanel from '../boss/BossPanel.vue';
 import CharacterPanel from '../character/CharacterPanel.vue';
 import SkipDayButton from '../debug/SkipDayButton.vue';
 import HabitList from '../habits/HabitList.vue';
+import DeathScreen from '../ui/DeathScreen.vue';
 import ItemDropPopup from '../ui/ItemDropPopup.vue';
 import { useBossStore } from '../../store/bossStore';
 import { useHighScoreStore } from '../../store/highScoreStore';
@@ -21,6 +22,7 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
       <span>Boss #{{ bossIndex }}</span>
       <span>Best: Boss #{{ bestBossIndex }}</span>
     </div>
+    <DeathScreen />
     <ItemDropPopup />
     <SkipDayButton />
     <div class="top-panels">
