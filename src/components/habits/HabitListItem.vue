@@ -3,14 +3,14 @@ import { computed, ref } from 'vue';
 import { periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
-import { useLootToast } from '../../composables/useLootToast';
+import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import HabitStatsModal from './HabitStatsModal.vue';
 
 const props = defineProps<{ habit: Habit }>();
 
 const { checkOffHabit } = useCombatActions();
-const { addLoot } = useLootToast();
+const { enqueueDrops } = useItemDropQueue();
 const debugClockStore = useDebugClockStore();
 
 const isCompletedThisPeriod = computed(
@@ -20,7 +20,7 @@ const isCompletedThisPeriod = computed(
 function onCheckOff() {
   const itemsDropped = checkOffHabit(props.habit.id);
   if (itemsDropped.length > 0) {
-    addLoot(itemsDropped.map((item) => item.name));
+    enqueueDrops(itemsDropped);
   }
 }
 

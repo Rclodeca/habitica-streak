@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { effectiveStat, expToNextLevel } from '../../game-engine';
+import { effectiveStat, expToNextLevel, ITEM_CATALOG } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import CharacterStatsModal from './CharacterStatsModal.vue';
-import InventoryModal from './InventoryModal.vue';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Sprite from '../ui/Sprite.vue';
@@ -15,8 +14,17 @@ const character = computed(() => characterStore.character);
 const maxHealth = computed(() => effectiveStat(character.value, 'health'));
 const expNeeded = computed(() => expToNextLevel(character.value.level));
 
+// Fixed 4 slots, in whatever order they were equipped — empty ones render
+// as blank grid cells rather than being compacted away, so the grid never
+// visually shifts as items are gained/replaced.
+const equippedSlots = computed(() =>
+  Array.from({ length: 4 }, (_, i) => {
+    const itemId = character.value.equippedItemIds[i];
+    return itemId ? ITEM_CATALOG.find((item) => item.id === itemId) ?? null : null;
+  }),
+);
+
 const showStatsModal = ref(false);
-const showInventoryModal = ref(false);
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
 </script>
@@ -29,14 +37,23 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
       <h2>Character — Level {{ character.level }}</h2>
-      <button type="button" class="inventory-button" @click.stop="showInventoryModal = true">Inventory</button>
+      <div class="item-grid" @click.stop>
+        <div v-for="(item, i) in equippedSlots" :key="i" class="item-slot">
+          <img
+            v-if="item"
+            class="item-icon"
+            :src="`/sprites/${item.icon}.png`"
+            :title="`${item.name} (+${item.bonusPercent}% ${item.stat})`"
+            :alt="item.name"
+          />
+        </div>
+      </div>
     </div>
     <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
     <ExpBar :current="character.exp" :max="expNeeded" />
   </section>
 
   <CharacterStatsModal v-model="showStatsModal" :character="character" />
-  <InventoryModal v-model="showInventoryModal" :character="character" />
 </template>
 
 <style scoped>
@@ -57,9 +74,27 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   margin: 0;
 }
 
-.inventory-button {
+.item-grid {
   margin-left: auto;
   flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  width: 40px;
+  height: 40px;
+  cursor: default;
+}
+
+.item-slot {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.item-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .sprite-wrapper {
