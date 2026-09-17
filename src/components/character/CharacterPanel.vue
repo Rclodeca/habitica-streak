@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { expToNextLevel, statAtLevel } from '../../game-engine';
+import { effectiveStat, expToNextLevel } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import CharacterStatsModal from './CharacterStatsModal.vue';
+import InventoryModal from './InventoryModal.vue';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Sprite from '../ui/Sprite.vue';
@@ -11,10 +12,11 @@ import Sprite from '../ui/Sprite.vue';
 const characterStore = useCharacterStore();
 
 const character = computed(() => characterStore.character);
-const maxHealth = computed(() => statAtLevel(character.value.starterStats.health, character.value.level));
+const maxHealth = computed(() => effectiveStat(character.value, 'health'));
 const expNeeded = computed(() => expToNextLevel(character.value.level));
 
 const showStatsModal = ref(false);
+const showInventoryModal = ref(false);
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
 </script>
@@ -27,12 +29,14 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
       <h2>Character — Level {{ character.level }}</h2>
+      <button type="button" class="inventory-button" @click.stop="showInventoryModal = true">Inventory</button>
     </div>
     <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
     <ExpBar :current="character.exp" :max="expNeeded" />
   </section>
 
   <CharacterStatsModal v-model="showStatsModal" :character="character" />
+  <InventoryModal v-model="showInventoryModal" :character="character" />
 </template>
 
 <style scoped>
@@ -51,6 +55,11 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
 .panel-header h2 {
   margin: 0;
+}
+
+.inventory-button {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .sprite-wrapper {
