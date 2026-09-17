@@ -3,7 +3,9 @@ import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { computeDamageSplit, rerollDamageType } from './habits';
-import { addExpAndResolveLevelUps, statAtLevel } from './leveling';
+import { addExpAndResolveLevelUps, effectiveStat } from './leveling';
+import { rollItemDrops } from './items';
+import type { ItemDef } from './items';
 import type { Rng } from './rng';
 import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 import type { Boss, Character, DamageType, Habit } from './types';
@@ -35,10 +37,7 @@ export function completeHabit(
   allHabitsOfSameType: Habit[],
   boss: Boss,
 ): CombatResult {
-  const statValue = statAtLevel(
-    character.starterStats[DAMAGE_TYPE_STARTER_STAT[habit.damageType]],
-    character.level,
-  );
+  const statValue = effectiveStat(character, DAMAGE_TYPE_STARTER_STAT[habit.damageType]);
   const split = computeDamageSplit(allHabitsOfSameType, statValue);
   const baseDamage = split.get(habit.id) ?? 0;
   const { habit: updatedHabit, milestoneExp } = completeHabitStreak(habit);
@@ -46,10 +45,7 @@ export function completeHabit(
   const amount = baseDamage * multiplier;
 
   if (habit.damageType === 'healing') {
-    const healed = Math.min(
-      character.currentHealth + amount,
-      statAtLevel(character.starterStats.health, character.level),
-    );
+    const healed = Math.min(character.currentHealth + amount, effectiveStat(character, 'health'));
     return { character: { ...character, currentHealth: healed }, boss, updatedHabit, milestoneExp };
   }
 
@@ -77,17 +73,22 @@ export function missHabit(
 
 /**
  * No-op unless the boss's health has reached 0. When it has, grants the
- * boss's EXP reward (resolving any resulting level-ups) and spawns the next
- * boss in the sequence.
+ * boss's EXP reward (resolving any resulting level-ups), rolls this
+ * character's item drop for this kill, and spawns the next boss.
  */
 export function resolveBossDefeatIfDead(
   character: Character,
   boss: Boss,
   rng: Rng,
-): { character: Character; boss: Boss; defeated: boolean; levelsGained: number } {
-  if (boss.health > 0) return { character, boss, defeated: false, levelsGained: 0 };
+): { character: Character; boss: Boss; defeated: boolean; levelsGained: number; itemsDropped: ItemDef[] } {
+  if (boss.health > 0) return { character, boss, defeated: false, levelsGained: 0, itemsDropped: [] };
   const { character: leveled, levelsGained } = addExpAndResolveLevelUps(character, bossExpReward(boss.index));
-  return { character: leveled, boss: generateBoss(boss.index + 1, rng), defeated: true, levelsGained };
+  const itemsDropped = rollItemDrops(leveled, boss.index, rng);
+  const withItems: Character = {
+    ...leveled,
+    ownedItemIds: [...leveled.ownedItemIds, ...itemsDropped.map((item) => item.id)],
+  };
+  return { character: withItems, boss: generateBoss(boss.index + 1, rng), defeated: true, levelsGained, itemsDropped };
 }
 
 /**

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { applyResist, bossExpReward } from './boss';
 import { MILESTONE_EXP } from './constants/milestones';
-import { addExpAndResolveLevelUps, statAtLevel } from './leveling';
+import { ITEM_CATALOG } from './items';
+import { addExpAndResolveLevelUps, effectiveStat, statAtLevel } from './leveling';
 import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
 import {
@@ -108,6 +109,18 @@ describe('completeHabit', () => {
     expect(result.damageDealt).toBeCloseTo(expectedAmount, 10);
   });
 
+  it('deals more damage when an item bonus is equipped for that damage type', () => {
+    const character = makeCharacter({ ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'] });
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss);
+
+    const boosted = effectiveStat(character, 'physicalDamage');
+    expect(boosted).toBeCloseTo(statAtLevel(character.starterStats.physicalDamage, character.level) * 1.03, 10);
+    expect(result.damageDealt).toBeCloseTo(boosted * streakMultiplier(1), 10);
+  });
+
   it('never reduces boss health below 0', () => {
     const character = makeCharacter({ level: 20 });
     const habit = makeHabit({ damageType: 'physical' });
@@ -183,20 +196,34 @@ describe('resolveBossDefeatIfDead', () => {
     expect(result.levelsGained).toBe(0);
     expect(result.character).toBe(character);
     expect(result.boss).toBe(boss);
+    expect(result.itemsDropped).toEqual([]);
   });
 
-  it('grants the correct EXP and spawns the next boss when boss.health <= 0', () => {
+  it('grants the correct EXP, drops an item, and spawns the next boss when boss.health <= 0', () => {
     const character = makeCharacter();
     const boss = makeBoss({ index: 3, health: 0 });
     const rng = createRng(1);
 
     const result = resolveBossDefeatIfDead(character, boss, rng);
 
-    const expected = addExpAndResolveLevelUps(character, bossExpReward(3));
+    const leveled = addExpAndResolveLevelUps(character, bossExpReward(3));
     expect(result.defeated).toBe(true);
-    expect(result.character).toEqual(expected.character);
-    expect(result.levelsGained).toBe(expected.levelsGained);
+    expect(result.character.level).toBe(leveled.character.level);
+    expect(result.character.exp).toBeCloseTo(leveled.character.exp, 10);
+    expect(result.levelsGained).toBe(leveled.levelsGained);
     expect(result.boss.index).toBe(4);
+    expect(result.itemsDropped).toHaveLength(1); // boss index 3 -> drop-count curve gives 1
+    expect(result.character.ownedItemIds).toEqual(result.itemsDropped.map((item) => item.id));
+  });
+
+  it('returns no items dropped once the character already owns the full catalog', () => {
+    const character = makeCharacter({ ownedItemIds: ITEM_CATALOG.map((item) => item.id) });
+    const boss = makeBoss({ index: 5, health: 0 });
+
+    const result = resolveBossDefeatIfDead(character, boss, createRng(1));
+
+    expect(result.itemsDropped).toEqual([]);
+    expect(result.character.ownedItemIds).toHaveLength(ITEM_CATALOG.length);
   });
 });
 
