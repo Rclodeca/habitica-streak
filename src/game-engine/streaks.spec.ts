@@ -19,9 +19,10 @@ function makeHabit(overrides: Partial<Habit> = {}): Habit {
 describe('streakMultiplier', () => {
   it.each([
     [0, 1.0],
-    [1, 1.01],
-    [10, 1.1],
-    [100, 2.0],
+    [1, 1.1],
+    [10, 2.0],
+    [30, 4.0],
+    [100, 11.0],
   ])('equals %s at streakCount=%s', (streakCount, expected) => {
     expect(streakMultiplier(streakCount)).toBeCloseTo(expected, 10);
   });

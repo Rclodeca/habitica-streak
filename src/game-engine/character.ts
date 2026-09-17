@@ -21,5 +21,6 @@ export function createCharacter(rng: Rng): Character {
     currentHealth: starterStats.health,
     ownedItemIds: [],
     equippedItemIds: [],
+    critChance: TUNING.BASE_CRIT_CHANCE,
   };
 }

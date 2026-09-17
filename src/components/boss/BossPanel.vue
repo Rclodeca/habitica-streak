@@ -46,6 +46,9 @@ const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 
       <dt>Magic resist</dt>
       <dd>{{ boss.magicResist.toFixed(1) }}</dd>
+
+      <dt>Crit chance</dt>
+      <dd>{{ (boss.critChance * 100).toFixed(1) }}%</dd>
     </dl>
   </section>
 </template>

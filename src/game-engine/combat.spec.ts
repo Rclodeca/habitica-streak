@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyResist, bossExpReward } from './boss';
 import { MILESTONE_EXP } from './constants/milestones';
+import { TUNING } from './constants/tuning';
 import { ITEM_CATALOG } from './items';
 import { addExpAndResolveLevelUps, effectiveStat, statAtLevel } from './leveling';
 import { createRng } from './rng';
@@ -10,8 +11,15 @@ import {
   missHabit,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
+  reviveWithFeatherIfEquipped,
 } from './combat';
 import type { Boss, Character, Habit } from './types';
+
+// Deterministic rng stand-ins for crit rolls: a value this low always beats
+// any crit chance used in these tests (never crits); a value of 0 always
+// beats it the other way (always crits, since 0 < any positive chance).
+const noCritRng = () => 0.99;
+const alwaysCritRng = () => 0;
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
   const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 };
@@ -22,6 +30,7 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     currentHealth: starterStats.health,
     ownedItemIds: [],
     equippedItemIds: [],
+    critChance: 0.01,
     ...overrides,
   };
 }
@@ -36,6 +45,7 @@ function makeBoss(overrides: Partial<Boss> = {}): Boss {
     magicAttack: 20,
     armor: 10,
     magicResist: 10,
+    critChance: 0.01,
     ...overrides,
   };
 }
@@ -60,7 +70,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical', streakCount: 4 });
     const boss = makeBoss({ armor: 15, health: 500 });
 
-    const result = completeHabit(character, habit, [habit], boss);
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
 
     // Solo habit of its type -> baseDamage is the full stat value at level.
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
@@ -81,7 +91,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'magic', streakCount: 0 });
     const boss = makeBoss({ magicResist: 25, health: 500 });
 
-    const result = completeHabit(character, habit, [habit], boss);
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.magicDamage, character.level);
     const expectedAmount = statValue * streakMultiplier(1);
@@ -99,7 +109,7 @@ describe('completeHabit', () => {
     const hard = makeHabit({ id: 'hard', difficulty: 'hard', damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000 }); // armor 0 -> no reduction, easier to reason about
 
-    const result = completeHabit(character, easy, [easy, hard], boss);
+    const result = completeHabit(character, easy, [easy, hard], boss, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
@@ -114,7 +124,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = completeHabit(character, habit, [habit], boss);
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
 
     const boosted = effectiveStat(character, 'physicalDamage');
     expect(boosted).toBeCloseTo(statAtLevel(character.starterStats.physicalDamage, character.level) * 1.03, 10);
@@ -126,7 +136,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1 });
 
-    const result = completeHabit(character, habit, [habit], boss);
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
 
     expect(result.boss.health).toBe(0);
   });
@@ -136,7 +146,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'healing', streakCount: 0 });
     const boss = makeBoss();
 
-    const result = completeHabit(character, habit, [habit], boss);
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     const expectedHealAmount = statValue * streakMultiplier(1);
@@ -152,25 +162,78 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'healing', streakCount: 100 }); // huge streak -> huge heal
     const boss = makeBoss();
 
-    const result = completeHabit(character, habit, [habit], boss);
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
 
     const maxHealth = statAtLevel(character.starterStats.health, character.level);
     expect(result.character.currentHealth).toBe(maxHealth);
   });
+
+  it('heals a percent of damage dealt back as health when a lifesteal item is equipped', () => {
+    const character = makeCharacter({
+      currentHealth: 1,
+      ownedItemIds: ['vampiric-fang'],
+      equippedItemIds: ['vampiric-fang'],
+    });
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    const expectedHeal = (result.damageDealt ?? 0) * 0.05; // vampiric-fang bonusPercent: 5
+    expect(result.character.currentHealth).toBeCloseTo(1 + expectedHeal, 10);
+  });
+
+  it('does not heal from lifesteal on a healing habit (no damage dealt)', () => {
+    const character = makeCharacter({
+      currentHealth: 1,
+      ownedItemIds: ['vampiric-fang'],
+      equippedItemIds: ['vampiric-fang'],
+    });
+    const habit = makeHabit({ damageType: 'healing' });
+    const boss = makeBoss();
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    // Healed only by the habit's own healing amount, not doubled by lifesteal.
+    const statValue = statAtLevel(character.starterStats.healing, character.level);
+    const expectedHealAmount = statValue * streakMultiplier(1);
+    expect(result.character.currentHealth).toBeCloseTo(1 + expectedHealAmount, 10);
+  });
+
+  it('does not heal when no lifesteal item is equipped', () => {
+    const character = makeCharacter({ currentHealth: 1 });
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    expect(result.character.currentHealth).toBe(1);
+  });
 });
 
 describe('missHabit', () => {
-  it('reduces currentHealth using avgAttack * MISS_DAMAGE_FACTOR * (difficultyWeight/1.5), and resets streak', () => {
+  it('damages using a random pick of the boss physical/magic attack (not their average), scaled by difficulty weight, and resets streak', () => {
     const character = makeCharacter({ currentHealth: 100 });
     const habit = makeHabit({ difficulty: 'medium', streakCount: 7 });
     const boss = makeBoss({ physicalAttack: 30, magicAttack: 10 });
 
-    const result = missHabit(character, habit, boss);
+    const result = missHabit(character, habit, boss, noCritRng); // 0.99 -> picks magicAttack, no crit
 
-    const avgAttack = (30 + 10) / 2;
-    const expectedDamage = avgAttack * 0.5 * (1.5 / 1.5); // medium weight = 1.5
+    const expectedDamage = boss.magicAttack * TUNING.MISS_DAMAGE_FACTOR * (1.5 / 1.5); // medium weight = 1.5
     expect(result.character.currentHealth).toBeCloseTo(100 - expectedDamage, 10);
     expect(result.updatedHabit.streakCount).toBe(0);
+  });
+
+  it('picks physicalAttack instead of magicAttack when the rng rolls below 0.5', () => {
+    const character = makeCharacter({ currentHealth: 100 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 30, magicAttack: 10 });
+    const pickPhysicalNoCritRng = () => 0.02; // < 0.5 -> physicalAttack; >= boss.critChance (0.01) -> no crit
+
+    const result = missHabit(character, habit, boss, pickPhysicalNoCritRng);
+
+    const expectedDamage = boss.physicalAttack * TUNING.MISS_DAMAGE_FACTOR * (1.5 / 1.5);
+    expect(result.character.currentHealth).toBeCloseTo(100 - expectedDamage, 10);
   });
 
   it('never reduces currentHealth below 0', () => {
@@ -178,9 +241,103 @@ describe('missHabit', () => {
     const habit = makeHabit({ difficulty: 'hard' });
     const boss = makeBoss({ physicalAttack: 1000, magicAttack: 1000 });
 
-    const result = missHabit(character, habit, boss);
+    const result = missHabit(character, habit, boss, noCritRng);
 
     expect(result.character.currentHealth).toBe(0);
+  });
+});
+
+describe('crit chance', () => {
+  it('completeHabit doubles the pre-resist damage and reports wasCrit=true on a crit roll', () => {
+    const character = makeCharacter();
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const normal = completeHabit(character, habit, [habit], boss, noCritRng);
+    const habitForCrit = makeHabit({ damageType: 'physical' }); // fresh streak so both start at 0 -> 1
+    const crit = completeHabit(character, habitForCrit, [habitForCrit], boss, alwaysCritRng);
+
+    expect(crit.wasCrit).toBe(true);
+    expect(normal.wasCrit).toBe(false);
+    expect(crit.damageDealt).toBeCloseTo((normal.damageDealt ?? 0) * TUNING.CRIT_MULTIPLIER, 10);
+  });
+
+  it('healing habits never crit, regardless of the rng roll', () => {
+    const character = makeCharacter({ currentHealth: 1 });
+    const habit = makeHabit({ damageType: 'healing' });
+    const boss = makeBoss();
+
+    const result = completeHabit(character, habit, [habit], boss, alwaysCritRng);
+
+    expect(result.wasCrit).toBeUndefined();
+  });
+
+  it('missHabit doubles damage and reports wasCrit=true on a crit roll, using the boss crit chance', () => {
+    const character = makeCharacter({ currentHealth: 100 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    // physicalAttack === magicAttack so the attack-type coin flip doesn't affect the comparison below.
+    const boss = makeBoss({ physicalAttack: 20, magicAttack: 20 });
+
+    const normal = missHabit(character, habit, boss, noCritRng);
+    const crit = missHabit(character, habit, boss, alwaysCritRng);
+
+    expect(crit.wasCrit).toBe(true);
+    expect(normal.wasCrit).toBe(false);
+    const normalDamage = 100 - normal.character.currentHealth;
+    const critDamage = 100 - crit.character.currentHealth;
+    expect(critDamage).toBeCloseTo(normalDamage * TUNING.CRIT_MULTIPLIER, 10);
+  });
+});
+
+describe('reviveWithFeatherIfEquipped', () => {
+  it('is a no-op when currentHealth > 0, even with the feather equipped', () => {
+    const character = makeCharacter({
+      currentHealth: 5,
+      ownedItemIds: ['phoenix-feather'],
+      equippedItemIds: ['phoenix-feather'],
+    });
+
+    const result = reviveWithFeatherIfEquipped(character);
+
+    expect(result.revived).toBe(false);
+    expect(result.character).toBe(character);
+  });
+
+  it('is a no-op when dead but the feather is not equipped', () => {
+    const character = makeCharacter({ currentHealth: 0 });
+
+    const result = reviveWithFeatherIfEquipped(character);
+
+    expect(result.revived).toBe(false);
+    expect(result.character).toBe(character);
+  });
+
+  it('treats a tiny positive currentHealth that rounds to 0 as dead, and still revives with the feather', () => {
+    const character = makeCharacter({
+      currentHealth: 0.3, // rounds to 0 on the health bar, but is not literally 0
+      ownedItemIds: ['phoenix-feather'],
+      equippedItemIds: ['phoenix-feather'],
+    });
+
+    const result = reviveWithFeatherIfEquipped(character);
+
+    expect(result.revived).toBe(true);
+  });
+
+  it('consumes the feather and revives at half max health when dead with it equipped', () => {
+    const character = makeCharacter({
+      currentHealth: 0,
+      level: 3,
+      ownedItemIds: ['phoenix-feather', 'rusty-blade'],
+      equippedItemIds: ['phoenix-feather', 'rusty-blade'],
+    });
+
+    const result = reviveWithFeatherIfEquipped(character);
+
+    expect(result.revived).toBe(true);
+    expect(result.character.currentHealth).toBeCloseTo(effectiveStat(character, 'health') * 0.5, 10);
+    expect(result.character.equippedItemIds).toEqual(['rusty-blade']);
+    expect(result.character.ownedItemIds).toEqual(['rusty-blade']);
   });
 });
 
@@ -225,6 +382,15 @@ describe('resolveBossDefeatIfDead', () => {
     expect(result.itemsDropped).toEqual([]);
     expect(result.character.ownedItemIds).toHaveLength(ITEM_CATALOG.length);
   });
+
+  it('treats a tiny positive boss.health that rounds to 0 as defeated', () => {
+    const character = makeCharacter();
+    const boss = makeBoss({ index: 3, health: 0.3 }); // rounds to 0 on the health bar, but is not literally 0
+
+    const result = resolveBossDefeatIfDead(character, boss, createRng(1));
+
+    expect(result.defeated).toBe(true);
+  });
 });
 
 describe('resolvePlayerDeathIfDead', () => {
@@ -255,6 +421,17 @@ describe('resolvePlayerDeathIfDead', () => {
     expect(result.character.exp).toBe(0);
     expect(result.character.currentHealth).toBe(result.character.starterStats.health);
     expect(result.boss.index).toBe(1);
+  });
+
+  it('treats a tiny positive currentHealth that rounds to 0 as dead', () => {
+    const character = makeCharacter({ currentHealth: 0.3 }); // rounds to 0 on the health bar, but is not literally 0
+    const boss = makeBoss({ index: 7 });
+    const habits = [makeHabit()];
+    const rng = createRng(1);
+
+    const result = resolvePlayerDeathIfDead(character, boss, habits, rng);
+
+    expect(result.died).toBe(true);
   });
 
   it('retains habit definitions (id/name/period/difficulty) but resets streak and re-rolls damageType', () => {

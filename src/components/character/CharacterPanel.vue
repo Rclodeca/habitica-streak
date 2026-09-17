@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { effectiveStat, expToNextLevel, ITEM_CATALOG } from '../../game-engine';
+import { describeItemBonus, effectiveCritChance, effectiveStat, expToNextLevel, ITEM_CATALOG } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import ExpBar from '../ui/ExpBar.vue';
@@ -15,6 +15,7 @@ const expNeeded = computed(() => expToNextLevel(character.value.level));
 const physicalDamage = computed(() => effectiveStat(character.value, 'physicalDamage'));
 const magicDamage = computed(() => effectiveStat(character.value, 'magicDamage'));
 const healing = computed(() => effectiveStat(character.value, 'healing'));
+const critChance = computed(() => effectiveCritChance(character.value));
 
 // Fixed 4 slots, in whatever order they were equipped — empty ones render
 // as blank grid cells rather than being compacted away, so the grid never
@@ -54,7 +55,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         >
           <template v-if="item">
             <img class="item-icon" :src="`/sprites/${item.icon}.png`" :alt="item.name" />
-            <div class="item-tooltip">{{ item.name }} — +{{ item.bonusPercent }}% {{ item.stat }}</div>
+            <div class="item-tooltip">{{ item.name }} — {{ describeItemBonus(item) }}</div>
           </template>
         </div>
       </div>
@@ -73,6 +74,9 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
       <dt>Healing</dt>
       <dd>{{ healing.toFixed(1) }}</dd>
+
+      <dt>Crit chance</dt>
+      <dd>{{ (critChance * 100).toFixed(1) }}%</dd>
     </dl>
   </section>
 </template>
@@ -131,7 +135,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   padding: 0.3rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
   max-width: min(220px, 90vw);
   box-shadow: var(--shadow);
   opacity: 0;

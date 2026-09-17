@@ -8,6 +8,12 @@ export function expToNextLevel(level: number): number {
   return Math.round((level ** 2 * 0.25 + 10 * level + 139.75) / 10) * 10;
 }
 
+/**
+ * Grants EXP (scaled by an equipped expGain bonus) and resolves any
+ * resulting level-ups. A lifesteal item bonus also heals the character a
+ * tiny amount per level gained — `lifestealPct`% of max health (at the new
+ * level) for each level crossed in this single grant.
+ */
 export function addExpAndResolveLevelUps(
   character: Character,
   expGained: number,
@@ -20,7 +26,15 @@ export function addExpAndResolveLevelUps(
     level += 1;
     levelsGained += 1;
   }
-  return { character: { ...character, level, exp }, levelsGained };
+
+  let currentHealth = character.currentHealth;
+  const lifestealPct = itemBonusPercent(character, 'lifesteal');
+  if (levelsGained > 0 && lifestealPct > 0) {
+    const maxHealth = statAtLevel(character.starterStats.health, level) * (1 + itemBonusPercent(character, 'health') / 100);
+    currentHealth = Math.min(currentHealth + maxHealth * (lifestealPct / 100) * levelsGained, maxHealth);
+  }
+
+  return { character: { ...character, level, exp, currentHealth }, levelsGained };
 }
 
 export function statAtLevel(starterStatValue: number, level: number): number {
@@ -34,4 +48,14 @@ export function effectiveStat(
 ): number {
   const base = statAtLevel(character.starterStats[stat], character.level);
   return base * (1 + itemBonusPercent(character, stat) / 100);
+}
+
+/**
+ * The character's crit chance (0-1) after equipped-item bonuses, capped at
+ * TUNING.CRIT_CHANCE_CAP so a hit is never guaranteed no matter how many
+ * crit items are stacked.
+ */
+export function effectiveCritChance(character: Character): number {
+  const raw = character.critChance + itemBonusPercent(character, 'critChance') / 100;
+  return Math.min(raw, TUNING.CRIT_CHANCE_CAP);
 }

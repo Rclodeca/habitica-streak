@@ -38,6 +38,11 @@ describe('createCharacter', () => {
     expect(character.equippedItemIds).toEqual([]);
   });
 
+  it('starts with the base crit chance', () => {
+    const character = createCharacter(createRng(1));
+    expect(character.critChance).toBe(TUNING.BASE_CRIT_CHANCE);
+  });
+
   it('is deterministic: the same seed produces the same character', () => {
     const characterA = createCharacter(createRng(12345));
     const characterB = createCharacter(createRng(12345));

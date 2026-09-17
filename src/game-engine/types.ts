@@ -18,6 +18,7 @@ export interface Character {
   currentHealth: number;
   ownedItemIds: string[]; // all items ever dropped for this character (equipped + unequipped)
   equippedItemIds: string[]; // subset of ownedItemIds, length <= 4
+  critChance: number; // base crit chance (0-1), before item bonuses — see effectiveCritChance
 }
 
 export interface Boss {
@@ -29,6 +30,7 @@ export interface Boss {
   magicAttack: number;
   armor: number;
   magicResist: number;
+  critChance: number; // fixed, not scaled by index — see TUNING.BASE_CRIT_CHANCE
 }
 
 export interface Habit {
