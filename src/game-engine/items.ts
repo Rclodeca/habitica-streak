@@ -62,3 +62,31 @@ export function rollItemDrops(character: Character, bossIndex: number, rng: Rng)
   const count = Math.min(desiredCount, unowned.length);
   return shuffle(unowned, rng).slice(0, count);
 }
+
+// Which body-worn sprite slot each stat category renders as on the player
+// sprite. expGain has no entry — those items (coins/stars/orbs) have no
+// natural body slot and stay icon-grid-only.
+const BODY_SLOT_BY_STAT: Partial<Record<BoostableStat, string>> = {
+  physicalDamage: 'weapon-physical',
+  magicDamage: 'weapon-magic',
+  health: 'armor',
+  healing: 'shield',
+};
+
+// bonusPercent -> art tier. The catalog's 3 tiers per stat (3%/6%/10%) map
+// directly to the 3 body-sprite tiers sourced for each slot.
+const TIER_BY_BONUS_PERCENT: Record<number, number> = { 3: 1, 6: 2, 10: 3 };
+
+/**
+ * The body-worn sprite layer (a path segment relative to public/sprites/)
+ * for an equipped item, or null if it has no visual slot (not equipped, or
+ * an expGain item). Pure derivation from the item's own stat/bonusPercent —
+ * no new catalog field needed.
+ */
+export function bodySpriteFor(item: ItemDef | null): string | null {
+  if (!item) return null;
+  const slot = BODY_SLOT_BY_STAT[item.stat];
+  const tier = TIER_BY_BONUS_PERCENT[item.bonusPercent];
+  if (!slot || !tier) return null;
+  return `player/${slot}-${tier}`;
+}

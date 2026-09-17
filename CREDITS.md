@@ -33,3 +33,24 @@
 | `items/lucky-coin.png` | `misc/Pet_Currency_Gem.png` |
 | `items/shining-star.png` | `misc/seafoam_star.png` |
 | `items/rebirth-orb.png` | `misc/rebirth_orb.png` |
+
+## Player sprite layers
+
+`public/sprites/player/*.png` are sourced from [HabitRPG/habitica-images](https://github.com/HabitRPG/habitica-images) (body-worn customize/gear layers, not the shop-preview icons used above), licensed [CC-BY-NC-SA 3.0](http://creativecommons.org/licenses/by-nc-sa/3.0/). All share a common 90x90 canvas/pose, so they're stacked directly (no per-layer offset data) — see `PlayerSprite.vue`.
+
+| File | Source |
+|---|---|
+| `player/base-skin.png` | `customize/skin/skin_915533.png` |
+| `player/base-hair.png` | `customize/hair/hair_bangs_1_black.png` |
+| `player/weapon-physical-1.png` | `gear/weapon/weapon_warrior_1.png` |
+| `player/weapon-physical-2.png` | `gear/weapon/weapon_warrior_3.png` |
+| `player/weapon-physical-3.png` | `gear/weapon/weapon_warrior_5.png` |
+| `player/weapon-magic-1.png` | `gear/weapon/weapon_wizard_1.png` |
+| `player/weapon-magic-2.png` | `gear/weapon/weapon_wizard_3.png` |
+| `player/weapon-magic-3.png` | `gear/weapon/weapon_wizard_5.png` |
+| `player/armor-1.png` | `gear/armor/broad_armor_warrior_1.png` |
+| `player/armor-2.png` | `gear/armor/broad_armor_warrior_3.png` |
+| `player/armor-3.png` | `gear/armor/broad_armor_warrior_5.png` |
+| `player/shield-1.png` | `gear/shield/shield_healer_1.png` |
+| `player/shield-2.png` | `gear/shield/shield_healer_3.png` |
+| `player/shield-3.png` | `gear/shield/shield_healer_5.png` |

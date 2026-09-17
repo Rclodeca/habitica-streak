@@ -5,7 +5,7 @@ import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
-import Sprite from '../ui/Sprite.vue';
+import PlayerSprite from './PlayerSprite.vue';
 
 const characterStore = useCharacterStore();
 
@@ -41,7 +41,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   <section class="panel character-panel">
     <div class="top-row">
       <div class="sprite-wrapper" :class="{ hit: isHit }">
-        <Sprite image-name="player-placeholder" alt="Player" />
+        <PlayerSprite :character="character" />
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
       <div class="item-grid">
@@ -168,7 +168,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   display: inline-block;
 }
 
-.sprite-wrapper.hit :deep(.sprite) {
+.sprite-wrapper.hit :deep(.player-sprite) {
   animation: sprite-shake 0.3s ease;
 }
 

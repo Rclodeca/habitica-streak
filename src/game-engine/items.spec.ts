@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TUNING } from './constants/tuning';
-import { ITEM_CATALOG, itemBonusPercent, rollItemDrops } from './items';
+import { bodySpriteFor, ITEM_CATALOG, itemBonusPercent, rollItemDrops } from './items';
+import type { ItemDef } from './items';
 import { createRng } from './rng';
 import type { Character } from './types';
 
@@ -84,5 +85,38 @@ describe('rollItemDrops', () => {
     const result = rollItemDrops(makeCharacter(), 50, createRng(7));
     const ids = result.map((item) => item.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('bodySpriteFor', () => {
+  function itemNamed(id: string): ItemDef {
+    const item = ITEM_CATALOG.find((candidate) => candidate.id === id);
+    if (!item) throw new Error(`no catalog item named ${id}`);
+    return item;
+  }
+
+  it('returns null for no item', () => {
+    expect(bodySpriteFor(null)).toBeNull();
+  });
+
+  it('returns null for an expGain item (no body slot)', () => {
+    expect(bodySpriteFor(itemNamed('lucky-coin'))).toBeNull();
+  });
+
+  it.each([
+    ['rusty-blade', 'player/weapon-physical-1'],
+    ['steel-sword', 'player/weapon-physical-2'],
+    ['warlords-greatsword', 'player/weapon-physical-3'],
+    ['apprentice-wand', 'player/weapon-magic-1'],
+    ['arcane-staff', 'player/weapon-magic-2'],
+    ['archmages-rod', 'player/weapon-magic-3'],
+    ['padded-vest', 'player/armor-1'],
+    ['chainmail-hauberk', 'player/armor-2'],
+    ['plate-armor', 'player/armor-3'],
+    ['novices-charm', 'player/shield-1'],
+    ['blessed-censer', 'player/shield-2'],
+    ['sacred-chalice', 'player/shield-3'],
+  ])('maps %s to %s', (id, expected) => {
+    expect(bodySpriteFor(itemNamed(id))).toBe(expected);
   });
 });
