@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { computeDamageSplit, DAMAGE_TYPE_STARTER_STAT, statAtLevel, streakMultiplier } from '../../game-engine';
+import { computeDamageSplit, DAMAGE_TYPE_STARTER_STAT, effectiveStat, streakMultiplier } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCharacterStore } from '../../store/characterStore';
 import { useHabitStore } from '../../store/habitStore';
@@ -15,7 +15,7 @@ const habitStore = useHabitStore();
 const baseDamage = computed(() => {
   const character = characterStore.character;
   const statField = DAMAGE_TYPE_STARTER_STAT[props.habit.damageType];
-  const statValue = statAtLevel(character.starterStats[statField], character.level);
+  const statValue = effectiveStat(character, statField);
   const siblings = habitStore.habitsOfType(props.habit.damageType);
   const split = computeDamageSplit(siblings, statValue);
   return split.get(props.habit.id) ?? 0;
