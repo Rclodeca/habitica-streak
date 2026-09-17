@@ -10,6 +10,7 @@ function makeHabit(overrides: Partial<Habit> = {}): Habit {
     period: 'daily',
     difficulty: 'easy',
     damageType: 'physical',
+    isBad: false,
     streakCount: 0,
     lastCompletedPeriodKey: null,
     lastCheckedPeriodKey: null,
@@ -20,19 +21,26 @@ function makeHabit(overrides: Partial<Habit> = {}): Habit {
 describe('createHabit', () => {
   it('initializes streak and period-key fields', () => {
     const rng = createRng(1);
-    const habit = createHabit('Drink water', 'daily', 'easy', rng);
+    const habit = createHabit('Drink water', 'daily', 'easy', false, rng);
     expect(habit.name).toBe('Drink water');
     expect(habit.period).toBe('daily');
     expect(habit.difficulty).toBe('easy');
+    expect(habit.isBad).toBe(false);
     expect(habit.streakCount).toBe(0);
     expect(habit.lastCompletedPeriodKey).toBeNull();
     expect(habit.lastCheckedPeriodKey).toBeNull();
   });
 
+  it('sets isBad from the given flag', () => {
+    const rng = createRng(1);
+    const habit = createHabit('Skip dessert', 'daily', 'easy', true, rng);
+    expect(habit.isBad).toBe(true);
+  });
+
   it('generates a unique id per habit', () => {
     const rng = createRng(2);
-    const a = createHabit('A', 'daily', 'easy', rng);
-    const b = createHabit('B', 'daily', 'easy', rng);
+    const a = createHabit('A', 'daily', 'easy', false, rng);
+    const b = createHabit('B', 'daily', 'easy', false, rng);
     expect(a.id).not.toBe(b.id);
     expect(typeof a.id).toBe('string');
     expect(a.id.length).toBeGreaterThan(0);
@@ -43,7 +51,7 @@ describe('createHabit', () => {
     const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0 };
     const iterations = 2000;
     for (let i = 0; i < iterations; i++) {
-      const habit = createHabit('H', 'daily', 'easy', rng);
+      const habit = createHabit('H', 'daily', 'easy', false, rng);
       counts[habit.damageType] += 1;
     }
     expect(counts.physical / iterations).toBeCloseTo(0.4, 1);

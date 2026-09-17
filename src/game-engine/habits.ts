@@ -3,13 +3,20 @@ import { TUNING } from './constants/tuning';
 import { pickWeighted, type Rng } from './rng';
 import type { DamageType, Difficulty, Habit, Period } from './types';
 
-export function createHabit(name: string, period: Period, difficulty: Difficulty, rng: Rng): Habit {
+export function createHabit(
+  name: string,
+  period: Period,
+  difficulty: Difficulty,
+  isBad: boolean,
+  rng: Rng,
+): Habit {
   return {
     id: crypto.randomUUID(),
     name,
     period,
     difficulty,
     damageType: pickWeighted<DamageType>(TUNING.HABIT_DAMAGE_TYPE_WEIGHTS, rng),
+    isBad,
     streakCount: 0,
     lastCompletedPeriodKey: null,
     lastCheckedPeriodKey: null,

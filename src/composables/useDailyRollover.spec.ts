@@ -30,7 +30,7 @@ describe('useDailyRollover', () => {
     const characterStore = useCharacterStore();
     useBossStore(); // bootstraps the boss slice used internally by miss resolution
 
-    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', createRng());
+    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', false, createRng());
 
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -59,7 +59,7 @@ describe('useDailyRollover', () => {
     expect(updatedHabit?.streakCount).toBe(3);
     expect(updatedHabit?.lastCheckedPeriodKey).toBe(yesterdayKey);
     expect(useMissedSkillsGate().misses.value).toEqual([
-      { habitId: habit.id, habitName: 'Meditate', periodKeyToStamp: currentPeriodKey },
+      { habitId: habit.id, habitName: 'Meditate', periodKeyToStamp: currentPeriodKey, outcome: 'penalty' },
     ]);
   });
 
@@ -68,7 +68,7 @@ describe('useDailyRollover', () => {
     const characterStore = useCharacterStore();
     useBossStore();
 
-    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', createRng());
+    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', false, createRng());
 
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -100,7 +100,7 @@ describe('useDailyRollover', () => {
     const characterStore = useCharacterStore();
     useBossStore();
 
-    const habit = habitStore.addHabit('Stretch', 'daily', 'easy', createRng());
+    const habit = habitStore.addHabit('Stretch', 'daily', 'easy', false, createRng());
 
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -131,7 +131,7 @@ describe('useDailyRollover', () => {
     const characterStore = useCharacterStore();
     useBossStore();
 
-    const habit = habitStore.addHabit('Journal', 'daily', 'hard', createRng());
+    const habit = habitStore.addHabit('Journal', 'daily', 'hard', false, createRng());
     const now = new Date();
     const currentPeriodKey = periodKeyFor('daily', now);
 
@@ -150,5 +150,72 @@ describe('useDailyRollover', () => {
     expect(characterStore.character.currentHealth).toBe(healthBefore);
     expect(updatedHabit?.streakCount).toBe(2);
     expect(useMissedSkillsGate().misses.value).toEqual([]);
+  });
+
+  it('queues a reward (without applying boss damage) for a bad habit not checked in the preceding period', () => {
+    const habitStore = useHabitStore();
+    const bossStore = useBossStore();
+    useCharacterStore();
+
+    const habit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
+
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayKey = periodKeyFor('daily', yesterday);
+
+    // Simulate "last app-open was yesterday, and the bad habit was never
+    // tapped yesterday" — i.e. it was avoided.
+    habitStore.updateHabit({
+      ...habit,
+      streakCount: 3,
+      lastCheckedPeriodKey: yesterdayKey,
+      lastCompletedPeriodKey: null,
+    });
+
+    const bossHealthBefore = bossStore.boss.health;
+
+    useDailyRollover(now);
+
+    const currentPeriodKey = periodKeyFor('daily', now);
+    const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
+
+    // Detection queues the reward but doesn't resolve it yet — that waits
+    // for the popup to be acknowledged.
+    expect(bossStore.boss.health).toBe(bossHealthBefore);
+    expect(updatedHabit?.streakCount).toBe(3);
+    expect(updatedHabit?.lastCheckedPeriodKey).toBe(yesterdayKey);
+    expect(useMissedSkillsGate().rewards.value).toEqual([
+      { habitId: habit.id, habitName: 'Skip dessert', periodKeyToStamp: currentPeriodKey, outcome: 'reward' },
+    ]);
+  });
+
+  it('does not record a reward for a bad habit that was checked (done) in the preceding period', () => {
+    const habitStore = useHabitStore();
+    const bossStore = useBossStore();
+    useCharacterStore();
+
+    const habit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
+
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayKey = periodKeyFor('daily', yesterday);
+
+    habitStore.updateHabit({
+      ...habit,
+      streakCount: 0,
+      lastCheckedPeriodKey: yesterdayKey,
+      lastCompletedPeriodKey: yesterdayKey, // the bad habit was done yesterday — already penalized at tap time
+    });
+
+    const bossHealthBefore = bossStore.boss.health;
+
+    useDailyRollover(now);
+
+    const currentPeriodKey = periodKeyFor('daily', now);
+    const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
+
+    expect(bossStore.boss.health).toBe(bossHealthBefore);
+    expect(updatedHabit?.lastCheckedPeriodKey).toBe(currentPeriodKey);
+    expect(useMissedSkillsGate().rewards.value).toEqual([]);
   });
 });

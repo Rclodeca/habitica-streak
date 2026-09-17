@@ -17,6 +17,11 @@ const isCompletedThisPeriod = computed(
   () => props.habit.lastCompletedPeriodKey === periodKeyFor(props.habit.period, debugClockStore.now()),
 );
 
+const metaText = computed(() => {
+  const base = `${props.habit.period} · ${props.habit.difficulty} · ${props.habit.damageType} · streak ${props.habit.streakCount}`;
+  return props.habit.isBad ? `${base} · bad habit` : base;
+});
+
 function onCheckOff() {
   const itemsDropped = checkOffHabit(props.habit.id);
   if (itemsDropped.length > 0) {
@@ -28,7 +33,7 @@ const showStatsModal = ref(false);
 </script>
 
 <template>
-  <li class="habit-item" @click="showStatsModal = true">
+  <li class="habit-item" :class="{ bad: habit.isBad }" @click="showStatsModal = true">
     <input
       type="checkbox"
       :aria-label="`Complete ${habit.name}`"
@@ -38,7 +43,7 @@ const showStatsModal = ref(false);
       @change="onCheckOff"
     />
     <span class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
-    <span class="meta">{{ habit.period }} · {{ habit.difficulty }} · {{ habit.damageType }} · streak {{ habit.streakCount }}</span>
+    <span class="meta">{{ metaText }}</span>
   </li>
 
   <HabitStatsModal v-model="showStatsModal" :habit="habit" />
@@ -60,6 +65,11 @@ const showStatsModal = ref(false);
   min-width: 0;
   text-align: left;
   overflow-wrap: anywhere;
+}
+
+.habit-item.bad {
+  outline: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 4px;
 }
 
 .done {

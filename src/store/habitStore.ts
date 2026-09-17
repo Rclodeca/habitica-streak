@@ -10,10 +10,15 @@ export const useHabitStore = defineStore('habit', {
     habits: [] as Habit[],
   }),
   getters: {
-    /** Habits of the current list filtered by damage type, for feeding `computeDamageSplit`. */
+    /**
+     * Habits of the current list filtered by damage type AND good/bad kind,
+     * for feeding `computeDamageSplit` — bad habits split their reward pool
+     * only against other bad habits of the same damage type, never mixing
+     * with good habits.
+     */
     habitsOfType(state) {
-      return (damageType: DamageType): Habit[] =>
-        state.habits.filter((habit) => habit.damageType === damageType);
+      return (damageType: DamageType, isBad: boolean): Habit[] =>
+        state.habits.filter((habit) => habit.damageType === damageType && habit.isBad === isBad);
     },
   },
   actions: {
@@ -23,8 +28,8 @@ export const useHabitStore = defineStore('habit', {
     },
 
     /** Creates a new habit via the engine and adds it to the list. */
-    addHabit(name: string, period: Period, difficulty: Difficulty, rng: Rng): Habit {
-      const habit = createHabit(name, period, difficulty, rng);
+    addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, rng: Rng): Habit {
+      const habit = createHabit(name, period, difficulty, isBad, rng);
       this.habits.push(habit);
       return habit;
     },
