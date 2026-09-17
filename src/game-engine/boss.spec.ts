@@ -9,7 +9,7 @@ describe('bossPowerBudget', () => {
     expect(bossPowerBudget(1)).toBeCloseTo(TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, 0), 10);
     expect(bossPowerBudget(5)).toBeCloseTo(TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, 4), 10);
     expect(bossPowerBudget(10)).toBeCloseTo(TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, 9), 10);
-    expect(bossPowerBudget(1)).toBe(80);
+    expect(bossPowerBudget(1)).toBe(TUNING.BASE_BOSS_POWER);
   });
 });
 
