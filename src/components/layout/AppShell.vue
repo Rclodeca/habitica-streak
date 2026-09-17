@@ -24,8 +24,8 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
     <ItemDropPopup />
     <SkipDayButton />
     <div class="top-panels">
-      <CharacterPanel />
       <BossPanel />
+      <CharacterPanel />
     </div>
     <HabitList />
   </div>
@@ -55,11 +55,5 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
 
 .top-panels > * {
   flex: 1 1 260px;
-}
-
-@media (max-width: 480px) {
-  .top-panels :deep(.boss-panel) {
-    order: -1;
-  }
 }
 </style>
