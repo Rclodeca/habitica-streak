@@ -3,12 +3,12 @@ import BossPanel from '../boss/BossPanel.vue';
 import CharacterPanel from '../character/CharacterPanel.vue';
 import SkipDayButton from '../debug/SkipDayButton.vue';
 import HabitList from '../habits/HabitList.vue';
-import LootToast from '../ui/LootToast.vue';
+import ItemDropPopup from '../ui/ItemDropPopup.vue';
 </script>
 
 <template>
   <div class="app-shell">
-    <LootToast />
+    <ItemDropPopup />
     <SkipDayButton />
     <div class="top-panels">
       <CharacterPanel />

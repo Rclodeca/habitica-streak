@@ -3,10 +3,13 @@
 // state lives here. Consumers pass their content via the default slot and
 // control visibility via the `modelValue` prop (v-model:modelValue / v-model).
 
-defineProps<{ modelValue: boolean; title?: string }>();
+const props = withDefaults(defineProps<{ modelValue: boolean; title?: string; dismissible?: boolean }>(), {
+  dismissible: true,
+});
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
 function close() {
+  if (!props.dismissible) return;
   emit('update:modelValue', false);
 }
 </script>
@@ -17,7 +20,7 @@ function close() {
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 v-if="title">{{ title }}</h3>
-          <button type="button" class="modal-close" aria-label="Close" @click="close">×</button>
+          <button v-if="dismissible" type="button" class="modal-close" aria-label="Close" @click="close">×</button>
         </div>
         <div class="modal-body">
           <slot />
