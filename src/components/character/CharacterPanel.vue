@@ -9,6 +9,8 @@ import PlayerSprite from './PlayerSprite.vue';
 
 const characterStore = useCharacterStore();
 
+const baseUrl = import.meta.env.BASE_URL;
+
 const character = computed(() => characterStore.character);
 const maxHealth = computed(() => effectiveStat(character.value, 'health'));
 const expNeeded = computed(() => expToNextLevel(character.value.level));
@@ -54,7 +56,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
           @click="item && togglePin(i)"
         >
           <template v-if="item">
-            <img class="item-icon" :src="`/sprites/${item.icon}.png`" :alt="item.name" />
+            <img class="item-icon" :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
             <div class="item-tooltip">{{ item.name }} — {{ describeItemBonus(item) }}</div>
           </template>
         </div>
