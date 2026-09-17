@@ -1,0 +1,41 @@
+
+Gamified Habit tracker where you have a character with stats and you fight increasingly more difficult bosses.
+
+
+Player:
+Has levels. 
+On creation:
+Receives Base stats. Each stat has a fixed starter amount +-5% at random. Stats:
+physical damage
+magic damage
+healing
+health. 
+Raises with level up from exp, which raises base stats.
+4 item slots to Equip items
+
+Items:
+Dropped randomly from bosses on death
+Many items
+Each item gives a random effect (either +% physical damage, +% magic damage, +% healing, +%health, +%exp gain)
+
+Habits (skills)
+User can add as many daily or weekly habits as they want. When added, the habit randomly is assigned either physical damage, magic damage, or healing. (Healing more rare), User also must select the habit difficulty (easy, medium, hard)
+User’s base physical damage divided by number of total physical damage habits. Same for magic damage Example, if user has 100 physical damage, and 5 physical damage habits of same difficulty, each should deal 20 base damage. This will keep things balanced so user can’t just add more habits to deal more damage. However, more difficult habits should deal more damage, and easier habits deal less damage. But the total damage should always be balanced across habits to equal the base damage. 
+If you miss a daily or weekly you take damage from boss. (Later harder bosses may attack sometimes even if you didn’t miss a task). When completing a task, you do damage to boss equal to the base damage plus streak multiplier and increase streak by 1 for that task
+
+Streaks:
+Streaks build up as you complete daily tasks everyday in a row, or weekly tasks every week.
+Streak milestones also give you extra exp (5, 10, 20, 30, 50, 100 days/weeks). Streaks also give a damage multiplier on that habit only that increases. For example 1 day streak +1% damage, 10 day streak +10%. We will likely need to tune all of the base and multiplier numbers. Streaks reset when lost, and you lose the multiplier. (But you don’t lose the exp gained from milestones, so losing a streak isn’t a total loss)
+
+Bosses
+You fight Bosses one by one. They get increasingly harder with every boss you kill.
+Bosses are picked at random, but their stats should be scaled to be reasonable compared to the boss count you are on. (First boss easiest, second a little harder, 10th much harder, it should scale exponentially)
+Bosses should have personalities shown through their stats. (Some should have higher armor which is resistant to physical damage, some have higher magic resistance, some have just higher health). 
+Drop randomized items on death. First boss only drop 1 item, later bosses drop more. Bosses also drop exp.
+
+Scaling: 
+Bosses scale after each one you defeat. Player also scales after each one due to the exp dropped and items. And also scaling from the streaks multiplier. The balance is: if player completes tasks frequently they will progress well but eventually lose to stronger scaling bosses. If player completes tasks perfectly and keeps building streaks (which continually give more exp from milestones, and multiples from streaks), player will always outscale bosses and continue surviving.Once player dies (by taking damage from bosses and going to zero health) everything resets and user gets a new character.
+
+Screen should simply show your character, tap on it for stats, the boss we are fighting, tap on it for stats, a list of daily and weekly habits, tap on each to see stats (base damage, streak multiplier), and a checkmark to check it complete for the day/week (which then deals damage)
+
+Should have simple animations for player dealing damage and boss dealing damage.reference habitica repo for the frontend mobile website code. Repo in the same parent folder as this one, and use habitica-images GitHub repo for the player, bosses, and item sprites (and possibly other things too)
