@@ -28,6 +28,22 @@ export const useCharacterStore = defineStore('character', {
       this.character = character;
     },
 
+    /** Equips an owned item into an empty slot. No-op if not owned, already equipped, or all 4 slots are full. */
+    equipItem(itemId: string) {
+      const { ownedItemIds, equippedItemIds } = this.character;
+      if (!ownedItemIds.includes(itemId)) return;
+      if (equippedItemIds.includes(itemId)) return;
+      if (equippedItemIds.length >= 4) return;
+      this.character = { ...this.character, equippedItemIds: [...equippedItemIds, itemId] };
+    },
+
+    /** Unequips an item. No-op if it isn't currently equipped. */
+    unequipItem(itemId: string) {
+      const { equippedItemIds } = this.character;
+      if (!equippedItemIds.includes(itemId)) return;
+      this.character = { ...this.character, equippedItemIds: equippedItemIds.filter((id) => id !== itemId) };
+    },
+
     /** Grants EXP and resolves any resulting level-ups. Returns levels gained. */
     addExpAndResolveLevelUps(expGained: number): number {
       const { character, levelsGained } = addExpAndResolveLevelUps(this.character, expGained);
