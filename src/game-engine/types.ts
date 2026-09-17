@@ -4,7 +4,26 @@ export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export type Period = 'daily' | 'weekly';
 
-export type Personality = 'balanced' | 'tank' | 'armored' | 'warded' | 'brute';
+// Each emphasized-stat family (armored/warded/brute/arcane) has an
+// escalating 2x/3x/4x(/5x) tier — see PERSONALITY_MULTIPLIER in boss.ts —
+// with higher tiers weighted much rarer (BOSS_PERSONALITY_WEIGHTS).
+export type Personality =
+  | 'balanced'
+  | 'tank'
+  | 'armored'
+  | 'armored3x'
+  | 'armored4x'
+  | 'armored5x'
+  | 'warded'
+  | 'warded3x'
+  | 'warded4x'
+  | 'warded5x'
+  | 'brute'
+  | 'brute3x'
+  | 'brute4x'
+  | 'arcane'
+  | 'arcane3x'
+  | 'arcane4x';
 
 export interface Character {
   level: number;
@@ -30,7 +49,9 @@ export interface Boss {
   magicAttack: number;
   armor: number;
   magicResist: number;
-  critChance: number; // fixed, not scaled by index — see TUNING.BASE_CRIT_CHANCE
+  critChance: number; // randomized per boss, not scaled by index — see generateBoss
+  reflectPct: number; // fraction (0-1) of damage taken reflected back at the player — see completeHabit
+  lifestealPct: number; // fraction (0-1) of damage dealt to the player healed back to the boss — see missHabit
 }
 
 export interface Habit {

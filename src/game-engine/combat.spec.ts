@@ -46,6 +46,8 @@ function makeBoss(overrides: Partial<Boss> = {}): Boss {
     armor: 10,
     magicResist: 10,
     critChance: 0.01,
+    reflectPct: 0,
+    lifestealPct: 0,
     ...overrides,
   };
 }
@@ -209,6 +211,55 @@ describe('completeHabit', () => {
 
     expect(result.character.currentHealth).toBe(1);
   });
+
+  it('damages the character back for a percent of damage dealt when the boss has reflect', () => {
+    const character = makeCharacter({ currentHealth: 50 });
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000, reflectPct: 0.2 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    const expectedReflect = (result.damageDealt ?? 0) * 0.2;
+    expect(result.character.currentHealth).toBeCloseTo(50 - expectedReflect, 10);
+  });
+
+  it('nets lifesteal healing against boss reflect damage into a single health change', () => {
+    const character = makeCharacter({
+      currentHealth: 50,
+      ownedItemIds: ['vampiric-fang'],
+      equippedItemIds: ['vampiric-fang'],
+    });
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000, reflectPct: 0.2 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    const dealt = result.damageDealt ?? 0;
+    const expectedHealthChange = dealt * 0.05 - dealt * 0.2; // vampiric-fang 5% lifesteal vs 20% reflect
+    expect(result.character.currentHealth).toBeCloseTo(50 + expectedHealthChange, 10);
+  });
+
+  it('never reduces currentHealth below 0 from reflect', () => {
+    const character = makeCharacter({ level: 20, currentHealth: 1 });
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1_000_000, reflectPct: 0.2 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    expect(result.character.currentHealth).toBe(0);
+  });
+
+  it('does not apply reflect on a healing habit (no damage dealt)', () => {
+    const character = makeCharacter({ currentHealth: 30 });
+    const habit = makeHabit({ damageType: 'healing' });
+    const boss = makeBoss({ reflectPct: 0.2 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.healing, character.level);
+    const expectedHealAmount = statValue * streakMultiplier(1);
+    expect(result.character.currentHealth).toBeCloseTo(30 + expectedHealAmount, 10);
+  });
 });
 
 describe('missHabit', () => {
@@ -244,6 +295,37 @@ describe('missHabit', () => {
     const result = missHabit(character, habit, boss, noCritRng);
 
     expect(result.character.currentHealth).toBe(0);
+  });
+
+  it('heals the boss for a percent of damage dealt when it has lifesteal', () => {
+    const character = makeCharacter({ currentHealth: 100 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 20, magicAttack: 20, health: 50, lifestealPct: 0.1 });
+
+    const result = missHabit(character, habit, boss, noCritRng);
+
+    const damageDealt = 100 - result.character.currentHealth;
+    expect(result.boss.health).toBeCloseTo(50 + damageDealt * 0.1, 10);
+  });
+
+  it('caps boss lifesteal healing at maxHealth', () => {
+    const character = makeCharacter({ currentHealth: 100 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 20, magicAttack: 20, health: 99, maxHealth: 100, lifestealPct: 1 });
+
+    const result = missHabit(character, habit, boss, noCritRng);
+
+    expect(result.boss.health).toBe(100);
+  });
+
+  it('leaves the boss untouched when it has no lifesteal', () => {
+    const character = makeCharacter({ currentHealth: 100 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 20, magicAttack: 20 });
+
+    const result = missHabit(character, habit, boss, noCritRng);
+
+    expect(result.boss).toBe(boss);
   });
 });
 

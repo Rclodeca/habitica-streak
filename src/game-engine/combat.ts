@@ -35,7 +35,10 @@ export type CombatResult = {
  * heals the character (healing type — boss untouched) or damages the boss
  * (physical/magic type — reduced by the boss's matching resist stat and, on
  * a crit roll, doubled). Healing habits never crit. A lifesteal item bonus
- * heals the character for a percent of the damage actually dealt.
+ * heals the character for a percent of the damage actually dealt, while the
+ * boss's own reflect% (if any) damages the character back for a percent of
+ * that same damage — both computed off the same `dealt` amount, then netted
+ * into a single health change.
  */
 export function completeHabit(
   character: Character,
@@ -64,8 +67,13 @@ export function completeHabit(
 
   const lifestealPct = itemBonusPercent(character, 'lifesteal');
   const healed = dealt * (lifestealPct / 100);
-  const newHealth = Math.min(character.currentHealth + healed, effectiveStat(character, 'health'));
-  const newCharacter = healed > 0 ? { ...character, currentHealth: newHealth } : character;
+  const reflected = dealt * boss.reflectPct;
+  const netHealthChange = healed - reflected;
+  const newHealth = Math.min(
+    Math.max(character.currentHealth + netHealthChange, 0),
+    effectiveStat(character, 'health'),
+  );
+  const newCharacter = netHealthChange !== 0 ? { ...character, currentHealth: newHealth } : character;
 
   return { character: newCharacter, boss: newBoss, updatedHabit, milestoneExp, damageDealt: dealt, wasCrit };
 }
@@ -75,14 +83,15 @@ export function completeHabit(
  * with a coin-flip between the boss's physical and magic attack (not their
  * average — the boss "attacks" with one or the other), scaled by the
  * habit's difficulty and, on a crit roll (using the boss's crit chance),
- * doubled.
+ * doubled. The boss's own lifesteal% (if any) heals it for a percent of
+ * that same damage, capped at its max health.
  */
 export function missHabit(
   character: Character,
   habit: Habit,
   boss: Boss,
   rng: Rng,
-): { character: Character; updatedHabit: Habit; wasCrit: boolean } {
+): { character: Character; boss: Boss; updatedHabit: Habit; wasCrit: boolean } {
   const updatedHabit = resetHabitStreak(habit);
   const attack = rng() < 0.5 ? boss.physicalAttack : boss.magicAttack;
   const wasCrit = rng() < boss.critChance;
@@ -90,7 +99,9 @@ export function missHabit(
     attack * TUNING.MISS_DAMAGE_FACTOR * (DIFFICULTY_WEIGHT[habit.difficulty] / 1.5) *
     (wasCrit ? TUNING.CRIT_MULTIPLIER : 1);
   const newHealth = Math.max(0, character.currentHealth - damage);
-  return { character: { ...character, currentHealth: newHealth }, updatedHabit, wasCrit };
+  const healedBoss = Math.min(boss.maxHealth, boss.health + damage * boss.lifestealPct);
+  const newBoss = healedBoss !== boss.health ? { ...boss, health: healedBoss } : boss;
+  return { character: { ...character, currentHealth: newHealth }, boss: newBoss, updatedHabit, wasCrit };
 }
 
 /**

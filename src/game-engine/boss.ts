@@ -22,14 +22,66 @@ const PERSONALITY_STAT: Record<Personality, keyof typeof TUNING.BOSS_STAT_SHARE 
   balanced: null,
   tank: 'health',
   armored: 'armor',
+  armored3x: 'armor',
+  armored4x: 'armor',
+  armored5x: 'armor',
   warded: 'magicResist',
+  warded3x: 'magicResist',
+  warded4x: 'magicResist',
+  warded5x: 'magicResist',
   brute: 'physicalAttack',
+  brute3x: 'physicalAttack',
+  brute4x: 'physicalAttack',
+  arcane: 'magicAttack',
+  arcane3x: 'magicAttack',
+  arcane4x: 'magicAttack',
 };
+
+/**
+ * How many multiples of its fair share of the stat budget each personality's
+ * emphasized stat gets. `balanced` never emphasizes anything (PERSONALITY_STAT
+ * maps it to null), so it has no entry here.
+ */
+const PERSONALITY_MULTIPLIER: Record<Exclude<Personality, 'balanced'>, number> = {
+  tank: 2,
+  armored: 2,
+  armored3x: 3,
+  armored4x: 4,
+  armored5x: 5,
+  warded: 2,
+  warded3x: 3,
+  warded4x: 4,
+  warded5x: 5,
+  brute: 2,
+  brute3x: 3,
+  brute4x: 4,
+  arcane: 2,
+  arcane3x: 3,
+  arcane4x: 4,
+};
+
+/**
+ * The personality weights in effect at a given boss index. Rarer personalities
+ * (armored5x, warded4x, etc.) linearly gain weight toward the common tier's
+ * weight as the index climbs from 1 to BOSS_PERSONALITY_RAMP_END_INDEX, so
+ * every personality is equally likely from that boss onward.
+ */
+export function personalityWeightsForIndex(index: number): Record<Personality, number> {
+  const rampEnd = TUNING.BOSS_PERSONALITY_RAMP_END_INDEX;
+  const progress = Math.min(1, Math.max(0, (index - 1) / (rampEnd - 1)));
+  const commonWeight = Math.max(...Object.values(TUNING.BOSS_PERSONALITY_WEIGHTS));
+  const weights = {} as Record<Personality, number>;
+  for (const [key, baseWeight] of Object.entries(TUNING.BOSS_PERSONALITY_WEIGHTS)) {
+    weights[key as Personality] = baseWeight + (commonWeight - baseWeight) * progress;
+  }
+  return weights;
+}
 
 /**
  * Generates a boss for the given index: rolls a personality, distributes the
  * index's power budget across stats (emphasizing one stat if the personality
- * calls for it), and jitters each stat by ±10%.
+ * calls for it), jitters each stat by ±10%, and independently rolls a crit
+ * chance, reflect%, and lifesteal% (see TUNING for the odds of each).
  *
  * IMPORTANT: `health`/`maxHealth` must share a single jitter roll. Calling
  * the jitter function twice for the same share would re-roll the ±10% swing
@@ -38,15 +90,22 @@ const PERSONALITY_STAT: Record<Personality, keyof typeof TUNING.BOSS_STAT_SHARE 
  * health, i.e. `maxHealth === health`.
  */
 export function generateBoss(index: number, rng: Rng): Boss {
-  const personality = pickWeighted<Personality>(TUNING.BOSS_PERSONALITY_WEIGHTS, rng);
+  const personality = pickWeighted<Personality>(personalityWeightsForIndex(index), rng);
   const emphasizedStat = PERSONALITY_STAT[personality];
   const shares: Record<keyof typeof TUNING.BOSS_STAT_SHARE, number> = { ...TUNING.BOSS_STAT_SHARE };
-  if (emphasizedStat) shares[emphasizedStat] *= TUNING.PERSONALITY_EMPHASIS_FACTOR;
+  if (emphasizedStat) shares[emphasizedStat] *= PERSONALITY_MULTIPLIER[personality as Exclude<Personality, 'balanced'>];
   const totalShare = Object.values(shares).reduce((a, b) => a + b, 0);
   const budget = bossPowerBudget(index);
   const jittered = (share: number) => budget * (share / totalShare) * (1 + (rng() * 2 - 1) * 0.1); // ±10%
 
   const health = jittered(shares.health); // rolled once, reused for maxHealth below
+  const critChance =
+    rng() < TUNING.BOSS_RARE_CRIT_CHANCE_PROBABILITY
+      ? TUNING.BOSS_RARE_CRIT_CHANCE
+      : rng() * TUNING.BOSS_DEFAULT_CRIT_CHANCE_MAX;
+  const reflectPct = parseFloat(pickWeighted<string>(TUNING.BOSS_REFLECT_WEIGHTS, rng));
+  const lifestealPct = parseFloat(pickWeighted<string>(TUNING.BOSS_LIFESTEAL_WEIGHTS, rng));
+
   return {
     index,
     personality,
@@ -56,7 +115,9 @@ export function generateBoss(index: number, rng: Rng): Boss {
     magicAttack: jittered(shares.magicAttack),
     armor: jittered(shares.armor),
     magicResist: jittered(shares.magicResist),
-    critChance: TUNING.BASE_CRIT_CHANCE, // fixed for every boss — difficulty scales via power budget, not crit
+    critChance,
+    reflectPct,
+    lifestealPct,
   };
 }
 

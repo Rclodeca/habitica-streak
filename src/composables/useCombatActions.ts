@@ -98,11 +98,12 @@ export function useCombatActions() {
 
   /**
    * Marks a habit missed: resolves boss-attack damage to the player exactly
-   * once via `missHabit`, writes the single result back into the character
-   * and habit stores. If that brought currentHealth to 0, checks for an
-   * equipped Phoenix Feather: if present, it's consumed and the character
-   * revives immediately (no death screen); otherwise the death screen is
-   * flagged and the actual reset waits for `restart()`.
+   * once via `missHabit`, writes the single result back into the character,
+   * boss (a lifesteal boss heals off this same attack), and habit stores. If
+   * that brought currentHealth to 0, checks for an equipped Phoenix Feather:
+   * if present, it's consumed and the character revives immediately (no
+   * death screen); otherwise the death screen is flagged and the actual
+   * reset waits for `restart()`.
    */
   function checkMissedHabit(habitId: string): void {
     const habit = habitStore.habits.find((h) => h.id === habitId);
@@ -111,6 +112,7 @@ export function useCombatActions() {
     const result = missHabit(characterStore.character, habit, bossStore.boss, rng);
 
     characterStore.setCharacter(result.character);
+    bossStore.setBoss(result.boss);
     habitStore.updateHabit(result.updatedHabit);
 
     // Rounded, not the raw float: the health bar already displays

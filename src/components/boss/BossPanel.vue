@@ -8,12 +8,27 @@ import Sprite from '../ui/Sprite.vue';
 
 // Boss art from HabitRPG/habitica-images (CC-BY-NC-SA 3.0, see CREDITS.md),
 // picked to match each personality's emphasized stat in game-engine/boss.ts.
+// The 3x/4x/5x tiers and the new magic-attack "arcane" family have no
+// dedicated art yet, so they reuse their base family's sprite (arcane
+// borrows the physical-attacker "brute" sprite as the closest stand-in) —
+// differentiated in the UI by the personality label and stats below, not art.
 const PERSONALITY_SPRITE: Record<Personality, string> = {
   balanced: 'bosses/balanced',
   tank: 'bosses/tank',
   armored: 'bosses/armored',
+  armored3x: 'bosses/armored',
+  armored4x: 'bosses/armored',
+  armored5x: 'bosses/armored',
   warded: 'bosses/warded',
+  warded3x: 'bosses/warded',
+  warded4x: 'bosses/warded',
+  warded5x: 'bosses/warded',
   brute: 'bosses/brute',
+  brute3x: 'bosses/brute',
+  brute4x: 'bosses/brute',
+  arcane: 'bosses/brute',
+  arcane3x: 'bosses/brute',
+  arcane4x: 'bosses/brute',
 };
 
 const bossStore = useBossStore();
@@ -49,6 +64,16 @@ const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 
       <dt>Crit chance</dt>
       <dd>{{ (boss.critChance * 100).toFixed(1) }}%</dd>
+
+      <template v-if="boss.reflectPct > 0">
+        <dt>Reflect</dt>
+        <dd>{{ (boss.reflectPct * 100).toFixed(0) }}%</dd>
+      </template>
+
+      <template v-if="boss.lifestealPct > 0">
+        <dt>Lifesteal</dt>
+        <dd>{{ (boss.lifestealPct * 100).toFixed(0) }}%</dd>
+      </template>
     </dl>
   </section>
 </template>
