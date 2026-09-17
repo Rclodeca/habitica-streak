@@ -13,6 +13,8 @@ import type { Character } from '../../game-engine';
 
 const props = defineProps<{ character: Character }>();
 
+const baseUrl = import.meta.env.BASE_URL;
+
 const equippedItems = computed(() =>
   ITEM_CATALOG.filter((item) => props.character.equippedItemIds.includes(item.id)),
 );
@@ -33,12 +35,12 @@ const shieldLayer = computed(() => bodySpriteFor(firstEquippedWithStat('healing'
 
 <template>
   <div class="player-sprite">
-    <img class="layer" src="/sprites/player/base-skin.png" alt="Player" />
-    <img class="layer" src="/sprites/player/base-shirt.png" alt="" />
-    <img v-if="armorLayer" class="layer" :src="`/sprites/${armorLayer}.png`" alt="" />
-    <img class="layer" src="/sprites/player/base-hair.png" alt="" />
-    <img v-if="shieldLayer" class="layer" :src="`/sprites/${shieldLayer}.png`" alt="" />
-    <img v-if="weaponLayer" class="layer" :src="`/sprites/${weaponLayer}.png`" alt="" />
+    <img class="layer" :src="`${baseUrl}sprites/player/base-skin.png`" alt="Player" />
+    <img class="layer" :src="`${baseUrl}sprites/player/base-shirt.png`" alt="" />
+    <img v-if="armorLayer" class="layer" :src="`${baseUrl}sprites/${armorLayer}.png`" alt="" />
+    <img class="layer" :src="`${baseUrl}sprites/player/base-hair.png`" alt="" />
+    <img v-if="shieldLayer" class="layer" :src="`${baseUrl}sprites/${shieldLayer}.png`" alt="" />
+    <img v-if="weaponLayer" class="layer" :src="`${baseUrl}sprites/${weaponLayer}.png`" alt="" />
   </div>
 </template>
 
