@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import { effectiveStat, expToNextLevel, ITEM_CATALOG } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
-import CharacterStatsModal from './CharacterStatsModal.vue';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Sprite from '../ui/Sprite.vue';
@@ -13,6 +12,10 @@ const characterStore = useCharacterStore();
 const character = computed(() => characterStore.character);
 const maxHealth = computed(() => effectiveStat(character.value, 'health'));
 const expNeeded = computed(() => expToNextLevel(character.value.level));
+const physicalDamage = computed(() => effectiveStat(character.value, 'physicalDamage'));
+const magicDamage = computed(() => effectiveStat(character.value, 'magicDamage'));
+const healing = computed(() => effectiveStat(character.value, 'healing'));
+const equippedItems = computed(() => ITEM_CATALOG.filter((item) => character.value.equippedItemIds.includes(item.id)));
 
 // Fixed 4 slots, in whatever order they were equipped — empty ones render
 // as blank grid cells rather than being compacted away, so the grid never
@@ -23,8 +26,6 @@ const equippedSlots = computed(() =>
     return itemId ? ITEM_CATALOG.find((item) => item.id === itemId) ?? null : null;
   }),
 );
-
-const showStatsModal = ref(false);
 
 // Which slot's stats callout is pinned open by a tap/click (persists until
 // tapped again or another slot is tapped) — separate from the CSS-only
@@ -38,60 +39,76 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 </script>
 
 <template>
-  <section class="panel character-panel" @click="showStatsModal = true">
-    <div class="panel-header">
+  <section class="panel character-panel">
+    <div class="top-row">
       <div class="sprite-wrapper" :class="{ hit: isHit }">
         <Sprite image-name="player-placeholder" alt="Player" />
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
-      <h2>Character — Level {{ character.level }}</h2>
-    </div>
-    <div class="item-grid" @click.stop>
-      <div
-        v-for="(item, i) in equippedSlots"
-        :key="i"
-        class="item-slot"
-        :class="{ pinned: pinnedSlot === i }"
-        @click="item && togglePin(i)"
-      >
-        <template v-if="item">
-          <img class="item-icon" :src="`/sprites/${item.icon}.png`" :alt="item.name" />
-          <div class="item-tooltip">{{ item.name }} — +{{ item.bonusPercent }}% {{ item.stat }}</div>
-        </template>
+      <div class="item-grid">
+        <div
+          v-for="(item, i) in equippedSlots"
+          :key="i"
+          class="item-slot"
+          :class="{ pinned: pinnedSlot === i }"
+          @click="item && togglePin(i)"
+        >
+          <template v-if="item">
+            <img class="item-icon" :src="`/sprites/${item.icon}.png`" :alt="item.name" />
+            <div class="item-tooltip">{{ item.name }} — +{{ item.bonusPercent }}% {{ item.stat }}</div>
+          </template>
+        </div>
       </div>
     </div>
+
+    <h2>Character — Level {{ character.level }}</h2>
     <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
     <ExpBar :current="character.exp" :max="expNeeded" />
-  </section>
 
-  <CharacterStatsModal v-model="showStatsModal" :character="character" />
+    <dl class="stat-list">
+      <dt>Physical damage</dt>
+      <dd>{{ physicalDamage.toFixed(1) }}</dd>
+
+      <dt>Magic damage</dt>
+      <dd>{{ magicDamage.toFixed(1) }}</dd>
+
+      <dt>Healing</dt>
+      <dd>{{ healing.toFixed(1) }}</dd>
+    </dl>
+
+    <h4 class="equipped-heading">Equipped items</h4>
+    <p v-if="equippedItems.length === 0" class="empty">None equipped.</p>
+    <ul v-else class="equipped-list">
+      <li v-for="item in equippedItems" :key="item.id">{{ item.name }} (+{{ item.bonusPercent }}% {{ item.stat }})</li>
+    </ul>
+  </section>
 </template>
 
 <style scoped>
 .character-panel {
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.panel-header h2 {
+.character-panel h2 {
   margin: 0;
 }
 
+.top-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Same footprint as the sprite (96x96, see Sprite.vue) so the two sit as
+   equal-sized boxes side by side. */
 .item-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 6px;
-  width: 132px;
-  height: 132px;
+  gap: 4px;
+  width: 96px;
+  height: 96px;
 }
 
 .item-slot {
@@ -131,6 +148,37 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 .item-slot:hover .item-tooltip,
 .item-slot.pinned .item-tooltip {
   opacity: 1;
+}
+
+.stat-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+}
+
+.stat-list dt {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.stat-list dd {
+  margin: 0;
+  text-align: right;
+}
+
+.equipped-heading {
+  margin: 0.5rem 0 0.4rem;
+}
+
+.empty {
+  opacity: 0.7;
+  margin: 0;
+}
+
+.equipped-list {
+  margin: 0;
+  padding-left: 1.2rem;
 }
 
 .sprite-wrapper {
