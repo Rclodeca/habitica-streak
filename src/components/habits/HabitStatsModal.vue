@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { computeDamageSplit, statAtLevel, streakMultiplier } from '../../game-engine';
-import type { DamageType, Habit } from '../../game-engine';
+import { computeDamageSplit, DAMAGE_TYPE_STARTER_STAT, statAtLevel, streakMultiplier } from '../../game-engine';
+import type { Habit } from '../../game-engine';
 import { useCharacterStore } from '../../store/characterStore';
 import { useHabitStore } from '../../store/habitStore';
 import Modal from '../ui/Modal.vue';
@@ -12,16 +12,9 @@ defineEmits<{ 'update:modelValue': [value: boolean] }>();
 const characterStore = useCharacterStore();
 const habitStore = useHabitStore();
 
-// Bridges a habit's damage type to the matching starter-stat field.
-const DAMAGE_TYPE_STAT_FIELD: Record<DamageType, keyof typeof characterStore.character.starterStats> = {
-  physical: 'physicalDamage',
-  magic: 'magicDamage',
-  healing: 'healing',
-};
-
 const baseDamage = computed(() => {
   const character = characterStore.character;
-  const statField = DAMAGE_TYPE_STAT_FIELD[props.habit.damageType];
+  const statField = DAMAGE_TYPE_STARTER_STAT[props.habit.damageType];
   const statValue = statAtLevel(character.starterStats[statField], character.level);
   const siblings = habitStore.habitsOfType(props.habit.damageType);
   const split = computeDamageSplit(siblings, statValue);
