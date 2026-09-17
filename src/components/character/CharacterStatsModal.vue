@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { expToNextLevel, statAtLevel } from '../../game-engine';
+import { effectiveStat, expToNextLevel, ITEM_CATALOG } from '../../game-engine';
 import type { Character } from '../../game-engine';
 import Modal from '../ui/Modal.vue';
 
@@ -8,11 +8,12 @@ const props = defineProps<{ modelValue: boolean; character: Character }>();
 defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
 const level = computed(() => props.character.level);
-const physicalDamage = computed(() => statAtLevel(props.character.starterStats.physicalDamage, level.value));
-const magicDamage = computed(() => statAtLevel(props.character.starterStats.magicDamage, level.value));
-const healing = computed(() => statAtLevel(props.character.starterStats.healing, level.value));
-const maxHealth = computed(() => statAtLevel(props.character.starterStats.health, level.value));
+const physicalDamage = computed(() => effectiveStat(props.character, 'physicalDamage'));
+const magicDamage = computed(() => effectiveStat(props.character, 'magicDamage'));
+const healing = computed(() => effectiveStat(props.character, 'healing'));
+const maxHealth = computed(() => effectiveStat(props.character, 'health'));
 const expNeeded = computed(() => expToNextLevel(level.value));
+const equippedItems = computed(() => ITEM_CATALOG.filter((item) => props.character.equippedItemIds.includes(item.id)));
 </script>
 
 <template>
@@ -40,6 +41,12 @@ const expNeeded = computed(() => expToNextLevel(level.value));
       <dt>Healing</dt>
       <dd>{{ healing.toFixed(1) }}</dd>
     </dl>
+
+    <h4 class="equipped-heading">Equipped items</h4>
+    <p v-if="equippedItems.length === 0" class="empty">None equipped.</p>
+    <ul v-else class="equipped-list">
+      <li v-for="item in equippedItems" :key="item.id">{{ item.name }} (+{{ item.bonusPercent }}% {{ item.stat }})</li>
+    </ul>
   </Modal>
 </template>
 
@@ -59,5 +66,19 @@ const expNeeded = computed(() => expToNextLevel(level.value));
 .stat-list dd {
   margin: 0;
   text-align: right;
+}
+
+.equipped-heading {
+  margin: 1rem 0 0.4rem;
+}
+
+.empty {
+  opacity: 0.7;
+  margin: 0;
+}
+
+.equipped-list {
+  margin: 0;
+  padding-left: 1.2rem;
 }
 </style>
