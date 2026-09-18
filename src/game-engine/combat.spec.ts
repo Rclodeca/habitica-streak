@@ -106,6 +106,33 @@ describe('completeHabit', () => {
     expect(result.milestoneExp).toBe(0);
   });
 
+  it('deals 3x damage for a weekly habit compared to an otherwise-identical daily habit', () => {
+    const character = makeCharacter();
+    const daily = makeHabit({ period: 'daily', damageType: 'physical', streakCount: 0 });
+    const weekly = makeHabit({ period: 'weekly', damageType: 'physical', streakCount: 0 });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const dailyResult = completeHabit(character, daily, [daily], boss, noCritRng);
+    const weeklyResult = completeHabit(character, weekly, [weekly], boss, noCritRng);
+
+    expect(weeklyResult.damageDealt).toBeCloseTo((dailyResult.damageDealt ?? 0) * TUNING.WEEKLY_REWARD_MULTIPLIER, 10);
+  });
+
+  it('heals 3x for a weekly healing habit compared to an otherwise-identical daily healing habit', () => {
+    const dailyCharacter = makeCharacter({ currentHealth: 1 });
+    const weeklyCharacter = makeCharacter({ currentHealth: 1 });
+    const daily = makeHabit({ period: 'daily', damageType: 'healing', streakCount: 0 });
+    const weekly = makeHabit({ period: 'weekly', damageType: 'healing', streakCount: 0 });
+    const boss = makeBoss();
+
+    const dailyResult = completeHabit(dailyCharacter, daily, [daily], boss, noCritRng);
+    const weeklyResult = completeHabit(weeklyCharacter, weekly, [weekly], boss, noCritRng);
+
+    const dailyHealed = dailyResult.character.currentHealth - dailyCharacter.currentHealth;
+    const weeklyHealed = weeklyResult.character.currentHealth - weeklyCharacter.currentHealth;
+    expect(weeklyHealed).toBeCloseTo(dailyHealed * TUNING.WEEKLY_REWARD_MULTIPLIER, 10);
+  });
+
   it('splits damage proportionally to difficulty weight across multiple habits of the same type', () => {
     const character = makeCharacter();
     const easy = makeHabit({ id: 'easy', difficulty: 'easy', damageType: 'physical' });
@@ -274,6 +301,21 @@ describe('missHabit', () => {
     const expectedDamage = boss.magicAttack * TUNING.MISS_DAMAGE_FACTOR * (1.5 / 1.5); // medium weight = 1.5
     expect(result.character.currentHealth).toBeCloseTo(100 - expectedDamage, 10);
     expect(result.updatedHabit.streakCount).toBe(0);
+  });
+
+  it('deals 2x damage for a missed weekly habit compared to an otherwise-identical missed daily habit', () => {
+    const dailyCharacter = makeCharacter({ currentHealth: 1000 });
+    const weeklyCharacter = makeCharacter({ currentHealth: 1000 });
+    const daily = makeHabit({ period: 'daily', difficulty: 'medium' });
+    const weekly = makeHabit({ period: 'weekly', difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 30, magicAttack: 10 });
+
+    const dailyResult = missHabit(dailyCharacter, daily, boss, noCritRng);
+    const weeklyResult = missHabit(weeklyCharacter, weekly, boss, noCritRng);
+
+    const dailyDamage = dailyCharacter.currentHealth - dailyResult.character.currentHealth;
+    const weeklyDamage = weeklyCharacter.currentHealth - weeklyResult.character.currentHealth;
+    expect(weeklyDamage).toBeCloseTo(dailyDamage * TUNING.WEEKLY_MISS_MULTIPLIER, 10);
   });
 
   it('picks physicalAttack instead of magicAttack when the rng rolls below 0.5', () => {
