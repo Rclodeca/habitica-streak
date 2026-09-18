@@ -52,7 +52,8 @@ export function completeHabit(
   const baseDamage = split.get(habit.id) ?? 0;
   const { habit: updatedHabit, milestoneExp } = completeHabitStreak(habit);
   const multiplier = streakMultiplier(updatedHabit.streakCount);
-  const amount = baseDamage * multiplier;
+  const weeklyMultiplier = habit.period === 'weekly' ? TUNING.WEEKLY_REWARD_MULTIPLIER : 1;
+  const amount = baseDamage * multiplier * weeklyMultiplier;
 
   if (habit.damageType === 'healing') {
     const healed = Math.min(character.currentHealth + amount, effectiveStat(character, 'health'));
@@ -95,9 +96,10 @@ export function missHabit(
   const updatedHabit = resetHabitStreak(habit);
   const attack = rng() < 0.5 ? boss.physicalAttack : boss.magicAttack;
   const wasCrit = rng() < boss.critChance;
+  const weeklyMultiplier = habit.period === 'weekly' ? TUNING.WEEKLY_MISS_MULTIPLIER : 1;
   const damage =
     attack * TUNING.MISS_DAMAGE_FACTOR * (DIFFICULTY_WEIGHT[habit.difficulty] / 1.5) *
-    (wasCrit ? TUNING.CRIT_MULTIPLIER : 1);
+    (wasCrit ? TUNING.CRIT_MULTIPLIER : 1) * weeklyMultiplier;
   const newHealth = Math.max(0, character.currentHealth - damage);
   const healedBoss = Math.min(boss.maxHealth, boss.health + damage * boss.lifestealPct);
   const newBoss = healedBoss !== boss.health ? { ...boss, health: healedBoss } : boss;
