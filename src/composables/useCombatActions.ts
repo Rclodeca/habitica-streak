@@ -31,13 +31,15 @@ import {
   addExpAndResolveLevelUps,
   completeHabit,
   createRng,
+  effectiveStat,
   missHabit,
   periodKeyFor,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
 } from '../game-engine';
-import type { Difficulty, Habit, ItemDef, Period } from '../game-engine';
+import type { Character, Difficulty, Habit, ItemDef, Period } from '../game-engine';
+import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useDebugClockStore } from '../store/debugClockStore';
@@ -54,9 +56,30 @@ export function useCombatActions() {
   const characterStore = useCharacterStore();
   const bossStore = useBossStore();
   const habitStore = useHabitStore();
+  const activityLogStore = useActivityLogStore();
   const debugClockStore = useDebugClockStore();
   const { triggerDeath, dismiss: dismissDeathScreen } = useDeathScreen();
   const { showReviveNotice } = useReviveNotice();
+
+  /**
+   * Writes a `level-up` log entry if `after` is at a higher level than
+   * `before` — a no-op otherwise. Stat deltas are derived (rather than
+   * carried on the level-up result itself) since `addExpAndResolveLevelUps`
+   * only returns the count of levels gained, not the resulting stat values.
+   */
+  function logLevelUpIfAny(before: Character, after: Character): void {
+    if (after.level <= before.level) return;
+    activityLogStore.addEntry({
+      kind: 'level-up',
+      newLevel: after.level,
+      statDeltas: {
+        physicalDamage: effectiveStat(after, 'physicalDamage') - effectiveStat(before, 'physicalDamage'),
+        magicDamage: effectiveStat(after, 'magicDamage') - effectiveStat(before, 'magicDamage'),
+        healing: effectiveStat(after, 'healing') - effectiveStat(before, 'healing'),
+        health: effectiveStat(after, 'health') - effectiveStat(before, 'health'),
+      },
+    });
+  }
 
   /**
    * Shared reward core: resolves the combat outcome (boss damage or player
@@ -75,6 +98,7 @@ export function useCombatActions() {
     if (!habit) return [];
 
     const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.isBad);
+    const healthBefore = characterStore.character.currentHealth;
     const result = completeHabit(characterStore.character, habit, habitsInPool, bossStore.boss, rng);
 
     const updatedHabit: Habit = stampPeriodKey
@@ -85,13 +109,37 @@ export function useCombatActions() {
     bossStore.setBoss(result.boss);
     habitStore.updateHabit(updatedHabit);
 
+    if (habit.damageType === 'healing') {
+      activityLogStore.addEntry({
+        kind: 'heal',
+        habitName: habit.name,
+        amount: result.character.currentHealth - healthBefore,
+      });
+    } else if (result.damageDealt !== undefined) {
+      // Sub-effect entries pushed before the main one so the main "skill
+      // used" entry — the headline of this action — lands on top (newest).
+      if (result.wasCrit) activityLogStore.addEntry({ kind: 'crit', by: 'player' });
+      if (result.lifestealHealed) {
+        activityLogStore.addEntry({ kind: 'lifesteal', amount: result.lifestealHealed, healedWho: 'player' });
+      }
+      if (result.reflectedDamage) {
+        activityLogStore.addEntry({ kind: 'reflect', amount: result.reflectedDamage });
+      }
+      activityLogStore.addEntry({ kind: 'skill-damage', habitName: habit.name, amount: result.damageDealt });
+    }
+
     if (result.milestoneExp > 0) {
-      const { character } = addExpAndResolveLevelUps(characterStore.character, result.milestoneExp);
+      const beforeLevelUp = characterStore.character;
+      const { character } = addExpAndResolveLevelUps(beforeLevelUp, result.milestoneExp);
+      logLevelUpIfAny(beforeLevelUp, character);
       characterStore.setCharacter(character);
     }
 
+    const beforeDefeat = characterStore.character;
     const defeatResult = resolveBossDefeatIfDead(characterStore.character, bossStore.boss, rng);
     if (defeatResult.defeated) {
+      activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: bossStore.boss.index });
+      logLevelUpIfAny(beforeDefeat, defeatResult.character);
       characterStore.setCharacter(defeatResult.character);
       bossStore.setBoss(defeatResult.boss);
     }
@@ -115,6 +163,7 @@ export function useCombatActions() {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return;
 
+    const healthBefore = characterStore.character.currentHealth;
     const result = missHabit(characterStore.character, habit, bossStore.boss, rng);
 
     const updatedHabit: Habit = stampPeriodKey
@@ -124,6 +173,18 @@ export function useCombatActions() {
     characterStore.setCharacter(result.character);
     bossStore.setBoss(result.boss);
     habitStore.updateHabit(updatedHabit);
+
+    // Sub-effect entries pushed before the main one so the main "hit" entry
+    // — the headline of this action — lands on top (newest).
+    if (result.wasCrit) activityLogStore.addEntry({ kind: 'crit', by: 'boss' });
+    if (result.bossLifestealHealed) {
+      activityLogStore.addEntry({ kind: 'lifesteal', amount: result.bossLifestealHealed, healedWho: 'boss' });
+    }
+    activityLogStore.addEntry({
+      kind: 'hit',
+      habitName: habit.name,
+      amount: healthBefore - result.character.currentHealth,
+    });
 
     // Rounded, not the raw float: the health bar already displays
     // Math.round(currentHealth), so a tiny positive remainder (e.g. 0.3)

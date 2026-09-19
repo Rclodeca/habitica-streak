@@ -4,6 +4,7 @@
 // data — see task-5-brief.md step 2 for why this shape is acceptable.
 
 import type { Pinia } from 'pinia';
+import { useActivityLogStore } from '../activityLogStore';
 import { useBossStore } from '../bossStore';
 import { useCharacterStore } from '../characterStore';
 import { useHabitStore } from '../habitStore';
@@ -31,6 +32,7 @@ export function setupPersistence(pinia: Pinia): void {
   const characterStore = useCharacterStore(pinia);
   const bossStore = useBossStore(pinia);
   const habitStore = useHabitStore(pinia);
+  const activityLogStore = useActivityLogStore(pinia);
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -42,6 +44,7 @@ export function setupPersistence(pinia: Pinia): void {
         character: characterStore.character,
         boss: bossStore.boss,
         habits: habitStore.habits,
+        activityLog: activityLogStore.entries,
       });
     }, DEBOUNCE_MS);
   };
@@ -54,4 +57,5 @@ export function setupPersistence(pinia: Pinia): void {
   characterStore.$subscribe(scheduleWrite, subscribeOptions);
   bossStore.$subscribe(scheduleWrite, subscribeOptions);
   habitStore.$subscribe(scheduleWrite, subscribeOptions);
+  activityLogStore.$subscribe(scheduleWrite, subscribeOptions);
 }

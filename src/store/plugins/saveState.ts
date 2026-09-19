@@ -2,6 +2,7 @@
 // concerns only — no game logic lives here.
 
 import type { Boss, Character, Habit } from '../../game-engine';
+import type { ActivityLogEntry } from '../activityLogStore';
 
 // Bumped 4 -> 5: Habit gained a required `isBad` field (Bad Habit support).
 // No migration in MVP — a v4 save simply mismatches and the player starts
@@ -14,6 +15,10 @@ export interface SaveStateV5 {
   character: Character;
   boss: Boss;
   habits: Habit[];
+  // Optional, added after v5 shipped: unlike the isBad bump above, nothing
+  // existing depends on this field, so an old save just loads with no log
+  // instead of forcing a fresh start (no schema/storage-key bump needed).
+  activityLog?: ActivityLogEntry[];
 }
 
 export function serializeSaveState(state: Omit<SaveStateV5, 'schemaVersion'>): string {
