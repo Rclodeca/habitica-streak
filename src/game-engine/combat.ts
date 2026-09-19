@@ -27,6 +27,11 @@ export type CombatResult = {
   milestoneExp: number;
   damageDealt?: number;
   wasCrit?: boolean;
+  // Surfaced (rather than left as internal-only locals) purely so callers —
+  // namely the activity log — can report these sub-effects separately,
+  // without recomputing this function's formulas themselves.
+  lifestealHealed?: number;
+  reflectedDamage?: number;
 };
 
 /**
@@ -76,7 +81,16 @@ export function completeHabit(
   );
   const newCharacter = netHealthChange !== 0 ? { ...character, currentHealth: newHealth } : character;
 
-  return { character: newCharacter, boss: newBoss, updatedHabit, milestoneExp, damageDealt: dealt, wasCrit };
+  return {
+    character: newCharacter,
+    boss: newBoss,
+    updatedHabit,
+    milestoneExp,
+    damageDealt: dealt,
+    wasCrit,
+    lifestealHealed: healed > 0 ? healed : undefined,
+    reflectedDamage: reflected > 0 ? reflected : undefined,
+  };
 }
 
 /**
@@ -92,7 +106,15 @@ export function missHabit(
   habit: Habit,
   boss: Boss,
   rng: Rng,
-): { character: Character; boss: Boss; updatedHabit: Habit; wasCrit: boolean } {
+): {
+  character: Character;
+  boss: Boss;
+  updatedHabit: Habit;
+  wasCrit: boolean;
+  // Capped at the boss's maxHealth, so this is the actual health gained,
+  // not the raw `damage * lifestealPct` — surfaced for the activity log.
+  bossLifestealHealed?: number;
+} {
   const updatedHabit = resetHabitStreak(habit);
   const attack = rng() < 0.5 ? boss.physicalAttack : boss.magicAttack;
   const wasCrit = rng() < boss.critChance;
@@ -102,8 +124,15 @@ export function missHabit(
     (wasCrit ? TUNING.CRIT_MULTIPLIER : 1) * weeklyMultiplier;
   const newHealth = Math.max(0, character.currentHealth - damage);
   const healedBoss = Math.min(boss.maxHealth, boss.health + damage * boss.lifestealPct);
+  const bossLifestealHealed = healedBoss - boss.health;
   const newBoss = healedBoss !== boss.health ? { ...boss, health: healedBoss } : boss;
-  return { character: { ...character, currentHealth: newHealth }, boss: newBoss, updatedHabit, wasCrit };
+  return {
+    character: { ...character, currentHealth: newHealth },
+    boss: newBoss,
+    updatedHabit,
+    wasCrit,
+    bossLifestealHealed: bossLifestealHealed > 0 ? bossLifestealHealed : undefined,
+  };
 }
 
 /**
