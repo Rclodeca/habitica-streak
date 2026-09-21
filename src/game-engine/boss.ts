@@ -7,10 +7,23 @@ import type { Boss, Personality } from './types';
  * Total "power budget" a boss at the given index gets to distribute across
  * its stats. Grows exponentially forever so the game never runs out of
  * challenge — see `damageReductionPct` for how the resist formula keeps
- * bosses killable despite this unbounded growth.
+ * bosses killable despite this unbounded growth. `difficultyModifier`
+ * (default 1, i.e. no change) is the current run's hidden per-run scaling —
+ * see `generateBoss`.
  */
-export function bossPowerBudget(index: number): number {
-  return TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, index - 1);
+export function bossPowerBudget(index: number, difficultyModifier = 1): number {
+  return TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, index - 1) * difficultyModifier;
+}
+
+/**
+ * Rolls a new hidden per-run difficulty modifier: a multiplier applied to
+ * every boss's power budget for the rest of this run, so some runs are
+ * quietly a bit tougher or easier throughout than the tuned baseline —
+ * never surfaced in the UI, so the player can't tell how hard their current
+ * run is stacked to be.
+ */
+export function rollRunDifficultyModifier(rng: Rng): number {
+  return 1 + (rng() * 2 - 1) * TUNING.RUN_DIFFICULTY_VARIANCE_PCT;
 }
 
 /** EXP granted to the player for defeating the boss at the given index. */
@@ -32,9 +45,11 @@ const PERSONALITY_STAT: Record<Personality, keyof typeof TUNING.BOSS_STAT_SHARE 
   brute: 'physicalAttack',
   brute3x: 'physicalAttack',
   brute4x: 'physicalAttack',
+  brute5x: 'physicalAttack',
   arcane: 'magicAttack',
   arcane3x: 'magicAttack',
   arcane4x: 'magicAttack',
+  arcane5x: 'magicAttack',
 };
 
 /**
@@ -55,9 +70,11 @@ const PERSONALITY_MULTIPLIER: Record<Exclude<Personality, 'balanced'>, number> =
   brute: 2,
   brute3x: 3,
   brute4x: 4,
+  brute5x: 5,
   arcane: 2,
   arcane3x: 3,
   arcane4x: 4,
+  arcane5x: 5,
 };
 
 /**
@@ -83,19 +100,27 @@ export function personalityWeightsForIndex(index: number): Record<Personality, n
  * calls for it), jitters each stat by ±10%, and independently rolls a crit
  * chance, reflect%, and lifesteal% (see TUNING for the odds of each).
  *
+ * `difficultyModifier`, if provided, is the current run's hidden per-run
+ * scaling — carried forward from the previous boss so it stays constant for
+ * the whole run (see `resolveBossDefeatIfDead`). If omitted (a brand new
+ * run: app boot, or right after `resolvePlayerDeathIfDead`), a fresh one is
+ * rolled via `rollRunDifficultyModifier` and stored on the returned boss so
+ * later bosses this run can carry it forward the same way.
+ *
  * IMPORTANT: `health`/`maxHealth` must share a single jitter roll. Calling
  * the jitter function twice for the same share would re-roll the ±10% swing
  * independently for each field, so `maxHealth` could end up different from
  * `health` at spawn — but a freshly spawned boss must always be at full
  * health, i.e. `maxHealth === health`.
  */
-export function generateBoss(index: number, rng: Rng): Boss {
+export function generateBoss(index: number, rng: Rng, difficultyModifier?: number): Boss {
+  const resolvedDifficultyModifier = difficultyModifier ?? rollRunDifficultyModifier(rng);
   const personality = pickWeighted<Personality>(personalityWeightsForIndex(index), rng);
   const emphasizedStat = PERSONALITY_STAT[personality];
   const shares: Record<keyof typeof TUNING.BOSS_STAT_SHARE, number> = { ...TUNING.BOSS_STAT_SHARE };
   if (emphasizedStat) shares[emphasizedStat] *= PERSONALITY_MULTIPLIER[personality as Exclude<Personality, 'balanced'>];
   const totalShare = Object.values(shares).reduce((a, b) => a + b, 0);
-  const budget = bossPowerBudget(index);
+  const budget = bossPowerBudget(index, resolvedDifficultyModifier);
   const jittered = (share: number) => budget * (share / totalShare) * (1 + (rng() * 2 - 1) * 0.1); // ±10%
 
   const health = jittered(shares.health); // rolled once, reused for maxHealth below
@@ -118,6 +143,7 @@ export function generateBoss(index: number, rng: Rng): Boss {
     critChance,
     reflectPct,
     lifestealPct,
+    difficultyModifier: resolvedDifficultyModifier,
   };
 }
 

@@ -5,7 +5,7 @@ export type Difficulty = 'easy' | 'medium' | 'hard';
 export type Period = 'daily' | 'weekly';
 
 // Each emphasized-stat family (armored/warded/brute/arcane) has an
-// escalating 2x/3x/4x(/5x) tier — see PERSONALITY_MULTIPLIER in boss.ts —
+// escalating 2x/3x/4x/5x tier — see PERSONALITY_MULTIPLIER in boss.ts —
 // with higher tiers weighted much rarer (BOSS_PERSONALITY_WEIGHTS).
 export type Personality =
   | 'balanced'
@@ -21,9 +21,11 @@ export type Personality =
   | 'brute'
   | 'brute3x'
   | 'brute4x'
+  | 'brute5x'
   | 'arcane'
   | 'arcane3x'
-  | 'arcane4x';
+  | 'arcane4x'
+  | 'arcane5x';
 
 export interface Character {
   level: number;
@@ -52,6 +54,12 @@ export interface Boss {
   critChance: number; // randomized per boss, not scaled by index — see generateBoss
   reflectPct: number; // fraction (0-1) of damage taken reflected back at the player — see completeHabit
   lifestealPct: number; // fraction (0-1) of damage dealt to the player healed back to the boss — see missHabit
+  // Hidden per-run difficulty scaling (see rollRunDifficultyModifier) —
+  // carried forward to every boss within the same run, never shown in the
+  // UI. Optional so an existing save (no schema-version bump) still loads;
+  // undefined is treated as "roll a fresh one" the next time a boss is
+  // generated for this run (see generateBoss).
+  difficultyModifier?: number;
 }
 
 export interface Habit {

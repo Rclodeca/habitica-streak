@@ -12,7 +12,7 @@ export { computeDamageSplit, createHabit, rerollDamageType, resetLevelRewards } 
 
 export { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 
-export { applyResist, bossExpReward, bossPowerBudget, damageReductionPct, generateBoss } from './boss';
+export { applyResist, bossExpReward, bossPowerBudget, damageReductionPct, generateBoss, rollRunDifficultyModifier } from './boss';
 
 export { assignSpecialIfEligible, assignUltIfEligible, rollOverdriveForLevelUps } from './levelRewards';
 

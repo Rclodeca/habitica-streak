@@ -231,7 +231,10 @@ export function reviveWithFeatherIfEquipped(character: Character): { character: 
 /**
  * No-op unless the boss's health has reached 0. When it has, grants the
  * boss's EXP reward (resolving any resulting level-ups), rolls this
- * character's item drop for this kill, and spawns the next boss.
+ * character's item drop for this kill, and spawns the next boss — carrying
+ * this run's hidden difficulty modifier (`boss.difficultyModifier`) forward
+ * onto it, so it stays constant for the whole run rather than re-rolling
+ * every boss.
  *
  * Checks the *rounded* health, not the raw float: damage math can leave a
  * tiny positive remainder (e.g. 0.3) that the health bar already displays
@@ -250,7 +253,8 @@ export function resolveBossDefeatIfDead(
     ...leveled,
     ownedItemIds: [...leveled.ownedItemIds, ...itemsDropped.map((item) => item.id)],
   };
-  return { character: withItems, boss: generateBoss(boss.index + 1, rng), defeated: true, levelsGained, itemsDropped };
+  const nextBoss = generateBoss(boss.index + 1, rng, boss.difficultyModifier);
+  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped };
 }
 
 /**

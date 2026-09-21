@@ -6,6 +6,7 @@ import {
   damageReductionPct,
   generateBoss,
   personalityWeightsForIndex,
+  rollRunDifficultyModifier,
 } from './boss';
 import { createRng, type Rng } from './rng';
 import { TUNING } from './constants/tuning';
@@ -17,6 +18,49 @@ describe('bossPowerBudget', () => {
     expect(bossPowerBudget(5)).toBeCloseTo(TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, 4), 10);
     expect(bossPowerBudget(10)).toBeCloseTo(TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, 9), 10);
     expect(bossPowerBudget(1)).toBe(TUNING.BASE_BOSS_POWER);
+  });
+
+  it('scales linearly with an explicit difficultyModifier', () => {
+    expect(bossPowerBudget(5, 1.1)).toBeCloseTo(bossPowerBudget(5) * 1.1, 10);
+    expect(bossPowerBudget(5, 0.9)).toBeCloseTo(bossPowerBudget(5) * 0.9, 10);
+  });
+});
+
+describe('rollRunDifficultyModifier', () => {
+  it('stays within [1 - RUN_DIFFICULTY_VARIANCE_PCT, 1 + RUN_DIFFICULTY_VARIANCE_PCT]', () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const modifier = rollRunDifficultyModifier(createRng(seed));
+      expect(modifier).toBeGreaterThanOrEqual(1 - TUNING.RUN_DIFFICULTY_VARIANCE_PCT);
+      expect(modifier).toBeLessThanOrEqual(1 + TUNING.RUN_DIFFICULTY_VARIANCE_PCT);
+    }
+  });
+
+  it('varies across seeds rather than always landing on the same value', () => {
+    const values = new Set(Array.from({ length: 20 }, (_, seed) => rollRunDifficultyModifier(createRng(seed))));
+    expect(values.size).toBeGreaterThan(1);
+  });
+});
+
+describe('generateBoss difficulty modifier', () => {
+  it('rolls and stores a fresh modifier when none is provided', () => {
+    const boss = generateBoss(1, createRng(1));
+    expect(boss.difficultyModifier).toBeGreaterThanOrEqual(1 - TUNING.RUN_DIFFICULTY_VARIANCE_PCT);
+    expect(boss.difficultyModifier).toBeLessThanOrEqual(1 + TUNING.RUN_DIFFICULTY_VARIANCE_PCT);
+  });
+
+  it('reuses a provided modifier exactly instead of rolling a new one', () => {
+    const boss = generateBoss(4, createRng(1), 1.1);
+    expect(boss.difficultyModifier).toBe(1.1);
+  });
+
+  it('scales every boss stat by the provided modifier, holding the rng seed fixed', () => {
+    const baseline = generateBoss(5, createRng(7), 1);
+    const harder = generateBoss(5, createRng(7), 1.1);
+    // Same seed, same personality/jitter rolls — only the budget differs.
+    expect(harder.personality).toBe(baseline.personality);
+    expect(harder.health).toBeCloseTo(baseline.health * 1.1, 6);
+    expect(harder.physicalAttack).toBeCloseTo(baseline.physicalAttack * 1.1, 6);
+    expect(harder.armor).toBeCloseTo(baseline.armor * 1.1, 6);
   });
 });
 
@@ -98,7 +142,7 @@ describe('generateBoss', () => {
   it('always spawns with maxHealth === health (jitter rolled once, reused)', () => {
     for (let seed = 0; seed < 50; seed++) {
       const rng = createRng(seed);
-      const boss = generateBoss(3, rng);
+      const boss = generateBoss(3, rng, 1);
       expect(boss.maxHealth).toBe(boss.health);
     }
   });
@@ -107,7 +151,7 @@ describe('generateBoss', () => {
     const rareValue = TUNING.BOSS_RARE_CRIT_CHANCE;
     const results: number[] = [];
     for (let seed = 0; seed < 500; seed++) {
-      results.push(generateBoss(1, createRng(seed)).critChance);
+      results.push(generateBoss(1, createRng(seed), 1).critChance);
     }
     for (const critChance of results) {
       expect(critChance).toBeGreaterThanOrEqual(0);
@@ -119,14 +163,14 @@ describe('generateBoss', () => {
     expect(defaultCount).toBeGreaterThan(results.length * 0.8); // BOSS_RARE_CRIT_CHANCE_PROBABILITY is only 5%
 
     // Same [0, rareValue] bound holds at a much higher boss index.
-    expect(generateBoss(20, createRng(1)).critChance).toBeLessThanOrEqual(rareValue);
+    expect(generateBoss(20, createRng(1), 1).critChance).toBeLessThanOrEqual(rareValue);
   });
 
   it('rolls reflectPct from the configured tiers, mostly 0', () => {
     const validValues = Object.keys(TUNING.BOSS_REFLECT_WEIGHTS).map(Number);
     const results: number[] = [];
     for (let seed = 0; seed < 500; seed++) {
-      results.push(generateBoss(1, createRng(seed)).reflectPct);
+      results.push(generateBoss(1, createRng(seed), 1).reflectPct);
     }
     for (const reflectPct of results) {
       expect(validValues).toContain(reflectPct);
@@ -139,7 +183,7 @@ describe('generateBoss', () => {
     const validValues = Object.keys(TUNING.BOSS_LIFESTEAL_WEIGHTS).map(Number);
     const results: number[] = [];
     for (let seed = 0; seed < 500; seed++) {
-      results.push(generateBoss(1, createRng(seed)).lifestealPct);
+      results.push(generateBoss(1, createRng(seed), 1).lifestealPct);
     }
     for (const lifestealPct of results) {
       expect(validValues).toContain(lifestealPct);
@@ -151,7 +195,7 @@ describe('generateBoss', () => {
   it('generates the requested personality when forced', () => {
     for (const personality of Object.keys(FORCED_ROLL_FOR) as Personality[]) {
       const rng = forcedPersonalityRng(FORCED_ROLL_FOR[personality], 1);
-      const boss = generateBoss(1, rng);
+      const boss = generateBoss(1, rng, 1);
       expect(boss.personality).toBe(personality);
     }
   });
@@ -169,9 +213,11 @@ describe('generateBoss', () => {
     brute: 'physicalAttack',
     brute3x: 'physicalAttack',
     brute4x: 'physicalAttack',
+    brute5x: 'physicalAttack',
     arcane: 'magicAttack',
     arcane3x: 'magicAttack',
     arcane4x: 'magicAttack',
+    arcane5x: 'magicAttack',
   };
 
   it.each(Object.entries(EMPHASIZED_STAT) as [Exclude<Personality, 'balanced'>, keyof typeof TUNING.BOSS_STAT_SHARE][])(
@@ -187,8 +233,8 @@ describe('generateBoss', () => {
         // the base weights, which only match the effective weights (see
         // personalityWeightsForIndex) at index 1, before the rarity ramp
         // shifts them.
-        emphasizedTotal += generateBoss(1, emphasizedRng)[stat];
-        balancedTotal += generateBoss(1, balancedRng)[stat];
+        emphasizedTotal += generateBoss(1, emphasizedRng, 1)[stat];
+        balancedTotal += generateBoss(1, balancedRng, 1)[stat];
       }
       const emphasizedAvg = emphasizedTotal / iterations;
       const balancedAvg = balancedTotal / iterations;
@@ -209,8 +255,10 @@ describe('generateBoss', () => {
     { lower: 'warded4x', higher: 'warded5x' },
     { lower: 'brute', higher: 'brute3x' },
     { lower: 'brute3x', higher: 'brute4x' },
+    { lower: 'brute4x', higher: 'brute5x' },
     { lower: 'arcane', higher: 'arcane3x' },
     { lower: 'arcane3x', higher: 'arcane4x' },
+    { lower: 'arcane4x', higher: 'arcane5x' },
   ];
 
   it.each(MULTIPLIER_TIERS)(
@@ -226,8 +274,8 @@ describe('generateBoss', () => {
         // Forced at index 1 for the same reason as the emphasized-stat test
         // above — FORCED_ROLL_FOR only lines up with the effective weights
         // before the rarity ramp kicks in.
-        lowerTotal += generateBoss(1, lowerRng)[stat];
-        higherTotal += generateBoss(1, higherRng)[stat];
+        lowerTotal += generateBoss(1, lowerRng, 1)[stat];
+        higherTotal += generateBoss(1, higherRng, 1)[stat];
       }
       expect(higherTotal / iterations).toBeGreaterThan(lowerTotal / iterations);
     },

@@ -13,17 +13,27 @@ export const TUNING = {
   // Weeklies take much longer to stack a streak (once/week vs. every day),
   // so each streak count is worth 3x as much as a daily's.
   WEEKLY_STREAK_MULTIPLIER_PER_COUNT: 0.30,
-  // Lowered 2650 -> 1800 and BOSS_GROWTH_RATE 1.30 -> 1.16 below, alongside
-  // retaining habit streaks across death (see resolvePlayerDeathIfDead) and
-  // MISS_DAMAGE_FACTOR below, as a coordinated pacing pass — tuned via a
-  // throwaway per-life simulation (spawn-to-death, not a fixed day window)
-  // across bad/balanced/good/chaotic completion-rate archetypes, targeting
-  // ~1-2 days/boss early ramping up as index climbs, and an average boss
-  // reached at death of roughly 3 (bad, 10-30% completion) / 7 (balanced,
-  // 30-60%) / 15 (good, 60-90%). The old 2650/1.30 pair cleared ~1 boss/day
-  // flat and gave far too little spread between archetypes (~3 to ~8).
+  // Lowered 2650 -> 1800, alongside retaining habit streaks across death
+  // (see resolvePlayerDeathIfDead) and MISS_DAMAGE_FACTOR below, as a
+  // coordinated pacing pass — tuned via a throwaway per-life simulation
+  // (spawn-to-death, not a fixed day window) across completion-rate
+  // archetypes. The old 2650/1.30 pair cleared ~1 boss/day flat and gave
+  // far too little spread between archetypes (~3 to ~8).
   BASE_BOSS_POWER: 1800,
-  BOSS_GROWTH_RATE: 1.16,
+  // BOSS_GROWTH_RATE bumped 1.16 -> 1.205 in a follow-up pass (bad/balanced
+  // were already on target; only the high-completion tiers needed pulling
+  // back in) once two more archetypes (good+ 80-90%, amazing 80-100%, extra
+  // amazing 90-100%) were added, targeting a rough avg-boss-at-death curve
+  // of bad 3 / balanced 6 / good 9 / good+ 12 / amazing 15 / extra amazing
+  // 20 — approximate by design, not meant to hit exactly. 1.16 alone gave
+  // too little separation between the top two tiers (~24 vs ~20).
+  BOSS_GROWTH_RATE: 1.205,
+  // Each run's bosses are scaled by a hidden ±10% multiplier, rolled once
+  // per run (see rollRunDifficultyModifier) and never shown in the UI, so
+  // some runs are quietly a bit tougher or easier throughout than the
+  // tuned baseline above — replay variety without the player being able to
+  // tell how hard their current run is stacked to be.
+  RUN_DIFFICULTY_VARIANCE_PCT: 0.1,
   BOSS_STAT_SHARE: { health: 0.4, physicalAttack: 0.2, magicAttack: 0.2, armor: 0.1, magicResist: 0.1 }, // sums to 1
   RESIST_K: 1500, // scaled with BASE_BOSS_POWER so early-game resist % is unchanged (~14% at boss 1)
   BASE_BOSS_EXP: 40, // deliberately NOT rescaled — EXP/leveling pace is a separate economy, untouched by this balance pass
@@ -36,13 +46,13 @@ export const TUNING = {
   // hard-caps levels-gained-per-grant as defense in depth, but keeping this
   // rate strictly lower is what actually prevents the runaway in practice.)
   BOSS_EXP_GROWTH_RATE: 1.12,
-  // Lowered 0.3 -> 0.17 as part of the same pacing pass as BASE_BOSS_POWER/
-  // BOSS_GROWTH_RATE above: a low-completion ("bad") player accumulates far
-  // more misses than anyone else, so this specifically stretches their
-  // survivable run length without meaningfully changing a high-completion
-  // player's pace (they rarely miss). See BASE_BOSS_POWER's comment for the
-  // simulation this was tuned against.
-  MISS_DAMAGE_FACTOR: 0.17,
+  // Lowered 0.3 -> 0.17, then -> 0.15 in the BOSS_GROWTH_RATE follow-up pass
+  // above: a low-completion ("bad") player accumulates far more misses than
+  // anyone else, so this specifically stretches their survivable run length
+  // without meaningfully changing a high-completion player's pace (they
+  // rarely miss) — the 1.205 growth-rate bump alone pulled "bad" down
+  // slightly below its target, and this nudge brought it back.
+  MISS_DAMAGE_FACTOR: 0.15,
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
   CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed
   CRIT_MULTIPLIER: 2, // crit hits deal 2x damage
@@ -52,10 +62,10 @@ export const TUNING = {
   WEEKLY_MISS_MULTIPLIER: 2, // a missed/failed weekly deals 2x damage to the player
   HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.4, magic: 0.4, healing: 0.2 },
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates
-  // 2x -> 3x -> 4x(-> 5x for armor/magicResist), and each tier is 5x rarer
-  // than the one below it — the same ratio ITEM_CATALOG's RARITY_WEIGHT uses
-  // for common:uncommon:rare:epic — so a boss with an extreme multiplier is
-  // a rare, memorable spike rather than the norm.
+  // 2x -> 3x -> 4x -> 5x, and each tier is 5x rarer than the one below it —
+  // the same ratio ITEM_CATALOG's RARITY_WEIGHT uses for
+  // common:uncommon:rare:epic — so a boss with an extreme multiplier is a
+  // rare, memorable spike rather than the norm.
   BOSS_PERSONALITY_WEIGHTS: {
     balanced: 100,
     tank: 100,
@@ -70,9 +80,11 @@ export const TUNING = {
     brute: 100,
     brute3x: 20,
     brute4x: 4,
+    brute5x: 0.8,
     arcane: 100,
     arcane3x: 20,
     arcane4x: 4,
+    arcane5x: 0.8,
   },
   // Each personality's weight above linearly closes the gap to the common
   // tier's weight (100) as the boss index climbs from 1 to this value, so

@@ -621,6 +621,15 @@ describe('resolveBossDefeatIfDead', () => {
     expect(result.character.ownedItemIds).toHaveLength(ITEM_CATALOG.length);
   });
 
+  it('carries the defeated boss.difficultyModifier forward onto the next boss unchanged', () => {
+    const character = makeCharacter();
+    const boss = makeBoss({ index: 3, health: 0, difficultyModifier: 1.1 });
+
+    const result = resolveBossDefeatIfDead(character, boss, createRng(1));
+
+    expect(result.boss.difficultyModifier).toBe(1.1);
+  });
+
   it('treats a tiny positive boss.health that rounds to 0 as defeated', () => {
     const character = makeCharacter();
     const boss = makeBoss({ index: 3, health: 0.3 }); // rounds to 0 on the health bar, but is not literally 0
@@ -659,6 +668,20 @@ describe('resolvePlayerDeathIfDead', () => {
     expect(result.character.exp).toBe(0);
     expect(result.character.currentHealth).toBe(result.character.starterStats.health);
     expect(result.boss.index).toBe(1);
+  });
+
+  it('rolls a brand new difficultyModifier for the fresh run instead of carrying the dead run\'s forward', () => {
+    const character = makeCharacter({ currentHealth: 0 });
+    const habits = [makeHabit()];
+    const oldBoss = makeBoss({ index: 7, difficultyModifier: 1.1 });
+
+    const rolledModifiers = new Set<number>();
+    for (let seed = 0; seed < 20; seed++) {
+      const result = resolvePlayerDeathIfDead(character, oldBoss, habits, createRng(seed));
+      rolledModifiers.add(result.boss.difficultyModifier as number);
+    }
+
+    expect(rolledModifiers.size).toBeGreaterThan(1); // proves it's re-rolled, not just copied from oldBoss
   });
 
   it('treats a tiny positive currentHealth that rounds to 0 as dead', () => {

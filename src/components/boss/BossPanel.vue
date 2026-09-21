@@ -26,9 +26,11 @@ const PERSONALITY_SPRITE: Record<Personality, string> = {
   brute: 'bosses/brute',
   brute3x: 'bosses/brute',
   brute4x: 'bosses/brute',
+  brute5x: 'bosses/brute',
   arcane: 'bosses/brute',
   arcane3x: 'bosses/brute',
   arcane4x: 'bosses/brute',
+  arcane5x: 'bosses/brute',
 };
 
 const bossStore = useBossStore();
