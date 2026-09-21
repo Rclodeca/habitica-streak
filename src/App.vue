@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import AppShell from './components/layout/AppShell.vue';
+import { useCombatActions } from './composables/useCombatActions';
 import { useDailyRollover } from './composables/useDailyRollover';
 import { useDebugClockStore } from './store/debugClockStore';
 
@@ -9,6 +10,9 @@ import { useDebugClockStore } from './store/debugClockStore';
 // habit that wasn't completed in the immediately-preceding period.
 onMounted(() => {
   useDailyRollover(useDebugClockStore().now());
+  // Retroactively assigns Special/Ult if the character is already past
+  // level 3/6 from before these mechanics existed.
+  useCombatActions().checkLevelRewards();
 });
 </script>
 

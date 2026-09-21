@@ -45,6 +45,11 @@ export function pickWeighted<T extends string>(weights: Record<string, number>, 
   return entries[entries.length - 1][0] as T;
 }
 
+/** Picks a uniformly random element from a non-empty array. */
+export function pickRandom<T>(items: readonly T[], rng: Rng): T {
+  return items[Math.floor(rng() * items.length)];
+}
+
 /** Fisher-Yates shuffle. Returns a new array; the input is left untouched. */
 export function shuffle<T>(items: T[], rng: Rng): T[] {
   const result = [...items];

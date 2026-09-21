@@ -29,14 +29,19 @@
 
 import {
   addExpAndResolveLevelUps,
+  assignSpecialIfEligible,
+  assignUltIfEligible,
   completeHabit,
   createRng,
   effectiveStat,
   missHabit,
+  overdriveHabit,
+  overdriveUsesRemaining,
   periodKeyFor,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
+  rollOverdriveForLevelUps,
 } from '../game-engine';
 import type { Character, Difficulty, Habit, ItemDef, Period } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
@@ -82,24 +87,64 @@ export function useCombatActions() {
   }
 
   /**
+   * Rolls the level-triggered rewards (Special/Ult threshold checks, plus an
+   * Overdrive roll per level gained) against the current habit list and
+   * writes back only if something changed, logging each grant. Called with
+   * `levelsGained` after every level-up and with 0 after every new habit is
+   * added / once on app load — the Special/Ult checks are idempotent
+   * (no-op once assigned, retried until an eligible habit exists), so
+   * calling this liberally is safe and is how a save already past level
+   * 3/6 gets its retroactive assignment.
+   */
+  function applyLevelRewards(levelsGained: number): void {
+    const level = characterStore.character.level;
+    let habits = habitStore.habits;
+
+    const beforeSpecial = habits;
+    habits = assignSpecialIfEligible(habits, level, rng);
+    const specialHabit = habits.find((h, i) => h.isSpecial && !beforeSpecial[i]?.isSpecial);
+    if (specialHabit) activityLogStore.addEntry({ kind: 'special-assigned', habitName: specialHabit.name });
+
+    const beforeUlt = habits;
+    habits = assignUltIfEligible(habits, level, rng);
+    const ultHabit = habits.find((h, i) => h.isUlt && !beforeUlt[i]?.isUlt);
+    if (ultHabit) activityLogStore.addEntry({ kind: 'ult-assigned', habitName: ultHabit.name });
+
+    if (levelsGained > 0) {
+      const rolled = rollOverdriveForLevelUps(habits, levelsGained, rng);
+      habits = rolled.habits;
+      for (const granted of rolled.granted) {
+        activityLogStore.addEntry({ kind: 'overdrive-granted', habitName: granted.name });
+      }
+    }
+
+    if (habits !== habitStore.habits) habitStore.setHabits(habits);
+  }
+
+  /**
    * Shared reward core: resolves the combat outcome (boss damage or player
-   * healing) exactly once via `completeHabit`, writes the result back into
-   * all three stores, grants any streak-milestone EXP, then checks for —
-   * and applies — a boss defeat. Used for both a good habit's checkbox tap
-   * and a bad habit's rollover-detected avoidance. `stampPeriodKey`, when
-   * given, also marks the habit completed for that period — only correct
-   * for a live tap; a rollover resolution leaves it untouched.
+   * healing) exactly once via `completeHabit` (or `overdriveHabit` for an
+   * Overdrive activation), writes the result back into all three stores,
+   * grants any streak-milestone EXP, then checks for — and applies — a boss
+   * defeat. Used for a good habit's checkbox tap, a bad habit's
+   * rollover-detected avoidance, and an Overdrive activation.
+   * `stampPeriodKey`, when given, also marks the habit completed for that
+   * period — only correct for a live tap; a rollover resolution or an
+   * Overdrive activation (already completed) leaves it untouched.
    *
    * Never checks for player death: this path never damages the player, so
    * it cannot kill them.
    */
-  function applyReward(habitId: string, stampPeriodKey?: string): ItemDef[] {
+  function applyReward(habitId: string, stampPeriodKey?: string, options: { isOverdriveUse?: boolean } = {}): ItemDef[] {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return [];
 
     const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.isBad);
     const healthBefore = characterStore.character.currentHealth;
-    const result = completeHabit(characterStore.character, habit, habitsInPool, bossStore.boss, rng);
+    const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
+    const result = options.isOverdriveUse
+      ? overdriveHabit(characterStore.character, habit, habitsInPool, bossStore.boss, currentPeriodKey, rng)
+      : completeHabit(characterStore.character, habit, habitsInPool, bossStore.boss, rng);
 
     const updatedHabit: Habit = stampPeriodKey
       ? { ...result.updatedHabit, lastCompletedPeriodKey: stampPeriodKey, lastCheckedPeriodKey: stampPeriodKey }
@@ -130,9 +175,10 @@ export function useCombatActions() {
 
     if (result.milestoneExp > 0) {
       const beforeLevelUp = characterStore.character;
-      const { character } = addExpAndResolveLevelUps(beforeLevelUp, result.milestoneExp);
+      const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, result.milestoneExp);
       logLevelUpIfAny(beforeLevelUp, character);
       characterStore.setCharacter(character);
+      applyLevelRewards(levelsGained);
     }
 
     const beforeDefeat = characterStore.character;
@@ -142,6 +188,7 @@ export function useCombatActions() {
       logLevelUpIfAny(beforeDefeat, defeatResult.character);
       characterStore.setCharacter(defeatResult.character);
       bossStore.setBoss(defeatResult.boss);
+      applyLevelRewards(defeatResult.levelsGained);
     }
 
     return defeatResult.itemsDropped;
@@ -246,9 +293,44 @@ export function useCombatActions() {
     return applyReward(habitId);
   }
 
-  /** Thin wrapper around `habitStore.addHabit`, sharing this module's Rng. */
+  /**
+   * Activates one of a habit's Overdrive extra uses (see `Habit.isOverdrive`)
+   * at reduced damage. Good-habit-only, gated on the habit already being
+   * checked off this period and having uses remaining — the authoritative
+   * guard, independent of the UI button's `:disabled` binding, mirroring
+   * `checkOffHabit`'s own period-key guard above.
+   */
+  function activateOverdrive(habitId: string): ItemDef[] {
+    const habit = habitStore.habits.find((h) => h.id === habitId);
+    if (!habit || habit.isBad || !habit.isOverdrive) return [];
+
+    const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
+    if (habit.lastCompletedPeriodKey !== currentPeriodKey) return [];
+    if (overdriveUsesRemaining(habit, currentPeriodKey) <= 0) return [];
+
+    return applyReward(habitId, undefined, { isOverdriveUse: true });
+  }
+
+  /**
+   * Thin wrapper around `habitStore.addHabit`, sharing this module's Rng.
+   * Also re-checks the Special/Ult thresholds: a newly-added habit may be
+   * the first eligible one for a bonus that was stuck waiting on an empty
+   * pool (see `applyLevelRewards`).
+   */
   function addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean): Habit {
-    return habitStore.addHabit(name, period, difficulty, isBad, rng);
+    const habit = habitStore.addHabit(name, period, difficulty, isBad, rng);
+    applyLevelRewards(0);
+    return habit;
+  }
+
+  /**
+   * Re-checks the Special/Ult thresholds against the character's current
+   * level with no new levels gained — call once on app load so a save
+   * already past level 3/6 (from before these mechanics existed) gets its
+   * assignment without waiting for another level-up.
+   */
+  function checkLevelRewards(): void {
+    applyLevelRewards(0);
   }
 
   /**
@@ -266,5 +348,13 @@ export function useCombatActions() {
     dismissDeathScreen();
   }
 
-  return { checkOffHabit, checkMissedHabit, checkAvoidedHabit, addHabit, restart };
+  return {
+    checkOffHabit,
+    checkMissedHabit,
+    checkAvoidedHabit,
+    activateOverdrive,
+    addHabit,
+    restart,
+    checkLevelRewards,
+  };
 }

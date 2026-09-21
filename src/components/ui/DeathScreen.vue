@@ -11,7 +11,7 @@ const { restart } = useCombatActions();
   <Modal :model-value="isDead" :dismissible="false" title="You died">
     <p class="death-message">
       Your character has fallen. Restarting gives you a fresh character and resets the boss to #1 — your habits
-      are kept, but their damage types are re-rolled.
+      and streaks are kept, but their damage types are re-rolled.
     </p>
     <button type="button" class="restart-button" @click="restart">Restart</button>
   </Modal>

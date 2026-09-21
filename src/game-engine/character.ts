@@ -1,5 +1,5 @@
 import { TUNING } from './constants/tuning';
-import type { Rng } from './rng';
+import { pickRandom, type Rng } from './rng';
 import type { Character } from './types';
 
 export function randomizeStat(base: number, rng: Rng): number {
@@ -8,9 +8,14 @@ export function randomizeStat(base: number, rng: Rng): number {
 }
 
 export function createCharacter(rng: Rng): Character {
+  // Randomizes how the combined physical+magic pool is split so some runs
+  // are balanced and others lean hard into one damage type — see
+  // TUNING.DAMAGE_SPLIT_RATIOS.
+  const [physicalShare, magicShare] = pickRandom(TUNING.DAMAGE_SPLIT_RATIOS, rng);
+  const damagePool = TUNING.BASE_STATS.physicalDamage + TUNING.BASE_STATS.magicDamage;
   const starterStats = {
-    physicalDamage: randomizeStat(TUNING.BASE_STATS.physicalDamage, rng),
-    magicDamage: randomizeStat(TUNING.BASE_STATS.magicDamage, rng),
+    physicalDamage: randomizeStat(damagePool * physicalShare, rng),
+    magicDamage: randomizeStat(damagePool * magicShare, rng),
     healing: randomizeStat(TUNING.BASE_STATS.healing, rng),
     health: randomizeStat(TUNING.BASE_STATS.health, rng),
   };

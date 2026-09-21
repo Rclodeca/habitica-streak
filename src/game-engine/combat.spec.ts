@@ -8,6 +8,8 @@ import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
 import {
   completeHabit,
+  overdriveHabit,
+  overdriveUsesRemaining,
   missHabit,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
@@ -106,19 +108,24 @@ describe('completeHabit', () => {
     expect(result.milestoneExp).toBe(0);
   });
 
-  it('deals 3x damage for a weekly habit compared to an otherwise-identical daily habit', () => {
+  it('deals WEEKLY_REWARD_MULTIPLIER damage for a weekly habit vs. a daily one, each at its own period-specific streak rate', () => {
     const character = makeCharacter();
     const daily = makeHabit({ period: 'daily', damageType: 'physical', streakCount: 0 });
     const weekly = makeHabit({ period: 'weekly', damageType: 'physical', streakCount: 0 });
-    const boss = makeBoss({ armor: 0, health: 1000 });
+    const boss = makeBoss({ armor: 0, health: 1000 }); // armor 0 -> no reduction, easier to reason about
 
     const dailyResult = completeHabit(character, daily, [daily], boss, noCritRng);
     const weeklyResult = completeHabit(character, weekly, [weekly], boss, noCritRng);
 
-    expect(weeklyResult.damageDealt).toBeCloseTo((dailyResult.damageDealt ?? 0) * TUNING.WEEKLY_REWARD_MULTIPLIER, 10);
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
+    expect(dailyResult.damageDealt).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
+    expect(weeklyResult.damageDealt).toBeCloseTo(
+      statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_REWARD_MULTIPLIER,
+      10,
+    );
   });
 
-  it('heals 3x for a weekly healing habit compared to an otherwise-identical daily healing habit', () => {
+  it('heals WEEKLY_REWARD_MULTIPLIER for a weekly healing habit vs. a daily one, each at its own period-specific streak rate', () => {
     const dailyCharacter = makeCharacter({ currentHealth: 1 });
     const weeklyCharacter = makeCharacter({ currentHealth: 1 });
     const daily = makeHabit({ period: 'daily', damageType: 'healing', streakCount: 0 });
@@ -128,9 +135,11 @@ describe('completeHabit', () => {
     const dailyResult = completeHabit(dailyCharacter, daily, [daily], boss, noCritRng);
     const weeklyResult = completeHabit(weeklyCharacter, weekly, [weekly], boss, noCritRng);
 
+    const statValue = statAtLevel(dailyCharacter.starterStats.healing, dailyCharacter.level);
     const dailyHealed = dailyResult.character.currentHealth - dailyCharacter.currentHealth;
     const weeklyHealed = weeklyResult.character.currentHealth - weeklyCharacter.currentHealth;
-    expect(weeklyHealed).toBeCloseTo(dailyHealed * TUNING.WEEKLY_REWARD_MULTIPLIER, 10);
+    expect(dailyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
+    expect(weeklyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_REWARD_MULTIPLIER, 10);
   });
 
   it('splits damage proportionally to difficulty weight across multiple habits of the same type', () => {
@@ -414,6 +423,110 @@ describe('crit chance', () => {
   });
 });
 
+describe('completeHabit — Special/Ult bonus', () => {
+  it('applies SPECIAL_MULTIPLIER for a habit with isSpecial on a normal (non-Overdrive) use', () => {
+    const character = makeCharacter();
+    const habit = makeHabit({ damageType: 'physical', isSpecial: true });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
+    const expected = statValue * streakMultiplier(1) * TUNING.SPECIAL_MULTIPLIER;
+    expect(result.damageDealt).toBeCloseTo(expected, 10);
+  });
+
+  it('applies ULT_MULTIPLIER for a weekly habit with isUlt on a normal use', () => {
+    const character = makeCharacter();
+    const habit = makeHabit({ period: 'weekly', damageType: 'physical', isUlt: true });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
+    const expected = statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_REWARD_MULTIPLIER * TUNING.ULT_MULTIPLIER;
+    expect(result.damageDealt).toBeCloseTo(expected, 10);
+  });
+
+  it('does not apply the Special bonus when isSpecial is falsy', () => {
+    const character = makeCharacter();
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
+    expect(result.damageDealt).toBeCloseTo(statValue * streakMultiplier(1), 10);
+  });
+});
+
+describe('overdriveHabit / overdriveUsesRemaining', () => {
+  it('deals OVERDRIVE_DAMAGE_FACTOR damage, without the Special bonus, and does not touch the streak', () => {
+    const character = makeCharacter();
+    const habit = makeHabit({ damageType: 'physical', isSpecial: true, isOverdrive: true, streakCount: 4 });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = overdriveHabit(character, habit, [habit], boss, 'period-key', noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
+    // Streak unchanged (still 4, not bumped to 5) -> multiplier(4), no Special bonus, half damage.
+    const expected = statValue * streakMultiplier(4) * TUNING.OVERDRIVE_DAMAGE_FACTOR;
+    expect(result.damageDealt).toBeCloseTo(expected, 10);
+    expect(result.updatedHabit.streakCount).toBe(4);
+    expect(result.milestoneExp).toBe(0);
+  });
+
+  it('bumps overdriveUsesThisPeriod for the given period key, lazily resetting a stale one', () => {
+    const character = makeCharacter();
+    const habit = makeHabit({
+      isOverdrive: true,
+      overdrivePeriodKey: 'stale-key',
+      overdriveUsesThisPeriod: 2, // stale — belongs to a different, prior period
+    });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = overdriveHabit(character, habit, [habit], boss, 'current-key', noCritRng);
+
+    expect(result.updatedHabit.overdrivePeriodKey).toBe('current-key');
+    expect(result.updatedHabit.overdriveUsesThisPeriod).toBe(1); // reset to 0, then bumped once
+  });
+
+  it('increments across repeated calls within the same period key', () => {
+    const character = makeCharacter();
+    let habit = makeHabit({ isOverdrive: true });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const first = overdriveHabit(character, habit, [habit], boss, 'k', noCritRng);
+    habit = first.updatedHabit;
+    const second = overdriveHabit(character, habit, [habit], boss, 'k', noCritRng);
+
+    expect(second.updatedHabit.overdriveUsesThisPeriod).toBe(2);
+  });
+});
+
+describe('overdriveUsesRemaining', () => {
+  it('is 0 for a habit that is not Overdrive-capable', () => {
+    const habit = makeHabit();
+    expect(overdriveUsesRemaining(habit, 'k')).toBe(0);
+  });
+
+  it('is OVERDRIVE_MAX_EXTRA_USES for an Overdrive habit with no uses yet this period', () => {
+    const habit = makeHabit({ isOverdrive: true });
+    expect(overdriveUsesRemaining(habit, 'k')).toBe(TUNING.OVERDRIVE_MAX_EXTRA_USES);
+  });
+
+  it('subtracts uses already spent this period, and ignores a stale period key', () => {
+    const habit = makeHabit({ isOverdrive: true, overdrivePeriodKey: 'k', overdriveUsesThisPeriod: 1 });
+    expect(overdriveUsesRemaining(habit, 'k')).toBe(TUNING.OVERDRIVE_MAX_EXTRA_USES - 1);
+    expect(overdriveUsesRemaining(habit, 'different-k')).toBe(TUNING.OVERDRIVE_MAX_EXTRA_USES);
+  });
+
+  it('never goes negative even if uses recorded somehow exceed the max', () => {
+    const habit = makeHabit({ isOverdrive: true, overdrivePeriodKey: 'k', overdriveUsesThisPeriod: 99 });
+    expect(overdriveUsesRemaining(habit, 'k')).toBe(0);
+  });
+});
+
 describe('reviveWithFeatherIfEquipped', () => {
   it('is a no-op when currentHealth > 0, even with the feather equipped', () => {
     const character = makeCharacter({
@@ -559,7 +672,7 @@ describe('resolvePlayerDeathIfDead', () => {
     expect(result.died).toBe(true);
   });
 
-  it('retains habit definitions (id/name/period/difficulty) but resets streak and re-rolls damageType', () => {
+  it('retains habit definitions (id/name/period/difficulty) and streak, but re-rolls damageType', () => {
     const character = makeCharacter({ currentHealth: -5 });
     const boss = makeBoss();
     const original = makeHabit({
@@ -579,7 +692,38 @@ describe('resolvePlayerDeathIfDead', () => {
     expect(rerolled.name).toBe(original.name);
     expect(rerolled.period).toBe(original.period);
     expect(rerolled.difficulty).toBe(original.difficulty);
-    expect(rerolled.streakCount).toBe(0);
+    expect(rerolled.streakCount).toBe(12);
+  });
+
+  it('leaves an already-zero streak at zero (death should never appear to reset it)', () => {
+    const character = makeCharacter({ currentHealth: 0 });
+    const boss = makeBoss();
+    const original = makeHabit({ streakCount: 0 });
+
+    const result = resolvePlayerDeathIfDead(character, boss, [original], createRng(1));
+
+    expect(result.habits[0].streakCount).toBe(0);
+  });
+
+  it('clears Special/Ult/Overdrive flags and overdrive-use tracking on reset', () => {
+    const character = makeCharacter({ currentHealth: 0 });
+    const boss = makeBoss();
+    const original = makeHabit({
+      isSpecial: true,
+      isUlt: true,
+      isOverdrive: true,
+      overdrivePeriodKey: 'some-key',
+      overdriveUsesThisPeriod: 2,
+    });
+
+    const result = resolvePlayerDeathIfDead(character, boss, [original], createRng(1));
+
+    const [reset] = result.habits;
+    expect(reset.isSpecial).toBe(false);
+    expect(reset.isUlt).toBe(false);
+    expect(reset.isOverdrive).toBe(false);
+    expect(reset.overdrivePeriodKey).toBeNull();
+    expect(reset.overdriveUsesThisPeriod).toBe(0);
   });
 
   it('actually re-randomizes damageType across many seeds (not just structurally present)', () => {

@@ -114,6 +114,19 @@ describe('addExpAndResolveLevelUps', () => {
     expect(result.levelsGained).toBe(0);
     expect(result.character.currentHealth).toBe(10);
   });
+
+  it('caps levelsGained instead of hanging on an astronomically large single exp grant', () => {
+    // A single boss-kill EXP reward can in principle be enormous (e.g. a
+    // very deep boss index) while expToNextLevel only grows quadratically —
+    // without a cap, resolving this would walk one level at a time for an
+    // impractically long time. See MAX_LEVEL_UPS_PER_GRANT in leveling.ts.
+    const character = makeCharacter();
+    const result = addExpAndResolveLevelUps(character, 1e60);
+
+    expect(result.levelsGained).toBe(2000);
+    expect(Number.isFinite(result.character.exp)).toBe(true);
+    expect(Number.isFinite(result.character.level)).toBe(true);
+  });
 });
 
 describe('statAtLevel', () => {

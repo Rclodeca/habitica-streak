@@ -46,6 +46,15 @@ const activityLogStore = useActivityLogStore();
         <template v-else-if="entry.kind === 'boss-defeated'">
           ☠️ Boss #{{ entry.bossIndex }} defeated!
         </template>
+        <template v-else-if="entry.kind === 'special-assigned'">
+          🌟 "{{ entry.habitName }}" is now your Special skill!
+        </template>
+        <template v-else-if="entry.kind === 'ult-assigned'">
+          💫 "{{ entry.habitName }}" is now your Ult skill!
+        </template>
+        <template v-else-if="entry.kind === 'overdrive-granted'">
+          🔥 "{{ entry.habitName }}" gained Overdrive!
+        </template>
       </li>
     </ul>
     <p v-else>No activity yet.</p>

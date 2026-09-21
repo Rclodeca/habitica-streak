@@ -77,9 +77,15 @@ describe('useCombatActions', () => {
 
   it('checkOffHabit returns [] when the habit completion does not defeat the boss', () => {
     const habitStore = useHabitStore();
+    const bossStore = useBossStore();
     const { checkOffHabit } = useCombatActions();
 
     const habit = habitStore.addHabit('Meditate', 'daily', 'easy', false, createRng());
+    // Comfortably above anything a single easy habit could deal, regardless
+    // of the character's randomized physical/magic split (see
+    // TUNING.DAMAGE_SPLIT_RATIOS) — this test only cares about the
+    // no-defeat path, not damage magnitude.
+    bossStore.setBoss({ ...bossStore.boss, health: 1_000_000 });
 
     const itemsDropped = checkOffHabit(habit.id);
 
@@ -236,6 +242,9 @@ describe('useCombatActions', () => {
 
     const habit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
     habitStore.updateHabit({ ...habit, damageType: 'physical' }); // deterministic damage type
+    // High enough that this single hit can't defeat/respawn the boss — this
+    // test is about the damage-dealt/streak assertions below, not defeat.
+    bossStore.setBoss({ ...bossStore.boss, health: 1_000_000, maxHealth: 1_000_000 });
     const bossHealthBefore = bossStore.boss.health;
 
     const itemsDropped = checkAvoidedHabit(habit.id);

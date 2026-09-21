@@ -2,13 +2,13 @@ import { applyResist, bossExpReward, generateBoss } from './boss';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
-import { computeDamageSplit, rerollDamageType } from './habits';
+import { computeDamageSplit, rerollDamageType, resetLevelRewards } from './habits';
 import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat } from './leveling';
 import { itemBonusPercent, rollItemDrops } from './items';
 import type { ItemDef } from './items';
 import type { Rng } from './rng';
 import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
-import type { Boss, Character, DamageType, Habit } from './types';
+import type { Boss, Character, DamageType, Habit, Period } from './types';
 
 const REVIVE_ITEM_ID = 'phoenix-feather';
 const REVIVE_HEALTH_FRACTION = 0.5;
@@ -19,6 +19,42 @@ export const DAMAGE_TYPE_STARTER_STAT: Record<DamageType, keyof Character['start
   magic: 'magicDamage',
   healing: 'healing',
 };
+
+/** The flat reward multiplier from a habit's period alone — weeklies reward more per completion. */
+export function periodRewardMultiplier(period: Period): number {
+  return period === 'weekly' ? TUNING.WEEKLY_REWARD_MULTIPLIER : 1;
+}
+
+/** A habit's permanent Special/Ult bonus multiplier, applied only on a first (non-Overdrive) use. */
+export function levelRewardMultiplier(habit: Habit): number {
+  if (habit.isSpecial) return TUNING.SPECIAL_MULTIPLIER;
+  if (habit.isUlt) return TUNING.ULT_MULTIPLIER;
+  return 1;
+}
+
+/**
+ * How many of a habit's up-to-OVERDRIVE_MAX_EXTRA_USES extra activations
+ * remain for the current period — 0 if it isn't Overdrive-capable at all.
+ * Lazily compares against the stored period key rather than actively
+ * resetting it, mirroring how `lastCompletedPeriodKey`/`lastCheckedPeriodKey`
+ * are compared elsewhere in this engine.
+ */
+export function overdriveUsesRemaining(habit: Habit, currentPeriodKey: string): number {
+  if (!habit.isOverdrive) return 0;
+  const usedSoFar = habit.overdrivePeriodKey === currentPeriodKey ? habit.overdriveUsesThisPeriod ?? 0 : 0;
+  return Math.max(0, TUNING.OVERDRIVE_MAX_EXTRA_USES - usedSoFar);
+}
+
+/** Display helper: the damage an Overdrive activation deals given the pre-bonus amount a normal use would deal. */
+export function overdriveDamagePreview(baseAmountBeforeBonus: number): number {
+  return baseAmountBeforeBonus * TUNING.OVERDRIVE_DAMAGE_FACTOR;
+}
+
+/** Bumps a habit's Overdrive-use counter for the current period, lazily resetting if the period rolled over. */
+function bumpOverdriveUse(habit: Habit, currentPeriodKey: string): Habit {
+  const usedSoFar = habit.overdrivePeriodKey === currentPeriodKey ? habit.overdriveUsesThisPeriod ?? 0 : 0;
+  return { ...habit, overdrivePeriodKey: currentPeriodKey, overdriveUsesThisPeriod: usedSoFar + 1 };
+}
 
 export type CombatResult = {
   character: Character;
@@ -51,14 +87,23 @@ export function completeHabit(
   allHabitsOfSameType: Habit[],
   boss: Boss,
   rng: Rng,
+  options: { isOverdriveUse?: boolean } = {},
 ): CombatResult {
+  const isOverdriveUse = options.isOverdriveUse ?? false;
   const statValue = effectiveStat(character, DAMAGE_TYPE_STARTER_STAT[habit.damageType]);
   const split = computeDamageSplit(allHabitsOfSameType, statValue);
   const baseDamage = split.get(habit.id) ?? 0;
-  const { habit: updatedHabit, milestoneExp } = completeHabitStreak(habit);
-  const multiplier = streakMultiplier(updatedHabit.streakCount);
-  const weeklyMultiplier = habit.period === 'weekly' ? TUNING.WEEKLY_REWARD_MULTIPLIER : 1;
-  const amount = baseDamage * multiplier * weeklyMultiplier;
+  // An Overdrive activation is an extra use of an already-checked-off habit:
+  // it doesn't touch the streak or grant milestone EXP again, and never
+  // gets the Special/Ult bonus — only OVERDRIVE_DAMAGE_FACTOR damage.
+  const { habit: updatedHabit, milestoneExp } = isOverdriveUse
+    ? { habit, milestoneExp: 0 }
+    : completeHabitStreak(habit);
+  const multiplier = streakMultiplier(updatedHabit.streakCount, habit.period);
+  const weeklyMultiplier = periodRewardMultiplier(habit.period);
+  const bonusMultiplier = isOverdriveUse ? 1 : levelRewardMultiplier(habit);
+  const overdriveFactor = isOverdriveUse ? TUNING.OVERDRIVE_DAMAGE_FACTOR : 1;
+  const amount = baseDamage * multiplier * weeklyMultiplier * bonusMultiplier * overdriveFactor;
 
   if (habit.damageType === 'healing') {
     const healed = Math.min(character.currentHealth + amount, effectiveStat(character, 'health'));
@@ -91,6 +136,27 @@ export function completeHabit(
     lifestealHealed: healed > 0 ? healed : undefined,
     reflectedDamage: reflected > 0 ? reflected : undefined,
   };
+}
+
+/**
+ * Resolves an Overdrive activation of a habit already checked off this
+ * period: same combat resolution as `completeHabit` (crit/lifesteal/reflect
+ * all still apply) but at OVERDRIVE_DAMAGE_FACTOR damage via its
+ * `isOverdriveUse` option, then bumps the habit's Overdrive-use counter for
+ * `currentPeriodKey`. Callers are responsible for checking
+ * `overdriveUsesRemaining` beforehand — this doesn't guard against over-use
+ * itself.
+ */
+export function overdriveHabit(
+  character: Character,
+  habit: Habit,
+  allHabitsOfSameType: Habit[],
+  boss: Boss,
+  currentPeriodKey: string,
+  rng: Rng,
+): CombatResult {
+  const result = completeHabit(character, habit, allHabitsOfSameType, boss, rng, { isOverdriveUse: true });
+  return { ...result, updatedHabit: bumpOverdriveUse(result.updatedHabit, currentPeriodKey) };
 }
 
 /**
@@ -190,8 +256,11 @@ export function resolveBossDefeatIfDead(
 /**
  * No-op unless the character's health has reached 0. When it has, resets
  * the run: a fresh character, the boss sequence restarted at index 1, and
- * the same habit definitions retained but with streaks reset and damage
- * types re-rolled.
+ * the same habit definitions retained with damage types re-rolled and
+ * Special/Ult/Overdrive flags cleared (they're re-earned by leveling up
+ * again). Streaks are deliberately NOT reset here — a streak should only
+ * break when its own period is actually missed (`missHabit` ->
+ * `resetHabitStreak`), not merely because the character died.
  */
 export function resolvePlayerDeathIfDead(
   character: Character,
@@ -207,7 +276,7 @@ export function resolvePlayerDeathIfDead(
   return {
     character: createCharacter(rng),
     boss: generateBoss(1, rng),
-    habits: habits.map((h) => rerollDamageType(resetHabitStreak(h), rng)),
+    habits: habits.map((h) => resetLevelRewards(rerollDamageType(h, rng))),
     died: true,
   };
 }

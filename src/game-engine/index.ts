@@ -8,17 +8,24 @@ export { createCharacter, randomizeStat } from './character';
 
 export { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
 
-export { computeDamageSplit, createHabit, rerollDamageType } from './habits';
+export { computeDamageSplit, createHabit, rerollDamageType, resetLevelRewards } from './habits';
 
 export { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 
 export { applyResist, bossExpReward, bossPowerBudget, damageReductionPct, generateBoss } from './boss';
 
+export { assignSpecialIfEligible, assignUltIfEligible, rollOverdriveForLevelUps } from './levelRewards';
+
 export type { CombatResult } from './combat';
 export {
   completeHabit,
   DAMAGE_TYPE_STARTER_STAT,
+  levelRewardMultiplier,
   missHabit,
+  overdriveDamagePreview,
+  overdriveHabit,
+  overdriveUsesRemaining,
+  periodRewardMultiplier,
   reviveWithFeatherIfEquipped,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
@@ -28,6 +35,6 @@ export type { BoostableStat, ItemDef, ItemRarity } from './items';
 export { bodySpriteFor, describeItemBonus, ITEM_CATALOG, itemBonusPercent, rollItemDrops } from './items';
 
 export type { Rng } from './rng';
-export { createRng, pickWeighted, shuffle } from './rng';
+export { createRng, pickRandom, pickWeighted, shuffle } from './rng';
 
 export { dailyPeriodKey, periodKeyFor, weeklyPeriodKey } from './time';

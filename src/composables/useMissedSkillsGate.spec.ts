@@ -76,6 +76,12 @@ describe('useMissedSkillsGate', () => {
 
     const habit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
     habitStore.updateHabit({ ...habit, damageType: 'physical' }); // deterministic damage type
+    // Comfortably above anything a single reward hit could deal, regardless
+    // of the character's randomized physical/magic split (see
+    // TUNING.DAMAGE_SPLIT_RATIOS) — otherwise an occasional one-shot defeats
+    // boss 1 and respawns boss 2 at full (higher) health, which would read
+    // as "boss.health increased" and break the assertion below.
+    bossStore.setBoss({ ...bossStore.boss, health: 1_000_000 });
     const bossHealthBefore = bossStore.boss.health;
 
     useMissedSkillsGate().queueReward(habit, '2024-01-02');

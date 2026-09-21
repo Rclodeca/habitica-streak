@@ -17,10 +17,11 @@ const isCompletedThisPeriod = computed(
   () => props.habit.lastCompletedPeriodKey === periodKeyFor(props.habit.period, debugClockStore.now()),
 );
 
-const metaText = computed(() => {
-  const base = `${props.habit.period} · ${props.habit.difficulty} · ${props.habit.damageType} · streak ${props.habit.streakCount}`;
-  return props.habit.isBad ? `${base} · bad habit` : base;
-});
+const metaText = computed(
+  () => `${props.habit.period} · ${props.habit.damageType} · streak ${props.habit.streakCount}`,
+);
+
+const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
 
 function onCheckOff() {
   const itemsDropped = checkOffHabit(props.habit.id);
@@ -43,6 +44,7 @@ const showStatsModal = ref(false);
       @change="onCheckOff"
     />
     <span class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
+    <span v-if="rewardTag" class="tag">{{ rewardTag }}</span>
     <span class="meta">{{ metaText }}</span>
   </li>
 
@@ -81,5 +83,15 @@ const showStatsModal = ref(false);
 .meta {
   font-size: 0.85em;
   opacity: 0.7;
+}
+
+.tag {
+  flex-shrink: 0;
+  background: #16a34a;
+  color: white;
+  font-size: 0.7em;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
 }
 </style>

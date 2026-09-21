@@ -69,4 +69,11 @@ export interface Habit {
   streakCount: number;
   lastCompletedPeriodKey: string | null;
   lastCheckedPeriodKey: string | null;
+  // All optional so an existing save (no schema-version bump) still loads —
+  // undefined is treated as "not yet assigned" everywhere these are read.
+  isSpecial?: boolean; // permanent SPECIAL_MULTIPLIER bonus, assigned once at SPECIAL_LEVEL to a random daily good habit
+  isUlt?: boolean; // permanent ULT_MULTIPLIER bonus, assigned once at ULT_LEVEL to a random weekly good habit
+  isOverdrive?: boolean; // can be activated up to OVERDRIVE_MAX_EXTRA_USES extra times per period, each at reduced damage
+  overdrivePeriodKey?: string | null; // period key overdriveUsesThisPeriod applies to — a stale key means 0 used
+  overdriveUsesThisPeriod?: number;
 }

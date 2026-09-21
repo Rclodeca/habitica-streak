@@ -10,23 +10,39 @@ export const TUNING = {
   // streak actually keeps pace with the exponential boss curve below —
   // streak 10 -> 2x, streak 30 -> 4x, streak 100 -> 11x damage.
   STREAK_MULTIPLIER_PER_COUNT: 0.10,
-  BASE_BOSS_POWER: 2500, // boss 1 (balanced) health = 2500 * BOSS_STAT_SHARE.health = 1000
-  // Bumped from 1.22 to 1.28 (see PROGRESS.md-style note: simulated via a
-  // throwaway script comparing days-to-kill across growth rates) so a
-  // streak/item-less character hits a real wall around boss 8-12, while a
-  // strong streak (~30) + a couple of damage items still cuts through in a
-  // few days per boss even that deep.
-  BOSS_GROWTH_RATE: 1.28,
+  // Weeklies take much longer to stack a streak (once/week vs. every day),
+  // so each streak count is worth 3x as much as a daily's.
+  WEEKLY_STREAK_MULTIPLIER_PER_COUNT: 0.30,
+  // Lowered 2650 -> 1800 and BOSS_GROWTH_RATE 1.30 -> 1.16 below, alongside
+  // retaining habit streaks across death (see resolvePlayerDeathIfDead) and
+  // MISS_DAMAGE_FACTOR below, as a coordinated pacing pass — tuned via a
+  // throwaway per-life simulation (spawn-to-death, not a fixed day window)
+  // across bad/balanced/good/chaotic completion-rate archetypes, targeting
+  // ~1-2 days/boss early ramping up as index climbs, and an average boss
+  // reached at death of roughly 3 (bad, 10-30% completion) / 7 (balanced,
+  // 30-60%) / 15 (good, 60-90%). The old 2650/1.30 pair cleared ~1 boss/day
+  // flat and gave far too little spread between archetypes (~3 to ~8).
+  BASE_BOSS_POWER: 1800,
+  BOSS_GROWTH_RATE: 1.16,
   BOSS_STAT_SHARE: { health: 0.4, physicalAttack: 0.2, magicAttack: 0.2, armor: 0.1, magicResist: 0.1 }, // sums to 1
   RESIST_K: 1500, // scaled with BASE_BOSS_POWER so early-game resist % is unchanged (~14% at boss 1)
   BASE_BOSS_EXP: 40, // deliberately NOT rescaled — EXP/leveling pace is a separate economy, untouched by this balance pass
-  BOSS_EXP_GROWTH_RATE: 1.18,
-  // Lowered from 0.5: missHabit now uses one of the boss's two attack stats
-  // directly (not their average — see combat.ts), which on its own raises
-  // typical miss damage. This keeps early misses survivable (roughly
-  // 10-20% of max health for an easy habit) instead of one hard miss
-  // costing more than half the player's health at boss 3.
-  MISS_DAMAGE_FACTOR: 0.3,
+  // Lowered 1.18 -> 1.12 as part of the same pacing pass as BASE_BOSS_POWER
+  // above: this MUST stay below BOSS_GROWTH_RATE. If EXP income compounds
+  // faster than boss difficulty, an extremely consistent player who chains
+  // same-day kills for long enough can drive boss index — and therefore a
+  // single kill's EXP reward — arbitrarily high, since the two curves race
+  // forever and EXP would eventually win. (`addExpAndResolveLevelUps` also
+  // hard-caps levels-gained-per-grant as defense in depth, but keeping this
+  // rate strictly lower is what actually prevents the runaway in practice.)
+  BOSS_EXP_GROWTH_RATE: 1.12,
+  // Lowered 0.3 -> 0.17 as part of the same pacing pass as BASE_BOSS_POWER/
+  // BOSS_GROWTH_RATE above: a low-completion ("bad") player accumulates far
+  // more misses than anyone else, so this specifically stretches their
+  // survivable run length without meaningfully changing a high-completion
+  // player's pace (they rarely miss). See BASE_BOSS_POWER's comment for the
+  // simulation this was tuned against.
+  MISS_DAMAGE_FACTOR: 0.17,
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
   CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed
   CRIT_MULTIPLIER: 2, // crit hits deal 2x damage
@@ -80,4 +96,33 @@ export const TUNING = {
   BOSS_LIFESTEAL_WEIGHTS: { '0': 80, '0.05': 15, '0.1': 4, '0.15': 1 },
   ITEM_DROP_EVERY_N_BOSSES: 3, // bosses 1-3 drop 1 item, 4-6 drop 2, 7+ drop 3 (capped)
   ITEM_DROP_MAX_COUNT: 3,
+  // Physical/magic starting-stat split: createCharacter picks one of these
+  // [physical share, magic share] pairs uniformly at random, so some runs
+  // are balanced and others lean hard into one damage type. Applied to the
+  // combined physicalDamage+magicDamage pool from BASE_STATS before the
+  // usual ±5% jitter.
+  DAMAGE_SPLIT_RATIOS: [
+    [0.5, 0.5],
+    [0.6, 0.4],
+    [0.7, 0.3],
+    [0.4, 0.6],
+    [0.3, 0.7],
+  ],
+  // Special: at SPECIAL_LEVEL, a random daily good habit permanently deals
+  // SPECIAL_MULTIPLIER damage on its first (non-Overdrive) use each period.
+  SPECIAL_LEVEL: 3,
+  SPECIAL_MULTIPLIER: 1.5,
+  // Ult: at ULT_LEVEL, a random weekly good habit permanently deals
+  // ULT_MULTIPLIER damage on its first (non-Overdrive) use each period.
+  ULT_LEVEL: 6,
+  ULT_MULTIPLIER: 2.5,
+  // Overdrive: each level gained independently rolls this chance to grant a
+  // random good habit (any period) the ability to be activated
+  // OVERDRIVE_MAX_EXTRA_USES extra times per period, each at
+  // OVERDRIVE_DAMAGE_FACTOR damage (and never with the Special/Ult bonus).
+  // Permanent and stacking — a habit that already has it is a valid, no-op
+  // re-roll, so over a long run many habits can end up Overdrive-capable.
+  OVERDRIVE_CHANCE_PER_LEVEL: 0.6,
+  OVERDRIVE_MAX_EXTRA_USES: 2,
+  OVERDRIVE_DAMAGE_FACTOR: 0.5,
 } as const;

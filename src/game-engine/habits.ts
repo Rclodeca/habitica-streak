@@ -30,6 +30,18 @@ export function rerollDamageType(habit: Habit, rng: Rng): Habit {
   };
 }
 
+/** Strips the level-triggered Special/Ult/Overdrive bonuses on a run reset (see `resolvePlayerDeathIfDead`). */
+export function resetLevelRewards(habit: Habit): Habit {
+  return {
+    ...habit,
+    isSpecial: false,
+    isUlt: false,
+    isOverdrive: false,
+    overdrivePeriodKey: null,
+    overdriveUsesThisPeriod: 0,
+  };
+}
+
 /**
  * Damage-split formula (the core balancing formula): given a base stat value
  * `S` for a damage type and the list of habits of that type, each habit's

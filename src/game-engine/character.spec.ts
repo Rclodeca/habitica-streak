@@ -4,17 +4,27 @@ import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
 
 describe('createCharacter', () => {
-  it('every starter stat falls within base * [0.95, 1.05] across many real-RNG runs', () => {
+  it('every starter stat falls within its possible range (split ratio + ±5% jitter) across many real-RNG runs', () => {
     const rng = createRng();
+    const damagePool = TUNING.BASE_STATS.physicalDamage + TUNING.BASE_STATS.magicDamage;
+    const shares = TUNING.DAMAGE_SPLIT_RATIOS.map(([physicalShare]) => physicalShare);
+    const minShare = Math.min(...shares);
+    const maxShare = Math.max(...shares);
+
     for (let i = 0; i < 200; i++) {
       const character = createCharacter(rng);
       const { physicalDamage, magicDamage, healing, health } = character.starterStats;
 
-      expect(physicalDamage).toBeGreaterThanOrEqual(TUNING.BASE_STATS.physicalDamage * 0.95);
-      expect(physicalDamage).toBeLessThanOrEqual(TUNING.BASE_STATS.physicalDamage * 1.05);
+      expect(physicalDamage).toBeGreaterThanOrEqual(damagePool * minShare * 0.95);
+      expect(physicalDamage).toBeLessThanOrEqual(damagePool * maxShare * 1.05);
 
-      expect(magicDamage).toBeGreaterThanOrEqual(TUNING.BASE_STATS.magicDamage * 0.95);
-      expect(magicDamage).toBeLessThanOrEqual(TUNING.BASE_STATS.magicDamage * 1.05);
+      expect(magicDamage).toBeGreaterThanOrEqual(damagePool * minShare * 0.95);
+      expect(magicDamage).toBeLessThanOrEqual(damagePool * maxShare * 1.05);
+
+      // Every split ratio pairs physical/magic shares that sum to 1, so
+      // their combined range is tighter than either stat's individual range.
+      expect(physicalDamage + magicDamage).toBeGreaterThanOrEqual(damagePool * 0.95);
+      expect(physicalDamage + magicDamage).toBeLessThanOrEqual(damagePool * 1.05);
 
       expect(healing).toBeGreaterThanOrEqual(TUNING.BASE_STATS.healing * 0.95);
       expect(healing).toBeLessThanOrEqual(TUNING.BASE_STATS.healing * 1.05);
@@ -22,6 +32,25 @@ describe('createCharacter', () => {
       expect(health).toBeGreaterThanOrEqual(TUNING.BASE_STATS.health * 0.95);
       expect(health).toBeLessThanOrEqual(TUNING.BASE_STATS.health * 1.05);
     }
+  });
+
+  it('picks each configured physical/magic split ratio at least once over many seeds', () => {
+    const damagePool = TUNING.BASE_STATS.physicalDamage + TUNING.BASE_STATS.magicDamage;
+    const seenShares = new Set<number>();
+
+    for (let seed = 0; seed < 500; seed++) {
+      const character = createCharacter(createRng(seed));
+      // Reverse the jitter-free share out of the jittered stat by rounding
+      // to the nearest configured share — jitter is only ±5%, well inside
+      // the gap between adjacent configured shares (10%).
+      const approxShare = character.starterStats.physicalDamage / damagePool;
+      const closest = TUNING.DAMAGE_SPLIT_RATIOS.map(([p]) => p).reduce((best, p) =>
+        Math.abs(p - approxShare) < Math.abs(best - approxShare) ? p : best,
+      );
+      seenShares.add(closest);
+    }
+
+    expect(seenShares.size).toBe(TUNING.DAMAGE_SPLIT_RATIOS.length);
   });
 
   it('starts at level 1 with 0 exp and currentHealth equal to starter health', () => {
