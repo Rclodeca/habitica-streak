@@ -5,7 +5,12 @@ import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
+import Modal from '../ui/Modal.vue';
 import PlayerSprite from './PlayerSprite.vue';
+
+// Full stat/item detail lives in a modal so the always-visible panel stays
+// small (sprite + level + HP bar) — see BossPanel.vue for the same pattern.
+const showDetails = ref(false);
 
 const characterStore = useCharacterStore();
 
@@ -42,11 +47,18 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
 <template>
   <section class="panel character-panel">
-    <div class="top-row">
+    <button type="button" class="summary-row" @click="showDetails = true">
       <div class="sprite-wrapper" :class="{ hit: isHit }">
         <PlayerSprite :character="character" />
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
+      <div class="summary-info">
+        <h2>Character — Level {{ character.level }}</h2>
+        <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
+      </div>
+    </button>
+
+    <Modal v-model="showDetails" title="Character details">
       <div class="item-grid">
         <div
           v-for="(item, i) in equippedSlots"
@@ -61,25 +73,23 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
           </template>
         </div>
       </div>
-    </div>
 
-    <h2>Character — Level {{ character.level }}</h2>
-    <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
-    <ExpBar :current="character.exp" :max="expNeeded" />
+      <ExpBar :current="character.exp" :max="expNeeded" />
 
-    <dl class="stat-list">
-      <dt>Physical damage</dt>
-      <dd>{{ physicalDamage.toFixed(1) }}</dd>
+      <dl class="stat-list">
+        <dt>Physical damage</dt>
+        <dd>{{ physicalDamage.toFixed(1) }}</dd>
 
-      <dt>Magic damage</dt>
-      <dd>{{ magicDamage.toFixed(1) }}</dd>
+        <dt>Magic damage</dt>
+        <dd>{{ magicDamage.toFixed(1) }}</dd>
 
-      <dt>Healing</dt>
-      <dd>{{ healing.toFixed(1) }}</dd>
+        <dt>Healing</dt>
+        <dd>{{ healing.toFixed(1) }}</dd>
 
-      <dt>Crit chance</dt>
-      <dd>{{ (critChance * 100).toFixed(1) }}%</dd>
-    </dl>
+        <dt>Crit chance</dt>
+        <dd>{{ (critChance * 100).toFixed(1) }}%</dd>
+      </dl>
+    </Modal>
   </section>
 </template>
 
@@ -94,14 +104,28 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   margin: 0;
 }
 
-.top-row {
+.summary-row {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: 0.75rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-/* Same footprint as the sprite (96x96, see Sprite.vue) so the two sit as
-   equal-sized boxes side by side. */
+.summary-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .item-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -109,6 +133,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   gap: 4px;
   width: 96px;
   height: 96px;
+  margin: 0 0 0.75rem;
 }
 
 .item-slot {
@@ -146,10 +171,9 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   z-index: 10;
 }
 
-/* Right-column slots sit near the panel's right edge — the grid itself is
-   already right-aligned within the panel (see .top-row) — so a
-   center-anchored tooltip risks clipping off the right edge of a narrow
-   phone screen. Anchor those to their own right edge instead. */
+/* A center-anchored tooltip on a right-column slot risks clipping off the
+   modal's right edge on a narrow phone screen. Anchor those to their own
+   right edge instead. */
 .item-slot:nth-child(2n) .item-tooltip {
   left: auto;
   right: 0;

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { Personality } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useBossStore } from '../../store/bossStore';
 import HealthBar from '../ui/HealthBar.vue';
+import Modal from '../ui/Modal.vue';
 import Sprite from '../ui/Sprite.vue';
 
 // Boss art from HabitRPG/habitica-images (CC-BY-NC-SA 3.0, see CREDITS.md),
@@ -38,45 +39,53 @@ const bossStore = useBossStore();
 const boss = computed(() => bossStore.boss);
 
 const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
+
+// Full stat detail lives in a modal so the always-visible panel stays small
+// (sprite + title + HP bar) — see CharacterPanel.vue for the same pattern.
+const showDetails = ref(false);
 </script>
 
 <template>
   <section class="panel boss-panel">
-    <div class="panel-header">
+    <button type="button" class="summary-row" @click="showDetails = true">
       <div class="sprite-wrapper" :class="{ hit: isHit }">
         <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
-      <h2>Boss #{{ boss.index }} — {{ boss.personality }}</h2>
-    </div>
-    <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
+      <div class="summary-info">
+        <h2>Boss #{{ boss.index }} — {{ boss.personality }}</h2>
+        <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
+      </div>
+    </button>
 
-    <dl class="stat-list">
-      <dt>Physical attack</dt>
-      <dd>{{ boss.physicalAttack.toFixed(1) }}</dd>
+    <Modal v-model="showDetails" title="Boss details">
+      <dl class="stat-list">
+        <dt>Physical attack</dt>
+        <dd>{{ boss.physicalAttack.toFixed(1) }}</dd>
 
-      <dt>Magic attack</dt>
-      <dd>{{ boss.magicAttack.toFixed(1) }}</dd>
+        <dt>Magic attack</dt>
+        <dd>{{ boss.magicAttack.toFixed(1) }}</dd>
 
-      <dt>Armor</dt>
-      <dd>{{ boss.armor.toFixed(1) }}</dd>
+        <dt>Armor</dt>
+        <dd>{{ boss.armor.toFixed(1) }}</dd>
 
-      <dt>Magic resist</dt>
-      <dd>{{ boss.magicResist.toFixed(1) }}</dd>
+        <dt>Magic resist</dt>
+        <dd>{{ boss.magicResist.toFixed(1) }}</dd>
 
-      <dt>Crit chance</dt>
-      <dd>{{ (boss.critChance * 100).toFixed(1) }}%</dd>
+        <dt>Crit chance</dt>
+        <dd>{{ (boss.critChance * 100).toFixed(1) }}%</dd>
 
-      <template v-if="boss.reflectPct > 0">
-        <dt>Reflect</dt>
-        <dd>{{ (boss.reflectPct * 100).toFixed(0) }}%</dd>
-      </template>
+        <template v-if="boss.reflectPct > 0">
+          <dt>Reflect</dt>
+          <dd>{{ (boss.reflectPct * 100).toFixed(0) }}%</dd>
+        </template>
 
-      <template v-if="boss.lifestealPct > 0">
-        <dt>Lifesteal</dt>
-        <dd>{{ (boss.lifestealPct * 100).toFixed(0) }}%</dd>
-      </template>
-    </dl>
+        <template v-if="boss.lifestealPct > 0">
+          <dt>Lifesteal</dt>
+          <dd>{{ (boss.lifestealPct * 100).toFixed(0) }}%</dd>
+        </template>
+      </dl>
+    </Modal>
   </section>
 </template>
 
@@ -87,13 +96,29 @@ const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
   gap: 0.5rem;
 }
 
-.panel-header {
+.summary-row {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.panel-header h2 {
+.summary-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.summary-info h2 {
   margin: 0;
 }
 

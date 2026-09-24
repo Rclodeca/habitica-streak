@@ -5,25 +5,35 @@ import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { useCharacterStore } from '../../store/characterStore';
 import Modal from './Modal.vue';
 
-const { current, isFull, dismiss, replace } = useItemDropQueue();
+const { current, dismiss, replace } = useItemDropQueue();
 const characterStore = useCharacterStore();
 
 const equippedItems = computed(() =>
   ITEM_CATALOG.filter((item) => characterStore.character.equippedItemIds.includes(item.id)),
+);
+
+// `current` can already be sitting in `equippedItemIds` if it auto-equipped
+// into the last open slot (see `useItemDropQueue.processFront` — an
+// auto-equipped item stays queued so its informational popup still shows,
+// it just isn't shifted out). Branching on this instead of the live `isFull`
+// is what keeps the just-picked-up item from appearing in `equippedItems`
+// as a candidate to replace itself.
+const isCurrentEquipped = computed(
+  () => current.value !== null && characterStore.character.equippedItemIds.includes(current.value.id),
 );
 </script>
 
 <template>
   <Modal
     :model-value="current !== null"
-    :dismissible="!isFull"
+    :dismissible="isCurrentEquipped"
     title="Item found!"
     @update:model-value="dismiss"
   >
     <template v-if="current">
       <p class="found-item">{{ current.name }} — {{ describeItemBonus(current) }}</p>
 
-      <template v-if="isFull">
+      <template v-if="!isCurrentEquipped">
         <p class="replace-prompt">Your 4 slots are full — choose one to replace, or drop the new item:</p>
         <ul class="replace-list">
           <li v-for="item in equippedItems" :key="item.id" class="replace-row">
