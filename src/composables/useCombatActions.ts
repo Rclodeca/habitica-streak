@@ -231,6 +231,7 @@ export function useCombatActions() {
       kind: 'hit',
       habitName: habit.name,
       amount: healthBefore - result.character.currentHealth,
+      attackType: result.attackType,
     });
 
     // Rounded, not the raw float: the health bar already displays

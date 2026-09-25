@@ -18,9 +18,8 @@ const activityLogStore = useActivityLogStore();
           💚 Healed <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP using "{{ entry.habitName }}"
         </template>
         <template v-else-if="entry.kind === 'hit'">
-          💥 Hit for <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage (missed "{{
-            entry.habitName
-          }}")
+          💥 {{ entry.attackType === 'physical' ? 'Physical' : 'Magic' }} hit for
+          <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage (missed "{{ entry.habitName }}")
         </template>
         <template v-else-if="entry.kind === 'level-up'">
           ⭐ Leveled up to Lv {{ entry.newLevel }}! Physical Dmg

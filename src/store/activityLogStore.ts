@@ -8,7 +8,7 @@ import { defineStore } from 'pinia';
 export type ActivityLogEntry =
   | { id: string; kind: 'skill-damage'; habitName: string; amount: number }
   | { id: string; kind: 'heal'; habitName: string; amount: number }
-  | { id: string; kind: 'hit'; habitName: string; amount: number }
+  | { id: string; kind: 'hit'; habitName: string; amount: number; attackType: 'physical' | 'magic' }
   | {
       id: string;
       kind: 'level-up';

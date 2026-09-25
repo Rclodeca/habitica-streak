@@ -310,6 +310,7 @@ describe('missHabit', () => {
     const expectedDamage = boss.magicAttack * TUNING.MISS_DAMAGE_FACTOR * (1.5 / 1.5); // medium weight = 1.5
     expect(result.character.currentHealth).toBeCloseTo(100 - expectedDamage, 10);
     expect(result.updatedHabit.streakCount).toBe(0);
+    expect(result.attackType).toBe('magic');
   });
 
   it('deals 2x damage for a missed weekly habit compared to an otherwise-identical missed daily habit', () => {
@@ -337,6 +338,7 @@ describe('missHabit', () => {
 
     const expectedDamage = boss.physicalAttack * TUNING.MISS_DAMAGE_FACTOR * (1.5 / 1.5);
     expect(result.character.currentHealth).toBeCloseTo(100 - expectedDamage, 10);
+    expect(result.attackType).toBe('physical');
   });
 
   it('never reduces currentHealth below 0', () => {

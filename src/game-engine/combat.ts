@@ -177,12 +177,16 @@ export function missHabit(
   boss: Boss;
   updatedHabit: Habit;
   wasCrit: boolean;
+  // Which of the boss's two attacks the coin-flip below picked — surfaced
+  // for the activity log so a boss hit reads as physical or magic.
+  attackType: 'physical' | 'magic';
   // Capped at the boss's maxHealth, so this is the actual health gained,
   // not the raw `damage * lifestealPct` — surfaced for the activity log.
   bossLifestealHealed?: number;
 } {
   const updatedHabit = resetHabitStreak(habit);
-  const attack = rng() < 0.5 ? boss.physicalAttack : boss.magicAttack;
+  const attackType: 'physical' | 'magic' = rng() < 0.5 ? 'physical' : 'magic';
+  const attack = attackType === 'physical' ? boss.physicalAttack : boss.magicAttack;
   const wasCrit = rng() < boss.critChance;
   const weeklyMultiplier = habit.period === 'weekly' ? TUNING.WEEKLY_MISS_MULTIPLIER : 1;
   const damage =
@@ -197,6 +201,7 @@ export function missHabit(
     boss: newBoss,
     updatedHabit,
     wasCrit,
+    attackType,
     bossLifestealHealed: bossLifestealHealed > 0 ? bossLifestealHealed : undefined,
   };
 }
