@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
-  computeDamageSplit,
-  DAMAGE_TYPE_STARTER_STAT,
-  effectiveStat,
-  levelRewardMultiplier,
+  habitDamageBreakdown,
   overdriveDamagePreview,
   overdriveUsesRemaining,
   periodKeyFor,
-  periodRewardMultiplier,
-  streakMultiplier,
 } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
@@ -28,24 +23,20 @@ const debugClockStore = useDebugClockStore();
 const { activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
 
-const baseDamage = computed(() => {
-  const character = characterStore.character;
-  const statField = DAMAGE_TYPE_STARTER_STAT[props.habit.damageType];
-  const statValue = effectiveStat(character, statField);
+const breakdown = computed(() => {
   const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.isBad);
-  const split = computeDamageSplit(siblings, statValue);
-  return split.get(props.habit.id) ?? 0;
+  return habitDamageBreakdown(characterStore.character, props.habit, siblings);
 });
 
-const multiplier = computed(() => streakMultiplier(props.habit.streakCount, props.habit.period));
-const periodMultiplier = computed(() => periodRewardMultiplier(props.habit.period));
-const bonusMultiplier = computed(() => levelRewardMultiplier(props.habit));
-const effectiveDamage = computed(
-  () => baseDamage.value * multiplier.value * periodMultiplier.value * bonusMultiplier.value,
-);
+const baseDamage = computed(() => breakdown.value.baseDamage);
+const itemMultiplier = computed(() => breakdown.value.itemMultiplier);
+const multiplier = computed(() => breakdown.value.streakMultiplier);
+const bonusMultiplier = computed(() => breakdown.value.bonusMultiplier);
+const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
 const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
+// Overdrive never gets the Special/Ult bonus, so its preview excludes bonusMultiplier.
 const overdriveDamage = computed(() =>
-  overdriveDamagePreview(baseDamage.value * multiplier.value * periodMultiplier.value),
+  overdriveDamagePreview(baseDamage.value * itemMultiplier.value * multiplier.value),
 );
 
 const currentPeriodKey = computed(() => periodKeyFor(props.habit.period, debugClockStore.now()));
@@ -98,6 +89,9 @@ function removeHabit() {
 
       <dt>Streak multiplier</dt>
       <dd>×{{ multiplier.toFixed(2) }}</dd>
+
+      <dt>Item multiplier</dt>
+      <dd>×{{ itemMultiplier.toFixed(2) }}</dd>
 
       <template v-if="rewardTag">
         <dt>Bonus</dt>

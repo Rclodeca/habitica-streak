@@ -3,7 +3,7 @@ import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { computeDamageSplit, rerollDamageType, resetLevelRewards } from './habits';
-import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat } from './leveling';
+import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { itemBonusPercent, rollItemDrops } from './items';
 import type { ItemDef } from './items';
 import type { Rng } from './rng';
@@ -56,6 +56,41 @@ function bumpOverdriveUse(habit: Habit, currentPeriodKey: string): Habit {
   return { ...habit, overdrivePeriodKey: currentPeriodKey, overdriveUsesThisPeriod: usedSoFar + 1 };
 }
 
+export type HabitDamageBreakdown = {
+  /** This habit's share of the character's stat pool (by difficulty weight), with the period reward multiplier (weeklies ×3) folded in — before items, streak, or Special/Ult. */
+  baseDamage: number;
+  itemMultiplier: number;
+  streakMultiplier: number;
+  bonusMultiplier: number;
+  /** baseDamage * itemMultiplier * streakMultiplier * bonusMultiplier. */
+  effectiveDamage: number;
+};
+
+/**
+ * A preview breakdown of what completing `habit` right now would deal,
+ * decomposed into the same factors `completeHabit` multiplies together —
+ * used by the UI to show each multiplier alongside the final number rather
+ * than just the final number. Uses `habit.streakCount` as-is (this is a
+ * preview of the *current* state, not a simulation of the streak bump that
+ * completing it would cause).
+ */
+export function habitDamageBreakdown(character: Character, habit: Habit, allHabitsOfSameType: Habit[]): HabitDamageBreakdown {
+  const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
+  const rawStat = statAtLevel(character.starterStats[statField], character.level);
+  const statShare = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
+  const baseDamage = statShare * periodRewardMultiplier(habit.period);
+  const itemMultiplier = itemStatMultiplier(character, statField);
+  const streakMult = streakMultiplier(habit.streakCount, habit.period);
+  const bonusMultiplier = levelRewardMultiplier(habit);
+  return {
+    baseDamage,
+    itemMultiplier,
+    streakMultiplier: streakMult,
+    bonusMultiplier,
+    effectiveDamage: baseDamage * itemMultiplier * streakMult * bonusMultiplier,
+  };
+}
+
 export type CombatResult = {
   character: Character;
   boss: Boss;
@@ -90,9 +125,11 @@ export function completeHabit(
   options: { isOverdriveUse?: boolean } = {},
 ): CombatResult {
   const isOverdriveUse = options.isOverdriveUse ?? false;
-  const statValue = effectiveStat(character, DAMAGE_TYPE_STARTER_STAT[habit.damageType]);
-  const split = computeDamageSplit(allHabitsOfSameType, statValue);
-  const baseDamage = split.get(habit.id) ?? 0;
+  const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
+  const rawStat = statAtLevel(character.starterStats[statField], character.level);
+  const statShare = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
+  const baseDamage = statShare * periodRewardMultiplier(habit.period);
+  const itemMultiplier = itemStatMultiplier(character, statField);
   // An Overdrive activation is an extra use of an already-checked-off habit:
   // it doesn't touch the streak or grant milestone EXP again, and never
   // gets the Special/Ult bonus — only OVERDRIVE_DAMAGE_FACTOR damage.
@@ -100,10 +137,9 @@ export function completeHabit(
     ? { habit, milestoneExp: 0 }
     : completeHabitStreak(habit);
   const multiplier = streakMultiplier(updatedHabit.streakCount, habit.period);
-  const weeklyMultiplier = periodRewardMultiplier(habit.period);
   const bonusMultiplier = isOverdriveUse ? 1 : levelRewardMultiplier(habit);
   const overdriveFactor = isOverdriveUse ? TUNING.OVERDRIVE_DAMAGE_FACTOR : 1;
-  const amount = baseDamage * multiplier * weeklyMultiplier * bonusMultiplier * overdriveFactor;
+  const amount = baseDamage * itemMultiplier * multiplier * bonusMultiplier * overdriveFactor;
 
   if (habit.damageType === 'healing') {
     const healed = Math.min(character.currentHealth + amount, effectiveStat(character, 'health'));

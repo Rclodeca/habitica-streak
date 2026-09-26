@@ -52,13 +52,20 @@ export function statAtLevel(starterStatValue: number, level: number): number {
   return starterStatValue * Math.pow(1 + TUNING.LEVEL_STAT_GROWTH_RATE, level - 1);
 }
 
+/** The character's equipped-item bonus for `stat`, expressed as a multiplier (e.g. 1.06 for a +6% item). */
+export function itemStatMultiplier(
+  character: Character,
+  stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health',
+): number {
+  return 1 + itemBonusPercent(character, stat) / 100;
+}
+
 /** statAtLevel(...) scaled by the character's equipped-item bonus for `stat`. */
 export function effectiveStat(
   character: Character,
   stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health',
 ): number {
-  const base = statAtLevel(character.starterStats[stat], character.level);
-  return base * (1 + itemBonusPercent(character, stat) / 100);
+  return statAtLevel(character.starterStats[stat], character.level) * itemStatMultiplier(character, stat);
 }
 
 /**

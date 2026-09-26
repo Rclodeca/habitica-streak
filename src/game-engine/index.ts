@@ -6,7 +6,14 @@ export type { Boss, Character, DamageType, Difficulty, Habit, Period, Personalit
 
 export { createCharacter, randomizeStat } from './character';
 
-export { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
+export {
+  addExpAndResolveLevelUps,
+  effectiveCritChance,
+  effectiveStat,
+  expToNextLevel,
+  itemStatMultiplier,
+  statAtLevel,
+} from './leveling';
 
 export { computeDamageSplit, createHabit, rerollDamageType, resetLevelRewards } from './habits';
 
@@ -16,10 +23,11 @@ export { applyResist, bossExpReward, bossPowerBudget, damageReductionPct, genera
 
 export { assignSpecialIfEligible, assignUltIfEligible, rollOverdriveForLevelUps } from './levelRewards';
 
-export type { CombatResult } from './combat';
+export type { CombatResult, HabitDamageBreakdown } from './combat';
 export {
   completeHabit,
   DAMAGE_TYPE_STARTER_STAT,
+  habitDamageBreakdown,
   levelRewardMultiplier,
   missHabit,
   overdriveDamagePreview,
