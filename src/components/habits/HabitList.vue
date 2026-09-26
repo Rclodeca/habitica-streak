@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useHabitStore } from '../../store/habitStore';
 import AddHabitModal from './AddHabitModal.vue';
 import HabitListItem from './HabitListItem.vue';
 
 const habitStore = useHabitStore();
 const showAddModal = ref(false);
+
+const dailyHabits = computed(() => habitStore.habits.filter((habit) => habit.period === 'daily'));
+const weeklyHabits = computed(() => habitStore.habits.filter((habit) => habit.period === 'weekly'));
 </script>
 
 <template>
@@ -14,10 +17,25 @@ const showAddModal = ref(false);
       <h2>Skills</h2>
       <button type="button" class="add-button" aria-label="Add habit" @click="showAddModal = true">+</button>
     </div>
-    <ul v-if="habitStore.habits.length">
-      <HabitListItem v-for="habit in habitStore.habits" :key="habit.id" :habit="habit" />
-    </ul>
-    <p v-else>No habits yet — tap + to add one.</p>
+
+    <p v-if="!habitStore.habits.length">No habits yet — tap + to add one.</p>
+    <template v-else>
+      <div class="habit-group">
+        <h3 class="habit-group-title">Daily</h3>
+        <ul v-if="dailyHabits.length">
+          <HabitListItem v-for="habit in dailyHabits" :key="habit.id" :habit="habit" />
+        </ul>
+        <p v-else class="habit-group-empty">No daily habits yet.</p>
+      </div>
+
+      <div class="habit-group">
+        <h3 class="habit-group-title">Weekly</h3>
+        <ul v-if="weeklyHabits.length">
+          <HabitListItem v-for="habit in weeklyHabits" :key="habit.id" :habit="habit" />
+        </ul>
+        <p v-else class="habit-group-empty">No weekly habits yet.</p>
+      </div>
+    </template>
   </section>
 
   <AddHabitModal v-model="showAddModal" />
@@ -48,5 +66,24 @@ const showAddModal = ref(false);
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.habit-group + .habit-group {
+  margin-top: 1.25rem;
+}
+
+.habit-group-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.habit-group-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text);
 }
 </style>
