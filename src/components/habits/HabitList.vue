@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import type { DamageType, Habit } from '../../game-engine';
 import { useHabitStore } from '../../store/habitStore';
 import AddHabitModal from './AddHabitModal.vue';
 import HabitListItem from './HabitListItem.vue';
@@ -7,8 +8,19 @@ import HabitListItem from './HabitListItem.vue';
 const habitStore = useHabitStore();
 const showAddModal = ref(false);
 
-const dailyHabits = computed(() => habitStore.habits.filter((habit) => habit.period === 'daily'));
-const weeklyHabits = computed(() => habitStore.habits.filter((habit) => habit.period === 'weekly'));
+// Healing first, then physical, then magic — stable sort preserves each
+// damage type's original relative order.
+const DAMAGE_TYPE_ORDER: DamageType[] = ['healing', 'physical', 'magic'];
+function sortByDamageType(habits: Habit[]): Habit[] {
+  return [...habits].sort(
+    (a, b) => DAMAGE_TYPE_ORDER.indexOf(a.damageType) - DAMAGE_TYPE_ORDER.indexOf(b.damageType),
+  );
+}
+
+const dailyHabits = computed(() => sortByDamageType(habitStore.habits.filter((habit) => habit.period === 'daily')));
+const weeklyHabits = computed(() =>
+  sortByDamageType(habitStore.habits.filter((habit) => habit.period === 'weekly')),
+);
 </script>
 
 <template>
