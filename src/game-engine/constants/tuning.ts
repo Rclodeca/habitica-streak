@@ -53,6 +53,31 @@ export const TUNING = {
   // rarely miss) — the 1.205 growth-rate bump alone pulled "bad" down
   // slightly below its target, and this nudge brought it back.
   MISS_DAMAGE_FACTOR: 0.15,
+  // Governs physicalAttack/magicAttack — the stats that hurt the player on
+  // a missed habit — via an S-curve (logistic) over boss index instead of
+  // the shared power budget every other boss stat uses: see
+  // missDamagePctForIndex in boss.ts. It starts small, rises through the
+  // two checkpoints below, and plateaus near this ceiling % of the
+  // player's BASE (pre-item) max health afterward, instead of growing
+  // unbounded forever. Deliberately keyed off BASE health, not the
+  // item-boosted effective health, so equipping health items still makes a
+  // real dent in the resulting hit-as-%-of-actual-max-HP — see
+  // generateBoss's baseMaxHealth param. Personality multipliers apply on
+  // top of this curve, so brute/arcane 2x-5x bosses still climb past the
+  // ceiling and remain a genuine one-shot threat — only the non-emphasized
+  // baseline is tamed.
+  // Must stay strictly above MISS_DAMAGE_CURVE_TARGET_PCT — it's the
+  // asymptote the curve approaches but never reaches at the target
+  // checkpoint itself.
+  MISS_DAMAGE_CEILING_PCT_OF_MAX_HP: 0.75,
+  // The curve's two authored checkpoints — its midpoint/steepness are
+  // solved from these (see solveLogisticParams in boss.ts) so the shape is
+  // tuned via "how small at the start" and "where it hits the target"
+  // rather than raw sigmoid math constants.
+  MISS_DAMAGE_CURVE_EARLY_INDEX: 1,
+  MISS_DAMAGE_CURVE_EARLY_PCT: 0.05,
+  MISS_DAMAGE_CURVE_TARGET_INDEX: 50,
+  MISS_DAMAGE_CURVE_TARGET_PCT: 0.7,
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
   CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed
   CRIT_MULTIPLIER: 2, // crit hits deal 2x damage
@@ -90,8 +115,12 @@ export const TUNING = {
   // tier's weight (100) as the boss index climbs from 1 to this value, so
   // rarity is a real early-game surprise but stops gatekeeping which boss
   // types show up once a run gets deep — by this boss, every personality
-  // is equally likely.
-  BOSS_PERSONALITY_RAMP_END_INDEX: 15,
+  // is equally likely. Pushed 15 -> 50 alongside the miss-damage S-curve
+  // (see MISS_DAMAGE_CURVE_* above): the rare 3x-5x attack-emphasis tiers
+  // can already one-shot a player once their raw odds are non-negligible
+  // (brute3x hit 100% of max HP by boss 10 at the old ramp), so they need
+  // to stay rare for longer, not just cap out early.
+  BOSS_PERSONALITY_RAMP_END_INDEX: 50,
   // Every boss rolls a crit chance independently of its personality: usually
   // a small 0-3% roll, but a rare 5% chance instead grants a flat 20% —
   // a dangerous outlier rather than a smooth curve.

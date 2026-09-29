@@ -53,14 +53,20 @@ describe('generateBoss difficulty modifier', () => {
     expect(boss.difficultyModifier).toBe(1.1);
   });
 
-  it('scales every boss stat by the provided modifier, holding the rng seed fixed', () => {
+  it('scales health/armor/magicResist by the provided modifier, holding the rng seed fixed', () => {
     const baseline = generateBoss(5, createRng(7), 1);
     const harder = generateBoss(5, createRng(7), 1.1);
     // Same seed, same personality/jitter rolls — only the budget differs.
     expect(harder.personality).toBe(baseline.personality);
     expect(harder.health).toBeCloseTo(baseline.health * 1.1, 6);
-    expect(harder.physicalAttack).toBeCloseTo(baseline.physicalAttack * 1.1, 6);
     expect(harder.armor).toBeCloseTo(baseline.armor * 1.1, 6);
+  });
+
+  it('leaves physicalAttack/magicAttack untouched by the modifier — they follow missDamagePctForIndex, not the budget', () => {
+    const baseline = generateBoss(5, createRng(7), 1);
+    const harder = generateBoss(5, createRng(7), 1.1);
+    expect(harder.physicalAttack).toBeCloseTo(baseline.physicalAttack, 10);
+    expect(harder.magicAttack).toBeCloseTo(baseline.magicAttack, 10);
   });
 });
 
@@ -70,7 +76,7 @@ describe('personalityWeightsForIndex', () => {
   });
 
   it('makes every personality equally likely at and beyond the ramp-end index', () => {
-    for (const index of [TUNING.BOSS_PERSONALITY_RAMP_END_INDEX, 20, 100]) {
+    for (const index of [TUNING.BOSS_PERSONALITY_RAMP_END_INDEX, TUNING.BOSS_PERSONALITY_RAMP_END_INDEX + 50, 200]) {
       const weights = Object.values(personalityWeightsForIndex(index));
       const commonWeight = Math.max(...Object.values(TUNING.BOSS_PERSONALITY_WEIGHTS));
       for (const weight of weights) {

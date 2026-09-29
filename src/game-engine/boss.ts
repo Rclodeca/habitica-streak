@@ -95,10 +95,58 @@ export function personalityWeightsForIndex(index: number): Record<Personality, n
 }
 
 /**
+ * Solves a logistic curve's (midpoint, steepness) so it passes exactly
+ * through two given (x, y) checkpoints and asymptotes to `ceiling` — used
+ * by `missDamagePctForIndex` so that curve's S-shape is authored via
+ * intuitive checkpoints ("small at boss 1, 60% by boss 20") instead of raw
+ * sigmoid math constants that would each independently control the whole
+ * curve's shape (see the BEND_FACTOR approach this replaced: a single knob
+ * couldn't move a late checkpoint without also dragging up every earlier
+ * one).
+ */
+function solveLogisticParams(
+  ceiling: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): { midpoint: number; steepness: number } {
+  const z1 = Math.log(ceiling / y1 - 1);
+  const z2 = Math.log(ceiling / y2 - 1);
+  const steepness = (z1 - z2) / (x2 - x1);
+  const midpoint = x1 + z1 / steepness;
+  return { midpoint, steepness };
+}
+
+const MISS_DAMAGE_CURVE = solveLogisticParams(
+  TUNING.MISS_DAMAGE_CEILING_PCT_OF_MAX_HP,
+  TUNING.MISS_DAMAGE_CURVE_EARLY_INDEX,
+  TUNING.MISS_DAMAGE_CURVE_EARLY_PCT,
+  TUNING.MISS_DAMAGE_CURVE_TARGET_INDEX,
+  TUNING.MISS_DAMAGE_CURVE_TARGET_PCT,
+);
+
+/**
+ * The target miss-damage-as-%-of-base-max-HP for a non attack-emphasized
+ * boss at this index: an S-curve that starts small, rises through the two
+ * checkpoints in TUNING.MISS_DAMAGE_CURVE_*, and plateaus near
+ * MISS_DAMAGE_CEILING_PCT_OF_MAX_HP afterward — unlike every other boss
+ * stat, which grows unbounded forever off the shared power budget. See
+ * `generateBoss` for how this becomes an actual attack stat, and how
+ * brute/arcane personalities multiply past it.
+ */
+export function missDamagePctForIndex(index: number): number {
+  const { midpoint, steepness } = MISS_DAMAGE_CURVE;
+  return TUNING.MISS_DAMAGE_CEILING_PCT_OF_MAX_HP / (1 + Math.exp(-steepness * (index - midpoint)));
+}
+
+/**
  * Generates a boss for the given index: rolls a personality, distributes the
- * index's power budget across stats (emphasizing one stat if the personality
- * calls for it), jitters each stat by ±10%, and independently rolls a crit
- * chance, reflect%, and lifesteal% (see TUNING for the odds of each).
+ * index's power budget across health/armor/magicResist (emphasizing one
+ * stat if the personality calls for it), jitters each stat by ±10%, and
+ * independently rolls a crit chance, reflect%, and lifesteal% (see TUNING
+ * for the odds of each). physicalAttack/magicAttack are handled separately
+ * — see below.
  *
  * `difficultyModifier`, if provided, is the current run's hidden per-run
  * scaling — carried forward from the previous boss so it stays constant for
@@ -112,8 +160,21 @@ export function personalityWeightsForIndex(index: number): Record<Personality, n
  * independently for each field, so `maxHealth` could end up different from
  * `health` at spawn — but a freshly spawned boss must always be at full
  * health, i.e. `maxHealth === health`.
+ *
+ * `baseMaxHealth` (the player's current level-scaled health BEFORE item
+ * bonuses — e.g. `statAtLevel(character.starterStats.health, character.level)`)
+ * anchors `missDamagePctForIndex`'s target below. Defaults to the
+ * character-creation baseline for callers that don't have a character in
+ * scope yet (e.g. this store's initial state), which is only ever wrong for
+ * an index-1 boss anyway, where the curve's target is already at its
+ * smallest.
  */
-export function generateBoss(index: number, rng: Rng, difficultyModifier?: number): Boss {
+export function generateBoss(
+  index: number,
+  rng: Rng,
+  difficultyModifier?: number,
+  baseMaxHealth: number = TUNING.BASE_STATS.health,
+): Boss {
   const resolvedDifficultyModifier = difficultyModifier ?? rollRunDifficultyModifier(rng);
   const personality = pickWeighted<Personality>(personalityWeightsForIndex(index), rng);
   const emphasizedStat = PERSONALITY_STAT[personality];
@@ -131,13 +192,26 @@ export function generateBoss(index: number, rng: Rng, difficultyModifier?: numbe
   const reflectPct = parseFloat(pickWeighted<string>(TUNING.BOSS_REFLECT_WEIGHTS, rng));
   const lifestealPct = parseFloat(pickWeighted<string>(TUNING.BOSS_LIFESTEAL_WEIGHTS, rng));
 
+  // The non-emphasized baseline attack value for this index — deliberately
+  // NOT derived from `budget`/`shares` like every other stat, since the
+  // whole point is to author its growth against the player's own health
+  // curve instead of the boss's unbounded power budget. Jittered the same
+  // ±10% way as every other stat, then a brute/arcane boss's own emphasized
+  // attack multiplies past this baseline (asymptoting near ceiling *
+  // multiplier instead), while the other attack type and every other
+  // personality's attacks stay on the curve.
+  const targetAttack = (missDamagePctForIndex(index) * baseMaxHealth) / TUNING.MISS_DAMAGE_FACTOR;
+  const attackJitter = () => 1 + (rng() * 2 - 1) * 0.1;
+  const physicalMultiplier = emphasizedStat === 'physicalAttack' ? PERSONALITY_MULTIPLIER[personality as Exclude<Personality, 'balanced'>] : 1;
+  const magicMultiplier = emphasizedStat === 'magicAttack' ? PERSONALITY_MULTIPLIER[personality as Exclude<Personality, 'balanced'>] : 1;
+
   return {
     index,
     personality,
     maxHealth: health,
     health,
-    physicalAttack: jittered(shares.physicalAttack),
-    magicAttack: jittered(shares.magicAttack),
+    physicalAttack: targetAttack * attackJitter() * physicalMultiplier,
+    magicAttack: targetAttack * attackJitter() * magicMultiplier,
     armor: jittered(shares.armor),
     magicResist: jittered(shares.magicResist),
     critChance,

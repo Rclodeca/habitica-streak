@@ -306,7 +306,11 @@ export function resolveBossDefeatIfDead(
     ...leveled,
     ownedItemIds: [...leveled.ownedItemIds, ...itemsDropped.map((item) => item.id)],
   };
-  const nextBoss = generateBoss(boss.index + 1, rng, boss.difficultyModifier);
+  // Base (pre-item) health anchors the next boss's attack soft cap — see
+  // generateBoss's baseMaxHealth param — so equipping health items doesn't
+  // just chase the cap upward and cancel itself out.
+  const baseMaxHealth = statAtLevel(withItems.starterStats.health, withItems.level);
+  const nextBoss = generateBoss(boss.index + 1, rng, boss.difficultyModifier, baseMaxHealth);
   return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped };
 }
 
@@ -330,9 +334,10 @@ export function resolvePlayerDeathIfDead(
   // positive health remainder would make `restart()` dismiss the death
   // screen without actually resetting the run.
   if (Math.round(character.currentHealth) > 0) return { character, boss, habits, died: false };
+  const freshCharacter = createCharacter(rng);
   return {
-    character: createCharacter(rng),
-    boss: generateBoss(1, rng),
+    character: freshCharacter,
+    boss: generateBoss(1, rng, undefined, statAtLevel(freshCharacter.starterStats.health, freshCharacter.level)),
     habits: habits.map((h) => resetLevelRewards(rerollDamageType(h, rng))),
     died: true,
   };
