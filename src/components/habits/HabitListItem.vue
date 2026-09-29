@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { periodKeyFor } from '../../game-engine';
+import { habitDamageBreakdown, periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
+import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
+import { useHabitStore } from '../../store/habitStore';
 import HabitStatsModal from './HabitStatsModal.vue';
 
 const props = defineProps<{ habit: Habit }>();
@@ -12,13 +14,30 @@ const props = defineProps<{ habit: Habit }>();
 const { checkOffHabit } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
 const debugClockStore = useDebugClockStore();
+const characterStore = useCharacterStore();
+const habitStore = useHabitStore();
 
 const isCompletedThisPeriod = computed(
   () => props.habit.lastCompletedPeriodKey === periodKeyFor(props.habit.period, debugClockStore.now()),
 );
 
+const breakdown = computed(() => {
+  const siblings = props.habit.damageType === 'healing'
+    ? habitStore.habits.filter((h) => h.damageType === 'healing') // healing pools all habits regardless of good/bad
+    : habitStore.habitsOfType(props.habit.damageType, props.habit.isBad); // damage pools split by good/bad
+  return habitDamageBreakdown(characterStore.character, props.habit, siblings);
+});
+
+const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
+
+const damageTypeColor = computed(() => {
+  if (props.habit.damageType === 'healing') return '#22c55e'; // green
+  if (props.habit.damageType === 'magic') return '#a855f7'; // purple
+  return '#ef4444'; // red for physical
+});
+
 const metaText = computed(
-  () => `${props.habit.period} · ${props.habit.damageType} · streak ${props.habit.streakCount}`,
+  () => `${props.habit.difficulty} · streak ${props.habit.streakCount}`,
 );
 
 const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
@@ -43,9 +62,12 @@ const showStatsModal = ref(false);
       @click.stop
       @change="onCheckOff"
     />
-    <span class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
-    <span v-if="rewardTag" class="tag">{{ rewardTag }}</span>
+    <div class="left">
+      <span class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
+      <span v-if="rewardTag" class="tag">{{ rewardTag }}</span>
+    </div>
     <span class="meta">{{ metaText }}</span>
+    <span class="effective-damage" :style="{ color: damageTypeColor }">{{ effectiveDamage.toFixed(0) }}</span>
   </li>
 
   <HabitStatsModal v-model="showStatsModal" :habit="habit" />
@@ -54,12 +76,23 @@ const showStatsModal = ref(false);
 <style scoped>
 .habit-item {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.25rem 0.75rem;
+  gap: 0.75rem;
   padding: 0.4rem 0;
   cursor: pointer;
+}
+
+.habit-item input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .habit-item .name {
@@ -83,6 +116,15 @@ const showStatsModal = ref(false);
 .meta {
   font-size: 0.85em;
   opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.effective-damage {
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 0.9em;
+  min-width: 3em;
+  text-align: right;
 }
 
 .tag {

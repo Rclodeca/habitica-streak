@@ -183,22 +183,40 @@ export const ITEM_CATALOG: ItemDef[] = [
 // one non-common item compound higher than that single-roll number — this
 // keeps epic (the new +50%-damage tier) genuinely rare rather than
 // something you stumble into quickly.
-const RARITY_WEIGHT: Record<ItemRarity, number> = { common: 125, uncommon: 25, rare: 5, epic: 1 };
+//
+// By boss 20, rarity weights converge to equal (31 each), so all rarities
+// become equally common in the late game as a progression reward.
+const INITIAL_RARITY_WEIGHT: Record<ItemRarity, number> = { common: 125, uncommon: 25, rare: 5, epic: 1 };
+const RARITY_CONVERGENCE_BOSS = 20;
+const EQUAL_RARITY_WEIGHT: Record<ItemRarity, number> = { common: 31, uncommon: 31, rare: 31, epic: 31 };
+
+function rarityWeightByBossIndex(bossIndex: number): Record<ItemRarity, number> {
+  if (bossIndex >= RARITY_CONVERGENCE_BOSS) {
+    return EQUAL_RARITY_WEIGHT;
+  }
+  const progress = (bossIndex - 1) / (RARITY_CONVERGENCE_BOSS - 1);
+  return {
+    common: Math.round(INITIAL_RARITY_WEIGHT.common + (EQUAL_RARITY_WEIGHT.common - INITIAL_RARITY_WEIGHT.common) * progress),
+    uncommon: Math.round(INITIAL_RARITY_WEIGHT.uncommon + (EQUAL_RARITY_WEIGHT.uncommon - INITIAL_RARITY_WEIGHT.uncommon) * progress),
+    rare: Math.round(INITIAL_RARITY_WEIGHT.rare + (EQUAL_RARITY_WEIGHT.rare - INITIAL_RARITY_WEIGHT.rare) * progress),
+    epic: Math.round(INITIAL_RARITY_WEIGHT.epic + (EQUAL_RARITY_WEIGHT.epic - INITIAL_RARITY_WEIGHT.epic) * progress),
+  };
+}
 
 /**
  * Weighted sample without replacement: each remaining item's chance is
- * proportional to RARITY_WEIGHT[item.rarity], recomputed after every pick so
+ * proportional to rarityWeight[item.rarity], recomputed after every pick so
  * removing a common item doesn't skew the remaining rare-vs-common ratio.
  */
-function weightedSampleWithoutReplacement(items: ItemDef[], count: number, rng: Rng): ItemDef[] {
+function weightedSampleWithoutReplacement(items: ItemDef[], count: number, rarityWeight: Record<ItemRarity, number>, rng: Rng): ItemDef[] {
   const pool = [...items];
   const result: ItemDef[] = [];
   while (result.length < count && pool.length > 0) {
-    const totalWeight = pool.reduce((sum, item) => sum + RARITY_WEIGHT[item.rarity], 0);
+    const totalWeight = pool.reduce((sum, item) => sum + rarityWeight[item.rarity], 0);
     let roll = rng() * totalWeight;
     let pickedIndex = pool.length - 1;
     for (let i = 0; i < pool.length; i++) {
-      roll -= RARITY_WEIGHT[pool[i].rarity];
+      roll -= rarityWeight[pool[i].rarity];
       if (roll < 0) {
         pickedIndex = i;
         break;
@@ -249,7 +267,8 @@ export function rollItemDrops(character: Character, bossIndex: number, rng: Rng)
     TUNING.ITEM_DROP_MAX_COUNT,
   );
   const count = Math.min(desiredCount, unowned.length);
-  return weightedSampleWithoutReplacement(unowned, count, rng);
+  const rarityWeight = rarityWeightByBossIndex(bossIndex);
+  return weightedSampleWithoutReplacement(unowned, count, rarityWeight, rng);
 }
 
 // Which body-worn sprite slot each stat category renders as on the player
