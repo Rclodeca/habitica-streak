@@ -103,8 +103,9 @@ const showStatsModal = ref(false);
 }
 
 .habit-item.bad {
-  outline: 1px solid rgba(220, 38, 38, 0.35);
-  border-radius: 4px;
+  border-left: 3px solid #dc2626;
+  padding-left: 0.5rem;
+  margin-left: -0.5rem;
 }
 
 .done {
