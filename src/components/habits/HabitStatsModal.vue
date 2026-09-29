@@ -24,7 +24,9 @@ const { activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
 
 const breakdown = computed(() => {
-  const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.isBad);
+  const siblings = props.habit.damageType === 'healing'
+    ? habitStore.habits.filter((h) => h.damageType === 'healing') // healing pools all habits regardless of good/bad
+    : habitStore.habitsOfType(props.habit.damageType, props.habit.isBad); // damage pools split by good/bad
   return habitDamageBreakdown(characterStore.character, props.habit, siblings);
 });
 

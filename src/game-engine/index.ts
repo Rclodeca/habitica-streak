@@ -25,6 +25,7 @@ export { assignSpecialIfEligible, assignUltIfEligible, rollOverdriveForLevelUps 
 
 export type { CombatResult, HabitDamageBreakdown } from './combat';
 export {
+  bossMissDamage,
   completeHabit,
   DAMAGE_TYPE_STARTER_STAT,
   habitDamageBreakdown,

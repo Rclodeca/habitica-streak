@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { bossMissDamage } from '../../game-engine';
 import type { Personality } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useBossStore } from '../../store/bossStore';
@@ -61,10 +62,10 @@ const showDetails = ref(false);
     <Modal v-model="showDetails" title="Boss details">
       <dl class="stat-list">
         <dt>Physical attack</dt>
-        <dd>{{ boss.physicalAttack.toFixed(1) }}</dd>
+        <dd>{{ bossMissDamage(boss.physicalAttack).toFixed(1) }}</dd>
 
         <dt>Magic attack</dt>
-        <dd>{{ boss.magicAttack.toFixed(1) }}</dd>
+        <dd>{{ bossMissDamage(boss.magicAttack).toFixed(1) }}</dd>
 
         <dt>Armor</dt>
         <dd>{{ boss.armor.toFixed(1) }}</dd>
@@ -85,6 +86,10 @@ const showDetails = ref(false);
           <dd>{{ (boss.lifestealPct * 100).toFixed(0) }}%</dd>
         </template>
       </dl>
+      <p class="stat-note">
+        Attack values are the damage a missed medium daily habit deals. Easy misses take ~0.67x, hard ~1.33x, and a
+        crit or missed weekly doubles it.
+      </p>
     </Modal>
   </section>
 </template>
@@ -139,6 +144,12 @@ const showDetails = ref(false);
   margin: 0;
   text-align: right;
   color: var(--text-h);
+}
+
+.stat-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text);
 }
 
 .sprite-wrapper {

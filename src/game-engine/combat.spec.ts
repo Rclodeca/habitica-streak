@@ -297,6 +297,55 @@ describe('completeHabit', () => {
     const expectedHealAmount = statValue * streakMultiplier(1);
     expect(result.character.currentHealth).toBeCloseTo(30 + expectedHealAmount, 10);
   });
+
+  it('splits healing proportionally to difficulty weight across multiple healing habits', () => {
+    const character = makeCharacter({ currentHealth: 10 });
+    const easy = makeHabit({ id: 'easy', difficulty: 'easy', damageType: 'healing' });
+    const hard = makeHabit({ id: 'hard', difficulty: 'hard', damageType: 'healing' });
+    const boss = makeBoss();
+
+    const result = completeHabit(character, easy, [easy, hard], boss, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.healing, character.level);
+    // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
+    const expectedBase = statValue * (1 / 3);
+    const expectedAmount = expectedBase * streakMultiplier(1);
+
+    expect(result.character.currentHealth).toBeCloseTo(10 + expectedAmount, 10);
+  });
+
+  it('hard healing habit heals more than easy when in the same pool', () => {
+    const character = makeCharacter({ currentHealth: 10 });
+    const easy = makeHabit({ id: 'easy', difficulty: 'easy', damageType: 'healing' });
+    const hard = makeHabit({ id: 'hard', difficulty: 'hard', damageType: 'healing' });
+    const boss = makeBoss();
+
+    const easyResult = completeHabit(character, easy, [easy, hard], boss, noCritRng);
+    const hardResult = completeHabit(character, hard, [easy, hard], boss, noCritRng);
+
+    const easyHealed = easyResult.character.currentHealth - character.currentHealth;
+    const hardHealed = hardResult.character.currentHealth - character.currentHealth;
+
+    // hard weight=2, easy weight=1 -> hard heals 2x as much as easy
+    expect(hardHealed).toBeCloseTo(easyHealed * 2, 10);
+  });
+
+  it('good and bad healing habits share the same pool (unlike damage which splits by good/bad)', () => {
+    const character = makeCharacter({ currentHealth: 10 });
+    const goodEasy = makeHabit({ id: 'good-easy', difficulty: 'easy', damageType: 'healing', isBad: false });
+    const badHard = makeHabit({ id: 'bad-hard', difficulty: 'hard', damageType: 'healing', isBad: true });
+    const boss = makeBoss();
+
+    // With pool [good-easy (weight 1), bad-hard (weight 2)]: good-easy gets 1/3
+    const goodResult = completeHabit(character, goodEasy, [goodEasy, badHard], boss, noCritRng);
+    const goodHealed = goodResult.character.currentHealth - character.currentHealth;
+
+    const statValue = statAtLevel(character.starterStats.healing, character.level);
+    const expectedGoodBase = statValue * (1 / 3); // 1/(1+2) weight split
+    const expectedGoodAmount = expectedGoodBase * streakMultiplier(1);
+
+    expect(goodHealed).toBeCloseTo(expectedGoodAmount, 10);
+  });
 });
 
 describe('missHabit', () => {

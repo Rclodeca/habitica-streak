@@ -196,6 +196,18 @@ export function overdriveHabit(
 }
 
 /**
+ * The actual damage a boss's raw physicalAttack/magicAttack stat deals on a
+ * missed *medium* daily habit — MISS_DAMAGE_FACTOR baked in, with the
+ * difficulty weight canceling out to 1 (medium's weight/1.5 == 1). The raw
+ * stat alone overstates what actually lands (see `missHabit` for the full
+ * formula), so the UI shows this instead: an easy miss deals ~0.67x this,
+ * a hard miss ~1.33x, and any crit or missed weekly doubles it.
+ */
+export function bossMissDamage(attackStat: number): number {
+  return attackStat * TUNING.MISS_DAMAGE_FACTOR;
+}
+
+/**
  * Resolves missing a habit: resets its streak and damages the character
  * with a coin-flip between the boss's physical and magic attack (not their
  * average — the boss "attacks" with one or the other), scaled by the

@@ -139,7 +139,9 @@ export function useCombatActions() {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return [];
 
-    const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.isBad);
+    const habitsInPool = habit.damageType === 'healing'
+      ? habitStore.habits.filter((h) => h.damageType === 'healing') // healing pools all habits regardless of good/bad
+      : habitStore.habitsOfType(habit.damageType, habit.isBad); // damage pools split by good/bad
     const healthBefore = characterStore.character.currentHealth;
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
     const result = options.isOverdriveUse
