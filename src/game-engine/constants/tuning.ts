@@ -135,6 +135,19 @@ export const TUNING = {
   // rare enough to be a genuine surprise.
   BOSS_REFLECT_WEIGHTS: { '0': 80, '0.05': 15, '0.1': 4, '0.2': 1 },
   BOSS_LIFESTEAL_WEIGHTS: { '0': 80, '0.05': 15, '0.1': 4, '0.15': 1 },
+  // Wounds: a boss ability rolled once at generation (see generateBoss) —
+  // 10% of bosses get it. Each time this boss lands a hit (missHabit), it
+  // rolls against hitChance; on success, if the player isn't already
+  // Wounded, healing is multiplied by effectRate for durationDays days (no
+  // stacking/refresh — see activeWoundsEffect in combat.ts). All three
+  // values are rolled independently once per boss and fixed for its
+  // lifetime, so some Wounds bosses are a near-certain, short, mild
+  // nuisance while others are a rare but long, harsh one.
+  WOUNDS_ABILITY_CHANCE: 0.1,
+  WOUNDS_HIT_CHANCE_MIN: 0.2,
+  WOUNDS_HIT_CHANCE_MAX: 0.8,
+  WOUNDS_DURATION_DAYS_OPTIONS: [1, 2, 3],
+  WOUNDS_EFFECT_RATE_OPTIONS: [0.25, 0.5], // picked via pickRandom, i.e. 50/50 odds
   ITEM_DROP_EVERY_N_BOSSES: 3, // bosses 1-3 drop 1 item, 4-6 drop 2, 7+ drop 3 (capped)
   ITEM_DROP_MAX_COUNT: 3,
   // Physical/magic starting-stat split: createCharacter picks one of these

@@ -79,3 +79,20 @@ export function weeklyPeriodKey(date: Date): string {
 export function periodKeyFor(period: Period, date: Date): string {
   return period === 'daily' ? dailyPeriodKey(date) : weeklyPeriodKey(date);
 }
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Whole calendar days from day-key `a` to day-key `b` (both `YYYY-MM-DD`, as
+ * produced by `dailyPeriodKey`) — positive if `b` is after `a`. Parses via
+ * `Date.UTC` and divides by a fixed day-in-ms rather than diffing two raw
+ * wall-clock `Date`s, which is exact here since the keys are already
+ * calendar-normalized (no DST ambiguity).
+ */
+export function daysBetweenDayKeys(a: string, b: string): number {
+  const toUtcMs = (key: string) => {
+    const [year, month, day] = key.split('-').map(Number);
+    return Date.UTC(year, month - 1, day);
+  };
+  return Math.round((toUtcMs(b) - toUtcMs(a)) / MS_PER_DAY);
+}

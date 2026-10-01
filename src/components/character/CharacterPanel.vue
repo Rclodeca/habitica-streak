@@ -1,19 +1,31 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { describeItemBonus, effectiveCritChance, effectiveStat, expToNextLevel, ITEM_CATALOG } from '../../game-engine';
+import {
+  activeWoundsEffect,
+  dailyPeriodKey,
+  daysBetweenDayKeys,
+  describeItemBonus,
+  effectiveCritChance,
+  effectiveStat,
+  expToNextLevel,
+  ITEM_CATALOG,
+  statAtLevel,
+} from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
+import { useDebugClockStore } from '../../store/debugClockStore';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
 import PlayerSprite from './PlayerSprite.vue';
 
-// Only the numeric stat breakdown lives in a modal — sprite, item grid,
-// level, and both bars stay always-visible. See BossPanel.vue for the same
-// pattern (there, the whole stat list is the only thing hidden behind a tap).
+// A condensed, always-visible emoji stat line (effective numbers only) sits
+// next to the title; the full base-vs-effective breakdown lives in a modal
+// behind the same tap. See BossPanel.vue for the same pattern.
 const showDetails = ref(false);
 
 const characterStore = useCharacterStore();
+const debugClockStore = useDebugClockStore();
 
 const baseUrl = import.meta.env.BASE_URL;
 
@@ -24,6 +36,19 @@ const physicalDamage = computed(() => effectiveStat(character.value, 'physicalDa
 const magicDamage = computed(() => effectiveStat(character.value, 'magicDamage'));
 const healing = computed(() => effectiveStat(character.value, 'healing'));
 const critChance = computed(() => effectiveCritChance(character.value));
+
+const currentDayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
+const woundsEffect = computed(() => activeWoundsEffect(character.value, currentDayKey.value));
+const woundsDaysLeft = computed(() =>
+  woundsEffect.value ? woundsEffect.value.durationDays - daysBetweenDayKeys(woundsEffect.value.appliedDayKey, currentDayKey.value) : 0,
+);
+
+// Pre-item-bonus values, shown alongside the effective (post-item) ones in
+// the details modal so the player can see how much their gear is helping.
+const basePhysicalDamage = computed(() => statAtLevel(character.value.starterStats.physicalDamage, character.value.level));
+const baseMagicDamage = computed(() => statAtLevel(character.value.starterStats.magicDamage, character.value.level));
+const baseHealing = computed(() => statAtLevel(character.value.starterStats.healing, character.value.level));
+const baseCritChance = computed(() => character.value.critChance);
 
 // Fixed 4 slots, in whatever order they were equipped — empty ones render
 // as blank grid cells rather than being compacted away, so the grid never
@@ -71,23 +96,44 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
     <button type="button" class="title-button" @click="showDetails = true">
       <h2>Character — Level {{ character.level }}</h2>
+      <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
+      <ExpBar :current="character.exp" :max="expNeeded" />
+      <p class="stat-summary">
+        <span>⚔️ {{ physicalDamage.toFixed(1) }}</span>
+        <span>🔮 {{ magicDamage.toFixed(1) }}</span>
+        <span>💚 {{ healing.toFixed(1) }}</span>
+        <span>💥 {{ (critChance * 100).toFixed(1) }}%</span>
+        <span v-if="woundsEffect">🩹 {{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
+      </p>
     </button>
-    <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
-    <ExpBar :current="character.exp" :max="expNeeded" />
 
     <Modal v-model="showDetails" title="Character details">
       <dl class="stat-list">
-        <dt>Physical damage</dt>
+        <dt></dt>
+        <dd class="col-label">Base</dd>
+        <dd class="col-label">Effective</dd>
+
+        <dt>⚔️ Physical damage</dt>
+        <dd>{{ basePhysicalDamage.toFixed(1) }}</dd>
         <dd>{{ physicalDamage.toFixed(1) }}</dd>
 
-        <dt>Magic damage</dt>
+        <dt>🔮 Magic damage</dt>
+        <dd>{{ baseMagicDamage.toFixed(1) }}</dd>
         <dd>{{ magicDamage.toFixed(1) }}</dd>
 
-        <dt>Healing</dt>
+        <dt>💚 Healing</dt>
+        <dd>{{ baseHealing.toFixed(1) }}</dd>
         <dd>{{ healing.toFixed(1) }}</dd>
 
-        <dt>Crit chance</dt>
+        <dt>💥 Crit chance</dt>
+        <dd>{{ (baseCritChance * 100).toFixed(1) }}%</dd>
         <dd>{{ (critChance * 100).toFixed(1) }}%</dd>
+
+        <template v-if="woundsEffect">
+          <dt>🩹 Wounded</dt>
+          <dd>{{ (woundsEffect.effectRate * 100).toFixed(0) }}% healing</dd>
+          <dd>{{ woundsDaysLeft }} day(s) left</dd>
+        </template>
       </dl>
     </Modal>
   </section>
@@ -111,7 +157,9 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .title-button {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
   width: 100%;
   background: none;
   border: none;
@@ -121,6 +169,16 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.stat-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-h);
 }
 
 /* Same footprint as the sprite (96x96, see Sprite.vue) so the two sit as
@@ -186,7 +244,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
 .stat-list {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr 1fr;
   gap: 0.3rem 1rem;
   margin: 0;
   font-size: 0.8rem;
@@ -201,6 +259,14 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   margin: 0;
   text-align: right;
   color: var(--text-h);
+}
+
+.stat-list .col-label {
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text);
 }
 
 .sprite-wrapper {

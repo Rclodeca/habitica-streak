@@ -40,7 +40,7 @@ const activityLogStore = useActivityLogStore();
           <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP
         </template>
         <template v-else-if="entry.kind === 'reflect'">
-          🔮 Boss reflected <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage back at you
+          🪞 Boss reflected <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage back at you
         </template>
         <template v-else-if="entry.kind === 'boss-defeated'">
           ☠️ Boss #{{ entry.bossIndex }} defeated!
@@ -53,6 +53,9 @@ const activityLogStore = useActivityLogStore();
         </template>
         <template v-else-if="entry.kind === 'overdrive-granted'">
           🔥 "{{ entry.habitName }}" gained Overdrive!
+        </template>
+        <template v-else-if="entry.kind === 'wounds-applied'">
+          🩹 Wounded for {{ entry.durationDays }} day(s) — healing at {{ (entry.effectRate * 100).toFixed(0) }}%
         </template>
       </li>
     </ul>

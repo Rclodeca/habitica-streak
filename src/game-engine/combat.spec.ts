@@ -7,7 +7,9 @@ import { addExpAndResolveLevelUps, effectiveStat, statAtLevel } from './leveling
 import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
 import {
+  activeWoundsEffect,
   completeHabit,
+  healingMultiplier,
   overdriveHabit,
   overdriveUsesRemaining,
   missHabit,
@@ -15,13 +17,17 @@ import {
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
 } from './combat';
-import type { Boss, Character, Habit } from './types';
+import type { Boss, Character, Habit, WoundsStatusEffect } from './types';
 
 // Deterministic rng stand-ins for crit rolls: a value this low always beats
 // any crit chance used in these tests (never crits); a value of 0 always
 // beats it the other way (always crits, since 0 < any positive chance).
 const noCritRng = () => 0.99;
 const alwaysCritRng = () => 0;
+
+// Placeholder day key for tests that don't exercise Wounds — makeBoss()
+// defaults to no woundsAbility, so this value is never actually read.
+const DAY_KEY = '2026-01-01';
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
   const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 };
@@ -75,7 +81,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical', streakCount: 4 });
     const boss = makeBoss({ armor: 15, health: 500 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     // Solo habit of its type -> baseDamage is the full stat value at level.
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
@@ -96,7 +102,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'magic', streakCount: 0 });
     const boss = makeBoss({ magicResist: 25, health: 500 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.magicDamage, character.level);
     const expectedAmount = statValue * streakMultiplier(1);
@@ -114,8 +120,8 @@ describe('completeHabit', () => {
     const weekly = makeHabit({ period: 'weekly', damageType: 'physical', streakCount: 0 });
     const boss = makeBoss({ armor: 0, health: 1000 }); // armor 0 -> no reduction, easier to reason about
 
-    const dailyResult = completeHabit(character, daily, [daily], boss, noCritRng);
-    const weeklyResult = completeHabit(character, weekly, [weekly], boss, noCritRng);
+    const dailyResult = completeHabit(character, daily, [daily], boss, DAY_KEY, noCritRng);
+    const weeklyResult = completeHabit(character, weekly, [weekly], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     expect(dailyResult.damageDealt).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
@@ -132,8 +138,8 @@ describe('completeHabit', () => {
     const weekly = makeHabit({ period: 'weekly', damageType: 'healing', streakCount: 0 });
     const boss = makeBoss();
 
-    const dailyResult = completeHabit(dailyCharacter, daily, [daily], boss, noCritRng);
-    const weeklyResult = completeHabit(weeklyCharacter, weekly, [weekly], boss, noCritRng);
+    const dailyResult = completeHabit(dailyCharacter, daily, [daily], boss, DAY_KEY, noCritRng);
+    const weeklyResult = completeHabit(weeklyCharacter, weekly, [weekly], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(dailyCharacter.starterStats.healing, dailyCharacter.level);
     const dailyHealed = dailyResult.character.currentHealth - dailyCharacter.currentHealth;
@@ -148,7 +154,7 @@ describe('completeHabit', () => {
     const hard = makeHabit({ id: 'hard', difficulty: 'hard', damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000 }); // armor 0 -> no reduction, easier to reason about
 
-    const result = completeHabit(character, easy, [easy, hard], boss, noCritRng);
+    const result = completeHabit(character, easy, [easy, hard], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
@@ -163,7 +169,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const boosted = effectiveStat(character, 'physicalDamage');
     expect(boosted).toBeCloseTo(statAtLevel(character.starterStats.physicalDamage, character.level) * 1.03, 10);
@@ -175,7 +181,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     expect(result.boss.health).toBe(0);
   });
@@ -185,7 +191,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'healing', streakCount: 0 });
     const boss = makeBoss();
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     const expectedHealAmount = statValue * streakMultiplier(1);
@@ -201,7 +207,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'healing', streakCount: 100 }); // huge streak -> huge heal
     const boss = makeBoss();
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const maxHealth = statAtLevel(character.starterStats.health, character.level);
     expect(result.character.currentHealth).toBe(maxHealth);
@@ -216,7 +222,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const expectedHeal = (result.damageDealt ?? 0) * 0.05; // vampiric-fang bonusPercent: 5
     expect(result.character.currentHealth).toBeCloseTo(1 + expectedHeal, 10);
@@ -231,7 +237,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'healing' });
     const boss = makeBoss();
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     // Healed only by the habit's own healing amount, not doubled by lifesteal.
     const statValue = statAtLevel(character.starterStats.healing, character.level);
@@ -244,7 +250,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     expect(result.character.currentHealth).toBe(1);
   });
@@ -254,7 +260,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000, reflectPct: 0.2 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const expectedReflect = (result.damageDealt ?? 0) * 0.2;
     expect(result.character.currentHealth).toBeCloseTo(50 - expectedReflect, 10);
@@ -269,7 +275,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000, reflectPct: 0.2 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const dealt = result.damageDealt ?? 0;
     const expectedHealthChange = dealt * 0.05 - dealt * 0.2; // vampiric-fang 5% lifesteal vs 20% reflect
@@ -281,7 +287,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1_000_000, reflectPct: 0.2 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     expect(result.character.currentHealth).toBe(0);
   });
@@ -291,7 +297,7 @@ describe('completeHabit', () => {
     const habit = makeHabit({ damageType: 'healing' });
     const boss = makeBoss({ reflectPct: 0.2 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     const expectedHealAmount = statValue * streakMultiplier(1);
@@ -304,7 +310,7 @@ describe('completeHabit', () => {
     const hard = makeHabit({ id: 'hard', difficulty: 'hard', damageType: 'healing' });
     const boss = makeBoss();
 
-    const result = completeHabit(character, easy, [easy, hard], boss, noCritRng);
+    const result = completeHabit(character, easy, [easy, hard], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
@@ -320,8 +326,8 @@ describe('completeHabit', () => {
     const hard = makeHabit({ id: 'hard', difficulty: 'hard', damageType: 'healing' });
     const boss = makeBoss();
 
-    const easyResult = completeHabit(character, easy, [easy, hard], boss, noCritRng);
-    const hardResult = completeHabit(character, hard, [easy, hard], boss, noCritRng);
+    const easyResult = completeHabit(character, easy, [easy, hard], boss, DAY_KEY, noCritRng);
+    const hardResult = completeHabit(character, hard, [easy, hard], boss, DAY_KEY, noCritRng);
 
     const easyHealed = easyResult.character.currentHealth - character.currentHealth;
     const hardHealed = hardResult.character.currentHealth - character.currentHealth;
@@ -337,7 +343,7 @@ describe('completeHabit', () => {
     const boss = makeBoss();
 
     // With pool [good-easy (weight 1), bad-hard (weight 2)]: good-easy gets 1/3
-    const goodResult = completeHabit(character, goodEasy, [goodEasy, badHard], boss, noCritRng);
+    const goodResult = completeHabit(character, goodEasy, [goodEasy, badHard], boss, DAY_KEY, noCritRng);
     const goodHealed = goodResult.character.currentHealth - character.currentHealth;
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
@@ -354,7 +360,7 @@ describe('missHabit', () => {
     const habit = makeHabit({ difficulty: 'medium', streakCount: 7 });
     const boss = makeBoss({ physicalAttack: 30, magicAttack: 10 });
 
-    const result = missHabit(character, habit, boss, noCritRng); // 0.99 -> picks magicAttack, no crit
+    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng); // 0.99 -> picks magicAttack, no crit
 
     const expectedDamage = boss.magicAttack * TUNING.MISS_DAMAGE_FACTOR * (1.5 / 1.5); // medium weight = 1.5
     expect(result.character.currentHealth).toBeCloseTo(100 - expectedDamage, 10);
@@ -369,8 +375,8 @@ describe('missHabit', () => {
     const weekly = makeHabit({ period: 'weekly', difficulty: 'medium' });
     const boss = makeBoss({ physicalAttack: 30, magicAttack: 10 });
 
-    const dailyResult = missHabit(dailyCharacter, daily, boss, noCritRng);
-    const weeklyResult = missHabit(weeklyCharacter, weekly, boss, noCritRng);
+    const dailyResult = missHabit(dailyCharacter, daily, boss, DAY_KEY, noCritRng);
+    const weeklyResult = missHabit(weeklyCharacter, weekly, boss, DAY_KEY, noCritRng);
 
     const dailyDamage = dailyCharacter.currentHealth - dailyResult.character.currentHealth;
     const weeklyDamage = weeklyCharacter.currentHealth - weeklyResult.character.currentHealth;
@@ -383,7 +389,7 @@ describe('missHabit', () => {
     const boss = makeBoss({ physicalAttack: 30, magicAttack: 10 });
     const pickPhysicalNoCritRng = () => 0.02; // < 0.5 -> physicalAttack; >= boss.critChance (0.01) -> no crit
 
-    const result = missHabit(character, habit, boss, pickPhysicalNoCritRng);
+    const result = missHabit(character, habit, boss, DAY_KEY, pickPhysicalNoCritRng);
 
     const expectedDamage = boss.physicalAttack * TUNING.MISS_DAMAGE_FACTOR * (1.5 / 1.5);
     expect(result.character.currentHealth).toBeCloseTo(100 - expectedDamage, 10);
@@ -395,7 +401,7 @@ describe('missHabit', () => {
     const habit = makeHabit({ difficulty: 'hard' });
     const boss = makeBoss({ physicalAttack: 1000, magicAttack: 1000 });
 
-    const result = missHabit(character, habit, boss, noCritRng);
+    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
 
     expect(result.character.currentHealth).toBe(0);
   });
@@ -405,7 +411,7 @@ describe('missHabit', () => {
     const habit = makeHabit({ difficulty: 'medium' });
     const boss = makeBoss({ physicalAttack: 20, magicAttack: 20, health: 50, lifestealPct: 0.1 });
 
-    const result = missHabit(character, habit, boss, noCritRng);
+    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
 
     const damageDealt = 100 - result.character.currentHealth;
     expect(result.boss.health).toBeCloseTo(50 + damageDealt * 0.1, 10);
@@ -416,7 +422,7 @@ describe('missHabit', () => {
     const habit = makeHabit({ difficulty: 'medium' });
     const boss = makeBoss({ physicalAttack: 20, magicAttack: 20, health: 99, maxHealth: 100, lifestealPct: 1 });
 
-    const result = missHabit(character, habit, boss, noCritRng);
+    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
 
     expect(result.boss.health).toBe(100);
   });
@@ -426,7 +432,7 @@ describe('missHabit', () => {
     const habit = makeHabit({ difficulty: 'medium' });
     const boss = makeBoss({ physicalAttack: 20, magicAttack: 20 });
 
-    const result = missHabit(character, habit, boss, noCritRng);
+    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
 
     expect(result.boss).toBe(boss);
   });
@@ -438,9 +444,9 @@ describe('crit chance', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const normal = completeHabit(character, habit, [habit], boss, noCritRng);
+    const normal = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
     const habitForCrit = makeHabit({ damageType: 'physical' }); // fresh streak so both start at 0 -> 1
-    const crit = completeHabit(character, habitForCrit, [habitForCrit], boss, alwaysCritRng);
+    const crit = completeHabit(character, habitForCrit, [habitForCrit], boss, DAY_KEY, alwaysCritRng);
 
     expect(crit.wasCrit).toBe(true);
     expect(normal.wasCrit).toBe(false);
@@ -452,7 +458,7 @@ describe('crit chance', () => {
     const habit = makeHabit({ damageType: 'healing' });
     const boss = makeBoss();
 
-    const result = completeHabit(character, habit, [habit], boss, alwaysCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, alwaysCritRng);
 
     expect(result.wasCrit).toBeUndefined();
   });
@@ -463,8 +469,8 @@ describe('crit chance', () => {
     // physicalAttack === magicAttack so the attack-type coin flip doesn't affect the comparison below.
     const boss = makeBoss({ physicalAttack: 20, magicAttack: 20 });
 
-    const normal = missHabit(character, habit, boss, noCritRng);
-    const crit = missHabit(character, habit, boss, alwaysCritRng);
+    const normal = missHabit(character, habit, boss, DAY_KEY, noCritRng);
+    const crit = missHabit(character, habit, boss, DAY_KEY, alwaysCritRng);
 
     expect(crit.wasCrit).toBe(true);
     expect(normal.wasCrit).toBe(false);
@@ -480,7 +486,7 @@ describe('completeHabit — Special/Ult bonus', () => {
     const habit = makeHabit({ damageType: 'physical', isSpecial: true });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     const expected = statValue * streakMultiplier(1) * TUNING.SPECIAL_MULTIPLIER;
@@ -492,7 +498,7 @@ describe('completeHabit — Special/Ult bonus', () => {
     const habit = makeHabit({ period: 'weekly', damageType: 'physical', isUlt: true });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     const expected = statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_REWARD_MULTIPLIER * TUNING.ULT_MULTIPLIER;
@@ -504,7 +510,7 @@ describe('completeHabit — Special/Ult bonus', () => {
     const habit = makeHabit({ damageType: 'physical' });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = completeHabit(character, habit, [habit], boss, noCritRng);
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     expect(result.damageDealt).toBeCloseTo(statValue * streakMultiplier(1), 10);
@@ -517,7 +523,7 @@ describe('overdriveHabit / overdriveUsesRemaining', () => {
     const habit = makeHabit({ damageType: 'physical', isSpecial: true, isOverdrive: true, streakCount: 4 });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = overdriveHabit(character, habit, [habit], boss, 'period-key', noCritRng);
+    const result = overdriveHabit(character, habit, [habit], boss, DAY_KEY, 'period-key', noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     // Streak unchanged (still 4, not bumped to 5) -> multiplier(4), no Special bonus, half damage.
@@ -536,7 +542,7 @@ describe('overdriveHabit / overdriveUsesRemaining', () => {
     });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const result = overdriveHabit(character, habit, [habit], boss, 'current-key', noCritRng);
+    const result = overdriveHabit(character, habit, [habit], boss, DAY_KEY, 'current-key', noCritRng);
 
     expect(result.updatedHabit.overdrivePeriodKey).toBe('current-key');
     expect(result.updatedHabit.overdriveUsesThisPeriod).toBe(1); // reset to 0, then bumped once
@@ -547,9 +553,9 @@ describe('overdriveHabit / overdriveUsesRemaining', () => {
     let habit = makeHabit({ isOverdrive: true });
     const boss = makeBoss({ armor: 0, health: 1000 });
 
-    const first = overdriveHabit(character, habit, [habit], boss, 'k', noCritRng);
+    const first = overdriveHabit(character, habit, [habit], boss, DAY_KEY, 'k', noCritRng);
     habit = first.updatedHabit;
-    const second = overdriveHabit(character, habit, [habit], boss, 'k', noCritRng);
+    const second = overdriveHabit(character, habit, [habit], boss, DAY_KEY, 'k', noCritRng);
 
     expect(second.updatedHabit.overdriveUsesThisPeriod).toBe(2);
   });
@@ -820,5 +826,137 @@ describe('resolvePlayerDeathIfDead', () => {
     expect(differentFromOriginal).toBeGreaterThan(iterations * 0.3);
     expect(counts.magic).toBeGreaterThan(0);
     expect(counts.healing).toBeGreaterThan(0);
+  });
+});
+
+describe('activeWoundsEffect / healingMultiplier', () => {
+  function makeWounds(overrides: Partial<WoundsStatusEffect> = {}): WoundsStatusEffect {
+    return { type: 'wounds', appliedDayKey: '2026-01-01', durationDays: 2, effectRate: 0.5, ...overrides };
+  }
+
+  it('is undefined/1 when the character has no status effects', () => {
+    const character = makeCharacter();
+    expect(activeWoundsEffect(character, '2026-01-01')).toBeUndefined();
+    expect(healingMultiplier(character, '2026-01-01')).toBe(1);
+  });
+
+  it('is active on the day it was applied and until durationDays have fully elapsed', () => {
+    const wounds = makeWounds({ appliedDayKey: '2026-01-01', durationDays: 2 });
+    const character = makeCharacter({ statusEffects: [wounds] });
+
+    expect(activeWoundsEffect(character, '2026-01-01')).toEqual(wounds); // day 0
+    expect(activeWoundsEffect(character, '2026-01-02')).toEqual(wounds); // day 1, still < 2
+    expect(healingMultiplier(character, '2026-01-02')).toBe(0.5);
+  });
+
+  it('expires once durationDays have fully elapsed', () => {
+    const wounds = makeWounds({ appliedDayKey: '2026-01-01', durationDays: 2 });
+    const character = makeCharacter({ statusEffects: [wounds] });
+
+    expect(activeWoundsEffect(character, '2026-01-03')).toBeUndefined(); // day 2 == durationDays -> expired
+    expect(healingMultiplier(character, '2026-01-03')).toBe(1);
+  });
+});
+
+describe('missHabit — Wounds ability', () => {
+  it('applies Wounds to the player when the boss has the ability and the hit-chance roll succeeds', () => {
+    const character = makeCharacter({ currentHealth: 100 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({
+      physicalAttack: 20,
+      magicAttack: 20,
+      woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 }, // hitChance 1 -> always succeeds
+    });
+
+    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
+
+    expect(result.woundsApplied).toEqual({ type: 'wounds', appliedDayKey: DAY_KEY, durationDays: 2, effectRate: 0.5 });
+    expect(result.character.statusEffects).toEqual([result.woundsApplied]);
+  });
+
+  it('does not apply Wounds when the hit-chance roll fails', () => {
+    const character = makeCharacter({ currentHealth: 100 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({
+      physicalAttack: 20,
+      magicAttack: 20,
+      woundsAbility: { hitChance: 0, durationDays: 2, effectRate: 0.5 }, // hitChance 0 -> never succeeds
+    });
+
+    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
+
+    expect(result.woundsApplied).toBeUndefined();
+    expect(result.character.statusEffects).toBeUndefined();
+  });
+
+  it('does not stack or refresh the duration when the player already has an active Wounds effect', () => {
+    const existing: WoundsStatusEffect = { type: 'wounds', appliedDayKey: '2026-01-01', durationDays: 3, effectRate: 0.25 };
+    const character = makeCharacter({ currentHealth: 100, statusEffects: [existing] });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({
+      physicalAttack: 20,
+      magicAttack: 20,
+      woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 }, // different values than `existing`
+    });
+
+    const result = missHabit(character, habit, boss, '2026-01-02', noCritRng); // still within existing's duration
+
+    expect(result.woundsApplied).toBeUndefined(); // no-op: already active
+    expect(result.character.statusEffects).toEqual([existing]); // unchanged, not overwritten/refreshed
+  });
+
+  it('a fresh application overwrites an expired effect instead of being blocked by it', () => {
+    const expired: WoundsStatusEffect = { type: 'wounds', appliedDayKey: '2026-01-01', durationDays: 1, effectRate: 0.25 };
+    const character = makeCharacter({ currentHealth: 100, statusEffects: [expired] });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({
+      physicalAttack: 20,
+      magicAttack: 20,
+      woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 },
+    });
+
+    const result = missHabit(character, habit, boss, '2026-01-03', noCritRng); // expired's 1-day duration has elapsed
+
+    expect(result.woundsApplied).toEqual({ type: 'wounds', appliedDayKey: '2026-01-03', durationDays: 2, effectRate: 0.5 });
+    expect(result.character.statusEffects).toEqual([result.woundsApplied]);
+  });
+
+  it('never rolls against an ability the boss does not have', () => {
+    const character = makeCharacter({ currentHealth: 100 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 20, magicAttack: 20 }); // no woundsAbility
+
+    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
+
+    expect(result.woundsApplied).toBeUndefined();
+    expect(result.character.statusEffects).toBeUndefined();
+  });
+});
+
+describe('completeHabit — healing reduced by an active Wounds effect', () => {
+  it('multiplies healing by effectRate while Wounds is active', () => {
+    const wounds: WoundsStatusEffect = { type: 'wounds', appliedDayKey: '2026-01-01', durationDays: 2, effectRate: 0.5 };
+    const character = makeCharacter({ currentHealth: 1, statusEffects: [wounds] });
+    const habit = makeHabit({ damageType: 'healing', streakCount: 0 });
+    const boss = makeBoss();
+
+    const result = completeHabit(character, habit, [habit], boss, '2026-01-02', noCritRng); // still active
+
+    const statValue = statAtLevel(character.starterStats.healing, character.level);
+    const expectedFullHeal = statValue * streakMultiplier(1);
+    expect(result.character.currentHealth).toBeCloseTo(1 + expectedFullHeal * 0.5, 10);
+  });
+
+  it('heals at full strength once the Wounds effect has expired', () => {
+    const wounds: WoundsStatusEffect = { type: 'wounds', appliedDayKey: '2026-01-01', durationDays: 1, effectRate: 0.5 };
+    const character = makeCharacter({ currentHealth: 1, statusEffects: [wounds] });
+    const habit = makeHabit({ damageType: 'healing', streakCount: 0 });
+    const boss = makeBoss();
+
+    const result = completeHabit(character, habit, [habit], boss, '2026-01-03', noCritRng); // expired
+
+    const statValue = statAtLevel(character.starterStats.healing, character.level);
+    const expectedFullHeal = statValue * streakMultiplier(1);
+    expect(result.character.currentHealth).toBeCloseTo(1 + expectedFullHeal, 10);
   });
 });

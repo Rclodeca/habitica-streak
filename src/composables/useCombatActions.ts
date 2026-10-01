@@ -33,6 +33,7 @@ import {
   assignUltIfEligible,
   completeHabit,
   createRng,
+  dailyPeriodKey,
   effectiveStat,
   missHabit,
   overdriveHabit,
@@ -144,9 +145,13 @@ export function useCombatActions() {
       : habitStore.habitsOfType(habit.damageType, habit.isBad); // damage pools split by good/bad
     const healthBefore = characterStore.character.currentHealth;
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
+    // Always the daily key (never the habit's own period key) — Wounds
+    // duration always runs in days, even for a weekly habit. See
+    // healingMultiplier/activeWoundsEffect in game-engine/combat.ts.
+    const currentDayKey = dailyPeriodKey(debugClockStore.now());
     const result = options.isOverdriveUse
-      ? overdriveHabit(characterStore.character, habit, habitsInPool, bossStore.boss, currentPeriodKey, rng)
-      : completeHabit(characterStore.character, habit, habitsInPool, bossStore.boss, rng);
+      ? overdriveHabit(characterStore.character, habit, habitsInPool, bossStore.boss, currentDayKey, currentPeriodKey, rng)
+      : completeHabit(characterStore.character, habit, habitsInPool, bossStore.boss, currentDayKey, rng);
 
     const updatedHabit: Habit = stampPeriodKey
       ? { ...result.updatedHabit, lastCompletedPeriodKey: stampPeriodKey, lastCheckedPeriodKey: stampPeriodKey }
@@ -213,7 +218,8 @@ export function useCombatActions() {
     if (!habit) return;
 
     const healthBefore = characterStore.character.currentHealth;
-    const result = missHabit(characterStore.character, habit, bossStore.boss, rng);
+    const currentDayKey = dailyPeriodKey(debugClockStore.now());
+    const result = missHabit(characterStore.character, habit, bossStore.boss, currentDayKey, rng);
 
     const updatedHabit: Habit = stampPeriodKey
       ? { ...result.updatedHabit, lastCompletedPeriodKey: stampPeriodKey, lastCheckedPeriodKey: stampPeriodKey }
@@ -228,6 +234,13 @@ export function useCombatActions() {
     if (result.wasCrit) activityLogStore.addEntry({ kind: 'crit', by: 'boss' });
     if (result.bossLifestealHealed) {
       activityLogStore.addEntry({ kind: 'lifesteal', amount: result.bossLifestealHealed, healedWho: 'boss' });
+    }
+    if (result.woundsApplied) {
+      activityLogStore.addEntry({
+        kind: 'wounds-applied',
+        durationDays: result.woundsApplied.durationDays,
+        effectRate: result.woundsApplied.effectRate,
+      });
     }
     activityLogStore.addEntry({
       kind: 'hit',

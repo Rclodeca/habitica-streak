@@ -1,7 +1,7 @@
 import { TUNING } from './constants/tuning';
 import type { Rng } from './rng';
-import { pickWeighted } from './rng';
-import type { Boss, Personality } from './types';
+import { pickRandom, pickWeighted } from './rng';
+import type { Boss, Personality, WoundsAbility } from './types';
 
 /**
  * Total "power budget" a boss at the given index gets to distribute across
@@ -75,6 +75,34 @@ const PERSONALITY_MULTIPLIER: Record<Exclude<Personality, 'balanced'>, number> =
   arcane3x: 3,
   arcane4x: 4,
   arcane5x: 5,
+};
+
+/**
+ * Flavor name shown to the player instead of the raw `Personality` id (e.g.
+ * `armored3x` reads as "Steel Bulwark", not "armored3x") — mirrors how
+ * `ItemDef.rarity` is an internal tier id while `ItemDef.name` is the
+ * flavor text shown for items. Each emphasized-stat family escalates
+ * thematically across its four tiers instead of spelling out "3x/4x/5x".
+ */
+export const PERSONALITY_NAME: Record<Personality, string> = {
+  balanced: 'Drifter',
+  tank: 'Colossus',
+  armored: 'Iron Guardian',
+  armored3x: 'Steel Bulwark',
+  armored4x: 'Adamant Bastion',
+  armored5x: 'Mythic Juggernaut',
+  warded: 'Arcane Warden',
+  warded3x: 'Runed Sentinel',
+  warded4x: 'Spectral Aegis',
+  warded5x: 'Ethereal Sovereign',
+  brute: 'Savage Brute',
+  brute3x: 'Raging Berserker',
+  brute4x: 'Bloodfang Marauder',
+  brute5x: 'Apex Destroyer',
+  arcane: 'Arcane Adept',
+  arcane3x: 'Spellweaver',
+  arcane4x: 'Eldritch Harbinger',
+  arcane5x: 'Voidcaller',
 };
 
 /**
@@ -205,7 +233,7 @@ export function generateBoss(
   const physicalMultiplier = emphasizedStat === 'physicalAttack' ? PERSONALITY_MULTIPLIER[personality as Exclude<Personality, 'balanced'>] : 1;
   const magicMultiplier = emphasizedStat === 'magicAttack' ? PERSONALITY_MULTIPLIER[personality as Exclude<Personality, 'balanced'>] : 1;
 
-  return {
+  const boss: Boss = {
     index,
     personality,
     maxHealth: health,
@@ -219,6 +247,21 @@ export function generateBoss(
     lifestealPct,
     difficultyModifier: resolvedDifficultyModifier,
   };
+
+  // Rolled last, strictly after every other rng() consumption above, so
+  // adding this ability never perturbs the rng() sequence any existing
+  // seed-based test depends on (personality, jitter, crit/reflect/lifesteal
+  // rolls all stay byte-for-byte identical for a given seed).
+  const woundsAbility: WoundsAbility | undefined =
+    rng() < TUNING.WOUNDS_ABILITY_CHANCE
+      ? {
+          hitChance: TUNING.WOUNDS_HIT_CHANCE_MIN + rng() * (TUNING.WOUNDS_HIT_CHANCE_MAX - TUNING.WOUNDS_HIT_CHANCE_MIN),
+          durationDays: pickRandom(TUNING.WOUNDS_DURATION_DAYS_OPTIONS, rng),
+          effectRate: pickRandom(TUNING.WOUNDS_EFFECT_RATE_OPTIONS, rng),
+        }
+      : undefined;
+
+  return woundsAbility ? { ...boss, woundsAbility } : boss;
 }
 
 /**

@@ -8,7 +8,8 @@ import { itemBonusPercent, rollItemDrops } from './items';
 import type { ItemDef } from './items';
 import type { Rng } from './rng';
 import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
-import type { Boss, Character, DamageType, Habit, Period } from './types';
+import { daysBetweenDayKeys } from './time';
+import type { Boss, Character, DamageType, Habit, Period, WoundsStatusEffect } from './types';
 
 const REVIVE_ITEM_ID = 'phoenix-feather';
 const REVIVE_HEALTH_FRACTION = 0.5;
@@ -54,6 +55,26 @@ export function overdriveDamagePreview(baseAmountBeforeBonus: number): number {
 function bumpOverdriveUse(habit: Habit, currentPeriodKey: string): Habit {
   const usedSoFar = habit.overdrivePeriodKey === currentPeriodKey ? habit.overdriveUsesThisPeriod ?? 0 : 0;
   return { ...habit, overdrivePeriodKey: currentPeriodKey, overdriveUsesThisPeriod: usedSoFar + 1 };
+}
+
+/**
+ * The player's active Wounds effect as of `currentDayKey`, or undefined if
+ * none is active (never applied, or applied but its durationDays have
+ * elapsed). Lazy — doesn't prune the stale entry from `character.statusEffects`
+ * itself; it just gets overwritten the next time Wounds is (re-)applied (see
+ * `missHabit`). Mirrors `overdriveUsesRemaining`'s "compare stored key to
+ * current key" pattern above. `currentDayKey` must be `dailyPeriodKey(now)`,
+ * never a weekly habit's period key — Wounds duration is always in days.
+ */
+export function activeWoundsEffect(character: Character, currentDayKey: string): WoundsStatusEffect | undefined {
+  const wounds = character.statusEffects?.find((e): e is WoundsStatusEffect => e.type === 'wounds');
+  if (!wounds) return undefined;
+  return daysBetweenDayKeys(wounds.appliedDayKey, currentDayKey) < wounds.durationDays ? wounds : undefined;
+}
+
+/** Healing multiplier from any currently-active Wounds effect — 1 (no-op) if none. */
+export function healingMultiplier(character: Character, currentDayKey: string): number {
+  return activeWoundsEffect(character, currentDayKey)?.effectRate ?? 1;
 }
 
 export type HabitDamageBreakdown = {
@@ -114,13 +135,17 @@ export type CombatResult = {
  * heals the character for a percent of the damage actually dealt, while the
  * boss's own reflect% (if any) damages the character back for a percent of
  * that same damage — both computed off the same `dealt` amount, then netted
- * into a single health change.
+ * into a single health change. `currentDayKey` must be `dailyPeriodKey(now)`
+ * (never `periodKeyFor(habit.period, now)`) — it's only used to check for an
+ * active Wounds effect (see `healingMultiplier`), which always runs in days
+ * regardless of the habit's own period.
  */
 export function completeHabit(
   character: Character,
   habit: Habit,
   allHabitsOfSameType: Habit[],
   boss: Boss,
+  currentDayKey: string,
   rng: Rng,
   options: { isOverdriveUse?: boolean } = {},
 ): CombatResult {
@@ -142,7 +167,8 @@ export function completeHabit(
   const amount = baseDamage * itemMultiplier * multiplier * bonusMultiplier * overdriveFactor;
 
   if (habit.damageType === 'healing') {
-    const healed = Math.min(character.currentHealth + amount, effectiveStat(character, 'health'));
+    const woundedAmount = amount * healingMultiplier(character, currentDayKey);
+    const healed = Math.min(character.currentHealth + woundedAmount, effectiveStat(character, 'health'));
     return { character: { ...character, currentHealth: healed }, boss, updatedHabit, milestoneExp };
   }
 
@@ -179,20 +205,24 @@ export function completeHabit(
  * period: same combat resolution as `completeHabit` (crit/lifesteal/reflect
  * all still apply) but at OVERDRIVE_DAMAGE_FACTOR damage via its
  * `isOverdriveUse` option, then bumps the habit's Overdrive-use counter for
- * `currentPeriodKey`. Callers are responsible for checking
+ * `overdrivePeriodKey`. Callers are responsible for checking
  * `overdriveUsesRemaining` beforehand — this doesn't guard against over-use
- * itself.
+ * itself. `currentDayKey` and `overdrivePeriodKey` are genuinely different
+ * keys — the former is always daily (for Wounds, see `completeHabit`), the
+ * latter matches the habit's own daily/weekly period (for the overdrive-use
+ * counter) — so they're kept as distinctly-named params rather than one.
  */
 export function overdriveHabit(
   character: Character,
   habit: Habit,
   allHabitsOfSameType: Habit[],
   boss: Boss,
-  currentPeriodKey: string,
+  currentDayKey: string,
+  overdrivePeriodKey: string,
   rng: Rng,
 ): CombatResult {
-  const result = completeHabit(character, habit, allHabitsOfSameType, boss, rng, { isOverdriveUse: true });
-  return { ...result, updatedHabit: bumpOverdriveUse(result.updatedHabit, currentPeriodKey) };
+  const result = completeHabit(character, habit, allHabitsOfSameType, boss, currentDayKey, rng, { isOverdriveUse: true });
+  return { ...result, updatedHabit: bumpOverdriveUse(result.updatedHabit, overdrivePeriodKey) };
 }
 
 /**
@@ -214,11 +244,21 @@ export function bossMissDamage(attackStat: number): number {
  * habit's difficulty and, on a crit roll (using the boss's crit chance),
  * doubled. The boss's own lifesteal% (if any) heals it for a percent of
  * that same damage, capped at its max health.
+ *
+ * If the boss has a Wounds ability, every hit rolls against its hitChance —
+ * unconditionally, regardless of whether the player is already Wounded
+ * (mirrors `wasCrit`/`attackType` above, which are also rolled regardless
+ * of whether they end up mattering, keeping rng() consumption deterministic
+ * and independent of player state). On success, Wounds is only actually
+ * applied if the player doesn't already have an active one — no
+ * stacking, no duration refresh (see `activeWoundsEffect`). `currentDayKey`
+ * must be `dailyPeriodKey(now)`.
  */
 export function missHabit(
   character: Character,
   habit: Habit,
   boss: Boss,
+  currentDayKey: string,
   rng: Rng,
 ): {
   character: Character;
@@ -231,11 +271,15 @@ export function missHabit(
   // Capped at the boss's maxHealth, so this is the actual health gained,
   // not the raw `damage * lifestealPct` — surfaced for the activity log.
   bossLifestealHealed?: number;
+  // Set only when Wounds was newly applied THIS call (not when the roll
+  // succeeds but an effect was already active) — surfaced for the activity log.
+  woundsApplied?: WoundsStatusEffect;
 } {
   const updatedHabit = resetHabitStreak(habit);
   const attackType: 'physical' | 'magic' = rng() < 0.5 ? 'physical' : 'magic';
   const attack = attackType === 'physical' ? boss.physicalAttack : boss.magicAttack;
   const wasCrit = rng() < boss.critChance;
+  const woundsRollSucceeded = boss.woundsAbility ? rng() < boss.woundsAbility.hitChance : false;
   const weeklyMultiplier = habit.period === 'weekly' ? TUNING.WEEKLY_MISS_MULTIPLIER : 1;
   const damage =
     attack * TUNING.MISS_DAMAGE_FACTOR * (DIFFICULTY_WEIGHT[habit.difficulty] / 1.5) *
@@ -244,13 +288,30 @@ export function missHabit(
   const healedBoss = Math.min(boss.maxHealth, boss.health + damage * boss.lifestealPct);
   const bossLifestealHealed = healedBoss - boss.health;
   const newBoss = healedBoss !== boss.health ? { ...boss, health: healedBoss } : boss;
+
+  let woundsApplied: WoundsStatusEffect | undefined;
+  let newCharacter: Character = { ...character, currentHealth: newHealth };
+  if (woundsRollSucceeded && boss.woundsAbility && !activeWoundsEffect(character, currentDayKey)) {
+    woundsApplied = {
+      type: 'wounds',
+      appliedDayKey: currentDayKey,
+      durationDays: boss.woundsAbility.durationDays,
+      effectRate: boss.woundsAbility.effectRate,
+    };
+    newCharacter = {
+      ...newCharacter,
+      statusEffects: [...(character.statusEffects?.filter((e) => e.type !== 'wounds') ?? []), woundsApplied],
+    };
+  }
+
   return {
-    character: { ...character, currentHealth: newHealth },
+    character: newCharacter,
     boss: newBoss,
     updatedHabit,
     wasCrit,
     attackType,
     bossLifestealHealed: bossLifestealHealed > 0 ? bossLifestealHealed : undefined,
+    woundsApplied,
   };
 }
 

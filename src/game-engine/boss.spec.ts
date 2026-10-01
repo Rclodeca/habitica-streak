@@ -5,6 +5,7 @@ import {
   bossPowerBudget,
   damageReductionPct,
   generateBoss,
+  PERSONALITY_NAME,
   personalityWeightsForIndex,
   rollRunDifficultyModifier,
 } from './boss';
@@ -308,5 +309,70 @@ describe('damageReductionPct', () => {
       const remaining = applyResist(1000, resist);
       expect(remaining).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('PERSONALITY_NAME', () => {
+  const personalities: Personality[] = [
+    'balanced',
+    'tank',
+    'armored',
+    'armored3x',
+    'armored4x',
+    'armored5x',
+    'warded',
+    'warded3x',
+    'warded4x',
+    'warded5x',
+    'brute',
+    'brute3x',
+    'brute4x',
+    'brute5x',
+    'arcane',
+    'arcane3x',
+    'arcane4x',
+    'arcane5x',
+  ];
+
+  it('has a non-empty flavor name for every personality', () => {
+    for (const personality of personalities) {
+      expect(PERSONALITY_NAME[personality]).toBeTruthy();
+    }
+  });
+
+  it('never leaks the literal internal "3x/4x/5x" tier suffix into the display name', () => {
+    for (const personality of personalities) {
+      expect(PERSONALITY_NAME[personality]).not.toMatch(/\dx\b/i);
+    }
+  });
+});
+
+describe('generateBoss — Wounds ability', () => {
+  it('rolls the ability on roughly WOUNDS_ABILITY_CHANCE of bosses across many seeds', () => {
+    const iterations = 2000;
+    let withAbility = 0;
+    for (let seed = 0; seed < iterations; seed++) {
+      if (generateBoss(1, createRng(seed)).woundsAbility) withAbility++;
+    }
+    const rate = withAbility / iterations;
+    expect(rate).toBeGreaterThan(TUNING.WOUNDS_ABILITY_CHANCE * 0.7);
+    expect(rate).toBeLessThan(TUNING.WOUNDS_ABILITY_CHANCE * 1.3);
+  });
+
+  it('rolls hitChance/durationDays/effectRate within their configured ranges whenever the ability is present', () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const boss = generateBoss(1, createRng(seed));
+      if (!boss.woundsAbility) continue;
+      expect(boss.woundsAbility.hitChance).toBeGreaterThanOrEqual(TUNING.WOUNDS_HIT_CHANCE_MIN);
+      expect(boss.woundsAbility.hitChance).toBeLessThanOrEqual(TUNING.WOUNDS_HIT_CHANCE_MAX);
+      expect(TUNING.WOUNDS_DURATION_DAYS_OPTIONS).toContain(boss.woundsAbility.durationDays);
+      expect(TUNING.WOUNDS_EFFECT_RATE_OPTIONS).toContain(boss.woundsAbility.effectRate);
+    }
+  });
+
+  it('is deterministic for a given seed, same as every other boss stat', () => {
+    const bossA = generateBoss(5, createRng(42));
+    const bossB = generateBoss(5, createRng(42));
+    expect(bossA).toEqual(bossB);
   });
 });

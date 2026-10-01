@@ -9,8 +9,21 @@
 | `bosses/balanced.png` | `quests/bosses/quest_slime.png` |
 | `bosses/tank.png` | `quests/bosses/quest_turtle.png` |
 | `bosses/armored.png` | `quests/bosses/quest_goldenknight3.png` |
+| `bosses/armored3x.png` | `quests/bosses/quest_goldenknight2.png` |
+| `bosses/armored4x.png` | `quests/bosses/quest_goldenknight1.png` |
+| `bosses/armored5x.png` | `quests/bosses/quest_robot.png` |
 | `bosses/warded.png` | `quests/bosses/quest_moonstone1.png` |
+| `bosses/warded3x.png` | `quests/bosses/quest_moonstone2.png` |
+| `bosses/warded4x.png` | `quests/bosses/quest_moonstone3.png` |
+| `bosses/warded5x.png` | `quests/bosses/quest_ghost_stag.png` |
 | `bosses/brute.png` | `quests/bosses/quest_trex.png` |
+| `bosses/brute3x.png` | `quests/bosses/quest_sabretooth.png` |
+| `bosses/brute4x.png` | `quests/bosses/quest_velociraptor.png` |
+| `bosses/brute5x.png` | `quests/bosses/quest_trex_undead.png` |
+| `bosses/arcane.png` | `quests/bosses/quest_moon1.png` |
+| `bosses/arcane3x.png` | `quests/bosses/quest_moon2.png` |
+| `bosses/arcane4x.png` | `quests/bosses/quest_moon3.png` |
+| `bosses/arcane5x.png` | `quests/bosses/quest_kraken.png` |
 
 ## Item icons
 

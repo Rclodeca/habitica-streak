@@ -40,6 +40,24 @@ export interface Character {
   ownedItemIds: string[]; // all items ever dropped for this character (equipped + unequipped)
   equippedItemIds: string[]; // subset of ownedItemIds, length <= 4
   critChance: number; // base crit chance (0-1), before item bonuses — see effectiveCritChance
+  // Optional so an existing save (no schema-version bump) still loads;
+  // undefined is treated as "no active effects" everywhere this is read —
+  // see activeWoundsEffect in combat.ts. A fresh character (createCharacter,
+  // resolvePlayerDeathIfDead) never sets this, so a new run always starts clean.
+  statusEffects?: StatusEffect[];
+}
+
+// Discriminated on `type` — more status effects are planned (see the Wounds
+// mechanic below), but only one exists today, so this is intentionally not
+// a registry/plugin system; it'll grow into a real union once a second
+// effect exists.
+export type StatusEffect = WoundsStatusEffect;
+
+export interface WoundsStatusEffect {
+  type: 'wounds';
+  appliedDayKey: string; // dailyPeriodKey() at the moment this was applied — see combat.ts/missHabit
+  durationDays: number; // copied from the triggering boss's WoundsAbility at apply-time, not a live reference to that boss
+  effectRate: number; // 0.25 or 0.5 — multiplies healing while active, see combat.ts/healingMultiplier
 }
 
 export interface Boss {
@@ -60,6 +78,16 @@ export interface Boss {
   // undefined is treated as "roll a fresh one" the next time a boss is
   // generated for this run (see generateBoss).
   difficultyModifier?: number;
+  // Optional so an existing save still loads; undefined means this boss has
+  // no Wounds ability (90% of bosses) — see generateBoss/TUNING.WOUNDS_ABILITY_CHANCE.
+  woundsAbility?: WoundsAbility;
+}
+
+/** A boss's Wounds ability: rolled once at generation, then fixed for the boss's lifetime — see generateBoss. */
+export interface WoundsAbility {
+  hitChance: number; // 0.2-0.8, rolled once
+  durationDays: number; // 1 | 2 | 3, rolled once
+  effectRate: number; // 0.25 | 0.5, rolled once
 }
 
 export interface Habit {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { bossMissDamage } from '../../game-engine';
+import { bossMissDamage, PERSONALITY_NAME } from '../../game-engine';
 import type { Personality } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useBossStore } from '../../store/bossStore';
@@ -9,30 +9,29 @@ import Modal from '../ui/Modal.vue';
 import Sprite from '../ui/Sprite.vue';
 
 // Boss art from HabitRPG/habitica-images (CC-BY-NC-SA 3.0, see CREDITS.md),
-// picked to match each personality's emphasized stat in game-engine/boss.ts.
-// The 3x/4x/5x tiers and the new magic-attack "arcane" family have no
-// dedicated art yet, so they reuse their base family's sprite (arcane
-// borrows the physical-attacker "brute" sprite as the closest stand-in) —
-// differentiated in the UI by the personality label and stats below, not art.
+// picked to match each personality's emphasized stat and escalate visually
+// within its family as PERSONALITY_NAME's flavor names climb in intensity
+// (boss.ts) — every one of the 18 personalities now has its own distinct
+// sprite, none reused/borrowed.
 const PERSONALITY_SPRITE: Record<Personality, string> = {
   balanced: 'bosses/balanced',
   tank: 'bosses/tank',
   armored: 'bosses/armored',
-  armored3x: 'bosses/armored',
-  armored4x: 'bosses/armored',
-  armored5x: 'bosses/armored',
+  armored3x: 'bosses/armored3x',
+  armored4x: 'bosses/armored4x',
+  armored5x: 'bosses/armored5x',
   warded: 'bosses/warded',
-  warded3x: 'bosses/warded',
-  warded4x: 'bosses/warded',
-  warded5x: 'bosses/warded',
+  warded3x: 'bosses/warded3x',
+  warded4x: 'bosses/warded4x',
+  warded5x: 'bosses/warded5x',
   brute: 'bosses/brute',
-  brute3x: 'bosses/brute',
-  brute4x: 'bosses/brute',
-  brute5x: 'bosses/brute',
-  arcane: 'bosses/brute',
-  arcane3x: 'bosses/brute',
-  arcane4x: 'bosses/brute',
-  arcane5x: 'bosses/brute',
+  brute3x: 'bosses/brute3x',
+  brute4x: 'bosses/brute4x',
+  brute5x: 'bosses/brute5x',
+  arcane: 'bosses/arcane',
+  arcane3x: 'bosses/arcane3x',
+  arcane4x: 'bosses/arcane4x',
+  arcane5x: 'bosses/arcane5x',
 };
 
 const bossStore = useBossStore();
@@ -41,9 +40,13 @@ const boss = computed(() => bossStore.boss);
 
 const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 
-// Full stat detail lives in a modal so the always-visible panel stays small
-// (sprite + title + HP bar) — see CharacterPanel.vue for the same pattern.
+// A condensed, always-visible emoji stat line (effective numbers only) sits
+// under the HP bar; the full base-vs-effective breakdown lives in a modal
+// behind the same tap. See CharacterPanel.vue for the same pattern.
 const showDetails = ref(false);
+
+const physicalAttack = computed(() => bossMissDamage(boss.value.physicalAttack));
+const magicAttack = computed(() => bossMissDamage(boss.value.magicAttack));
 </script>
 
 <template>
@@ -54,41 +57,74 @@ const showDetails = ref(false);
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
       <div class="summary-info">
-        <h2>Boss #{{ boss.index }} — {{ boss.personality }}</h2>
+        <h2>Boss #{{ boss.index }} — {{ PERSONALITY_NAME[boss.personality] }}</h2>
         <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
+        <p class="stat-summary">
+          <span>⚔️ {{ physicalAttack.toFixed(1) }}</span>
+          <span>🔮 {{ magicAttack.toFixed(1) }}</span>
+          <span>🛡️ {{ boss.armor.toFixed(1) }}</span>
+          <span>🔰 {{ boss.magicResist.toFixed(1) }}</span>
+          <span>💥 {{ (boss.critChance * 100).toFixed(1) }}%</span>
+          <span v-if="boss.reflectPct > 0">🪞 {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
+          <span v-if="boss.lifestealPct > 0">🩸 {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
+          <span v-if="boss.woundsAbility">🩹 {{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</span>
+        </p>
       </div>
     </button>
 
     <Modal v-model="showDetails" title="Boss details">
       <dl class="stat-list">
-        <dt>Physical attack</dt>
-        <dd>{{ bossMissDamage(boss.physicalAttack).toFixed(1) }}</dd>
+        <dt></dt>
+        <dd class="col-label">Base</dd>
+        <dd class="col-label">Effective</dd>
 
-        <dt>Magic attack</dt>
-        <dd>{{ bossMissDamage(boss.magicAttack).toFixed(1) }}</dd>
+        <dt>⚔️ Physical attack</dt>
+        <dd>{{ boss.physicalAttack.toFixed(1) }}</dd>
+        <dd>{{ physicalAttack.toFixed(1) }}</dd>
 
-        <dt>Armor</dt>
+        <dt>🔮 Magic attack</dt>
+        <dd>{{ boss.magicAttack.toFixed(1) }}</dd>
+        <dd>{{ magicAttack.toFixed(1) }}</dd>
+
+        <dt>🛡️ Armor</dt>
+        <dd>{{ boss.armor.toFixed(1) }}</dd>
         <dd>{{ boss.armor.toFixed(1) }}</dd>
 
-        <dt>Magic resist</dt>
+        <dt>🔰 Magic resist</dt>
+        <dd>{{ boss.magicResist.toFixed(1) }}</dd>
         <dd>{{ boss.magicResist.toFixed(1) }}</dd>
 
-        <dt>Crit chance</dt>
+        <dt>💥 Crit chance</dt>
+        <dd>{{ (boss.critChance * 100).toFixed(1) }}%</dd>
         <dd>{{ (boss.critChance * 100).toFixed(1) }}%</dd>
 
         <template v-if="boss.reflectPct > 0">
-          <dt>Reflect</dt>
+          <dt>🪞 Reflect</dt>
+          <dd>{{ (boss.reflectPct * 100).toFixed(0) }}%</dd>
           <dd>{{ (boss.reflectPct * 100).toFixed(0) }}%</dd>
         </template>
 
         <template v-if="boss.lifestealPct > 0">
-          <dt>Lifesteal</dt>
+          <dt>🩸 Lifesteal</dt>
           <dd>{{ (boss.lifestealPct * 100).toFixed(0) }}%</dd>
+          <dd>{{ (boss.lifestealPct * 100).toFixed(0) }}%</dd>
+        </template>
+
+        <template v-if="boss.woundsAbility">
+          <dt>🩹 Wounds chance</dt>
+          <dd>{{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</dd>
+          <dd>{{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</dd>
         </template>
       </dl>
       <p class="stat-note">
-        Attack values are the damage a missed medium daily habit deals. Easy misses take ~0.67x, hard ~1.33x, and a
-        crit or missed weekly doubles it.
+        Physical/magic attack: Base is the boss's raw attack stat; Effective is the damage a missed medium daily
+        habit actually deals (Base × miss-damage factor). Easy misses take ~0.67x, hard ~1.33x, and a crit or missed
+        weekly doubles it. Other stats have no separate multiplier, so Base and Effective match.
+      </p>
+      <p v-if="boss.woundsAbility" class="stat-note">
+        Wounds: on a successful hit at this chance, reduces your healing to
+        {{ (boss.woundsAbility.effectRate * 100).toFixed(0) }}% for {{ boss.woundsAbility.durationDays }} day(s) —
+        doesn't stack or refresh while already active.
       </p>
     </Modal>
   </section>
@@ -127,9 +163,19 @@ const showDetails = ref(false);
   margin: 0;
 }
 
+.stat-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
 .stat-list {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr 1fr;
   gap: 0.3rem 1rem;
   margin: 0;
   font-size: 0.8rem;
@@ -144,6 +190,14 @@ const showDetails = ref(false);
   margin: 0;
   text-align: right;
   color: var(--text-h);
+}
+
+.stat-list .col-label {
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text);
 }
 
 .stat-note {
