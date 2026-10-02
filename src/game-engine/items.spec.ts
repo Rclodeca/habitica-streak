@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { TUNING } from './constants/tuning';
-import { bodySpriteFor, describeItemBonus, ITEM_CATALOG, itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
+import {
+  assignNewItemUnlockTiers,
+  bodySpriteFor,
+  describeItemBonus,
+  ITEM_CATALOG,
+  itemBonusPercent,
+  itemFlatBonus,
+  rollItemDrops,
+} from './items';
 import type { ItemDef } from './items';
 import { createRng } from './rng';
 import type { Character } from './types';
@@ -20,9 +28,10 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
 }
 
 describe('ITEM_CATALOG', () => {
-  it('has exactly 30 items with unique ids', () => {
-    expect(ITEM_CATALOG).toHaveLength(30);
-    expect(new Set(ITEM_CATALOG.map((item) => item.id)).size).toBe(30);
+  it('has exactly 30 original (non-level-gated) items with unique ids', () => {
+    const original = ITEM_CATALOG.filter((item) => !item.levelGated);
+    expect(original).toHaveLength(30);
+    expect(new Set(original.map((item) => item.id)).size).toBe(30);
   });
 
   it('has at least one item granting lifesteal', () => {
@@ -36,9 +45,13 @@ describe('ITEM_CATALOG', () => {
     expect(consumables[0].id).toBe('phoenix-feather');
   });
 
-  it('has more common items than rare items', () => {
-    const common = ITEM_CATALOG.filter((item) => item.rarity === 'common');
-    const rare = ITEM_CATALOG.filter((item) => item.rarity === 'rare');
+  it('has more common items than rare items among the original (non-level-gated) items', () => {
+    // The level-gated tier is deliberately skewed uncommon/rare/epic (no
+    // common-rarity new items at all), so this invariant is scoped to the
+    // original 30 — it was never meant to describe the full 49-item catalog.
+    const original = ITEM_CATALOG.filter((item) => !item.levelGated);
+    const common = original.filter((item) => item.rarity === 'common');
+    const rare = original.filter((item) => item.rarity === 'rare');
     expect(common.length).toBeGreaterThan(rare.length);
   });
 
@@ -53,6 +66,71 @@ describe('ITEM_CATALOG', () => {
         item.bonuses.some((b) => b.stat === 'physicalDamage') && item.bonuses.some((b) => b.stat === 'magicDamage'),
     );
     expect(hybrid.length).toBeGreaterThan(0);
+  });
+});
+
+describe('ITEM_CATALOG — level-gated items', () => {
+  it('has 49 total items: the original 30 plus 19 level-gated ones', () => {
+    expect(ITEM_CATALOG).toHaveLength(49);
+    expect(new Set(ITEM_CATALOG.map((item) => item.id)).size).toBe(49);
+  });
+
+  it('has exactly 19 items marked levelGated', () => {
+    expect(ITEM_CATALOG.filter((item) => item.levelGated).length).toBe(19);
+  });
+
+  it('includes Bloodthorn Blade with its full 4-bonus theme', () => {
+    const item = ITEM_CATALOG.find((candidate) => candidate.id === 'bloodthorn-blade');
+    expect(item).toBeDefined();
+    expect(item?.levelGated).toBe(true);
+    expect(item?.bonuses).toEqual([
+      { stat: 'physicalDamage', flat: 100 },
+      { stat: 'physicalDamage', percent: 10 },
+      { stat: 'lifesteal', percent: 2 },
+      { stat: 'armorPen', percent: 10 },
+    ]);
+  });
+
+  it('includes Titans Lifeblood with a 1000 flat health bonus', () => {
+    const item = ITEM_CATALOG.find((candidate) => candidate.id === 'titans-lifeblood');
+    expect(item?.bonuses).toEqual([
+      { stat: 'health', flat: 1000 },
+      { stat: 'healing', percent: 5 },
+      { stat: 'lifesteal', percent: 5 },
+    ]);
+  });
+});
+
+describe('itemFlatBonus — with a real flat-bonus item', () => {
+  it('sums a flat physicalDamage bonus from an equipped level-gated item', () => {
+    const character = makeCharacter({ equippedItemIds: ['berserkers-war-axe'] });
+    expect(itemFlatBonus(character, 'physicalDamage')).toBe(200);
+  });
+});
+
+describe('assignNewItemUnlockTiers', () => {
+  it('assigns every level-gated item id to exactly one of 10/15/20', () => {
+    const tiers = assignNewItemUnlockTiers(createRng(1));
+    const levelGatedIds = ITEM_CATALOG.filter((item) => item.levelGated).map((item) => item.id);
+    expect(Object.keys(tiers).sort()).toEqual(levelGatedIds.sort());
+    for (const id of levelGatedIds) {
+      expect([10, 15, 20]).toContain(tiers[id]);
+    }
+  });
+
+  it('splits 19 items into groups of 7/7/5 across tiers 10/15/20', () => {
+    const tiers = assignNewItemUnlockTiers(createRng(1));
+    const counts = { 10: 0, 15: 0, 20: 0 };
+    for (const tier of Object.values(tiers)) counts[tier] += 1;
+    expect(counts[10]).toBe(7);
+    expect(counts[15]).toBe(7);
+    expect(counts[20]).toBe(5);
+  });
+
+  it('produces a different assignment for a different seed', () => {
+    const tiersA = assignNewItemUnlockTiers(createRng(1));
+    const tiersB = assignNewItemUnlockTiers(createRng(2));
+    expect(tiersA).not.toEqual(tiersB);
   });
 });
 

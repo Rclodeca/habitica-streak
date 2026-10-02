@@ -1,5 +1,5 @@
 import { TUNING } from './constants/tuning';
-import type { Rng } from './rng';
+import { shuffle, type Rng } from './rng';
 import type { Character } from './types';
 
 export type BoostableStat =
@@ -78,6 +78,33 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'vampiric-fang', name: 'Vampiric Fang', icon: 'items/vampiric-fang', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'lifesteal', percent: 5 }] },
   // --- Consumable ---
   { id: 'phoenix-feather', name: 'Phoenix Feather', icon: 'items/phoenix-feather', type: 'consumable', rarity: 'rare', bonuses: [] },
+  // --- Level-gated items (2026-10-02 item overhaul) — unlock tier per
+  // character is randomized once per run by assignNewItemUnlockTiers, not
+  // fixed here; levelGated just marks membership in that random pool. ---
+  // Physical
+  { id: 'berserkers-war-axe', name: "Berserker's War Axe", icon: 'items/berserkers-war-axe', type: 'equipment', rarity: 'rare', levelGated: true, bonuses: [{ stat: 'physicalDamage', flat: 200 }, { stat: 'lifesteal', percent: 5 }] },
+  { id: 'serrated-ripper', name: 'Serrated Ripper', icon: 'items/serrated-ripper', type: 'equipment', rarity: 'rare', levelGated: true, bonuses: [{ stat: 'physicalDamage', flat: 150 }, { stat: 'armorPen', percent: 20 }] },
+  { id: 'bloodthorn-blade', name: 'Bloodthorn Blade', icon: 'items/bloodthorn-blade', type: 'equipment', rarity: 'epic', levelGated: true, bonuses: [{ stat: 'physicalDamage', flat: 100 }, { stat: 'physicalDamage', percent: 10 }, { stat: 'lifesteal', percent: 2 }, { stat: 'armorPen', percent: 10 }] },
+  { id: 'piercing-fang-gauntlets', name: 'Piercing Fang Gauntlets', icon: 'items/piercing-fang-gauntlets', type: 'equipment', rarity: 'epic', levelGated: true, bonuses: [{ stat: 'armorPen', percent: 30 }, { stat: 'physicalDamage', percent: 10 }, { stat: 'health', flat: 200 }] },
+  // Magic
+  { id: 'runeforged-spellblade', name: 'Runeforged Spellblade', icon: 'items/runeforged-spellblade', type: 'equipment', rarity: 'epic', levelGated: true, bonuses: [{ stat: 'magicDamage', flat: 400 }, { stat: 'magicResist', flat: 100 }] },
+  { id: 'chaos-conduit', name: 'Chaos Conduit', icon: 'items/chaos-conduit', type: 'equipment', rarity: 'rare', levelGated: true, bonuses: [{ stat: 'magicDamage', percent: 30 }, { stat: 'magicPen', percent: 20 }] },
+  { id: 'scholars-grimoire', name: "Scholar's Grimoire", icon: 'items/scholars-grimoire', type: 'equipment', rarity: 'uncommon', levelGated: true, bonuses: [{ stat: 'magicDamage', flat: 100 }, { stat: 'magicPen', percent: 5 }, { stat: 'expGain', percent: 10 }] },
+  // Defense
+  { id: 'bulwark-plate', name: 'Bulwark Plate', icon: 'items/bulwark-plate', type: 'equipment', rarity: 'rare', levelGated: true, bonuses: [{ stat: 'health', percent: 10 }, { stat: 'health', flat: 500 }] },
+  { id: 'aegis-of-the-unbroken', name: 'Aegis of the Unbroken', icon: 'items/aegis-of-the-unbroken', type: 'equipment', rarity: 'epic', levelGated: true, bonuses: [{ stat: 'health', flat: 200 }, { stat: 'health', percent: 20 }, { stat: 'armor', flat: 50 }, { stat: 'magicResist', flat: 50 }] },
+  { id: 'juggernaut-carapace', name: 'Juggernaut Carapace', icon: 'items/juggernaut-carapace', type: 'equipment', rarity: 'rare', levelGated: true, bonuses: [{ stat: 'armor', flat: 300 }, { stat: 'health', flat: 200 }] },
+  { id: 'warding-sigil', name: 'Warding Sigil', icon: 'items/warding-sigil', type: 'equipment', rarity: 'uncommon', levelGated: true, bonuses: [{ stat: 'health', percent: 10 }, { stat: 'magicResist', flat: 150 }] },
+  // Support
+  { id: 'serene-lotus-charm', name: 'Serene Lotus Charm', icon: 'items/serene-lotus-charm', type: 'equipment', rarity: 'uncommon', levelGated: true, bonuses: [{ stat: 'healing', percent: 12 }, { stat: 'expGain', percent: 12 }] },
+  { id: 'font-of-renewal', name: 'Font of Renewal', icon: 'items/font-of-renewal', type: 'equipment', rarity: 'rare', levelGated: true, bonuses: [{ stat: 'healing', flat: 200 }, { stat: 'expGain', percent: 5 }] },
+  { id: 'pilgrims-blessing', name: "Pilgrim's Blessing", icon: 'items/pilgrims-blessing', type: 'equipment', rarity: 'uncommon', levelGated: true, bonuses: [{ stat: 'healing', flat: 100 }, { stat: 'health', percent: 5 }, { stat: 'expGain', percent: 5 }] },
+  { id: 'adventurers-sigil', name: "Adventurer's Sigil", icon: 'items/adventurers-sigil', type: 'equipment', rarity: 'rare', levelGated: true, bonuses: [{ stat: 'expGain', percent: 10 }, { stat: 'health', percent: 10 }, { stat: 'lifesteal', percent: 2 }, { stat: 'armor', flat: 100 }] },
+  // Balanced
+  { id: 'duelists-signet', name: "Duelist's Signet", icon: 'items/duelists-signet', type: 'equipment', rarity: 'rare', levelGated: true, bonuses: [{ stat: 'health', flat: 100 }, { stat: 'physicalDamage', flat: 50 }, { stat: 'armorPen', percent: 20 }, { stat: 'lifesteal', percent: 2 }] },
+  { id: 'warded-longsword', name: 'Warded Longsword', icon: 'items/warded-longsword', type: 'equipment', rarity: 'uncommon', levelGated: true, bonuses: [{ stat: 'armor', flat: 100 }, { stat: 'magicDamage', flat: 50 }] },
+  { id: 'stalwart-sages-ring', name: "Stalwart Sage's Ring", icon: 'items/stalwart-sages-ring', type: 'equipment', rarity: 'uncommon', levelGated: true, bonuses: [{ stat: 'armor', flat: 50 }, { stat: 'magicResist', flat: 50 }, { stat: 'healing', percent: 5 }, { stat: 'health', percent: 5 }] },
+  { id: 'titans-lifeblood', name: "Titan's Lifeblood", icon: 'items/titans-lifeblood', type: 'equipment', rarity: 'epic', levelGated: true, bonuses: [{ stat: 'health', flat: 1000 }, { stat: 'healing', percent: 5 }, { stat: 'lifesteal', percent: 5 }] },
 ];
 
 // Each tier is 5x rarer than the one above (common:uncommon:rare:epic ==
@@ -194,6 +221,26 @@ export function rollItemDrops(character: Character, bossIndex: number, rng: Rng)
   const count = Math.min(desiredCount, unowned.length);
   const rarityWeight = rarityWeightByBossIndex(bossIndex);
   return weightedSampleWithoutReplacement(unowned, count, rarityWeight, rng);
+}
+
+// Computed once at module load from the catalog itself, so the level-gated
+// set can never drift out of sync with which items actually carry `levelGated`.
+const LEVEL_GATED_ITEM_IDS = ITEM_CATALOG.filter((item) => item.levelGated).map((item) => item.id);
+
+/**
+ * Rolls this run's random unlock-tier assignment for every level-gated
+ * item: shuffles the 19 ids, then chunks them via Math.ceil(n/3) into three
+ * groups (7/7/5 for today's count) mapped to levels 10/15/20. Called once
+ * per run, from createCharacter — see Task 3.
+ */
+export function assignNewItemUnlockTiers(rng: Rng): Record<string, 10 | 15 | 20> {
+  const shuffled = shuffle(LEVEL_GATED_ITEM_IDS, rng);
+  const chunkSize = Math.ceil(shuffled.length / 3);
+  const tiers: Record<string, 10 | 15 | 20> = {};
+  shuffled.forEach((id, i) => {
+    tiers[id] = i < chunkSize ? 10 : i < chunkSize * 2 ? 15 : 20;
+  });
+  return tiers;
 }
 
 // Which body-worn sprite slot each stat category renders as on the player

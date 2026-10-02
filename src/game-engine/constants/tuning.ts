@@ -148,6 +148,11 @@ export const TUNING = {
   WOUNDS_HIT_CHANCE_MAX: 0.8,
   WOUNDS_DURATION_DAYS_OPTIONS: [1, 2, 3],
   WOUNDS_EFFECT_RATE_OPTIONS: [0.25, 0.5], // picked via pickRandom, i.e. 50/50 odds
+  // Total armorPen/magicPen percent from equipped items is clamped to this
+  // before reducing a boss's effective armor/magicResist (see combat.ts) —
+  // mirrors how CRIT_CHANCE_CAP keeps crit under 100%. A boss always
+  // retains at least 10% of its true resist no matter how much pen is stacked.
+  ARMOR_MAGIC_PEN_CAP_PCT: 90,
   ITEM_DROP_EVERY_N_BOSSES: 3, // bosses 1-3 drop 1 item, 4-6 drop 2, 7+ drop 3 (capped)
   ITEM_DROP_MAX_COUNT: 3,
   // Physical/magic starting-stat split: createCharacter picks one of these
