@@ -16,8 +16,7 @@ function makeItem(overrides: Partial<ItemDef> = {}): ItemDef {
     icon: 'items/rusty-blade',
     type: 'equipment',
     rarity: 'common',
-    stat: 'physicalDamage',
-    bonusPercent: 3,
+    bonuses: [{ stat: 'physicalDamage', percent: 3 }],
     ...overrides,
   };
 }
@@ -52,7 +51,7 @@ describe('useItemDropQueue', () => {
   it('dismiss advances the queue to the next item', () => {
     const characterStore = useCharacterStore();
     const first = makeItem({ id: 'rusty-blade' });
-    const second = makeItem({ id: 'apprentice-wand', stat: 'magicDamage' });
+    const second = makeItem({ id: 'apprentice-wand', bonuses: [{ stat: 'magicDamage', percent: 3 }] });
     characterStore.character = {
       ...characterStore.character,
       ownedItemIds: [first.id, second.id],
@@ -72,7 +71,7 @@ describe('useItemDropQueue', () => {
   it('fills remaining slots across a multi-item drop before requiring a choice', () => {
     const characterStore = useCharacterStore();
     const existing = ['steel-sword', 'archmages-rod', 'padded-vest']; // 3 equipped, 1 slot open
-    const dropped = [makeItem({ id: 'rusty-blade' }), makeItem({ id: 'lucky-coin', stat: 'expGain' })];
+    const dropped = [makeItem({ id: 'rusty-blade' }), makeItem({ id: 'lucky-coin', bonuses: [{ stat: 'expGain', percent: 3 }] })];
     characterStore.character = {
       ...characterStore.character,
       ownedItemIds: [...existing, ...dropped.map((d) => d.id)],

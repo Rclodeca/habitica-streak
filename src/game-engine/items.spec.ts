@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TUNING } from './constants/tuning';
-import { bodySpriteFor, describeItemBonus, ITEM_CATALOG, itemBonusPercent, rollItemDrops } from './items';
+import { bodySpriteFor, describeItemBonus, ITEM_CATALOG, itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
 import { createRng } from './rng';
 import type { Character } from './types';
@@ -26,7 +26,7 @@ describe('ITEM_CATALOG', () => {
   });
 
   it('has at least one item granting lifesteal', () => {
-    const lifestealItems = ITEM_CATALOG.filter((item) => item.stat === 'lifesteal' || item.extraStat === 'lifesteal');
+    const lifestealItems = ITEM_CATALOG.filter((item) => item.bonuses.some((b) => b.stat === 'lifesteal'));
     expect(lifestealItems.length).toBeGreaterThan(0);
   });
 
@@ -43,15 +43,14 @@ describe('ITEM_CATALOG', () => {
   });
 
   it('has at least one item granting critChance', () => {
-    const critItems = ITEM_CATALOG.filter((item) => item.stat === 'critChance' || item.extraStat === 'critChance');
+    const critItems = ITEM_CATALOG.filter((item) => item.bonuses.some((b) => b.stat === 'critChance'));
     expect(critItems.length).toBeGreaterThan(0);
   });
 
   it('has at least one hybrid item granting both physicalDamage and magicDamage', () => {
     const hybrid = ITEM_CATALOG.filter(
       (item) =>
-        (item.stat === 'physicalDamage' && item.extraStat === 'magicDamage') ||
-        (item.stat === 'magicDamage' && item.extraStat === 'physicalDamage'),
+        item.bonuses.some((b) => b.stat === 'physicalDamage') && item.bonuses.some((b) => b.stat === 'magicDamage'),
     );
     expect(hybrid.length).toBeGreaterThan(0);
   });
@@ -89,6 +88,17 @@ describe('itemBonusPercent', () => {
     const character = makeCharacter({ equippedItemIds: ['phoenix-feather'] });
     expect(itemBonusPercent(character, 'critChance')).toBe(0);
     expect(itemBonusPercent(character, 'physicalDamage')).toBe(0);
+  });
+});
+
+describe('itemFlatBonus', () => {
+  it('returns 0 when nothing is equipped', () => {
+    expect(itemFlatBonus(makeCharacter(), 'physicalDamage')).toBe(0);
+  });
+
+  it('returns 0 when equipped items have no flat bonus for that stat (none of the original 30 do)', () => {
+    const character = makeCharacter({ equippedItemIds: ['rusty-blade', 'battlemage-gauntlets'] });
+    expect(itemFlatBonus(character, 'physicalDamage')).toBe(0);
   });
 });
 

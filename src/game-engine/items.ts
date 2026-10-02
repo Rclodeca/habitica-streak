@@ -2,9 +2,26 @@ import { TUNING } from './constants/tuning';
 import type { Rng } from './rng';
 import type { Character } from './types';
 
-export type BoostableStat = 'physicalDamage' | 'magicDamage' | 'healing' | 'health' | 'expGain' | 'critChance' | 'lifesteal';
+export type BoostableStat =
+  | 'physicalDamage'
+  | 'magicDamage'
+  | 'healing'
+  | 'health'
+  | 'expGain'
+  | 'critChance'
+  | 'lifesteal'
+  | 'armorPen' // percent only — reduces the boss's effective armor before its resist formula, see combat.ts
+  | 'magicPen' // percent only — same, for magicResist
+  | 'armor' // flat only — player mitigation stat, see combat.ts missHabit
+  | 'magicResist'; // flat only — player mitigation stat, see combat.ts missHabit
 
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic';
+
+export interface ItemBonus {
+  stat: BoostableStat;
+  percent?: number;
+  flat?: number;
+}
 
 export interface ItemDef {
   id: string;
@@ -12,167 +29,55 @@ export interface ItemDef {
   icon: string; // path segment relative to public/sprites/, passed straight to an <img>/Sprite
   type: 'equipment' | 'consumable'; // consumables still occupy an equip slot, but grant no passive bonus
   rarity: ItemRarity; // rare items are weighted much lower in rollItemDrops
-  stat?: BoostableStat; // primary stat bonus; absent for the pure-consumable Phoenix Feather
-  bonusPercent?: number;
-  extraStat?: BoostableStat; // second stat bonus, for hybrid/rare items
-  extraBonusPercent?: number;
+  bonuses: ItemBonus[]; // empty for the pure-consumable Phoenix Feather
+  // Present only on the 19 items introduced in the 2026-10-02 item overhaul;
+  // absent/falsy on the original 30. Gates this item out of rollItemDrops
+  // until the character's rolled-for-this-run unlock tier (see
+  // assignNewItemUnlockTiers) is at or below the character's level.
+  levelGated?: true;
 }
 
 export const ITEM_CATALOG: ItemDef[] = [
   // --- Physical damage (common -> epic; the only stat-category with a 5-tier spread up to +50%) ---
-  { id: 'rusty-blade', name: 'Rusty Blade', icon: 'items/rusty-blade', type: 'equipment', rarity: 'common', stat: 'physicalDamage', bonusPercent: 3 },
-  { id: 'steel-sword', name: 'Steel Sword', icon: 'items/steel-sword', type: 'equipment', rarity: 'common', stat: 'physicalDamage', bonusPercent: 6 },
-  {
-    id: 'warlords-greatsword',
-    name: "Warlord's Greatsword",
-    icon: 'items/warlords-greatsword',
-    type: 'equipment',
-    rarity: 'uncommon',
-    stat: 'physicalDamage',
-    bonusPercent: 12,
-  },
-  {
-    id: 'executioners-axe',
-    name: "Executioner's Axe",
-    icon: 'items/executioners-axe',
-    type: 'equipment',
-    rarity: 'rare',
-    stat: 'physicalDamage',
-    bonusPercent: 25,
-  },
-  {
-    id: 'godslayer-greatblade',
-    name: 'Godslayer Greatblade',
-    icon: 'items/godslayer-greatblade',
-    type: 'equipment',
-    rarity: 'epic',
-    stat: 'physicalDamage',
-    bonusPercent: 50,
-  },
+  { id: 'rusty-blade', name: 'Rusty Blade', icon: 'items/rusty-blade', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'physicalDamage', percent: 3 }] },
+  { id: 'steel-sword', name: 'Steel Sword', icon: 'items/steel-sword', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'physicalDamage', percent: 6 }] },
+  { id: 'warlords-greatsword', name: "Warlord's Greatsword", icon: 'items/warlords-greatsword', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'physicalDamage', percent: 12 }] },
+  { id: 'executioners-axe', name: "Executioner's Axe", icon: 'items/executioners-axe', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 25 }] },
+  { id: 'godslayer-greatblade', name: 'Godslayer Greatblade', icon: 'items/godslayer-greatblade', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 50 }] },
   // --- Magic damage (common -> epic; mirrors the physical damage spread above) ---
-  { id: 'apprentice-wand', name: 'Apprentice Wand', icon: 'items/apprentice-wand', type: 'equipment', rarity: 'common', stat: 'magicDamage', bonusPercent: 3 },
-  { id: 'arcane-staff', name: 'Arcane Staff', icon: 'items/arcane-staff', type: 'equipment', rarity: 'common', stat: 'magicDamage', bonusPercent: 6 },
-  { id: 'archmages-rod', name: "Archmage's Rod", icon: 'items/archmages-rod', type: 'equipment', rarity: 'uncommon', stat: 'magicDamage', bonusPercent: 12 },
-  {
-    id: 'stormcaller-staff',
-    name: 'Stormcaller Staff',
-    icon: 'items/stormcaller-staff',
-    type: 'equipment',
-    rarity: 'rare',
-    stat: 'magicDamage',
-    bonusPercent: 25,
-  },
-  {
-    id: 'voidcallers-scepter',
-    name: "Voidcaller's Scepter",
-    icon: 'items/voidcallers-scepter',
-    type: 'equipment',
-    rarity: 'epic',
-    stat: 'magicDamage',
-    bonusPercent: 50,
-  },
+  { id: 'apprentice-wand', name: 'Apprentice Wand', icon: 'items/apprentice-wand', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'magicDamage', percent: 3 }] },
+  { id: 'arcane-staff', name: 'Arcane Staff', icon: 'items/arcane-staff', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'magicDamage', percent: 6 }] },
+  { id: 'archmages-rod', name: "Archmage's Rod", icon: 'items/archmages-rod', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'magicDamage', percent: 12 }] },
+  { id: 'stormcaller-staff', name: 'Stormcaller Staff', icon: 'items/stormcaller-staff', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 25 }] },
+  { id: 'voidcallers-scepter', name: "Voidcaller's Scepter", icon: 'items/voidcallers-scepter', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'magicDamage', percent: 50 }] },
   // --- Healing (common) ---
-  { id: 'novices-charm', name: "Novice's Charm", icon: 'items/novices-charm', type: 'equipment', rarity: 'common', stat: 'healing', bonusPercent: 3 },
-  { id: 'blessed-censer', name: 'Blessed Censer', icon: 'items/blessed-censer', type: 'equipment', rarity: 'common', stat: 'healing', bonusPercent: 6 },
-  { id: 'sacred-chalice', name: 'Sacred Chalice', icon: 'items/sacred-chalice', type: 'equipment', rarity: 'uncommon', stat: 'healing', bonusPercent: 10 },
+  { id: 'novices-charm', name: "Novice's Charm", icon: 'items/novices-charm', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'healing', percent: 3 }] },
+  { id: 'blessed-censer', name: 'Blessed Censer', icon: 'items/blessed-censer', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'healing', percent: 6 }] },
+  { id: 'sacred-chalice', name: 'Sacred Chalice', icon: 'items/sacred-chalice', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'healing', percent: 10 }] },
   // --- Health (common) ---
-  { id: 'padded-vest', name: 'Padded Vest', icon: 'items/padded-vest', type: 'equipment', rarity: 'common', stat: 'health', bonusPercent: 3 },
-  { id: 'chainmail-hauberk', name: 'Chainmail Hauberk', icon: 'items/chainmail-hauberk', type: 'equipment', rarity: 'common', stat: 'health', bonusPercent: 6 },
-  { id: 'plate-armor', name: 'Plate Armor', icon: 'items/plate-armor', type: 'equipment', rarity: 'uncommon', stat: 'health', bonusPercent: 10 },
+  { id: 'padded-vest', name: 'Padded Vest', icon: 'items/padded-vest', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'health', percent: 3 }] },
+  { id: 'chainmail-hauberk', name: 'Chainmail Hauberk', icon: 'items/chainmail-hauberk', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'health', percent: 6 }] },
+  { id: 'plate-armor', name: 'Plate Armor', icon: 'items/plate-armor', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'health', percent: 10 }] },
   // --- Exp gain (common) ---
-  { id: 'lucky-coin', name: 'Lucky Coin', icon: 'items/lucky-coin', type: 'equipment', rarity: 'common', stat: 'expGain', bonusPercent: 3 },
-  { id: 'shining-star', name: 'Shining Star', icon: 'items/shining-star', type: 'equipment', rarity: 'common', stat: 'expGain', bonusPercent: 6 },
-  { id: 'rebirth-orb', name: 'Rebirth Orb', icon: 'items/rebirth-orb', type: 'equipment', rarity: 'uncommon', stat: 'expGain', bonusPercent: 10 },
+  { id: 'lucky-coin', name: 'Lucky Coin', icon: 'items/lucky-coin', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'expGain', percent: 3 }] },
+  { id: 'shining-star', name: 'Shining Star', icon: 'items/shining-star', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'expGain', percent: 6 }] },
+  { id: 'rebirth-orb', name: 'Rebirth Orb', icon: 'items/rebirth-orb', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'expGain', percent: 10 }] },
   // --- Crit chance (common) ---
-  { id: 'lucky-dagger', name: 'Lucky Dagger', icon: 'items/lucky-dagger', type: 'equipment', rarity: 'common', stat: 'critChance', bonusPercent: 2 },
-  { id: 'assassins-edge', name: "Assassin's Edge", icon: 'items/assassins-edge', type: 'equipment', rarity: 'common', stat: 'critChance', bonusPercent: 5 },
-  { id: 'eagle-eye-lens', name: 'Eagle Eye Lens', icon: 'items/eagle-eye-lens', type: 'equipment', rarity: 'uncommon', stat: 'critChance', bonusPercent: 10 },
+  { id: 'lucky-dagger', name: 'Lucky Dagger', icon: 'items/lucky-dagger', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'critChance', percent: 2 }] },
+  { id: 'assassins-edge', name: "Assassin's Edge", icon: 'items/assassins-edge', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'critChance', percent: 5 }] },
+  { id: 'eagle-eye-lens', name: 'Eagle Eye Lens', icon: 'items/eagle-eye-lens', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'critChance', percent: 10 }] },
   // --- Hybrid physical + magic damage (common) ---
-  {
-    id: 'battlemage-gauntlets',
-    name: 'Battlemage Gauntlets',
-    icon: 'items/battlemage-gauntlets',
-    type: 'equipment',
-    rarity: 'common',
-    stat: 'physicalDamage',
-    bonusPercent: 4,
-    extraStat: 'magicDamage',
-    extraBonusPercent: 4,
-  },
-  {
-    id: 'runed-warblade',
-    name: 'Runed Warblade',
-    icon: 'items/runed-warblade',
-    type: 'equipment',
-    rarity: 'uncommon',
-    stat: 'physicalDamage',
-    bonusPercent: 8,
-    extraStat: 'magicDamage',
-    extraBonusPercent: 8,
-  },
-  {
-    id: 'chaos-blade',
-    name: 'Chaos Blade',
-    icon: 'items/chaos-blade',
-    type: 'equipment',
-    rarity: 'rare',
-    stat: 'physicalDamage',
-    bonusPercent: 15,
-    extraStat: 'magicDamage',
-    extraBonusPercent: 15,
-  },
+  { id: 'battlemage-gauntlets', name: 'Battlemage Gauntlets', icon: 'items/battlemage-gauntlets', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'physicalDamage', percent: 4 }, { stat: 'magicDamage', percent: 4 }] },
+  { id: 'runed-warblade', name: 'Runed Warblade', icon: 'items/runed-warblade', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'physicalDamage', percent: 8 }, { stat: 'magicDamage', percent: 8 }] },
+  { id: 'chaos-blade', name: 'Chaos Blade', icon: 'items/chaos-blade', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 15 }, { stat: 'magicDamage', percent: 15 }] },
   // --- Rare multi-stat items (bigger swings, much rarer drops) ---
-  {
-    id: 'dragons-heart',
-    name: "Dragon's Heart",
-    icon: 'items/dragons-heart',
-    type: 'equipment',
-    rarity: 'rare',
-    stat: 'health',
-    bonusPercent: 20,
-    extraStat: 'physicalDamage',
-    extraBonusPercent: 10,
-  },
-  {
-    id: 'void-crystal',
-    name: 'Void Crystal',
-    icon: 'items/void-crystal',
-    type: 'equipment',
-    rarity: 'rare',
-    stat: 'magicDamage',
-    bonusPercent: 15,
-    extraStat: 'critChance',
-    extraBonusPercent: 15,
-  },
-  {
-    id: 'berserkers-fury',
-    name: "Berserker's Fury",
-    icon: 'items/berserkers-fury',
-    type: 'equipment',
-    rarity: 'rare',
-    stat: 'physicalDamage',
-    bonusPercent: 20,
-    extraStat: 'critChance',
-    extraBonusPercent: 15,
-  },
+  { id: 'dragons-heart', name: "Dragon's Heart", icon: 'items/dragons-heart', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'health', percent: 20 }, { stat: 'physicalDamage', percent: 10 }] },
+  { id: 'void-crystal', name: 'Void Crystal', icon: 'items/void-crystal', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 15 }, { stat: 'critChance', percent: 15 }] },
+  { id: 'berserkers-fury', name: "Berserker's Fury", icon: 'items/berserkers-fury', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 20 }, { stat: 'critChance', percent: 15 }] },
   // --- Lifesteal (uncommon) ---
-  {
-    id: 'vampiric-fang',
-    name: 'Vampiric Fang',
-    icon: 'items/vampiric-fang',
-    type: 'equipment',
-    rarity: 'uncommon',
-    stat: 'lifesteal',
-    bonusPercent: 5,
-  },
+  { id: 'vampiric-fang', name: 'Vampiric Fang', icon: 'items/vampiric-fang', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'lifesteal', percent: 5 }] },
   // --- Consumable ---
-  {
-    id: 'phoenix-feather',
-    name: 'Phoenix Feather',
-    icon: 'items/phoenix-feather',
-    type: 'consumable',
-    rarity: 'rare',
-  },
+  { id: 'phoenix-feather', name: 'Phoenix Feather', icon: 'items/phoenix-feather', type: 'consumable', rarity: 'rare', bonuses: [] },
 ];
 
 // Each tier is 5x rarer than the one above (common:uncommon:rare:epic ==
@@ -229,8 +134,7 @@ function weightedSampleWithoutReplacement(items: ItemDef[], count: number, rarit
 }
 
 /**
- * Sums bonusPercent (primary stat) and extraBonusPercent (secondary stat,
- * for hybrid/rare items) across the character's equipped items matching
+ * Sums bonus.percent across every equipped item's `bonuses` entries matching
  * `stat`. 0 if none equipped/matching.
  */
 export function itemBonusPercent(character: Character, stat: BoostableStat): number {
@@ -238,8 +142,27 @@ export function itemBonusPercent(character: Character, stat: BoostableStat): num
   for (const id of character.equippedItemIds) {
     const item = ITEM_CATALOG.find((candidate) => candidate.id === id);
     if (!item) continue;
-    if (item.stat === stat && item.bonusPercent) total += item.bonusPercent;
-    if (item.extraStat === stat && item.extraBonusPercent) total += item.extraBonusPercent;
+    for (const bonus of item.bonuses) {
+      if (bonus.stat === stat && bonus.percent) total += bonus.percent;
+    }
+  }
+  return total;
+}
+
+/**
+ * Sums bonus.flat across every equipped item's `bonuses` entries matching
+ * `stat`. 0 if none equipped/matching. See combat.ts/leveling.ts for where
+ * this is added into a stat's level-scaled base before any percent
+ * multiplier applies.
+ */
+export function itemFlatBonus(character: Character, stat: BoostableStat): number {
+  let total = 0;
+  for (const id of character.equippedItemIds) {
+    const item = ITEM_CATALOG.find((candidate) => candidate.id === id);
+    if (!item) continue;
+    for (const bonus of item.bonuses) {
+      if (bonus.stat === stat && bonus.flat) total += bonus.flat;
+    }
   }
   return total;
 }
@@ -248,8 +171,10 @@ export function itemBonusPercent(character: Character, stat: BoostableStat): num
 export function describeItemBonus(item: ItemDef): string {
   if (item.type === 'consumable') return 'Consumable — grants one free revive on death, while equipped';
   const parts: string[] = [];
-  if (item.stat && item.bonusPercent) parts.push(`+${item.bonusPercent}% ${item.stat}`);
-  if (item.extraStat && item.extraBonusPercent) parts.push(`+${item.extraBonusPercent}% ${item.extraStat}`);
+  for (const bonus of item.bonuses) {
+    if (bonus.percent) parts.push(`+${bonus.percent}% ${bonus.stat}`);
+    if (bonus.flat) parts.push(`+${bonus.flat} ${bonus.stat}`);
+  }
   return parts.join(', ');
 }
 
@@ -297,12 +222,16 @@ function tierForBonusPercent(bonusPercent: number): number | null {
 /**
  * The body-worn sprite layer (a path segment relative to public/sprites/)
  * for an equipped item, or null if it has no visual slot (not equipped, a
- * consumable, or an expGain/critChance item).
+ * consumable, or a stat with no body-slot mapping). Uses the first bonus
+ * entry that both maps to a body slot and carries a percent (flat-only
+ * bonuses like armor/magicResist never render a body layer today).
  */
 export function bodySpriteFor(item: ItemDef | null): string | null {
-  if (!item || !item.stat || !item.bonusPercent) return null;
-  const slot = BODY_SLOT_BY_STAT[item.stat];
-  const tier = tierForBonusPercent(item.bonusPercent);
+  if (!item) return null;
+  const relevantBonus = item.bonuses.find((bonus) => bonus.stat in BODY_SLOT_BY_STAT && bonus.percent);
+  if (!relevantBonus || !relevantBonus.percent) return null;
+  const slot = BODY_SLOT_BY_STAT[relevantBonus.stat];
+  const tier = tierForBonusPercent(relevantBonus.percent);
   if (!slot || !tier) return null;
   return `player/${slot}-${tier}`;
 }

@@ -20,7 +20,7 @@ const equippedItems = computed(() =>
 );
 
 function firstEquippedWithStat(stat: string) {
-  return equippedItems.value.find((item) => item.stat === stat) ?? null;
+  return equippedItems.value.find((item) => item.bonuses.some((bonus) => bonus.stat === stat)) ?? null;
 }
 
 // Physical and magic items both render in the weapon slot — if a character
