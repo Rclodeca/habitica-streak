@@ -1,6 +1,6 @@
 # Item Overhaul — Design Spec
 
-Status as of 2026-10-02. Follow-up to `docs/superpowers/specs/2026-09-16-items-equipment-design.md`, which shipped the original 18-item catalog, 4 fixed equip slots, and percent-only stat bonuses. This spec adds a second, more powerful tier of items that unlocks progressively by player level, plus two mechanics (flat stat bonuses, armor/magic penetration) and one new player-facing stat category (armor/magicResist as player mitigation) that didn't exist before.
+Status as of 2026-10-02. Follow-up to `docs/superpowers/specs/2026-09-16-items-equipment-design.md`, which shipped the original item/equipment system; a later rarity-tier pass grew it to today's 30-item catalog with 4 fixed equip slots and percent-only stat bonuses. This spec adds a second, more powerful tier of items that unlocks progressively by player level, plus two mechanics (flat stat bonuses, armor/magic penetration) and one new player-facing stat category (armor/magicResist as player mitigation) that didn't exist before.
 
 ## Context
 
@@ -10,7 +10,7 @@ The resist formula (`resist/(resist+K)`) is asymptotic and self-limiting — no 
 
 ## Confirmed product decisions
 
-- **Original 18 items are untouched** — same stats, same rarities, always droppable, no level gate.
+- **Original 30 items are untouched** — same stats, same rarities, always droppable, no level gate.
 - **19 new items**, organized into 5 themes (physical, magic, defense, support, balanced — see catalog below), introduced as a second tier.
 - **New items unlock progressively by player level**, not rarity: a random ~third unlocks at level 10, another ~third at 15, the rest at 20. The *assignment* of which items land in which tier is randomized once per run (same pattern as `rollRunDifficultyModifier`/`DAMAGE_SPLIT_RATIOS` — rolled at character creation, fixed for that run, re-rolled on death).
 - **Equip slots: 4 → 6 at level 10**, coinciding with the first new-item unlock wave.
@@ -63,11 +63,11 @@ export interface ItemDef {
   type: 'equipment' | 'consumable';
   rarity: ItemRarity;
   bonuses: ItemBonus[]; // replaces stat/bonusPercent/extraStat/extraBonusPercent
-  levelGated?: true; // present only on the 19 new items; absent/falsy on the original 18
+  levelGated?: true; // present only on the 19 new items; absent/falsy on the original 30
 }
 ```
 
-The 18 existing catalog entries are rewritten into this shape with identical values (e.g. Rusty Blade becomes `bonuses: [{ stat: 'physicalDamage', percent: 3 }]`) — no behavior change for them.
+The 30 existing catalog entries are rewritten into this shape with identical values (e.g. Rusty Blade becomes `bonuses: [{ stat: 'physicalDamage', percent: 3 }]`) — no behavior change for them.
 
 ### New catalog items (19), by theme
 
