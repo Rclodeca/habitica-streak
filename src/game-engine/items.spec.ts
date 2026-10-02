@@ -23,6 +23,7 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     ownedItemIds: [],
     equippedItemIds: [],
     critChance: 0.01,
+    newItemUnlockTiers: {},
     ...overrides,
   };
 }
@@ -218,7 +219,13 @@ describe('rollItemDrops', () => {
   });
 
   it('never drops an already-owned item, and shrinks the count as the pool depletes', () => {
-    const owned = ITEM_CATALOG.slice(0, ITEM_CATALOG.length - 2).map((item) => item.id); // 2 remain unowned
+    // Scoped to the non-level-gated items: this character's default level 1
+    // / empty newItemUnlockTiers already locks every level-gated item out of
+    // the droppable pool regardless of ownership (see the level-gating tests
+    // below), so slicing against the original (always-droppable) items keeps
+    // this test's ownership/depletion intent independent of that mechanic.
+    const original = ITEM_CATALOG.filter((item) => !item.levelGated);
+    const owned = original.slice(0, original.length - 2).map((item) => item.id); // 2 remain unowned
     const character = makeCharacter({ ownedItemIds: owned });
     const result = rollItemDrops(character, 50, createRng(1)); // curve wants 3, only 2 remain
     expect(result).toHaveLength(2);
@@ -258,6 +265,33 @@ describe('rollItemDrops', () => {
       else otherCount += 1;
     }
     expect(otherCount).toBeGreaterThan(epicCount * 50);
+  });
+
+  it('never drops a level-gated item before the character reaches its assigned unlock level', () => {
+    const tiers = assignNewItemUnlockTiers(createRng(1));
+    const lockedId = Object.keys(tiers).find((id) => tiers[id] > 1); // true for every id, since tiers are 10/15/20
+    const character = makeCharacter({ level: 1, newItemUnlockTiers: tiers });
+    for (let seed = 0; seed < 100; seed++) {
+      const result = rollItemDrops(character, 50, createRng(seed)); // boss 50: max drop-count curve
+      expect(result.map((item) => item.id)).not.toContain(lockedId);
+    }
+  });
+
+  it('drops a level-gated item once the character reaches its assigned unlock level', () => {
+    const tiers = assignNewItemUnlockTiers(createRng(1));
+    const unlockedId = Object.keys(tiers)[0];
+    const unlockLevel = tiers[unlockedId];
+    const character = makeCharacter({ level: unlockLevel, newItemUnlockTiers: tiers, ownedItemIds: ITEM_CATALOG.filter((i) => i.id !== unlockedId).map((i) => i.id) });
+    const result = rollItemDrops(character, 50, createRng(1));
+    expect(result.map((item) => item.id)).toEqual([unlockedId]);
+  });
+
+  it('treats every level-gated item as locked when newItemUnlockTiers is undefined (old-save compatibility)', () => {
+    const character = makeCharacter({ level: 20, newItemUnlockTiers: undefined });
+    for (let seed = 0; seed < 50; seed++) {
+      const result = rollItemDrops(character, 50, createRng(seed));
+      expect(result.every((item) => !item.levelGated)).toBe(true);
+    }
   });
 });
 

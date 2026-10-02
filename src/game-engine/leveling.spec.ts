@@ -44,6 +44,7 @@ describe('addExpAndResolveLevelUps', () => {
       ownedItemIds: [],
       equippedItemIds: [],
       critChance: 0.01,
+      newItemUnlockTiers: {},
       ...overrides,
     };
   }
@@ -151,6 +152,7 @@ describe('effectiveStat', () => {
       ownedItemIds: [],
       equippedItemIds: [],
       critChance: 0.01,
+      newItemUnlockTiers: {},
       ...overrides,
     };
   }
@@ -189,6 +191,7 @@ describe('addExpAndResolveLevelUps with item bonuses', () => {
       ownedItemIds: [],
       equippedItemIds: [],
       critChance: 0.01,
+      newItemUnlockTiers: {},
       ...overrides,
     };
   }
@@ -210,6 +213,7 @@ describe('effectiveCritChance', () => {
       ownedItemIds: [],
       equippedItemIds: [],
       critChance: 0.01,
+      newItemUnlockTiers: {},
       ...overrides,
     };
   }

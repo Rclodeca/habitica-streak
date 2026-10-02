@@ -213,7 +213,12 @@ export function describeItemBonus(item: ItemDef): string {
  * Rare items are weighted much lower than common ones (see RARITY_WEIGHT).
  */
 export function rollItemDrops(character: Character, bossIndex: number, rng: Rng): ItemDef[] {
-  const unowned = ITEM_CATALOG.filter((item) => !character.ownedItemIds.includes(item.id));
+  const droppablePool = ITEM_CATALOG.filter((item) => {
+    if (!item.levelGated) return true;
+    const unlockLevel = character.newItemUnlockTiers?.[item.id];
+    return unlockLevel !== undefined && character.level >= unlockLevel;
+  });
+  const unowned = droppablePool.filter((item) => !character.ownedItemIds.includes(item.id));
   const desiredCount = Math.min(
     1 + Math.floor((bossIndex - 1) / TUNING.ITEM_DROP_EVERY_N_BOSSES),
     TUNING.ITEM_DROP_MAX_COUNT,

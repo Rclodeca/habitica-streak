@@ -39,6 +39,7 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     ownedItemIds: [],
     equippedItemIds: [],
     critChance: 0.01,
+    newItemUnlockTiers: {},
     ...overrides,
   };
 }

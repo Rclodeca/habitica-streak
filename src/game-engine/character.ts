@@ -1,4 +1,5 @@
 import { TUNING } from './constants/tuning';
+import { assignNewItemUnlockTiers } from './items';
 import { pickRandom, type Rng } from './rng';
 import type { Character } from './types';
 
@@ -27,5 +28,6 @@ export function createCharacter(rng: Rng): Character {
     ownedItemIds: [],
     equippedItemIds: [],
     critChance: TUNING.BASE_CRIT_CHANCE,
+    newItemUnlockTiers: assignNewItemUnlockTiers(rng),
   };
 }

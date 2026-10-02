@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createCharacter, randomizeStat } from './character';
+import { ITEM_CATALOG } from './items';
 import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
 
@@ -70,6 +71,12 @@ describe('createCharacter', () => {
   it('starts with the base crit chance', () => {
     const character = createCharacter(createRng(1));
     expect(character.critChance).toBe(TUNING.BASE_CRIT_CHANCE);
+  });
+
+  it('rolls a newItemUnlockTiers assignment covering every level-gated item', () => {
+    const character = createCharacter(createRng(1));
+    const levelGatedIds = ITEM_CATALOG.filter((item) => item.levelGated).map((item) => item.id);
+    expect(Object.keys(character.newItemUnlockTiers ?? {}).sort()).toEqual(levelGatedIds.sort());
   });
 
   it('is deterministic: the same seed produces the same character', () => {

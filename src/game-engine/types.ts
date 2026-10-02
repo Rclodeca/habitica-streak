@@ -39,6 +39,14 @@ export interface Character {
   currentHealth: number;
   ownedItemIds: string[]; // all items ever dropped for this character (equipped + unequipped)
   equippedItemIds: string[]; // subset of ownedItemIds, length <= 4
+  // Rolled once per run by assignNewItemUnlockTiers (see character.ts),
+  // mapping each level-gated item's id to the player level at which it
+  // starts being droppable. Optional so an existing save (no schema-version
+  // bump) still loads — undefined is treated as "every level-gated item is
+  // locked" by rollItemDrops, same conservative-default pattern as
+  // difficultyModifier?/statusEffects?/woundsAbility? elsewhere in this file.
+  // The player's next death naturally re-rolls a fresh assignment.
+  newItemUnlockTiers?: Record<string, 10 | 15 | 20>;
   critChance: number; // base crit chance (0-1), before item bonuses — see effectiveCritChance
   // Optional so an existing save (no schema-version bump) still loads;
   // undefined is treated as "no active effects" everywhere this is read —
