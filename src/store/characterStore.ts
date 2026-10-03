@@ -8,6 +8,7 @@ import {
   completeHabit,
   createCharacter,
   createRng,
+  maxEquipSlots,
   missHabit,
   resolvePlayerDeathIfDead,
 } from '../game-engine';
@@ -28,12 +29,12 @@ export const useCharacterStore = defineStore('character', {
       this.character = character;
     },
 
-    /** Equips an owned item into an empty slot. No-op if not owned, already equipped, or all 4 slots are full. */
+    /** Equips an owned item into an empty slot. No-op if not owned, already equipped, or all slots are full (see maxEquipSlots). */
     equipItem(itemId: string) {
-      const { ownedItemIds, equippedItemIds } = this.character;
+      const { ownedItemIds, equippedItemIds, level } = this.character;
       if (!ownedItemIds.includes(itemId)) return;
       if (equippedItemIds.includes(itemId)) return;
-      if (equippedItemIds.length >= 4) return;
+      if (equippedItemIds.length >= maxEquipSlots(level)) return;
       this.character = { ...this.character, equippedItemIds: [...equippedItemIds, itemId] };
     },
 

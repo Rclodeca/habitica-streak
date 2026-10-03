@@ -35,6 +35,16 @@ describe('useItemDropQueue', () => {
     while (current.value) dismiss();
   });
 
+  it('isFull reflects the level-10 6-slot cap, not the base 4', () => {
+    const characterStore = useCharacterStore();
+    const owned = ['rusty-blade', 'steel-sword', 'apprentice-wand', 'arcane-staff', 'novices-charm'];
+    characterStore.character = { ...characterStore.character, level: 10, ownedItemIds: owned, equippedItemIds: owned };
+
+    const { isFull } = useItemDropQueue();
+
+    expect(isFull.value).toBe(false); // 5 equipped, cap is 6 at level 10
+  });
+
   it('auto-equips a drop immediately when a slot is open', () => {
     const characterStore = useCharacterStore();
     const item = makeItem();

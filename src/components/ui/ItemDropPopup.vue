@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { describeItemBonus, ITEM_CATALOG } from '../../game-engine';
+import { describeItemBonus, ITEM_CATALOG, maxEquipSlots } from '../../game-engine';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { useCharacterStore } from '../../store/characterStore';
 import Modal from './Modal.vue';
@@ -11,6 +11,8 @@ const characterStore = useCharacterStore();
 const equippedItems = computed(() =>
   ITEM_CATALOG.filter((item) => characterStore.character.equippedItemIds.includes(item.id)),
 );
+
+const slotCount = computed(() => maxEquipSlots(characterStore.character.level));
 
 // `current` can already be sitting in `equippedItemIds` if it auto-equipped
 // into the last open slot (see `useItemDropQueue.processFront` — an
@@ -34,7 +36,7 @@ const isCurrentEquipped = computed(
       <p class="found-item">{{ current.name }} — {{ describeItemBonus(current) }}</p>
 
       <template v-if="!isCurrentEquipped">
-        <p class="replace-prompt">Your 4 slots are full — choose one to replace, or drop the new item:</p>
+        <p class="replace-prompt">Your {{ slotCount }} slots are full — choose one to replace, or drop the new item:</p>
         <ul class="replace-list">
           <li v-for="item in equippedItems" :key="item.id" class="replace-row">
             <span>{{ item.name }} ({{ describeItemBonus(item) }})</span>

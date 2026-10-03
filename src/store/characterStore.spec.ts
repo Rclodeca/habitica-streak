@@ -51,6 +51,26 @@ describe('characterStore equip/unequip', () => {
     expect(store.character.equippedItemIds).toHaveLength(4);
   });
 
+  it('allows a 6th item once the character is level 10', () => {
+    const store = useCharacterStore();
+    const owned = ['rusty-blade', 'steel-sword', 'apprentice-wand', 'arcane-staff', 'novices-charm', 'blessed-censer'];
+    store.character = { ...store.character, level: 10, ownedItemIds: owned, equippedItemIds: owned.slice(0, 5) };
+
+    store.equipItem('blessed-censer');
+
+    expect(store.character.equippedItemIds).toHaveLength(6);
+  });
+
+  it('still refuses a 5th item below level 10', () => {
+    const store = useCharacterStore();
+    const owned = ['rusty-blade', 'steel-sword', 'apprentice-wand', 'arcane-staff', 'novices-charm'];
+    store.character = { ...store.character, level: 9, ownedItemIds: owned, equippedItemIds: owned.slice(0, 4) };
+
+    store.equipItem('novices-charm');
+
+    expect(store.character.equippedItemIds).toHaveLength(4);
+  });
+
   it('unequips a currently equipped item', () => {
     const store = useCharacterStore();
     store.character = { ...store.character, ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'] };

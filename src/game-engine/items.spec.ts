@@ -7,6 +7,7 @@ import {
   ITEM_CATALOG,
   itemBonusPercent,
   itemFlatBonus,
+  maxEquipSlots,
   rollItemDrops,
 } from './items';
 import type { ItemDef } from './items';
@@ -338,5 +339,17 @@ describe('bodySpriteFor', () => {
   it('maps a hybrid item to a tier by threshold, not exact match, using its primary stat', () => {
     expect(bodySpriteFor(itemNamed('battlemage-gauntlets'))).toBe('player/weapon-physical-1'); // bonusPercent 4
     expect(bodySpriteFor(itemNamed('chaos-blade'))).toBe('player/weapon-physical-3'); // bonusPercent 15
+  });
+});
+
+describe('maxEquipSlots', () => {
+  it('is 4 below level 10', () => {
+    expect(maxEquipSlots(1)).toBe(4);
+    expect(maxEquipSlots(9)).toBe(4);
+  });
+
+  it('is 6 at level 10 and above', () => {
+    expect(maxEquipSlots(10)).toBe(6);
+    expect(maxEquipSlots(20)).toBe(6);
   });
 });

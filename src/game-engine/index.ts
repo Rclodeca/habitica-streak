@@ -61,8 +61,17 @@ export {
   resolvePlayerDeathIfDead,
 } from './combat';
 
-export type { BoostableStat, ItemDef, ItemRarity } from './items';
-export { bodySpriteFor, describeItemBonus, ITEM_CATALOG, itemBonusPercent, rollItemDrops } from './items';
+export type { BoostableStat, ItemBonus, ItemDef, ItemRarity } from './items';
+export {
+  assignNewItemUnlockTiers,
+  bodySpriteFor,
+  describeItemBonus,
+  ITEM_CATALOG,
+  itemBonusPercent,
+  itemFlatBonus,
+  maxEquipSlots,
+  rollItemDrops,
+} from './items';
 
 export type { Rng } from './rng';
 export { createRng, pickRandom, pickWeighted, shuffle } from './rng';

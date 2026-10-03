@@ -9,6 +9,7 @@ import {
   effectiveStat,
   expToNextLevel,
   ITEM_CATALOG,
+  maxEquipSlots,
   statAtLevel,
 } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
@@ -50,15 +51,18 @@ const baseMagicDamage = computed(() => statAtLevel(character.value.starterStats.
 const baseHealing = computed(() => statAtLevel(character.value.starterStats.healing, character.value.level));
 const baseCritChance = computed(() => character.value.critChance);
 
-// Fixed 4 slots, in whatever order they were equipped — empty ones render
-// as blank grid cells rather than being compacted away, so the grid never
-// visually shifts as items are gained/replaced.
+// Sized to the character's current level-dependent slot cap (4 below
+// level 10, 6 at 10+), in whatever order they were equipped — empty ones
+// render as blank grid cells rather than being compacted away, so the grid
+// never visually shifts as items are gained/replaced.
+const slotCount = computed(() => maxEquipSlots(character.value.level));
 const equippedSlots = computed(() =>
-  Array.from({ length: 4 }, (_, i) => {
+  Array.from({ length: slotCount.value }, (_, i) => {
     const itemId = character.value.equippedItemIds[i];
     return itemId ? ITEM_CATALOG.find((item) => item.id === itemId) ?? null : null;
   }),
 );
+const gridRows = computed(() => Math.ceil(slotCount.value / 2));
 
 // Which slot's stats callout is pinned open by a tap/click (persists until
 // tapped again or another slot is tapped) — separate from the CSS-only
@@ -78,7 +82,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <PlayerSprite :character="character" />
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
-      <div class="item-grid">
+      <div class="item-grid" :style="{ gridTemplateRows: `repeat(${gridRows}, 1fr)`, height: `${gridRows * 46}px` }">
         <div
           v-for="(item, i) in equippedSlots"
           :key="i"
@@ -186,10 +190,8 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 .item-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, 1fr);
   gap: 4px;
   width: 96px;
-  height: 96px;
 }
 
 .item-slot {

@@ -12,6 +12,7 @@
 // remaining slots before the forced-choice popup ever appears.
 
 import { computed, ref } from 'vue';
+import { maxEquipSlots } from '../game-engine';
 import type { ItemDef } from '../game-engine';
 import { useCharacterStore } from '../store/characterStore';
 
@@ -21,7 +22,7 @@ export function useItemDropQueue() {
   const characterStore = useCharacterStore();
 
   const current = computed<ItemDef | null>(() => queue.value[0] ?? null);
-  const isFull = computed(() => characterStore.character.equippedItemIds.length >= 4);
+  const isFull = computed(() => characterStore.character.equippedItemIds.length >= maxEquipSlots(characterStore.character.level));
 
   function processFront() {
     const front = current.value;

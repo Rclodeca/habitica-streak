@@ -248,6 +248,11 @@ export function assignNewItemUnlockTiers(rng: Rng): Record<string, 10 | 15 | 20>
   return tiers;
 }
 
+/** 4 equip slots below level 10, 6 at level 10+. */
+export function maxEquipSlots(level: number): number {
+  return level >= 10 ? 6 : 4;
+}
+
 // Which body-worn sprite slot each stat category renders as on the player
 // sprite. expGain, critChance, and lifesteal have no entry — those items
 // have no natural body slot and stay icon-grid-only.
