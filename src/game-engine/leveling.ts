@@ -41,7 +41,7 @@ export function addExpAndResolveLevelUps(
   let currentHealth = character.currentHealth;
   const lifestealPct = itemBonusPercent(character, 'lifesteal');
   if (levelsGained > 0 && lifestealPct > 0) {
-    const maxHealth = statAtLevel(character.starterStats.health, level) * (1 + itemBonusPercent(character, 'health') / 100);
+    const maxHealth = effectiveStat({ ...character, level }, 'health');
     currentHealth = Math.min(currentHealth + maxHealth * (lifestealPct / 100) * levelsGained, maxHealth);
   }
 

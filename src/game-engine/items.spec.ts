@@ -340,6 +340,21 @@ describe('bodySpriteFor', () => {
     expect(bodySpriteFor(itemNamed('battlemage-gauntlets'))).toBe('player/weapon-physical-1'); // bonusPercent 4
     expect(bodySpriteFor(itemNamed('chaos-blade'))).toBe('player/weapon-physical-3'); // bonusPercent 15
   });
+
+  it('falls back to a rarity-based tier when the only body-relevant bonus on an item is flat (no percent on that stat)', () => {
+    expect(bodySpriteFor(itemNamed('berserkers-war-axe'))).toBe('player/weapon-physical-2'); // rare, flat physicalDamage only
+    expect(bodySpriteFor(itemNamed('juggernaut-carapace'))).toBe('player/armor-2'); // rare, via its flat health bonus (flat armor isn't body-slot-relevant)
+    expect(bodySpriteFor(itemNamed('scholars-grimoire'))).toBe('player/weapon-magic-1'); // uncommon, flat magicDamage only
+  });
+
+  it('still prefers a percent-based body-relevant bonus over a flat one on the same item, unchanged from before the flat-fallback existed', () => {
+    // aegis-of-the-unbroken has both a flat health bonus (200) and a percent health bonus (20%) — must keep
+    // resolving via the percent bonus's own tier, not fall back to the rarity-based flat tier.
+    expect(bodySpriteFor(itemNamed('aegis-of-the-unbroken'))).toBe('player/armor-3');
+    // titans-lifeblood has a flat health bonus (1000, maps to the 'armor' slot) and a percent healing bonus
+    // (5%, maps to the 'shield' slot) — must still resolve via the percent healing bonus, not switch slots.
+    expect(bodySpriteFor(itemNamed('titans-lifeblood'))).toBe('player/shield-1');
+  });
 });
 
 describe('maxEquipSlots', () => {

@@ -277,18 +277,38 @@ function tierForBonusPercent(bonusPercent: number): number | null {
 }
 
 /**
+ * bonusPercent has no equivalent magnitude across stats to threshold against
+ * for a flat-only bonus (a flat 200 physicalDamage item and a flat 200
+ * health item aren't comparably "big"), so a flat-only body-relevant bonus
+ * is tiered by the item's own rarity instead — a signal every item carries
+ * uniformly regardless of which stat or flat/percent shape its bonus takes.
+ */
+function tierForItemRarity(item: ItemDef): number {
+  if (item.rarity === 'epic') return 3;
+  if (item.rarity === 'rare') return 2;
+  return 1;
+}
+
+/**
  * The body-worn sprite layer (a path segment relative to public/sprites/)
  * for an equipped item, or null if it has no visual slot (not equipped, a
- * consumable, or a stat with no body-slot mapping). Uses the first bonus
- * entry that both maps to a body slot and carries a percent (flat-only
- * bonuses like armor/magicResist never render a body layer today).
+ * consumable, or a stat with no body-slot mapping). Prefers a percent-based
+ * body-relevant bonus (tiered by tierForBonusPercent, unchanged from before
+ * flat bonuses existed) if the item has one anywhere in its `bonuses`; only
+ * falls back to a flat-only body-relevant bonus (tiered by rarity — see
+ * tierForItemRarity) when no percent-based one exists at all.
  */
 export function bodySpriteFor(item: ItemDef | null): string | null {
   if (!item) return null;
-  const relevantBonus = item.bonuses.find((bonus) => bonus.stat in BODY_SLOT_BY_STAT && bonus.percent);
-  if (!relevantBonus || !relevantBonus.percent) return null;
-  const slot = BODY_SLOT_BY_STAT[relevantBonus.stat];
-  const tier = tierForBonusPercent(relevantBonus.percent);
-  if (!slot || !tier) return null;
-  return `player/${slot}-${tier}`;
+  const percentBonus = item.bonuses.find((bonus) => bonus.stat in BODY_SLOT_BY_STAT && bonus.percent);
+  if (percentBonus && percentBonus.percent) {
+    const slot = BODY_SLOT_BY_STAT[percentBonus.stat];
+    const tier = tierForBonusPercent(percentBonus.percent);
+    if (slot && tier) return `player/${slot}-${tier}`;
+  }
+  const flatBonus = item.bonuses.find((bonus) => bonus.stat in BODY_SLOT_BY_STAT && bonus.flat);
+  if (!flatBonus) return null;
+  const slot = BODY_SLOT_BY_STAT[flatBonus.stat];
+  if (!slot) return null;
+  return `player/${slot}-${tierForItemRarity(item)}`;
 }

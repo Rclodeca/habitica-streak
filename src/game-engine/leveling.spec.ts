@@ -96,6 +96,21 @@ describe('addExpAndResolveLevelUps', () => {
     expect(result.character.currentHealth).toBeCloseTo(10 + expectedHeal, 10);
   });
 
+  it('computes the level-up lifesteal heal using the same max-health formula as effectiveStat, including flat item bonuses', () => {
+    const character = makeCharacter({
+      currentHealth: 10,
+      // vampiric-fang: +5% lifesteal; juggernaut-carapace: +300 flat armor, +200 flat health
+      ownedItemIds: ['vampiric-fang', 'juggernaut-carapace'],
+      equippedItemIds: ['vampiric-fang', 'juggernaut-carapace'],
+    });
+    const result = addExpAndResolveLevelUps(character, 25); // exactly enough for 1 level
+
+    expect(result.levelsGained).toBe(1);
+    const maxHealthAtNewLevel = effectiveStat({ ...character, level: result.character.level }, 'health');
+    const expectedHeal = maxHealthAtNewLevel * 0.05;
+    expect(result.character.currentHealth).toBeCloseTo(10 + expectedHeal, 10);
+  });
+
   it('does not heal on level-up without a lifesteal item equipped', () => {
     const character = makeCharacter({ currentHealth: 10 });
     const result = addExpAndResolveLevelUps(character, 25);
