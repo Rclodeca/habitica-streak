@@ -61,6 +61,25 @@
 | `items/godslayer-greatblade.png` | `gear/weapon/shop/shop_weapon_warrior_6.png` |
 | `items/stormcaller-staff.png` | `gear/weapon/shop/shop_weapon_wizard_4.png` |
 | `items/voidcallers-scepter.png` | `gear/weapon/shop/shop_weapon_wizard_6.png` |
+| `items/berserkers-war-axe.png` | `gear/weapon/shop/shop_weapon_warrior_2.png` |
+| `items/serrated-ripper.png` | `gear/weapon/shop/shop_weapon_rogue_2.png` |
+| `items/bloodthorn-blade.png` | `gear/weapon/shop/shop_weapon_rogue_4.png` |
+| `items/piercing-fang-gauntlets.png` | `gear/weapon/shop/shop_weapon_special_nomadsScimitar.png` |
+| `items/runeforged-spellblade.png` | `gear/weapon/shop/shop_weapon_wizard_2.png` |
+| `items/chaos-conduit.png` | `gear/weapon/shop/shop_weapon_special_aetherCrystals.png` |
+| `items/scholars-grimoire.png` | `gear/armoire/shop/shop_weapon_armoire_scholarlyTextbooks.png` |
+| `items/bulwark-plate.png` | `gear/armor/shop/shop_armor_warrior_2.png` |
+| `items/aegis-of-the-unbroken.png` | `gear/armoire/shop/shop_shield_armoire_shieldOfHonor.png` |
+| `items/juggernaut-carapace.png` | `gear/armoire/shop/shop_armor_armoire_hornedIronArmor.png` |
+| `items/warding-sigil.png` | `gear/body/shop_body_special_aetherAmulet.png` |
+| `items/serene-lotus-charm.png` | `gear/armoire/shop/shop_shield_armoire_springPetalUchiwa.png` |
+| `items/font-of-renewal.png` | `gear/weapon/shop/shop_weapon_healer_2.png` |
+| `items/pilgrims-blessing.png` | `gear/weapon/shop/shop_weapon_healer_4.png` |
+| `items/adventurers-sigil.png` | `gear/armoire/shop/shop_weapon_armoire_guardiansCrook.png` |
+| `items/duelists-signet.png` | `gear/armoire/shop/shop_weapon_armoire_hammerOfHonor.png` |
+| `items/warded-longsword.png` | `gear/weapon/shop/shop_weapon_special_mammothRiderSpear.png` |
+| `items/stalwart-sages-ring.png` | `gear/armoire/shop/shop_weapon_armoire_ironCrook.png` |
+| `items/titans-lifeblood.png` | `gear/armoire/shop/shop_weapon_armoire_wandOfHearts.png` |
 
 ## Player sprite layers
 
