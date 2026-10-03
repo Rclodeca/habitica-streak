@@ -48,6 +48,7 @@ export {
   bossMissDamage,
   completeHabit,
   DAMAGE_TYPE_STARTER_STAT,
+  effectiveResistAfterPen,
   habitDamageBreakdown,
   healingMultiplier,
   levelRewardMultiplier,

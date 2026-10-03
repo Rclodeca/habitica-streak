@@ -127,6 +127,19 @@ export type CombatResult = {
 };
 
 /**
+ * The boss resist stat actually used against an attack, after clamping the
+ * character's armorPen/magicPen percent to TUNING.ARMOR_MAGIC_PEN_CAP_PCT
+ * and reducing resistStat by that percent. Exported (and unit-tested)
+ * separately from completeHabit because no current item combination in the
+ * catalog sums past the cap, so an integration test alone could never
+ * exercise the clamp actually engaging.
+ */
+export function effectiveResistAfterPen(resistStat: number, penPct: number): number {
+  const cappedPenPct = Math.min(penPct, TUNING.ARMOR_MAGIC_PEN_CAP_PCT);
+  return resistStat * (1 - cappedPenPct / 100);
+}
+
+/**
  * Resolves completing a habit: computes the habit's share of damage/healing
  * for its type, applies the streak multiplier, bumps the streak, and either
  * heals the character (healing type — boss untouched) or damages the boss
@@ -175,7 +188,9 @@ export function completeHabit(
   const wasCrit = rng() < effectiveCritChance(character);
   const critAmount = wasCrit ? amount * TUNING.CRIT_MULTIPLIER : amount;
   const resistStat = habit.damageType === 'physical' ? boss.armor : boss.magicResist;
-  const dealt = applyResist(critAmount, resistStat);
+  const penStat = habit.damageType === 'physical' ? 'armorPen' : 'magicPen';
+  const effectiveResistStat = effectiveResistAfterPen(resistStat, itemBonusPercent(character, penStat));
+  const dealt = applyResist(critAmount, effectiveResistStat);
   const newBoss = { ...boss, health: Math.max(0, boss.health - dealt) };
 
   const lifestealPct = itemBonusPercent(character, 'lifesteal');

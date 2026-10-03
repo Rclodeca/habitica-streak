@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { applyResist, bossExpReward } from './boss';
 import { MILESTONE_EXP } from './constants/milestones';
 import { TUNING } from './constants/tuning';
-import { ITEM_CATALOG, itemFlatBonus } from './items';
-import { addExpAndResolveLevelUps, effectiveStat, statAtLevel } from './leveling';
+import { ITEM_CATALOG, itemBonusPercent, itemFlatBonus } from './items';
+import { addExpAndResolveLevelUps, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
 import {
   activeWoundsEffect,
   completeHabit,
+  effectiveResistAfterPen,
   healingMultiplier,
   overdriveHabit,
   overdriveUsesRemaining,
@@ -364,6 +365,65 @@ describe('completeHabit', () => {
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
     const expectedDealt = statValue * streakMultiplier(10);
     expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
+  });
+
+  it('reduces the boss resist stat by the equipped armorPen percent before applying it, for a physical habit', () => {
+    const character = makeCharacter({ equippedItemIds: ['serrated-ripper'] }); // +150 flat physicalDamage, +20% armorPen
+    const habit = makeHabit({ damageType: 'physical', streakCount: 0 });
+    const boss = makeBoss({ armor: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
+    const amount = statValue * itemStatMultiplier(character, 'physicalDamage') * streakMultiplier(1);
+    const expectedEffectiveArmor = effectiveResistAfterPen(boss.armor, itemBonusPercent(character, 'armorPen'));
+    const expectedDealt = applyResist(amount, expectedEffectiveArmor);
+    expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
+  });
+
+  it('sums armorPen across multiple equipped items before applying the cap', () => {
+    // serrated-ripper (+150 flat physicalDamage, 20% armorPen) + piercing-fang-gauntlets (30% armorPen, +10%
+    // physicalDamage, +200 flat health) + duelists-signet (+100 flat health, +50 flat physicalDamage, 20%
+    // armorPen, +2% lifesteal) = 70% total armorPen, still under the 90% cap.
+    const character = makeCharacter({ equippedItemIds: ['serrated-ripper', 'piercing-fang-gauntlets', 'duelists-signet'] });
+    const habit = makeHabit({ damageType: 'physical', streakCount: 0 });
+    const boss = makeBoss({ armor: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
+    const amount = statValue * itemStatMultiplier(character, 'physicalDamage') * streakMultiplier(1);
+    const expectedEffectiveArmor = effectiveResistAfterPen(boss.armor, itemBonusPercent(character, 'armorPen'));
+    const expectedDealt = applyResist(amount, expectedEffectiveArmor);
+    expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
+  });
+
+  it('applies magicPen (not armorPen) for a magic habit', () => {
+    const character = makeCharacter({ equippedItemIds: ['chaos-conduit'] }); // +30% magicDamage, +20% magicPen
+    const habit = makeHabit({ damageType: 'magic', streakCount: 0 });
+    const boss = makeBoss({ magicResist: 1000 });
+
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.magicDamage, character.level) + itemFlatBonus(character, 'magicDamage');
+    const amount = statValue * itemStatMultiplier(character, 'magicDamage') * streakMultiplier(1);
+    const expectedEffectiveResist = effectiveResistAfterPen(boss.magicResist, itemBonusPercent(character, 'magicPen'));
+    const expectedDealt = applyResist(amount, expectedEffectiveResist);
+    expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
+  });
+});
+
+describe('effectiveResistAfterPen', () => {
+  it('reduces resist by the pen percent when under the cap', () => {
+    expect(effectiveResistAfterPen(1000, 20)).toBeCloseTo(800, 5);
+  });
+
+  it('returns the resist stat unchanged at 0% pen', () => {
+    expect(effectiveResistAfterPen(1000, 0)).toBe(1000);
+  });
+
+  it('clamps pen at ARMOR_MAGIC_PEN_CAP_PCT even when given a percent far past it', () => {
+    expect(effectiveResistAfterPen(1000, 150)).toBeCloseTo(1000 * (1 - TUNING.ARMOR_MAGIC_PEN_CAP_PCT / 100), 5);
   });
 });
 
