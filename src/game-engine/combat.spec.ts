@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyResist, bossExpReward } from './boss';
 import { MILESTONE_EXP } from './constants/milestones';
 import { TUNING } from './constants/tuning';
-import { ITEM_CATALOG } from './items';
+import { ITEM_CATALOG, itemFlatBonus } from './items';
 import { addExpAndResolveLevelUps, effectiveStat, statAtLevel } from './leveling';
 import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
@@ -352,6 +352,18 @@ describe('completeHabit', () => {
     const expectedGoodAmount = expectedGoodBase * streakMultiplier(1);
 
     expect(goodHealed).toBeCloseTo(expectedGoodAmount, 10);
+  });
+
+  it('adds a flat item bonus into the stat pool before the streak multiplier, so the flat amount is also multiplied by streak', () => {
+    const character = makeCharacter({ equippedItemIds: ['berserkers-war-axe'] }); // +200 flat physicalDamage, +5% lifesteal
+    const habit = makeHabit({ damageType: 'physical', streakCount: 9 }); // bumps to streak 10 this completion
+    const boss = makeBoss({ armor: 0, health: 10000 }); // armor 0 -> no reduction, easier to reason about
+
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
+
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
+    const expectedDealt = statValue * streakMultiplier(10);
+    expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
   });
 });
 

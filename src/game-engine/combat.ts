@@ -4,7 +4,7 @@ import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { computeDamageSplit, rerollDamageType, resetLevelRewards } from './habits';
 import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
-import { itemBonusPercent, rollItemDrops } from './items';
+import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
 import type { Rng } from './rng';
 import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
@@ -97,7 +97,7 @@ export type HabitDamageBreakdown = {
  */
 export function habitDamageBreakdown(character: Character, habit: Habit, allHabitsOfSameType: Habit[]): HabitDamageBreakdown {
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
-  const rawStat = statAtLevel(character.starterStats[statField], character.level);
+  const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const statShare = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
   const baseDamage = statShare * periodRewardMultiplier(habit.period);
   const itemMultiplier = itemStatMultiplier(character, statField);
@@ -151,7 +151,7 @@ export function completeHabit(
 ): CombatResult {
   const isOverdriveUse = options.isOverdriveUse ?? false;
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
-  const rawStat = statAtLevel(character.starterStats[statField], character.level);
+  const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const statShare = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
   const baseDamage = statShare * periodRewardMultiplier(habit.period);
   const itemMultiplier = itemStatMultiplier(character, statField);

@@ -1,5 +1,5 @@
 import { TUNING } from './constants/tuning';
-import { itemBonusPercent } from './items';
+import { itemBonusPercent, itemFlatBonus } from './items';
 import type { Character } from './types';
 
 export function expToNextLevel(level: number): number {
@@ -65,7 +65,8 @@ export function effectiveStat(
   character: Character,
   stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health',
 ): number {
-  return statAtLevel(character.starterStats[stat], character.level) * itemStatMultiplier(character, stat);
+  const baseWithFlat = statAtLevel(character.starterStats[stat], character.level) + itemFlatBonus(character, stat);
+  return baseWithFlat * itemStatMultiplier(character, stat);
 }
 
 /**

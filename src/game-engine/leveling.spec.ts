@@ -236,3 +236,31 @@ describe('effectiveCritChance', () => {
     expect(effectiveCritChance(character)).toBe(TUNING.CRIT_CHANCE_CAP);
   });
 });
+
+describe('effectiveStat — flat item bonus', () => {
+  function makeCharacter(overrides: Partial<Character> = {}): Character {
+    return {
+      level: 1,
+      exp: 0,
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      currentHealth: 50,
+      ownedItemIds: [],
+      equippedItemIds: [],
+      critChance: 0.01,
+      newItemUnlockTiers: {},
+      ...overrides,
+    };
+  }
+
+  it('adds a flat health bonus before the percent health multiplier', () => {
+    // juggernaut-carapace: +300 flat armor, +200 flat health (no percent health on this one)
+    const character = makeCharacter({ equippedItemIds: ['juggernaut-carapace'] });
+    expect(effectiveStat(character, 'health')).toBeCloseTo(50 + 200, 5);
+  });
+
+  it('applies the percent health multiplier on top of the flat-boosted base', () => {
+    // bulwark-plate: +10% health, +500 flat health
+    const character = makeCharacter({ equippedItemIds: ['bulwark-plate'] });
+    expect(effectiveStat(character, 'health')).toBeCloseTo((50 + 500) * 1.1, 5);
+  });
+});
