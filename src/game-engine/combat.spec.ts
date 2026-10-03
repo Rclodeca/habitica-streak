@@ -8,6 +8,7 @@ import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
 import {
   activeWoundsEffect,
+  bossMissDamage,
   completeHabit,
   effectiveResistAfterPen,
   healingMultiplier,
@@ -428,6 +429,61 @@ describe('effectiveResistAfterPen', () => {
 });
 
 describe('missHabit', () => {
+  // bossMissDamage's doc comment defines it as the damage dealt on a missed
+  // medium daily habit specifically (medium's DIFFICULTY_WEIGHT / 1.5
+  // cancels to exactly 1) — every makeHabit({ difficulty: 'medium' })
+  // override below is required for the bossMissDamage(...) expected-value
+  // shortcut to be valid; makeHabit()'s own default is 'easy'.
+  it('mitigates physical miss damage through equipped armor, using the same resist formula as boss armor', () => {
+    // currentHealth set comfortably above any damage this test computes, so the health delta below
+    // reflects the resist formula directly rather than being clamped by missHabit's health-floor.
+    const character = makeCharacter({ currentHealth: 100000, equippedItemIds: ['juggernaut-carapace'] }); // +300 flat armor
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 1000, critChance: 0 });
+    const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; also beats critChance 0 and any woundsAbility roll
+    const result = missHabit(character, habit, boss, DAY_KEY, forcePhysicalNoCrit);
+
+    const rawDamage = bossMissDamage(boss.physicalAttack); // medium difficulty, no crit, no weekly multiplier
+    const expectedMitigated = applyResist(rawDamage, 300);
+    expect(character.currentHealth - result.character.currentHealth).toBeCloseTo(expectedMitigated, 5);
+  });
+
+  it('mitigates magic miss damage through equipped magicResist, not armor', () => {
+    const character = makeCharacter({ currentHealth: 100000, equippedItemIds: ['warding-sigil'] }); // +150 flat magicResist, no armor
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ magicAttack: 1000, critChance: 0 });
+    const forceMagicNoCrit = () => 0.6; // >= 0.5 picks 'magic'
+    const result = missHabit(character, habit, boss, DAY_KEY, forceMagicNoCrit);
+
+    const rawDamage = bossMissDamage(boss.magicAttack);
+    const expectedMitigated = applyResist(rawDamage, 150);
+    expect(character.currentHealth - result.character.currentHealth).toBeCloseTo(expectedMitigated, 5);
+  });
+
+  it('boss lifesteal heals off the mitigated damage, not the raw pre-mitigation amount', () => {
+    const character = makeCharacter({ equippedItemIds: ['juggernaut-carapace'] }); // +300 flat armor
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 1000, critChance: 0, lifestealPct: 1, maxHealth: 100000, health: 100 });
+    const forcePhysicalNoCrit = () => 0.4;
+    const result = missHabit(character, habit, boss, DAY_KEY, forcePhysicalNoCrit);
+
+    const rawDamage = bossMissDamage(boss.physicalAttack);
+    const expectedMitigated = applyResist(rawDamage, 300);
+    // lifestealPct 1 (100%) means the boss heals for exactly the mitigated amount, not the larger raw amount.
+    expect(result.bossLifestealHealed).toBeCloseTo(expectedMitigated, 5);
+  });
+
+  it('with no armor/magicResist equipped, mitigation is a no-op (matches pre-overhaul behavior)', () => {
+    const character = makeCharacter({ currentHealth: 100000 });
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 1000, critChance: 0 });
+    const forcePhysicalNoCrit = () => 0.4;
+    const result = missHabit(character, habit, boss, DAY_KEY, forcePhysicalNoCrit);
+
+    const rawDamage = bossMissDamage(boss.physicalAttack);
+    expect(character.currentHealth - result.character.currentHealth).toBeCloseTo(rawDamage, 5);
+  });
+
   it('damages using a random pick of the boss physical/magic attack (not their average), scaled by difficulty weight, and resets streak', () => {
     const character = makeCharacter({ currentHealth: 100 });
     const habit = makeHabit({ difficulty: 'medium', streakCount: 7 });

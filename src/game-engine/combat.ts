@@ -299,8 +299,10 @@ export function missHabit(
   const damage =
     attack * TUNING.MISS_DAMAGE_FACTOR * (DIFFICULTY_WEIGHT[habit.difficulty] / 1.5) *
     (wasCrit ? TUNING.CRIT_MULTIPLIER : 1) * weeklyMultiplier;
-  const newHealth = Math.max(0, character.currentHealth - damage);
-  const healedBoss = Math.min(boss.maxHealth, boss.health + damage * boss.lifestealPct);
+  const playerResistStat = attackType === 'physical' ? itemFlatBonus(character, 'armor') : itemFlatBonus(character, 'magicResist');
+  const mitigatedDamage = applyResist(damage, playerResistStat);
+  const newHealth = Math.max(0, character.currentHealth - mitigatedDamage);
+  const healedBoss = Math.min(boss.maxHealth, boss.health + mitigatedDamage * boss.lifestealPct);
   const bossLifestealHealed = healedBoss - boss.health;
   const newBoss = healedBoss !== boss.health ? { ...boss, health: healedBoss } : boss;
 
