@@ -15,7 +15,7 @@ export type {
   WoundsStatusEffect,
 } from './types';
 
-export { createCharacter, randomizeStat } from './character';
+export { createCharacter, migrateCharacter, randomizeStat } from './character';
 
 export {
   addExpAndResolveLevelUps,

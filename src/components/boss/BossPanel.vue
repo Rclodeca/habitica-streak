@@ -60,11 +60,11 @@ const magicAttack = computed(() => bossMissDamage(boss.value.magicAttack));
         <h2>Boss #{{ boss.index }} — {{ PERSONALITY_NAME[boss.personality] }}</h2>
         <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
         <p class="stat-summary">
-          <span>⚔️ {{ physicalAttack.toFixed(1) }}</span>
-          <span>🔮 {{ magicAttack.toFixed(1) }}</span>
-          <span>🛡️ {{ boss.armor.toFixed(1) }}</span>
-          <span>🔰 {{ boss.magicResist.toFixed(1) }}</span>
-          <span>💥 {{ (boss.critChance * 100).toFixed(1) }}%</span>
+          <span>⚔️ {{ physicalAttack.toFixed(0) }}</span>
+          <span>🔮 {{ magicAttack.toFixed(0) }}</span>
+          <span>🛡️ {{ boss.armor.toFixed(0) }}</span>
+          <span>🔰 {{ boss.magicResist.toFixed(0) }}</span>
+          <span>💥 {{ (boss.critChance * 100).toFixed(0) }}%</span>
           <span v-if="boss.reflectPct > 0">🪞 {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
           <span v-if="boss.lifestealPct > 0">🩸 {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
           <span v-if="boss.woundsAbility">🩹 {{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</span>
@@ -79,24 +79,24 @@ const magicAttack = computed(() => bossMissDamage(boss.value.magicAttack));
         <dd class="col-label">Effective</dd>
 
         <dt>⚔️ Physical attack</dt>
-        <dd>{{ boss.physicalAttack.toFixed(1) }}</dd>
-        <dd>{{ physicalAttack.toFixed(1) }}</dd>
+        <dd>{{ boss.physicalAttack.toFixed(0) }}</dd>
+        <dd>{{ physicalAttack.toFixed(0) }}</dd>
 
         <dt>🔮 Magic attack</dt>
-        <dd>{{ boss.magicAttack.toFixed(1) }}</dd>
-        <dd>{{ magicAttack.toFixed(1) }}</dd>
+        <dd>{{ boss.magicAttack.toFixed(0) }}</dd>
+        <dd>{{ magicAttack.toFixed(0) }}</dd>
 
         <dt>🛡️ Armor</dt>
-        <dd>{{ boss.armor.toFixed(1) }}</dd>
-        <dd>{{ boss.armor.toFixed(1) }}</dd>
+        <dd>{{ boss.armor.toFixed(0) }}</dd>
+        <dd>{{ boss.armor.toFixed(0) }}</dd>
 
         <dt>🔰 Magic resist</dt>
-        <dd>{{ boss.magicResist.toFixed(1) }}</dd>
-        <dd>{{ boss.magicResist.toFixed(1) }}</dd>
+        <dd>{{ boss.magicResist.toFixed(0) }}</dd>
+        <dd>{{ boss.magicResist.toFixed(0) }}</dd>
 
         <dt>💥 Crit chance</dt>
-        <dd>{{ (boss.critChance * 100).toFixed(1) }}%</dd>
-        <dd>{{ (boss.critChance * 100).toFixed(1) }}%</dd>
+        <dd>{{ (boss.critChance * 100).toFixed(0) }}%</dd>
+        <dd>{{ (boss.critChance * 100).toFixed(0) }}%</dd>
 
         <template v-if="boss.reflectPct > 0">
           <dt>🪞 Reflect</dt>

@@ -22,9 +22,7 @@ const isCompletedThisPeriod = computed(
 );
 
 const breakdown = computed(() => {
-  const siblings = props.habit.damageType === 'healing'
-    ? habitStore.habits.filter((h) => h.damageType === 'healing') // healing pools all habits regardless of good/bad
-    : habitStore.habitsOfType(props.habit.damageType, props.habit.isBad); // damage pools split by good/bad
+  const siblings = habitStore.habitsOfType(props.habit.damageType);
   return habitDamageBreakdown(characterStore.character, props.habit, siblings);
 });
 
@@ -33,6 +31,8 @@ const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
 const damageTypeColor = computed(() => {
   if (props.habit.damageType === 'healing') return '#22c55e'; // green
   if (props.habit.damageType === 'magic') return '#a855f7'; // purple
+  if (props.habit.damageType === 'trueDamage') return '#f9fafb'; // white
+  if (props.habit.damageType === 'expGain') return '#60a5fa'; // blue
   return '#ef4444'; // red for physical
 });
 

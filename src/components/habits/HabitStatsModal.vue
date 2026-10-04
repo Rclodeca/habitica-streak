@@ -6,7 +6,7 @@ import {
   overdriveUsesRemaining,
   periodKeyFor,
 } from '../../game-engine';
-import type { Habit } from '../../game-engine';
+import type { DamageType, Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { useCharacterStore } from '../../store/characterStore';
@@ -24,9 +24,7 @@ const { activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
 
 const breakdown = computed(() => {
-  const siblings = props.habit.damageType === 'healing'
-    ? habitStore.habits.filter((h) => h.damageType === 'healing') // healing pools all habits regardless of good/bad
-    : habitStore.habitsOfType(props.habit.damageType, props.habit.isBad); // damage pools split by good/bad
+  const siblings = habitStore.habitsOfType(props.habit.damageType);
   return habitDamageBreakdown(characterStore.character, props.habit, siblings);
 });
 
@@ -36,6 +34,14 @@ const multiplier = computed(() => breakdown.value.streakMultiplier);
 const bonusMultiplier = computed(() => breakdown.value.bonusMultiplier);
 const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
 const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
+const DAMAGE_TYPE_LABEL: Record<DamageType, string> = {
+  physical: 'physical',
+  magic: 'magic',
+  healing: 'healing',
+  trueDamage: 'true damage',
+  expGain: 'exp gain',
+};
+const damageTypeLabel = computed(() => DAMAGE_TYPE_LABEL[props.habit.damageType]);
 // Overdrive never gets the Special/Ult bonus, so its preview excludes bonusMultiplier.
 const overdriveDamage = computed(() =>
   overdriveDamagePreview(baseDamage.value * itemMultiplier.value * multiplier.value),
@@ -84,7 +90,7 @@ function removeHabit() {
       <dd>{{ habit.difficulty }}</dd>
 
       <dt>Damage type</dt>
-      <dd>{{ habit.damageType }}</dd>
+      <dd>{{ damageTypeLabel }}</dd>
 
       <dt>Streak</dt>
       <dd>{{ habit.streakCount }}</dd>
@@ -101,15 +107,15 @@ function removeHabit() {
       </template>
 
       <dt>{{ habit.isBad ? 'Base reward if avoided' : 'Base damage' }}</dt>
-      <dd>{{ baseDamage.toFixed(2) }}</dd>
+      <dd>{{ baseDamage.toFixed(0) }}</dd>
 
       <dt>{{ habit.isBad ? 'Effective reward if avoided' : 'Effective damage' }}</dt>
-      <dd>{{ effectiveDamage.toFixed(2) }}</dd>
+      <dd>{{ effectiveDamage.toFixed(0) }}</dd>
     </dl>
 
     <div v-if="habit.isOverdrive" class="overdrive-section">
       <button type="button" class="overdrive-button" :disabled="!canOverdrive" @click="onOverdrive">
-        Overdrive ({{ overdriveRemaining }} left) — {{ overdriveDamage.toFixed(2) }} dmg
+        Overdrive ({{ overdriveRemaining }} left) — {{ overdriveDamage.toFixed(0) }} dmg
       </button>
     </div>
 

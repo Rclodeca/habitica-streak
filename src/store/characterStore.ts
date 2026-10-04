@@ -9,6 +9,7 @@ import {
   createCharacter,
   createRng,
   maxEquipSlots,
+  migrateCharacter,
   missHabit,
   resolvePlayerDeathIfDead,
 } from '../game-engine';
@@ -19,9 +20,9 @@ export const useCharacterStore = defineStore('character', {
     character: createCharacter(createRng()) as Character,
   }),
   actions: {
-    /** Hydrates from a save slice, or bootstraps a fresh character. */
+    /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
     initFromSave(saved: Character | null, rng: Rng) {
-      this.character = saved ?? createCharacter(rng);
+      this.character = saved ? migrateCharacter(saved, rng) : createCharacter(rng);
     },
 
     /** Replaces the character wholesale, e.g. after combat resolution elsewhere. */

@@ -19,6 +19,8 @@ export const DAMAGE_TYPE_STARTER_STAT: Record<DamageType, keyof Character['start
   physical: 'physicalDamage',
   magic: 'magicDamage',
   healing: 'healing',
+  trueDamage: 'trueDamage',
+  expGain: 'expGain',
 };
 
 /** The flat reward multiplier from a habit's period alone — weeklies reward more per completion. */
@@ -100,7 +102,10 @@ export function habitDamageBreakdown(character: Character, habit: Habit, allHabi
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const statShare = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
   const baseDamage = statShare * periodRewardMultiplier(habit.period);
-  const itemMultiplier = itemStatMultiplier(character, statField);
+  // expGain's percent item bonus is applied once, later, inside
+  // addExpAndResolveLevelUps (same path a boss kill's EXP goes through) —
+  // applying it here too would double-count it. See completeHabit.
+  const itemMultiplier = habit.damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
   const streakMult = streakMultiplier(habit.streakCount, habit.period);
   const bonusMultiplier = levelRewardMultiplier(habit);
   return {
@@ -124,6 +129,10 @@ export type CombatResult = {
   // without recomputing this function's formulas themselves.
   lifestealHealed?: number;
   reflectedDamage?: number;
+  // Set only for an 'expGain'-type habit — the raw EXP amount this
+  // completion earned, for the caller to grant via addExpAndResolveLevelUps
+  // (not granted internally, mirroring how milestoneExp is handled).
+  expGained?: number;
 };
 
 /**
@@ -167,7 +176,10 @@ export function completeHabit(
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const statShare = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
   const baseDamage = statShare * periodRewardMultiplier(habit.period);
-  const itemMultiplier = itemStatMultiplier(character, statField);
+  // expGain's percent item bonus is applied once, later, inside
+  // addExpAndResolveLevelUps (same path a boss kill's EXP goes through) —
+  // applying it here too would double-count it.
+  const itemMultiplier = habit.damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
   // An Overdrive activation is an extra use of an already-checked-off habit:
   // it doesn't touch the streak or grant milestone EXP again, and never
   // gets the Special/Ult bonus — only OVERDRIVE_DAMAGE_FACTOR damage.
@@ -185,12 +197,23 @@ export function completeHabit(
     return { character: { ...character, currentHealth: healed }, boss, updatedHabit, milestoneExp };
   }
 
+  // Granted by the caller via addExpAndResolveLevelUps, not here — mirrors
+  // how milestoneExp is handed back unresolved above.
+  if (habit.damageType === 'expGain') {
+    return { character, boss, updatedHabit, milestoneExp, expGained: amount };
+  }
+
   const wasCrit = rng() < effectiveCritChance(character);
   const critAmount = wasCrit ? amount * TUNING.CRIT_MULTIPLIER : amount;
-  const resistStat = habit.damageType === 'physical' ? boss.armor : boss.magicResist;
-  const penStat = habit.damageType === 'physical' ? 'armorPen' : 'magicPen';
-  const effectiveResistStat = effectiveResistAfterPen(resistStat, itemBonusPercent(character, penStat));
-  const dealt = applyResist(critAmount, effectiveResistStat);
+  // True damage ignores armor/magicResist entirely — it's not physical or
+  // magic, so neither mitigation stat (nor armorPen/magicPen) applies to it.
+  let dealt = critAmount;
+  if (habit.damageType !== 'trueDamage') {
+    const resistStat = habit.damageType === 'physical' ? boss.armor : boss.magicResist;
+    const penStat = habit.damageType === 'physical' ? 'armorPen' : 'magicPen';
+    const effectiveResistStat = effectiveResistAfterPen(resistStat, itemBonusPercent(character, penStat));
+    dealt = applyResist(critAmount, effectiveResistStat);
+  }
   const newBoss = { ...boss, health: Math.max(0, boss.health - dealt) };
 
   const lifestealPct = itemBonusPercent(character, 'lifesteal');

@@ -6,14 +6,26 @@
 import { defineStore } from 'pinia';
 
 export type ActivityLogEntry =
-  | { id: string; kind: 'skill-damage'; habitName: string; amount: number }
+  // isTrueDamage is set only for a 'trueDamage'-type habit, so ActivityLog
+  // can render it in its own color — see HabitListItem's damageTypeColor
+  // for the same physical/magic/healing/trueDamage/expGain color scheme.
+  | { id: string; kind: 'skill-damage'; habitName: string; amount: number; isTrueDamage?: boolean }
   | { id: string; kind: 'heal'; habitName: string; amount: number }
+  | { id: string; kind: 'exp-skill'; habitName: string; amount: number }
   | { id: string; kind: 'hit'; habitName: string; amount: number; attackType: 'physical' | 'magic' }
   | {
       id: string;
       kind: 'level-up';
       newLevel: number;
-      statDeltas: { physicalDamage: number; magicDamage: number; healing: number; health: number };
+      healthRestored: number;
+      statDeltas: {
+        physicalDamage: number;
+        magicDamage: number;
+        healing: number;
+        health: number;
+        trueDamage: number;
+        expGain: number;
+      };
     }
   | { id: string; kind: 'crit'; by: 'player' | 'boss' }
   | { id: string; kind: 'lifesteal'; amount: number; healedWho: 'player' | 'boss' }

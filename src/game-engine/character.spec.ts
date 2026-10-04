@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCharacter, randomizeStat } from './character';
+import { createCharacter, migrateCharacter, randomizeStat } from './character';
 import { ITEM_CATALOG } from './items';
 import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
@@ -14,7 +14,7 @@ describe('createCharacter', () => {
 
     for (let i = 0; i < 200; i++) {
       const character = createCharacter(rng);
-      const { physicalDamage, magicDamage, healing, health } = character.starterStats;
+      const { physicalDamage, magicDamage, healing, health, trueDamage, expGain } = character.starterStats;
 
       expect(physicalDamage).toBeGreaterThanOrEqual(damagePool * minShare * 0.95);
       expect(physicalDamage).toBeLessThanOrEqual(damagePool * maxShare * 1.05);
@@ -32,6 +32,12 @@ describe('createCharacter', () => {
 
       expect(health).toBeGreaterThanOrEqual(TUNING.BASE_STATS.health * 0.95);
       expect(health).toBeLessThanOrEqual(TUNING.BASE_STATS.health * 1.05);
+
+      expect(trueDamage).toBeGreaterThanOrEqual(TUNING.BASE_STATS.trueDamage * 0.95);
+      expect(trueDamage).toBeLessThanOrEqual(TUNING.BASE_STATS.trueDamage * 1.05);
+
+      expect(expGain).toBeGreaterThanOrEqual(TUNING.BASE_STATS.expGain * 0.95);
+      expect(expGain).toBeLessThanOrEqual(TUNING.BASE_STATS.expGain * 1.05);
     }
   });
 
@@ -89,6 +95,43 @@ describe('createCharacter', () => {
     const characterA = createCharacter(createRng(1));
     const characterB = createCharacter(createRng(2));
     expect(characterA).not.toEqual(characterB);
+  });
+});
+
+describe('migrateCharacter', () => {
+  it('backfills trueDamage/expGain on a pre-migration save, leaving every other field untouched', () => {
+    const character = createCharacter(createRng(1));
+    const { trueDamage, expGain, ...rest } = character.starterStats;
+    const preMigrationSave = { ...character, starterStats: rest } as typeof character;
+
+    const migrated = migrateCharacter(preMigrationSave, createRng(2));
+
+    expect(migrated.starterStats.trueDamage).toBeGreaterThan(0);
+    expect(migrated.starterStats.expGain).toBeGreaterThan(0);
+    expect({ ...migrated.starterStats, trueDamage: undefined, expGain: undefined }).toEqual({
+      ...rest,
+      trueDamage: undefined,
+      expGain: undefined,
+    });
+    expect(migrated.level).toBe(character.level);
+    expect(migrated.currentHealth).toBe(character.currentHealth);
+  });
+
+  it('is a no-op on a character that already has both fields', () => {
+    const character = createCharacter(createRng(3));
+    const migrated = migrateCharacter(character, createRng(4));
+    expect(migrated).toEqual(character);
+  });
+
+  it('backfills only whichever of the two fields is actually missing', () => {
+    const character = createCharacter(createRng(5));
+    const { expGain, ...rest } = character.starterStats;
+    const partialSave = { ...character, starterStats: rest } as typeof character;
+
+    const migrated = migrateCharacter(partialSave, createRng(6));
+
+    expect(migrated.starterStats.trueDamage).toBe(character.starterStats.trueDamage);
+    expect(migrated.starterStats.expGain).toBeGreaterThan(0);
   });
 });
 

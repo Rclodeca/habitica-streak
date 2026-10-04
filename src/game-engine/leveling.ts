@@ -21,9 +21,13 @@ const MAX_LEVEL_UPS_PER_GRANT = 2000;
 
 /**
  * Grants EXP (scaled by an equipped expGain bonus) and resolves any
- * resulting level-ups. A lifesteal item bonus also heals the character a
- * tiny amount per level gained — `lifestealPct`% of max health (at the new
- * level) for each level crossed in this single grant.
+ * resulting level-ups. Each level gained also heals the character
+ * TUNING.LEVEL_UP_HEAL_PCT% of max health (at the new level) — lifesteal is
+ * deliberately NOT a factor here: it only heals off damage actually dealt to
+ * a boss (see `completeHabit`), and a level-up isn't damage dealt. A
+ * lifesteal-equipped boss kill still heals you, via that same completeHabit
+ * path, for the hit that brought the boss to 0 — this heal is independent of
+ * that.
  */
 export function addExpAndResolveLevelUps(
   character: Character,
@@ -39,10 +43,9 @@ export function addExpAndResolveLevelUps(
   }
 
   let currentHealth = character.currentHealth;
-  const lifestealPct = itemBonusPercent(character, 'lifesteal');
-  if (levelsGained > 0 && lifestealPct > 0) {
+  if (levelsGained > 0) {
     const maxHealth = effectiveStat({ ...character, level }, 'health');
-    currentHealth = Math.min(currentHealth + maxHealth * (lifestealPct / 100) * levelsGained, maxHealth);
+    currentHealth = Math.min(currentHealth + maxHealth * (TUNING.LEVEL_UP_HEAL_PCT / 100) * levelsGained, maxHealth);
   }
 
   return { character: { ...character, level, exp, currentHealth }, levelsGained };
@@ -55,7 +58,7 @@ export function statAtLevel(starterStatValue: number, level: number): number {
 /** The character's equipped-item bonus for `stat`, expressed as a multiplier (e.g. 1.06 for a +6% item). */
 export function itemStatMultiplier(
   character: Character,
-  stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health',
+  stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health' | 'trueDamage' | 'expGain',
 ): number {
   return 1 + itemBonusPercent(character, stat) / 100;
 }
@@ -63,7 +66,7 @@ export function itemStatMultiplier(
 /** statAtLevel(...) scaled by the character's equipped-item bonus for `stat`. */
 export function effectiveStat(
   character: Character,
-  stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health',
+  stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health' | 'trueDamage' | 'expGain',
 ): number {
   const baseWithFlat = statAtLevel(character.starterStats[stat], character.level) + itemFlatBonus(character, stat);
   return baseWithFlat * itemStatMultiplier(character, stat);

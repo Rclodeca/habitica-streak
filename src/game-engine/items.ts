@@ -7,6 +7,7 @@ export type BoostableStat =
   | 'magicDamage'
   | 'healing'
   | 'health'
+  | 'trueDamage'
   | 'expGain'
   | 'critChance'
   | 'lifesteal'

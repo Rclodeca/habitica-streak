@@ -8,9 +8,9 @@ import HabitListItem from './HabitListItem.vue';
 const habitStore = useHabitStore();
 const showAddModal = ref(false);
 
-// Healing first, then physical, then magic — stable sort preserves each
-// damage type's original relative order.
-const DAMAGE_TYPE_ORDER: DamageType[] = ['healing', 'physical', 'magic'];
+// Healing first, then physical, then magic, then true damage, then exp gain
+// — stable sort preserves each damage type's original relative order.
+const DAMAGE_TYPE_ORDER: DamageType[] = ['healing', 'physical', 'magic', 'trueDamage', 'expGain'];
 function sortByDamageType(habits: Habit[]): Habit[] {
   return [...habits].sort(
     (a, b) => DAMAGE_TYPE_ORDER.indexOf(a.damageType) - DAMAGE_TYPE_ORDER.indexOf(b.damageType),

@@ -15,6 +15,8 @@
   --damage-color: #e5484d;
   --heal-color: #34d399;
   --stat-color: #60a5fa;
+  --true-damage-color: #f9fafb;
+  --exp-skill-color: var(--stat-color);
   --shadow:
     rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 

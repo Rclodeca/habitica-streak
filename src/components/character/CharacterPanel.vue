@@ -36,6 +36,8 @@ const expNeeded = computed(() => expToNextLevel(character.value.level));
 const physicalDamage = computed(() => effectiveStat(character.value, 'physicalDamage'));
 const magicDamage = computed(() => effectiveStat(character.value, 'magicDamage'));
 const healing = computed(() => effectiveStat(character.value, 'healing'));
+const trueDamage = computed(() => effectiveStat(character.value, 'trueDamage'));
+const expGain = computed(() => effectiveStat(character.value, 'expGain'));
 const critChance = computed(() => effectiveCritChance(character.value));
 
 const currentDayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
@@ -49,6 +51,8 @@ const woundsDaysLeft = computed(() =>
 const basePhysicalDamage = computed(() => statAtLevel(character.value.starterStats.physicalDamage, character.value.level));
 const baseMagicDamage = computed(() => statAtLevel(character.value.starterStats.magicDamage, character.value.level));
 const baseHealing = computed(() => statAtLevel(character.value.starterStats.healing, character.value.level));
+const baseTrueDamage = computed(() => statAtLevel(character.value.starterStats.trueDamage, character.value.level));
+const baseExpGain = computed(() => statAtLevel(character.value.starterStats.expGain, character.value.level));
 const baseCritChance = computed(() => character.value.critChance);
 
 // Sized to the character's current level-dependent slot cap (4 below
@@ -103,10 +107,12 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
       <ExpBar :current="character.exp" :max="expNeeded" />
       <p class="stat-summary">
-        <span>⚔️ {{ physicalDamage.toFixed(1) }}</span>
-        <span>🔮 {{ magicDamage.toFixed(1) }}</span>
-        <span>💚 {{ healing.toFixed(1) }}</span>
-        <span>💥 {{ (critChance * 100).toFixed(1) }}%</span>
+        <span>⚔️ {{ physicalDamage.toFixed(0) }}</span>
+        <span>🔮 {{ magicDamage.toFixed(0) }}</span>
+        <span>💚 {{ healing.toFixed(0) }}</span>
+        <span>⚡ {{ trueDamage.toFixed(0) }}</span>
+        <span>✨ {{ expGain.toFixed(0) }}</span>
+        <span>💥 {{ (critChance * 100).toFixed(0) }}%</span>
         <span v-if="woundsEffect">🩹 {{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
       </p>
     </button>
@@ -118,20 +124,28 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <dd class="col-label">Effective</dd>
 
         <dt>⚔️ Physical damage</dt>
-        <dd>{{ basePhysicalDamage.toFixed(1) }}</dd>
-        <dd>{{ physicalDamage.toFixed(1) }}</dd>
+        <dd>{{ basePhysicalDamage.toFixed(0) }}</dd>
+        <dd>{{ physicalDamage.toFixed(0) }}</dd>
 
         <dt>🔮 Magic damage</dt>
-        <dd>{{ baseMagicDamage.toFixed(1) }}</dd>
-        <dd>{{ magicDamage.toFixed(1) }}</dd>
+        <dd>{{ baseMagicDamage.toFixed(0) }}</dd>
+        <dd>{{ magicDamage.toFixed(0) }}</dd>
 
         <dt>💚 Healing</dt>
-        <dd>{{ baseHealing.toFixed(1) }}</dd>
-        <dd>{{ healing.toFixed(1) }}</dd>
+        <dd>{{ baseHealing.toFixed(0) }}</dd>
+        <dd>{{ healing.toFixed(0) }}</dd>
+
+        <dt>⚡ True damage</dt>
+        <dd>{{ baseTrueDamage.toFixed(0) }}</dd>
+        <dd>{{ trueDamage.toFixed(0) }}</dd>
+
+        <dt>✨ EXP gain</dt>
+        <dd>{{ baseExpGain.toFixed(0) }}</dd>
+        <dd>{{ expGain.toFixed(0) }}</dd>
 
         <dt>💥 Crit chance</dt>
-        <dd>{{ (baseCritChance * 100).toFixed(1) }}%</dd>
-        <dd>{{ (critChance * 100).toFixed(1) }}%</dd>
+        <dd>{{ (baseCritChance * 100).toFixed(0) }}%</dd>
+        <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
 
         <template v-if="woundsEffect">
           <dt>🩹 Wounded</dt>

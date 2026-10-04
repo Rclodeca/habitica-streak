@@ -78,11 +78,17 @@ export function useCombatActions() {
     activityLogStore.addEntry({
       kind: 'level-up',
       newLevel: after.level,
+      // Isolates the level-up heal (TUNING.LEVEL_UP_HEAL_PCT + lifesteal%,
+      // see addExpAndResolveLevelUps): nothing else changes currentHealth
+      // between these two specific snapshots.
+      healthRestored: after.currentHealth - before.currentHealth,
       statDeltas: {
         physicalDamage: effectiveStat(after, 'physicalDamage') - effectiveStat(before, 'physicalDamage'),
         magicDamage: effectiveStat(after, 'magicDamage') - effectiveStat(before, 'magicDamage'),
         healing: effectiveStat(after, 'healing') - effectiveStat(before, 'healing'),
         health: effectiveStat(after, 'health') - effectiveStat(before, 'health'),
+        trueDamage: effectiveStat(after, 'trueDamage') - effectiveStat(before, 'trueDamage'),
+        expGain: effectiveStat(after, 'expGain') - effectiveStat(before, 'expGain'),
       },
     });
   }
@@ -140,9 +146,7 @@ export function useCombatActions() {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return [];
 
-    const habitsInPool = habit.damageType === 'healing'
-      ? habitStore.habits.filter((h) => h.damageType === 'healing') // healing pools all habits regardless of good/bad
-      : habitStore.habitsOfType(habit.damageType, habit.isBad); // damage pools split by good/bad
+    const habitsInPool = habitStore.habitsOfType(habit.damageType);
     const healthBefore = characterStore.character.currentHealth;
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
     // Always the daily key (never the habit's own period key) — Wounds
@@ -167,6 +171,8 @@ export function useCombatActions() {
         habitName: habit.name,
         amount: result.character.currentHealth - healthBefore,
       });
+    } else if (habit.damageType === 'expGain') {
+      activityLogStore.addEntry({ kind: 'exp-skill', habitName: habit.name, amount: result.expGained ?? 0 });
     } else if (result.damageDealt !== undefined) {
       // Sub-effect entries pushed before the main one so the main "skill
       // used" entry — the headline of this action — lands on top (newest).
@@ -177,12 +183,22 @@ export function useCombatActions() {
       if (result.reflectedDamage) {
         activityLogStore.addEntry({ kind: 'reflect', amount: result.reflectedDamage });
       }
-      activityLogStore.addEntry({ kind: 'skill-damage', habitName: habit.name, amount: result.damageDealt });
+      activityLogStore.addEntry({
+        kind: 'skill-damage',
+        habitName: habit.name,
+        amount: result.damageDealt,
+        isTrueDamage: habit.damageType === 'trueDamage',
+      });
     }
 
-    if (result.milestoneExp > 0) {
+    // Streak-milestone EXP and an expGain skill's own payout are granted
+    // together in one call, so expGain items' percent bonus (see
+    // addExpAndResolveLevelUps) is applied once to their combined total
+    // rather than once per source.
+    const totalExpGained = result.milestoneExp + (result.expGained ?? 0);
+    if (totalExpGained > 0) {
       const beforeLevelUp = characterStore.character;
-      const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, result.milestoneExp);
+      const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, totalExpGained);
       logLevelUpIfAny(beforeLevelUp, character);
       characterStore.setCharacter(character);
       applyLevelRewards(levelsGained);

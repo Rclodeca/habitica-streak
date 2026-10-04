@@ -46,17 +46,19 @@ describe('createHabit', () => {
     expect(a.id.length).toBeGreaterThan(0);
   });
 
-  it('picks damageType roughly 40/40/20 physical/magic/healing over many runs', () => {
+  it('picks damageType roughly 35/35/15/8/7 physical/magic/healing/trueDamage/expGain over many runs', () => {
     const rng = createRng(123);
-    const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0 };
+    const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0, trueDamage: 0, expGain: 0 };
     const iterations = 2000;
     for (let i = 0; i < iterations; i++) {
       const habit = createHabit('H', 'daily', 'easy', false, rng);
       counts[habit.damageType] += 1;
     }
-    expect(counts.physical / iterations).toBeCloseTo(0.4, 1);
-    expect(counts.magic / iterations).toBeCloseTo(0.4, 1);
-    expect(counts.healing / iterations).toBeCloseTo(0.2, 1);
+    expect(counts.physical / iterations).toBeCloseTo(0.35, 1);
+    expect(counts.magic / iterations).toBeCloseTo(0.35, 1);
+    expect(counts.healing / iterations).toBeCloseTo(0.15, 1);
+    expect(counts.trueDamage / iterations).toBeCloseTo(0.08, 1);
+    expect(counts.expGain / iterations).toBeCloseTo(0.07, 1);
   });
 });
 
@@ -69,7 +71,7 @@ describe('rerollDamageType', () => {
     expect(rerolled.id).toBe(original.id);
     expect(rerolled.name).toBe(original.name);
     expect(rerolled.streakCount).toBe(original.streakCount);
-    expect(['physical', 'magic', 'healing']).toContain(rerolled.damageType);
+    expect(['physical', 'magic', 'healing', 'trueDamage', 'expGain']).toContain(rerolled.damageType);
   });
 
   it('does not mutate the original habit', () => {

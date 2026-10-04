@@ -15,7 +15,7 @@ import { createRng } from './rng';
 import type { Character } from './types';
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
-  const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 };
+  const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 };
   return {
     level: 1,
     exp: 0,

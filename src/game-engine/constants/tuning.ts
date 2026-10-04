@@ -3,7 +3,16 @@ export const TUNING = {
   // rescale") so that a 1% streak/item bonus moves the displayed (rounded)
   // damage number by more than a rounding error, and so one day of fully
   // completing physical+magic habits can actually kill boss 1.
-  BASE_STATS: { physicalDamage: 800, magicDamage: 800, healing: 480, health: 1250 },
+  // healing cut 480 -> 384 (-20%) alongside merging good/bad habit pools
+  // (see HABIT_DAMAGE_TYPE_WEIGHTS/habitsOfType) — more habits now draw from
+  // one healing budget instead of a good-only one, so the per-habit share
+  // would otherwise have gone up instead of staying flat.
+  // trueDamage is sized at 30% of the combined physicalDamage+magicDamage
+  // pool (0.3 * 1600 = 480). expGain is sized at 30% of boss 1's kill
+  // reward (0.3 * BASE_BOSS_EXP = 0.3 * 40 = 12) — see leveling.ts for why
+  // it scales with player level (not boss index) to avoid racing
+  // BOSS_EXP_GROWTH_RATE.
+  BASE_STATS: { physicalDamage: 800, magicDamage: 800, healing: 384, health: 1250, trueDamage: 480, expGain: 12 },
   STAT_RANDOMIZATION_PCT: 0.05, // ±5% at character creation
   LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level
   // Bumped from 0.01 (+1%/streak) to 0.10 (+10%/streak) so a well-kept
@@ -78,6 +87,9 @@ export const TUNING = {
   MISS_DAMAGE_CURVE_EARLY_PCT: 0.05,
   MISS_DAMAGE_CURVE_TARGET_INDEX: 50,
   MISS_DAMAGE_CURVE_TARGET_PCT: 0.7,
+  // Unconditional per-level heal on top of any lifesteal-item bonus (see
+  // addExpAndResolveLevelUps) — applied once per level gained in a grant.
+  LEVEL_UP_HEAL_PCT: 20,
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
   CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed
   CRIT_MULTIPLIER: 2, // crit hits deal 2x damage
@@ -85,7 +97,7 @@ export const TUNING = {
   // trigger is worth more to keep them meaningfully influential.
   WEEKLY_REWARD_MULTIPLIER: 3, // a completed/avoided weekly deals 3x damage/healing
   WEEKLY_MISS_MULTIPLIER: 2, // a missed/failed weekly deals 2x damage to the player
-  HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.4, magic: 0.4, healing: 0.2 },
+  HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.35, magic: 0.35, healing: 0.15, trueDamage: 0.08, expGain: 0.07 },
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates
   // 2x -> 3x -> 4x -> 5x, and each tier is 5x rarer than the one below it —
   // the same ratio ITEM_CATALOG's RARITY_WEIGHT uses for

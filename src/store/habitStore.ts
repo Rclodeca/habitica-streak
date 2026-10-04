@@ -11,14 +11,14 @@ export const useHabitStore = defineStore('habit', {
   }),
   getters: {
     /**
-     * Habits of the current list filtered by damage type AND good/bad kind,
-     * for feeding `computeDamageSplit` — bad habits split their reward pool
-     * only against other bad habits of the same damage type, never mixing
-     * with good habits.
+     * Habits of the current list filtered by damage type, for feeding
+     * `computeDamageSplit` — one shared pool per damage type across good
+     * and bad, daily and weekly habits alike. Deliberate: a separate pool
+     * per good/bad (or per period) would let adding more habits grow a
+     * player's total reward instead of just diluting the existing pool.
      */
     habitsOfType(state) {
-      return (damageType: DamageType, isBad: boolean): Habit[] =>
-        state.habits.filter((habit) => habit.damageType === damageType && habit.isBad === isBad);
+      return (damageType: DamageType): Habit[] => state.habits.filter((habit) => habit.damageType === damageType);
     },
   },
   actions: {

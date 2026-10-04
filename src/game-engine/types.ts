@@ -1,4 +1,4 @@
-export type DamageType = 'physical' | 'magic' | 'healing';
+export type DamageType = 'physical' | 'magic' | 'healing' | 'trueDamage' | 'expGain';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -35,6 +35,8 @@ export interface Character {
     magicDamage: number;
     healing: number;
     health: number;
+    trueDamage: number;
+    expGain: number;
   };
   currentHealth: number;
   ownedItemIds: string[]; // all items ever dropped for this character (equipped + unequipped)

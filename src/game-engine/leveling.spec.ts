@@ -39,7 +39,7 @@ describe('addExpAndResolveLevelUps', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
@@ -82,7 +82,7 @@ describe('addExpAndResolveLevelUps', () => {
     expect(result.character.starterStats).toEqual(character.starterStats);
   });
 
-  it('heals a percent of max health on level-up when a lifesteal item is equipped', () => {
+  it('does not add lifesteal on top of the base level-up heal — lifesteal only heals off damage dealt to a boss', () => {
     const character = makeCharacter({
       currentHealth: 10,
       ownedItemIds: ['vampiric-fang'],
@@ -92,34 +92,36 @@ describe('addExpAndResolveLevelUps', () => {
 
     expect(result.levelsGained).toBe(1);
     const maxHealthAtNewLevel = statAtLevel(character.starterStats.health, result.character.level);
-    const expectedHeal = maxHealthAtNewLevel * 0.05; // vampiric-fang bonusPercent: 5
+    const expectedHeal = maxHealthAtNewLevel * (TUNING.LEVEL_UP_HEAL_PCT / 100);
     expect(result.character.currentHealth).toBeCloseTo(10 + expectedHeal, 10);
   });
 
-  it('computes the level-up lifesteal heal using the same max-health formula as effectiveStat, including flat item bonuses', () => {
+  it('computes the level-up heal using the same max-health formula as effectiveStat, including flat item bonuses', () => {
     const character = makeCharacter({
       currentHealth: 10,
-      // vampiric-fang: +5% lifesteal; juggernaut-carapace: +300 flat armor, +200 flat health
-      ownedItemIds: ['vampiric-fang', 'juggernaut-carapace'],
-      equippedItemIds: ['vampiric-fang', 'juggernaut-carapace'],
+      // juggernaut-carapace: +300 flat armor, +200 flat health
+      ownedItemIds: ['juggernaut-carapace'],
+      equippedItemIds: ['juggernaut-carapace'],
     });
     const result = addExpAndResolveLevelUps(character, 25); // exactly enough for 1 level
 
     expect(result.levelsGained).toBe(1);
     const maxHealthAtNewLevel = effectiveStat({ ...character, level: result.character.level }, 'health');
-    const expectedHeal = maxHealthAtNewLevel * 0.05;
+    const expectedHeal = maxHealthAtNewLevel * (TUNING.LEVEL_UP_HEAL_PCT / 100);
     expect(result.character.currentHealth).toBeCloseTo(10 + expectedHeal, 10);
   });
 
-  it('does not heal on level-up without a lifesteal item equipped', () => {
+  it('heals the base percent on level-up without any items equipped', () => {
     const character = makeCharacter({ currentHealth: 10 });
     const result = addExpAndResolveLevelUps(character, 25);
 
     expect(result.levelsGained).toBe(1);
-    expect(result.character.currentHealth).toBe(10);
+    const maxHealthAtNewLevel = statAtLevel(character.starterStats.health, result.character.level);
+    const expectedHeal = maxHealthAtNewLevel * (TUNING.LEVEL_UP_HEAL_PCT / 100);
+    expect(result.character.currentHealth).toBeCloseTo(10 + expectedHeal, 10);
   });
 
-  it('does not heal from lifesteal when no level was gained', () => {
+  it('does not heal at all when no level was gained, even with a lifesteal item equipped', () => {
     const character = makeCharacter({
       currentHealth: 10,
       ownedItemIds: ['vampiric-fang'],
@@ -162,7 +164,7 @@ describe('effectiveStat', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
@@ -201,7 +203,7 @@ describe('addExpAndResolveLevelUps with item bonuses', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
@@ -223,7 +225,7 @@ describe('effectiveCritChance', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
@@ -257,7 +259,7 @@ describe('effectiveStat — flat item bonus', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],

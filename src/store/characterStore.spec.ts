@@ -6,6 +6,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createCharacter, createRng } from '../game-engine';
 import { useCharacterStore } from './characterStore';
 
 describe('characterStore equip/unequip', () => {
@@ -87,5 +88,24 @@ describe('characterStore equip/unequip', () => {
     store.unequipItem('rusty-blade');
 
     expect(store.character).toEqual(before);
+  });
+});
+
+describe('characterStore.initFromSave', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it('migrates a save from before trueDamage/expGain existed instead of leaving them undefined', () => {
+    const store = useCharacterStore();
+    const original = createCharacter(createRng(1));
+    const { trueDamage, expGain, ...preMigrationStats } = original.starterStats;
+    const preMigrationSave = { ...original, starterStats: preMigrationStats } as typeof original;
+
+    store.initFromSave(preMigrationSave, createRng(2));
+
+    expect(store.character.starterStats.trueDamage).toBeGreaterThan(0);
+    expect(store.character.starterStats.expGain).toBeGreaterThan(0);
+    expect(store.character.level).toBe(original.level);
   });
 });

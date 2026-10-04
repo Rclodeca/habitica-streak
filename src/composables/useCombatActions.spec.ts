@@ -256,7 +256,7 @@ describe('useCombatActions', () => {
     expect(itemsDropped).toEqual([]);
   });
 
-  it("keeps bad and good habits' damage-split pools separate for the same damage type", () => {
+  it("pools bad and good habits of the same damage type together", () => {
     const habitStore = useHabitStore();
 
     const badHabit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
@@ -264,7 +264,9 @@ describe('useCombatActions', () => {
     const goodHabit = habitStore.addHabit('Push-ups', 'daily', 'medium', false, createRng());
     habitStore.updateHabit({ ...goodHabit, damageType: 'physical' });
 
-    expect(habitStore.habitsOfType('physical', true)).toEqual([{ ...badHabit, damageType: 'physical' }]);
-    expect(habitStore.habitsOfType('physical', false)).toEqual([{ ...goodHabit, damageType: 'physical' }]);
+    expect(habitStore.habitsOfType('physical')).toEqual([
+      { ...badHabit, damageType: 'physical' },
+      { ...goodHabit, damageType: 'physical' },
+    ]);
   });
 });
