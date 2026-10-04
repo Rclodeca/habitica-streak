@@ -49,6 +49,7 @@ export {
   completeHabit,
   DAMAGE_TYPE_STARTER_STAT,
   effectiveResistAfterPen,
+  expectedMediumDailyDamage,
   habitDamageBreakdown,
   healingMultiplier,
   levelRewardMultiplier,

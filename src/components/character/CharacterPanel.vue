@@ -7,6 +7,7 @@ import {
   describeItemBonus,
   effectiveCritChance,
   effectiveStat,
+  expectedMediumDailyDamage,
   expToNextLevel,
   ITEM_CATALOG,
   maxEquipSlots,
@@ -15,18 +16,22 @@ import {
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
+import { useHabitStore } from '../../store/habitStore';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
 import PlayerSprite from './PlayerSprite.vue';
 
-// A condensed, always-visible emoji stat line (effective numbers only) sits
-// next to the title; the full base-vs-effective breakdown lives in a modal
-// behind the same tap. See BossPanel.vue for the same pattern.
+// A condensed, always-visible emoji stat line (Effective numbers only — what
+// a medium daily of that type deals right now, mirroring the boss's own
+// condensed row) sits next to the title; the full Base/Buffed/Effective
+// breakdown lives in a modal behind the same tap. See BossPanel.vue for the
+// same pattern.
 const showDetails = ref(false);
 
 const characterStore = useCharacterStore();
 const debugClockStore = useDebugClockStore();
+const habitStore = useHabitStore();
 
 const baseUrl = import.meta.env.BASE_URL;
 
@@ -54,6 +59,23 @@ const baseHealing = computed(() => statAtLevel(character.value.starterStats.heal
 const baseTrueDamage = computed(() => statAtLevel(character.value.starterStats.trueDamage, character.value.level));
 const baseExpGain = computed(() => statAtLevel(character.value.starterStats.expGain, character.value.level));
 const baseCritChance = computed(() => character.value.critChance);
+
+// What a brand-new medium daily habit of each damage type would deal right
+// now — the "Effective" column, analogous to a boss's own Effective attack
+// stat (see BossPanel.vue), but computed against this character's real
+// habits since (unlike a boss's attack) the player's stat pool is diluted
+// across every habit sharing that damage type.
+const expectedPhysicalDamage = computed(() =>
+  expectedMediumDailyDamage(character.value, 'physical', habitStore.habitsOfType('physical')),
+);
+const expectedMagicDamage = computed(() =>
+  expectedMediumDailyDamage(character.value, 'magic', habitStore.habitsOfType('magic')),
+);
+const expectedHealing = computed(() => expectedMediumDailyDamage(character.value, 'healing', habitStore.habitsOfType('healing')));
+const expectedTrueDamage = computed(() =>
+  expectedMediumDailyDamage(character.value, 'trueDamage', habitStore.habitsOfType('trueDamage')),
+);
+const expectedExpGain = computed(() => expectedMediumDailyDamage(character.value, 'expGain', habitStore.habitsOfType('expGain')));
 
 // Sized to the character's current level-dependent slot cap (4 below
 // level 10, 6 at 10+), in whatever order they were equipped — empty ones
@@ -107,11 +129,11 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
       <ExpBar :current="character.exp" :max="expNeeded" />
       <p class="stat-summary">
-        <span>⚔️ {{ physicalDamage.toFixed(0) }}</span>
-        <span>🔮 {{ magicDamage.toFixed(0) }}</span>
-        <span>💚 {{ healing.toFixed(0) }}</span>
-        <span>⚡ {{ trueDamage.toFixed(0) }}</span>
-        <span>✨ {{ expGain.toFixed(0) }}</span>
+        <span>⚔️ {{ expectedPhysicalDamage.toFixed(0) }}</span>
+        <span>🔮 {{ expectedMagicDamage.toFixed(0) }}</span>
+        <span>💚 {{ expectedHealing.toFixed(0) }}</span>
+        <span>⚡ {{ expectedTrueDamage.toFixed(0) }}</span>
+        <span>✨ {{ expectedExpGain.toFixed(0) }}</span>
         <span>💥 {{ (critChance * 100).toFixed(0) }}%</span>
         <span v-if="woundsEffect">🩹 {{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
       </p>
@@ -121,38 +143,51 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
       <dl class="stat-list">
         <dt></dt>
         <dd class="col-label">Base</dd>
+        <dd class="col-label">Buffed</dd>
         <dd class="col-label">Effective</dd>
 
         <dt>⚔️ Physical damage</dt>
         <dd>{{ basePhysicalDamage.toFixed(0) }}</dd>
         <dd>{{ physicalDamage.toFixed(0) }}</dd>
+        <dd>{{ expectedPhysicalDamage.toFixed(0) }}</dd>
 
         <dt>🔮 Magic damage</dt>
         <dd>{{ baseMagicDamage.toFixed(0) }}</dd>
         <dd>{{ magicDamage.toFixed(0) }}</dd>
+        <dd>{{ expectedMagicDamage.toFixed(0) }}</dd>
 
         <dt>💚 Healing</dt>
         <dd>{{ baseHealing.toFixed(0) }}</dd>
         <dd>{{ healing.toFixed(0) }}</dd>
+        <dd>{{ expectedHealing.toFixed(0) }}</dd>
 
         <dt>⚡ True damage</dt>
         <dd>{{ baseTrueDamage.toFixed(0) }}</dd>
         <dd>{{ trueDamage.toFixed(0) }}</dd>
+        <dd>{{ expectedTrueDamage.toFixed(0) }}</dd>
 
         <dt>✨ EXP gain</dt>
         <dd>{{ baseExpGain.toFixed(0) }}</dd>
         <dd>{{ expGain.toFixed(0) }}</dd>
+        <dd>{{ expectedExpGain.toFixed(0) }}</dd>
 
         <dt>💥 Crit chance</dt>
         <dd>{{ (baseCritChance * 100).toFixed(0) }}%</dd>
+        <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
         <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
 
         <template v-if="woundsEffect">
           <dt>🩹 Wounded</dt>
           <dd>{{ (woundsEffect.effectRate * 100).toFixed(0) }}% healing</dd>
           <dd>{{ woundsDaysLeft }} day(s) left</dd>
+          <dd></dd>
         </template>
       </dl>
+      <p class="stat-note">
+        Effective: what a brand-new medium daily habit of that type would deal right now, given your current habits
+        already sharing that pool — no crit, streak, or Special/Ult bonus. Adding more habits of the same type
+        dilutes this number.
+      </p>
     </Modal>
   </section>
 </template>
@@ -260,8 +295,8 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
 .stat-list {
   display: grid;
-  grid-template-columns: auto 1fr 1fr;
-  gap: 0.3rem 1rem;
+  grid-template-columns: auto 1fr 1fr 1fr;
+  gap: 0.3rem 0.75rem;
   margin: 0;
   font-size: 0.8rem;
 }
@@ -282,6 +317,12 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+.stat-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
   color: var(--text);
 }
 

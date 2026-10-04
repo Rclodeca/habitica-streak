@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyResist, bossExpReward } from './boss';
+import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { MILESTONE_EXP } from './constants/milestones';
 import { TUNING } from './constants/tuning';
 import { ITEM_CATALOG, itemBonusPercent, itemFlatBonus } from './items';
@@ -11,6 +12,8 @@ import {
   bossMissDamage,
   completeHabit,
   effectiveResistAfterPen,
+  expectedMediumDailyDamage,
+  habitDamageBreakdown,
   healingMultiplier,
   overdriveHabit,
   overdriveUsesRemaining,
@@ -1087,5 +1090,55 @@ describe('completeHabit — healing reduced by an active Wounds effect', () => {
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     const expectedFullHeal = statValue * streakMultiplier(1);
     expect(result.character.currentHealth).toBeCloseTo(1 + expectedFullHeal, 10);
+  });
+});
+
+describe('expectedMediumDailyDamage', () => {
+  it('awards the entire stat pool when no habits of that type exist yet', () => {
+    const character = makeCharacter();
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
+    expect(expectedMediumDailyDamage(character, 'physical', [])).toBeCloseTo(statValue, 10);
+  });
+
+  it('matches a real medium daily\'s own displayed damage when it is the only habit of that type', () => {
+    // Regression test: a real medium daily must NOT be diluted by a
+    // phantom extra entrant on top of itself — it already IS the medium
+    // entrant `habitsOfType` represents.
+    const character = makeCharacter();
+    const realHabit = makeHabit({ id: 'real', damageType: 'physical', difficulty: 'medium', streakCount: 0 });
+    const siblings = [realHabit];
+
+    const breakdown = habitDamageBreakdown(character, realHabit, siblings);
+    expect(expectedMediumDailyDamage(character, 'physical', siblings)).toBeCloseTo(breakdown.effectiveDamage, 10);
+  });
+
+  it('matches a real medium daily\'s own displayed damage when it shares the pool with other habits', () => {
+    // Same regression, but with a second (differently-weighted) habit
+    // genuinely sharing the pool — this is the exact shape of the reported
+    // bug (a medium daily reading lower here than its own habit-list damage).
+    const character = makeCharacter();
+    const realHabit = makeHabit({ id: 'real', damageType: 'physical', difficulty: 'medium', streakCount: 0 });
+    const otherHabit = makeHabit({ id: 'other', damageType: 'physical', difficulty: 'hard', streakCount: 3 });
+    const siblings = [realHabit, otherHabit];
+
+    const breakdown = habitDamageBreakdown(character, realHabit, siblings);
+    expect(expectedMediumDailyDamage(character, 'physical', siblings)).toBeCloseTo(breakdown.effectiveDamage, 10);
+  });
+
+  it('ignores the existing habits\' own streak/Special/Ult — only their difficulty weight affects the split', () => {
+    const character = makeCharacter();
+    const existing = makeHabit({ id: 'existing', damageType: 'physical', difficulty: 'hard', streakCount: 50, isUlt: true });
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
+    const expectedShare = statValue * (DIFFICULTY_WEIGHT.medium / DIFFICULTY_WEIGHT.hard);
+    expect(expectedMediumDailyDamage(character, 'physical', [existing])).toBeCloseTo(expectedShare, 10);
+  });
+
+  it('never double-counts the expGain item bonus, mirroring completeHabit\'s special case', () => {
+    const character = makeCharacter({ ownedItemIds: [], equippedItemIds: [] });
+    const statValue = statAtLevel(character.starterStats.expGain, character.level);
+    // No items equipped, so itemStatMultiplier is 1 regardless — this just
+    // pins expGain to the same "whole pool, no multiplier" baseline as any
+    // other damage type when unshared.
+    expect(expectedMediumDailyDamage(character, 'expGain', [])).toBeCloseTo(statValue, 10);
   });
 });

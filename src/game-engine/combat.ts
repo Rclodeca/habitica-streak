@@ -117,6 +117,31 @@ export function habitDamageBreakdown(character: Character, habit: Habit, allHabi
   };
 }
 
+/**
+ * What a medium daily habit of `damageType` deals right now — a fixed
+ * reference point analogous to a boss's own Effective attack stat
+ * (`bossMissDamage`): no crit, no streak bonus, no Special/Ult. Computed as
+ * a medium weight's share of `habitsOfType`'s (the player's real habits
+ * sharing this damage type's pool, via `habitStore.habitsOfType`) total
+ * weight — NOT medium-weight-on-top-of that total, since a real medium
+ * daily of this type, if one already exists, is already counted inside
+ * `habitsOfType`; treating it as an *additional* entrant would double-dilute
+ * the pool and read as lower than that same real habit's own displayed
+ * damage (see `habitDamageBreakdown`, which splits the actual pool the
+ * same way). Zero existing habits of this type is treated as a 1:1 ratio
+ * (the whole pool), since there's nothing yet to share it with.
+ */
+export function expectedMediumDailyDamage(character: Character, damageType: DamageType, habitsOfType: Habit[]): number {
+  const statField = DAMAGE_TYPE_STARTER_STAT[damageType];
+  const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
+  // expGain's item bonus is applied later via addExpAndResolveLevelUps, not
+  // here — mirrors the same exclusion in completeHabit/habitDamageBreakdown.
+  const itemMultiplier = damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
+  const existingWeight = habitsOfType.reduce((sum, h) => sum + DIFFICULTY_WEIGHT[h.difficulty], 0);
+  const mediumShareRatio = existingWeight > 0 ? DIFFICULTY_WEIGHT.medium / existingWeight : 1;
+  return rawStat * itemMultiplier * mediumShareRatio;
+}
+
 export type CombatResult = {
   character: Character;
   boss: Boss;
