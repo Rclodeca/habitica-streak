@@ -31,6 +31,11 @@ export function createCharacter(rng: Rng): Character {
     equippedItemIds: [],
     critChance: TUNING.BASE_CRIT_CHANCE,
     newItemUnlockTiers: assignNewItemUnlockTiers(rng),
+    // Already at the post-rebalance baseline (BASE_STATS is already the
+    // reduced value) — must be set here, not left undefined, or this fresh
+    // character would get double-cut by applyDamagePoolRebalance the next
+    // time it's saved and reloaded.
+    damagePoolRebalanceApplied: true,
   };
 }
 
@@ -52,5 +57,30 @@ export function migrateCharacter(character: Character, rng: Rng): Character {
       trueDamage: trueDamage ?? randomizeStat(TUNING.BASE_STATS.trueDamage, rng),
       expGain: expGain ?? randomizeStat(TUNING.BASE_STATS.expGain, rng),
     },
+  };
+}
+
+/**
+ * One-time migration for a run that predates the 2026-10-04 damage/healing
+ * pool rebalance — see `damagePoolRebalanceApplied` on `Character`. Scales
+ * only `physicalDamage`/`magicDamage`/`healing` down by
+ * ONE_TIME_DAMAGE_POOL_REBALANCE_PCT; `health`/`trueDamage`/`expGain` are
+ * deliberately left untouched. Idempotent via the flag, not via re-deriving
+ * from `TUNING.BASE_STATS` — this must apply to whatever value is already
+ * on the character (including its character-creation jitter and any level
+ * growth since), not reset it to a fresh roll.
+ */
+export function applyDamagePoolRebalance(character: Character): Character {
+  if (character.damagePoolRebalanceApplied) return character;
+  const factor = 1 - TUNING.ONE_TIME_DAMAGE_POOL_REBALANCE_PCT / 100;
+  return {
+    ...character,
+    starterStats: {
+      ...character.starterStats,
+      physicalDamage: character.starterStats.physicalDamage * factor,
+      magicDamage: character.starterStats.magicDamage * factor,
+      healing: character.starterStats.healing * factor,
+    },
+    damagePoolRebalanceApplied: true,
   };
 }

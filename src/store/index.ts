@@ -35,12 +35,25 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   const habitStore = useHabitStore(targetPinia);
   const activityLogStore = useActivityLogStore(targetPinia);
 
+  // Wired up BEFORE the initFromSave calls below (not after), so a
+  // one-time, in-place migration those calls perform (e.g.
+  // applyDamagePoolRebalance, migrateCharacter's trueDamage/expGain
+  // backfill) gets captured by the debounced writer immediately instead of
+  // only persisting on some later, unrelated mutation — otherwise a player
+  // who closes the tab right after load, before anything else mutates
+  // state, would never persist the migration and it would silently
+  // re-apply (and for applyDamagePoolRebalance, re-cut) on the next load.
+  // setupHighScoreTracking stays AFTER initFromSave below (unlike
+  // setupPersistence) — it reads bossStore.boss.index immediately at setup
+  // time, so wiring it early would record the pre-hydration default boss
+  // (index 1) instead of the actually-loaded one.
+  setupPersistence(targetPinia);
+
   characterStore.initFromSave(saved?.character ?? null, rng);
   bossStore.initFromSave(saved?.boss ?? null, rng);
   habitStore.initFromSave(saved?.habits ?? null);
   activityLogStore.initFromSave(saved?.activityLog ?? null);
 
-  setupPersistence(targetPinia);
   setupHighScoreTracking(targetPinia);
 
   return { characterStore, bossStore, habitStore, activityLogStore };

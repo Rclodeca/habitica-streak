@@ -7,18 +7,27 @@ export const TUNING = {
   // (see HABIT_DAMAGE_TYPE_WEIGHTS/habitsOfType) — more habits now draw from
   // one healing budget instead of a good-only one, so the per-habit share
   // would otherwise have gone up instead of staying flat.
-  // trueDamage is sized at 30% of the combined physicalDamage+magicDamage
-  // pool (0.3 * 1600 = 480). expGain is sized at 30% of boss 1's kill
-  // reward (0.3 * BASE_BOSS_EXP = 0.3 * 40 = 12) — see leveling.ts for why
-  // it scales with player level (not boss index) to avoid racing
-  // BOSS_EXP_GROWTH_RATE.
-  // Every pool-based stat (everything but health) cut ~30% on top of the
-  // above sizing when daily/weekly pools were split (see
-  // habitStore.habitsOfType) — splitting one pool into two lets a player
-  // with both a daily and a weekly habit of the same type draw from the
-  // full stat twice as often as before, which was a net damage/healing
-  // buff that needed offsetting at the source rather than per-formula.
-  BASE_STATS: { physicalDamage: 560, magicDamage: 560, healing: 269, health: 1250, trueDamage: 336, expGain: 8 },
+  // trueDamage was originally sized at 30% of the combined
+  // physicalDamage+magicDamage pool (0.3 * 1600 = 480); expGain at 30% of
+  // boss 1's kill reward (0.3 * BASE_BOSS_EXP = 0.3 * 40 = 12) — see
+  // leveling.ts for why it scales with player level (not boss index) to
+  // avoid racing BOSS_EXP_GROWTH_RATE.
+  // physicalDamage/magicDamage/healing cut ~30% (800/800/384 -> 560/560/269)
+  // when daily/weekly pools were split (see habitStore.habitsOfType) —
+  // splitting one shared pool into two lets a player with both a daily and
+  // a weekly habit of the same type draw from the full stat on two
+  // independent schedules instead of splitting one, a net damage/healing
+  // buff that needed offsetting at the source. trueDamage/expGain are
+  // deliberately exempted (kept at their original 480/12) — their ratio
+  // comment above no longer holds exactly as a result, by choice.
+  BASE_STATS: { physicalDamage: 560, magicDamage: 560, healing: 269, health: 1250, trueDamage: 480, expGain: 12 },
+  // The same ~30% cut as the BASE_STATS change above, applied once to an
+  // in-progress run's existing physicalDamage/magicDamage/healing via
+  // character.ts's applyDamagePoolRebalance — a fresh character already
+  // gets the reduced BASE_STATS value, but an existing save's starterStats
+  // were rolled before this cut and need retroactively scaling down to
+  // match (health/trueDamage/expGain untouched, same exemption as above).
+  ONE_TIME_DAMAGE_POOL_REBALANCE_PCT: 30,
   STAT_RANDOMIZATION_PCT: 0.05, // ±5% at character creation
   LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level
   // Bumped from 0.01 (+1%/streak) to 0.10 (+10%/streak) so a well-kept

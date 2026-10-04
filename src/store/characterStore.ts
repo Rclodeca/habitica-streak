@@ -5,6 +5,7 @@
 import { defineStore } from 'pinia';
 import {
   addExpAndResolveLevelUps,
+  applyDamagePoolRebalance,
   completeHabit,
   createCharacter,
   createRng,
@@ -22,7 +23,7 @@ export const useCharacterStore = defineStore('character', {
   actions: {
     /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
     initFromSave(saved: Character | null, rng: Rng) {
-      this.character = saved ? migrateCharacter(saved, rng) : createCharacter(rng);
+      this.character = saved ? applyDamagePoolRebalance(migrateCharacter(saved, rng)) : createCharacter(rng);
     },
 
     /** Replaces the character wholesale, e.g. after combat resolution elsewhere. */

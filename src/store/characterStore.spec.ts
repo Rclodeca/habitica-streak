@@ -7,6 +7,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createCharacter, createRng } from '../game-engine';
+import { TUNING } from '../game-engine/constants/tuning';
 import { useCharacterStore } from './characterStore';
 
 describe('characterStore equip/unequip', () => {
@@ -107,5 +108,28 @@ describe('characterStore.initFromSave', () => {
     expect(store.character.starterStats.trueDamage).toBeGreaterThan(0);
     expect(store.character.starterStats.expGain).toBeGreaterThan(0);
     expect(store.character.level).toBe(original.level);
+  });
+
+  it('applies the one-time damage-pool rebalance to a save that predates it', () => {
+    const store = useCharacterStore();
+    const original = createCharacter(createRng(1));
+    const preRebalanceSave = { ...original, damagePoolRebalanceApplied: undefined } as typeof original;
+    const factor = 1 - TUNING.ONE_TIME_DAMAGE_POOL_REBALANCE_PCT / 100;
+
+    store.initFromSave(preRebalanceSave, createRng(2));
+
+    expect(store.character.starterStats.physicalDamage).toBeCloseTo(original.starterStats.physicalDamage * factor, 10);
+    expect(store.character.starterStats.healing).toBeCloseTo(original.starterStats.healing * factor, 10);
+    expect(store.character.starterStats.trueDamage).toBe(original.starterStats.trueDamage);
+    expect(store.character.damagePoolRebalanceApplied).toBe(true);
+  });
+
+  it('does not re-apply the damage-pool rebalance on a save that already has it', () => {
+    const store = useCharacterStore();
+    const original = createCharacter(createRng(1)); // damagePoolRebalanceApplied: true already
+
+    store.initFromSave(original, createRng(2));
+
+    expect(store.character.starterStats.physicalDamage).toBe(original.starterStats.physicalDamage);
   });
 });

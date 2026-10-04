@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCharacter, migrateCharacter, randomizeStat } from './character';
+import { applyDamagePoolRebalance, createCharacter, migrateCharacter, randomizeStat } from './character';
 import { ITEM_CATALOG } from './items';
 import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
@@ -132,6 +132,37 @@ describe('migrateCharacter', () => {
 
     expect(migrated.starterStats.trueDamage).toBe(character.starterStats.trueDamage);
     expect(migrated.starterStats.expGain).toBeGreaterThan(0);
+  });
+});
+
+describe('applyDamagePoolRebalance', () => {
+  it('scales only physicalDamage/magicDamage/healing down by ONE_TIME_DAMAGE_POOL_REBALANCE_PCT on a pre-rebalance character', () => {
+    const character = { ...createCharacter(createRng(1)), damagePoolRebalanceApplied: undefined };
+    const factor = 1 - TUNING.ONE_TIME_DAMAGE_POOL_REBALANCE_PCT / 100;
+
+    const rebalanced = applyDamagePoolRebalance(character);
+
+    expect(rebalanced.starterStats.physicalDamage).toBeCloseTo(character.starterStats.physicalDamage * factor, 10);
+    expect(rebalanced.starterStats.magicDamage).toBeCloseTo(character.starterStats.magicDamage * factor, 10);
+    expect(rebalanced.starterStats.healing).toBeCloseTo(character.starterStats.healing * factor, 10);
+    // health/trueDamage/expGain are deliberately exempt.
+    expect(rebalanced.starterStats.health).toBe(character.starterStats.health);
+    expect(rebalanced.starterStats.trueDamage).toBe(character.starterStats.trueDamage);
+    expect(rebalanced.starterStats.expGain).toBe(character.starterStats.expGain);
+    expect(rebalanced.damagePoolRebalanceApplied).toBe(true);
+  });
+
+  it('is a no-op once damagePoolRebalanceApplied is already true (never double-applies on reload)', () => {
+    const character = createCharacter(createRng(2)); // already flagged true by createCharacter
+    const rebalanced = applyDamagePoolRebalance(character);
+    expect(rebalanced).toEqual(character);
+  });
+
+  it('is idempotent when called twice in a row', () => {
+    const character = { ...createCharacter(createRng(3)), damagePoolRebalanceApplied: undefined };
+    const once = applyDamagePoolRebalance(character);
+    const twice = applyDamagePoolRebalance(once);
+    expect(twice).toEqual(once);
   });
 });
 

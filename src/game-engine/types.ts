@@ -55,6 +55,15 @@ export interface Character {
   // see activeWoundsEffect in combat.ts. A fresh character (createCharacter,
   // resolvePlayerDeathIfDead) never sets this, so a new run always starts clean.
   statusEffects?: StatusEffect[];
+  // One-time migration marker: undefined means this character predates the
+  // 2026-10-04 damage/healing-pool rebalance (daily/weekly pool split made
+  // physicalDamage/magicDamage/healing ~30% stronger than intended) and
+  // still needs applyDamagePoolRebalance run on it once; true means either
+  // it's already been applied, or the character was created fresh after
+  // the rebalance (createCharacter sets this immediately so the migration
+  // never double-applies once a fresh character gets saved and reloaded).
+  // health/trueDamage/expGain are deliberately untouched by this migration.
+  damagePoolRebalanceApplied?: boolean;
 }
 
 // Discriminated on `type` — more status effects are planned (see the Wounds
