@@ -31,6 +31,7 @@ const breakdown = computed(() => {
 const baseDamage = computed(() => breakdown.value.baseDamage);
 const itemMultiplier = computed(() => breakdown.value.itemMultiplier);
 const multiplier = computed(() => breakdown.value.streakMultiplier);
+const weeklyMultiplier = computed(() => breakdown.value.weeklyMultiplier);
 const bonusMultiplier = computed(() => breakdown.value.bonusMultiplier);
 const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
 const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
@@ -42,9 +43,10 @@ const DAMAGE_TYPE_LABEL: Record<DamageType, string> = {
   expGain: 'exp gain',
 };
 const damageTypeLabel = computed(() => DAMAGE_TYPE_LABEL[props.habit.damageType]);
-// Overdrive never gets the Special/Ult bonus, so its preview excludes bonusMultiplier.
+// Overdrive never gets the Special/Ult bonus, so its preview excludes
+// bonusMultiplier, but still gets the weekly bonus like any other use.
 const overdriveDamage = computed(() =>
-  overdriveDamagePreview(baseDamage.value * itemMultiplier.value * multiplier.value),
+  overdriveDamagePreview(baseDamage.value * itemMultiplier.value * multiplier.value * weeklyMultiplier.value),
 );
 
 const currentPeriodKey = computed(() => periodKeyFor(props.habit.period, debugClockStore.now()));
@@ -100,6 +102,11 @@ function removeHabit() {
 
       <dt>Item multiplier</dt>
       <dd>×{{ itemMultiplier.toFixed(2) }}</dd>
+
+      <template v-if="habit.period === 'weekly'">
+        <dt>Weekly bonus</dt>
+        <dd>×{{ weeklyMultiplier.toFixed(2) }}</dd>
+      </template>
 
       <template v-if="rewardTag">
         <dt>Bonus</dt>

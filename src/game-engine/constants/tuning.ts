@@ -12,7 +12,13 @@ export const TUNING = {
   // reward (0.3 * BASE_BOSS_EXP = 0.3 * 40 = 12) — see leveling.ts for why
   // it scales with player level (not boss index) to avoid racing
   // BOSS_EXP_GROWTH_RATE.
-  BASE_STATS: { physicalDamage: 800, magicDamage: 800, healing: 384, health: 1250, trueDamage: 480, expGain: 12 },
+  // Every pool-based stat (everything but health) cut ~30% on top of the
+  // above sizing when daily/weekly pools were split (see
+  // habitStore.habitsOfType) — splitting one pool into two lets a player
+  // with both a daily and a weekly habit of the same type draw from the
+  // full stat twice as often as before, which was a net damage/healing
+  // buff that needed offsetting at the source rather than per-formula.
+  BASE_STATS: { physicalDamage: 560, magicDamage: 560, healing: 269, health: 1250, trueDamage: 336, expGain: 8 },
   STAT_RANDOMIZATION_PCT: 0.05, // ±5% at character creation
   LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level
   // Bumped from 0.01 (+1%/streak) to 0.10 (+10%/streak) so a well-kept
@@ -93,10 +99,11 @@ export const TUNING = {
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
   CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed
   CRIT_MULTIPLIER: 2, // crit hits deal 2x damage
-  // Removed WEEKLY_REWARD_MULTIPLIER once dailies/weeklies got separate
-  // pools (habitStore.habitsOfType) — a weekly habit now gets the full
-  // weekly pool share on its own schedule, so no extra multiplier is
-  // needed to keep it meaningful.
+  // A flat reward bump for weekly habits — see weeklyBonusMultiplier in
+  // combat.ts. Deliberately kept OUT of baseDamage (unlike the old,
+  // removed WEEKLY_REWARD_MULTIPLIER) so the UI can show it as its own
+  // line in the stats modal instead of hiding it inside the base number.
+  WEEKLY_BONUS_MULTIPLIER: 2,
   WEEKLY_MISS_MULTIPLIER: 2, // a missed/failed weekly deals 2x damage to the player
   HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.35, magic: 0.35, healing: 0.15, trueDamage: 0.08, expGain: 0.07 },
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates

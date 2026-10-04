@@ -60,6 +60,7 @@ export {
   reviveWithFeatherIfEquipped,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
+  weeklyBonusMultiplier,
 } from './combat';
 
 export type { BoostableStat, ItemBonus, ItemDef, ItemRarity } from './items';

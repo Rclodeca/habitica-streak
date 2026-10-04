@@ -9,7 +9,7 @@ import type { ItemDef } from './items';
 import type { Rng } from './rng';
 import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 import { daysBetweenDayKeys } from './time';
-import type { Boss, Character, DamageType, Habit, WoundsStatusEffect } from './types';
+import type { Boss, Character, DamageType, Habit, Period, WoundsStatusEffect } from './types';
 
 const REVIVE_ITEM_ID = 'phoenix-feather';
 const REVIVE_HEALTH_FRACTION = 0.5;
@@ -22,6 +22,18 @@ export const DAMAGE_TYPE_STARTER_STAT: Record<DamageType, keyof Character['start
   trueDamage: 'trueDamage',
   expGain: 'expGain',
 };
+
+/**
+ * A flat bonus multiplier for weekly habits — separate from (never folded
+ * into) `baseDamage`, unlike the old periodRewardMultiplier it replaces, so
+ * it can be surfaced to the player as its own line in the stats modal
+ * rather than hidden inside the base number. Daily/weekly pools are
+ * already split (see `habitStore.habitsOfType`), so this is purely a
+ * reward bump for weeklies, not compensation for pool dilution.
+ */
+export function weeklyBonusMultiplier(period: Period): number {
+  return period === 'weekly' ? TUNING.WEEKLY_BONUS_MULTIPLIER : 1;
+}
 
 /** A habit's permanent Special/Ult bonus multiplier, applied only on a first (non-Overdrive) use. */
 export function levelRewardMultiplier(habit: Habit): number {
@@ -75,12 +87,14 @@ export function healingMultiplier(character: Character, currentDayKey: string): 
 }
 
 export type HabitDamageBreakdown = {
-  /** This habit's share of the character's stat pool (by difficulty weight, within its own daily-or-weekly pool) — before items, streak, or Special/Ult. */
+  /** This habit's share of the character's stat pool (by difficulty weight, within its own daily-or-weekly pool) — before items, streak, weekly bonus, or Special/Ult. */
   baseDamage: number;
   itemMultiplier: number;
   streakMultiplier: number;
+  /** WEEKLY_BONUS_MULTIPLIER for a weekly habit, 1 (no-op) for a daily one — see `weeklyBonusMultiplier`. */
+  weeklyMultiplier: number;
   bonusMultiplier: number;
-  /** baseDamage * itemMultiplier * streakMultiplier * bonusMultiplier. */
+  /** baseDamage * itemMultiplier * streakMultiplier * weeklyMultiplier * bonusMultiplier. */
   effectiveDamage: number;
 };
 
@@ -101,13 +115,15 @@ export function habitDamageBreakdown(character: Character, habit: Habit, allHabi
   // applying it here too would double-count it. See completeHabit.
   const itemMultiplier = habit.damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
   const streakMult = streakMultiplier(habit.streakCount, habit.period);
+  const weeklyMult = weeklyBonusMultiplier(habit.period);
   const bonusMultiplier = levelRewardMultiplier(habit);
   return {
     baseDamage,
     itemMultiplier,
     streakMultiplier: streakMult,
+    weeklyMultiplier: weeklyMult,
     bonusMultiplier,
-    effectiveDamage: baseDamage * itemMultiplier * streakMult * bonusMultiplier,
+    effectiveDamage: baseDamage * itemMultiplier * streakMult * weeklyMult * bonusMultiplier,
   };
 }
 
@@ -209,9 +225,10 @@ export function completeHabit(
     ? { habit, milestoneExp: 0 }
     : completeHabitStreak(habit);
   const multiplier = streakMultiplier(updatedHabit.streakCount, habit.period);
+  const weeklyMult = weeklyBonusMultiplier(habit.period);
   const bonusMultiplier = isOverdriveUse ? 1 : levelRewardMultiplier(habit);
   const overdriveFactor = isOverdriveUse ? TUNING.OVERDRIVE_DAMAGE_FACTOR : 1;
-  const amount = baseDamage * itemMultiplier * multiplier * bonusMultiplier * overdriveFactor;
+  const amount = baseDamage * itemMultiplier * multiplier * weeklyMult * bonusMultiplier * overdriveFactor;
 
   if (habit.damageType === 'healing') {
     const woundedAmount = amount * healingMultiplier(character, currentDayKey);

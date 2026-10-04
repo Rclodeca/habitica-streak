@@ -120,7 +120,7 @@ describe('completeHabit', () => {
     expect(result.milestoneExp).toBe(0);
   });
 
-  it('deals the same base damage for a weekly habit as a daily one, each at its own period-specific streak rate', () => {
+  it('deals WEEKLY_BONUS_MULTIPLIER extra damage for a weekly habit vs. a daily one, each at its own period-specific streak rate', () => {
     const character = makeCharacter();
     const daily = makeHabit({ period: 'daily', damageType: 'physical', streakCount: 0 });
     const weekly = makeHabit({ period: 'weekly', damageType: 'physical', streakCount: 0 });
@@ -131,10 +131,13 @@ describe('completeHabit', () => {
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     expect(dailyResult.damageDealt).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
-    expect(weeklyResult.damageDealt).toBeCloseTo(statValue * streakMultiplier(1, 'weekly'), 10);
+    expect(weeklyResult.damageDealt).toBeCloseTo(
+      statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER,
+      10,
+    );
   });
 
-  it('heals the same amount for a weekly healing habit as a daily one, each at its own period-specific streak rate', () => {
+  it('heals WEEKLY_BONUS_MULTIPLIER extra for a weekly healing habit vs. a daily one, each at its own period-specific streak rate', () => {
     const dailyCharacter = makeCharacter({ currentHealth: 1 });
     const weeklyCharacter = makeCharacter({ currentHealth: 1 });
     const daily = makeHabit({ period: 'daily', damageType: 'healing', streakCount: 0 });
@@ -148,7 +151,7 @@ describe('completeHabit', () => {
     const dailyHealed = dailyResult.character.currentHealth - dailyCharacter.currentHealth;
     const weeklyHealed = weeklyResult.character.currentHealth - weeklyCharacter.currentHealth;
     expect(dailyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
-    expect(weeklyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'weekly'), 10);
+    expect(weeklyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER, 10);
   });
 
   it('splits damage proportionally to difficulty weight across multiple habits of the same type', () => {
@@ -630,7 +633,7 @@ describe('completeHabit — Special/Ult bonus', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    const expected = statValue * streakMultiplier(1, 'weekly') * TUNING.ULT_MULTIPLIER;
+    const expected = statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER * TUNING.ULT_MULTIPLIER;
     expect(result.damageDealt).toBeCloseTo(expected, 10);
   });
 
@@ -1087,6 +1090,26 @@ describe('completeHabit — healing reduced by an active Wounds effect', () => {
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     const expectedFullHeal = statValue * streakMultiplier(1);
     expect(result.character.currentHealth).toBeCloseTo(1 + expectedFullHeal, 10);
+  });
+});
+
+describe('habitDamageBreakdown — weekly bonus', () => {
+  it('keeps the weekly bonus out of baseDamage, folded only into effectiveDamage', () => {
+    const character = makeCharacter();
+    const daily = makeHabit({ period: 'daily', damageType: 'physical', streakCount: 0 });
+    const weekly = makeHabit({ period: 'weekly', damageType: 'physical', streakCount: 0 });
+
+    const dailyBreakdown = habitDamageBreakdown(character, daily, [daily]);
+    const weeklyBreakdown = habitDamageBreakdown(character, weekly, [weekly]);
+
+    // Daily/weekly pools are separate (see habitStore.habitsOfType), and
+    // each habit is alone in its own pool here, so the raw pool shares are
+    // equal — the weekly bonus must show up as its own multiplier, not as
+    // a bigger baseDamage.
+    expect(weeklyBreakdown.baseDamage).toBeCloseTo(dailyBreakdown.baseDamage, 10);
+    expect(dailyBreakdown.weeklyMultiplier).toBe(1);
+    expect(weeklyBreakdown.weeklyMultiplier).toBe(TUNING.WEEKLY_BONUS_MULTIPLIER);
+    expect(weeklyBreakdown.effectiveDamage).toBeCloseTo(dailyBreakdown.effectiveDamage * TUNING.WEEKLY_BONUS_MULTIPLIER, 10);
   });
 });
 
