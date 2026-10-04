@@ -60,22 +60,27 @@ const baseTrueDamage = computed(() => statAtLevel(character.value.starterStats.t
 const baseExpGain = computed(() => statAtLevel(character.value.starterStats.expGain, character.value.level));
 const baseCritChance = computed(() => character.value.critChance);
 
-// What a brand-new medium daily habit of each damage type would deal right
-// now — the "Effective" column, analogous to a boss's own Effective attack
-// stat (see BossPanel.vue), but computed against this character's real
-// habits since (unlike a boss's attack) the player's stat pool is diluted
-// across every habit sharing that damage type.
+// What a medium DAILY habit of each damage type deals right now — the
+// "Effective" column, analogous to a boss's own Effective attack stat (see
+// BossPanel.vue), computed against this character's real daily habits of
+// that type only — the daily pool and weekly pool are separate (see
+// habitStore.habitsOfType), so a weekly habit of the same damage type never
+// factors into this number.
 const expectedPhysicalDamage = computed(() =>
-  expectedMediumDailyDamage(character.value, 'physical', habitStore.habitsOfType('physical')),
+  expectedMediumDailyDamage(character.value, 'physical', habitStore.habitsOfType('physical', 'daily')),
 );
 const expectedMagicDamage = computed(() =>
-  expectedMediumDailyDamage(character.value, 'magic', habitStore.habitsOfType('magic')),
+  expectedMediumDailyDamage(character.value, 'magic', habitStore.habitsOfType('magic', 'daily')),
 );
-const expectedHealing = computed(() => expectedMediumDailyDamage(character.value, 'healing', habitStore.habitsOfType('healing')));
+const expectedHealing = computed(() =>
+  expectedMediumDailyDamage(character.value, 'healing', habitStore.habitsOfType('healing', 'daily')),
+);
 const expectedTrueDamage = computed(() =>
-  expectedMediumDailyDamage(character.value, 'trueDamage', habitStore.habitsOfType('trueDamage')),
+  expectedMediumDailyDamage(character.value, 'trueDamage', habitStore.habitsOfType('trueDamage', 'daily')),
 );
-const expectedExpGain = computed(() => expectedMediumDailyDamage(character.value, 'expGain', habitStore.habitsOfType('expGain')));
+const expectedExpGain = computed(() =>
+  expectedMediumDailyDamage(character.value, 'expGain', habitStore.habitsOfType('expGain', 'daily')),
+);
 
 // Sized to the character's current level-dependent slot cap (4 below
 // level 10, 6 at 10+), in whatever order they were equipped — empty ones

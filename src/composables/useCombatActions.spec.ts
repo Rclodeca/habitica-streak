@@ -256,7 +256,7 @@ describe('useCombatActions', () => {
     expect(itemsDropped).toEqual([]);
   });
 
-  it("pools bad and good habits of the same damage type together", () => {
+  it("pools bad and good habits of the same damage type and period together", () => {
     const habitStore = useHabitStore();
 
     const badHabit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
@@ -264,9 +264,21 @@ describe('useCombatActions', () => {
     const goodHabit = habitStore.addHabit('Push-ups', 'daily', 'medium', false, createRng());
     habitStore.updateHabit({ ...goodHabit, damageType: 'physical' });
 
-    expect(habitStore.habitsOfType('physical')).toEqual([
+    expect(habitStore.habitsOfType('physical', 'daily')).toEqual([
       { ...badHabit, damageType: 'physical' },
       { ...goodHabit, damageType: 'physical' },
     ]);
+  });
+
+  it('keeps daily and weekly habits of the same damage type in separate pools', () => {
+    const habitStore = useHabitStore();
+
+    const dailyHabit = habitStore.addHabit('Push-ups', 'daily', 'medium', false, createRng());
+    habitStore.updateHabit({ ...dailyHabit, damageType: 'physical' });
+    const weeklyHabit = habitStore.addHabit('Long run', 'weekly', 'medium', false, createRng());
+    habitStore.updateHabit({ ...weeklyHabit, damageType: 'physical' });
+
+    expect(habitStore.habitsOfType('physical', 'daily')).toEqual([{ ...dailyHabit, damageType: 'physical' }]);
+    expect(habitStore.habitsOfType('physical', 'weekly')).toEqual([{ ...weeklyHabit, damageType: 'physical' }]);
   });
 });

@@ -146,7 +146,7 @@ export function useCombatActions() {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return [];
 
-    const habitsInPool = habitStore.habitsOfType(habit.damageType);
+    const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.period);
     const healthBefore = characterStore.character.currentHealth;
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
     // Always the daily key (never the habit's own period key) — Wounds

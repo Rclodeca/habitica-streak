@@ -24,7 +24,7 @@ const { activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
 
 const breakdown = computed(() => {
-  const siblings = habitStore.habitsOfType(props.habit.damageType);
+  const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.period);
   return habitDamageBreakdown(characterStore.character, props.habit, siblings);
 });
 
