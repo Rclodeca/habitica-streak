@@ -14,14 +14,14 @@ export const useHabitStore = defineStore('habit', {
      * Habits of the current list filtered by damage type AND period, for
      * feeding `computeDamageSplit` — one shared pool per (damage type,
      * period) pair across good and bad habits alike. Daily and weekly are
-     * deliberately separate pools: a weekly habit is completed far less
-     * often (1x/week vs. up to 7x/week for a daily), so folding it into the
-     * same pool as same-type dailies would dilute every daily completion
-     * all week in exchange for only the weekly's one ×3 (WEEKLY_REWARD_MULTIPLIER)
-     * hit — a bad trade the player never asked for. Good/bad sharing one
-     * pool per period is still deliberate: a separate pool per good/bad
-     * would let adding more habits grow a player's total reward instead of
-     * just diluting the existing pool.
+     * deliberately separate pools: each gets the full stat pool on its own
+     * schedule (a daily habit can collect its share every day, a weekly
+     * habit once a week), so folding a weekly into the same pool as
+     * same-type dailies would dilute every daily completion all week for
+     * no corresponding gain — a bad trade the player never asked for.
+     * Good/bad sharing one pool per period is still deliberate: a separate
+     * pool per good/bad would let adding more habits grow a player's total
+     * reward instead of just diluting the existing pool.
      */
     habitsOfType(state) {
       return (damageType: DamageType, period: Period): Habit[] =>

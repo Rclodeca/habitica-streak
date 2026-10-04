@@ -120,7 +120,7 @@ describe('completeHabit', () => {
     expect(result.milestoneExp).toBe(0);
   });
 
-  it('deals WEEKLY_REWARD_MULTIPLIER damage for a weekly habit vs. a daily one, each at its own period-specific streak rate', () => {
+  it('deals the same base damage for a weekly habit as a daily one, each at its own period-specific streak rate', () => {
     const character = makeCharacter();
     const daily = makeHabit({ period: 'daily', damageType: 'physical', streakCount: 0 });
     const weekly = makeHabit({ period: 'weekly', damageType: 'physical', streakCount: 0 });
@@ -131,13 +131,10 @@ describe('completeHabit', () => {
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     expect(dailyResult.damageDealt).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
-    expect(weeklyResult.damageDealt).toBeCloseTo(
-      statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_REWARD_MULTIPLIER,
-      10,
-    );
+    expect(weeklyResult.damageDealt).toBeCloseTo(statValue * streakMultiplier(1, 'weekly'), 10);
   });
 
-  it('heals WEEKLY_REWARD_MULTIPLIER for a weekly healing habit vs. a daily one, each at its own period-specific streak rate', () => {
+  it('heals the same amount for a weekly healing habit as a daily one, each at its own period-specific streak rate', () => {
     const dailyCharacter = makeCharacter({ currentHealth: 1 });
     const weeklyCharacter = makeCharacter({ currentHealth: 1 });
     const daily = makeHabit({ period: 'daily', damageType: 'healing', streakCount: 0 });
@@ -151,7 +148,7 @@ describe('completeHabit', () => {
     const dailyHealed = dailyResult.character.currentHealth - dailyCharacter.currentHealth;
     const weeklyHealed = weeklyResult.character.currentHealth - weeklyCharacter.currentHealth;
     expect(dailyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
-    expect(weeklyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_REWARD_MULTIPLIER, 10);
+    expect(weeklyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'weekly'), 10);
   });
 
   it('splits damage proportionally to difficulty weight across multiple habits of the same type', () => {
@@ -633,7 +630,7 @@ describe('completeHabit — Special/Ult bonus', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    const expected = statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_REWARD_MULTIPLIER * TUNING.ULT_MULTIPLIER;
+    const expected = statValue * streakMultiplier(1, 'weekly') * TUNING.ULT_MULTIPLIER;
     expect(result.damageDealt).toBeCloseTo(expected, 10);
   });
 

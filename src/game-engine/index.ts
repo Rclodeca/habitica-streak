@@ -57,7 +57,6 @@ export {
   overdriveDamagePreview,
   overdriveHabit,
   overdriveUsesRemaining,
-  periodRewardMultiplier,
   reviveWithFeatherIfEquipped,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,

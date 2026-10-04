@@ -93,9 +93,10 @@ export const TUNING = {
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
   CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed
   CRIT_MULTIPLIER: 2, // crit hits deal 2x damage
-  // Weeklies only trigger once a week (vs. a daily every day), so each
-  // trigger is worth more to keep them meaningfully influential.
-  WEEKLY_REWARD_MULTIPLIER: 3, // a completed/avoided weekly deals 3x damage/healing
+  // Removed WEEKLY_REWARD_MULTIPLIER once dailies/weeklies got separate
+  // pools (habitStore.habitsOfType) — a weekly habit now gets the full
+  // weekly pool share on its own schedule, so no extra multiplier is
+  // needed to keep it meaningful.
   WEEKLY_MISS_MULTIPLIER: 2, // a missed/failed weekly deals 2x damage to the player
   HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.35, magic: 0.35, healing: 0.15, trueDamage: 0.08, expGain: 0.07 },
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates

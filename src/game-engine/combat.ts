@@ -9,7 +9,7 @@ import type { ItemDef } from './items';
 import type { Rng } from './rng';
 import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 import { daysBetweenDayKeys } from './time';
-import type { Boss, Character, DamageType, Habit, Period, WoundsStatusEffect } from './types';
+import type { Boss, Character, DamageType, Habit, WoundsStatusEffect } from './types';
 
 const REVIVE_ITEM_ID = 'phoenix-feather';
 const REVIVE_HEALTH_FRACTION = 0.5;
@@ -22,11 +22,6 @@ export const DAMAGE_TYPE_STARTER_STAT: Record<DamageType, keyof Character['start
   trueDamage: 'trueDamage',
   expGain: 'expGain',
 };
-
-/** The flat reward multiplier from a habit's period alone — weeklies reward more per completion. */
-export function periodRewardMultiplier(period: Period): number {
-  return period === 'weekly' ? TUNING.WEEKLY_REWARD_MULTIPLIER : 1;
-}
 
 /** A habit's permanent Special/Ult bonus multiplier, applied only on a first (non-Overdrive) use. */
 export function levelRewardMultiplier(habit: Habit): number {
@@ -80,7 +75,7 @@ export function healingMultiplier(character: Character, currentDayKey: string): 
 }
 
 export type HabitDamageBreakdown = {
-  /** This habit's share of the character's stat pool (by difficulty weight), with the period reward multiplier (weeklies ×3) folded in — before items, streak, or Special/Ult. */
+  /** This habit's share of the character's stat pool (by difficulty weight, within its own daily-or-weekly pool) — before items, streak, or Special/Ult. */
   baseDamage: number;
   itemMultiplier: number;
   streakMultiplier: number;
@@ -100,8 +95,7 @@ export type HabitDamageBreakdown = {
 export function habitDamageBreakdown(character: Character, habit: Habit, allHabitsOfSameType: Habit[]): HabitDamageBreakdown {
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
-  const statShare = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
-  const baseDamage = statShare * periodRewardMultiplier(habit.period);
+  const baseDamage = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
   // expGain's percent item bonus is applied once, later, inside
   // addExpAndResolveLevelUps (same path a boss kill's EXP goes through) —
   // applying it here too would double-count it. See completeHabit.
@@ -203,8 +197,7 @@ export function completeHabit(
   const isOverdriveUse = options.isOverdriveUse ?? false;
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
-  const statShare = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
-  const baseDamage = statShare * periodRewardMultiplier(habit.period);
+  const baseDamage = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
   // expGain's percent item bonus is applied once, later, inside
   // addExpAndResolveLevelUps (same path a boss kill's EXP goes through) —
   // applying it here too would double-count it.
