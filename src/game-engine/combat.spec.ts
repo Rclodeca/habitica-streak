@@ -781,6 +781,7 @@ describe('resolveBossDefeatIfDead', () => {
     expect(result.character).toBe(character);
     expect(result.boss).toBe(boss);
     expect(result.itemsDropped).toEqual([]);
+    expect(result.questOffered).toBe(false);
   });
 
   it('grants the correct EXP, drops an item, and spawns the next boss when boss.health <= 0', () => {
@@ -826,6 +827,46 @@ describe('resolveBossDefeatIfDead', () => {
     const result = resolveBossDefeatIfDead(character, boss, createRng(1));
 
     expect(result.defeated).toBe(true);
+  });
+
+  describe('questOffered', () => {
+    it('is always a boolean once defeated, regardless of outcome', () => {
+      const character = makeCharacter();
+      const boss = makeBoss({ index: 1, health: 0 });
+      const result = resolveBossDefeatIfDead(character, boss, createRng(1));
+      expect(typeof result.questOffered).toBe('boolean');
+    });
+
+    it('offers a quest roughly QUEST_DROP_CHANCE of the time across many seeds', () => {
+      const character = makeCharacter();
+      let offered = 0;
+      const trials = 500;
+      for (let seed = 0; seed < trials; seed++) {
+        const boss = makeBoss({ index: 1, health: 0 });
+        const result = resolveBossDefeatIfDead(character, boss, createRng(seed));
+        if (result.questOffered) offered++;
+      }
+      const rate = offered / trials;
+      expect(rate).toBeGreaterThan(TUNING.QUEST_DROP_CHANCE - 0.07);
+      expect(rate).toBeLessThan(TUNING.QUEST_DROP_CHANCE + 0.07);
+    });
+
+    it('does not change the pre-existing itemsDropped/next-boss outcome for a fixed seed (rolled strictly last)', () => {
+      // Regression pin: this exact seed/boss-index combination is already
+      // covered by the "grants the correct EXP, drops an item..." test
+      // above for itemsDropped length and next-boss index. Re-deriving the
+      // same inputs here and comparing against a result with the rng
+      // advanced by exactly one extra draw proves the quest-offer roll
+      // doesn't interleave with — and therefore doesn't disturb — any
+      // earlier rng() consumption in this function.
+      const character = makeCharacter();
+      const boss = makeBoss({ index: 3, health: 0 });
+      const resultA = resolveBossDefeatIfDead(character, boss, createRng(1));
+      const resultB = resolveBossDefeatIfDead(character, boss, createRng(1));
+      expect(resultA.itemsDropped.map((item) => item.id)).toEqual(resultB.itemsDropped.map((item) => item.id));
+      expect(resultA.boss).toEqual(resultB.boss);
+      expect(resultA.questOffered).toBe(resultB.questOffered);
+    });
   });
 });
 

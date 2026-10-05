@@ -6,6 +6,7 @@ import { computeDamageSplit, rerollDamageType, resetLevelRewards } from './habit
 import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
+import { rollQuestOffer } from './quests';
 import type { Rng } from './rng';
 import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 import { daysBetweenDayKeys } from './time';
@@ -433,13 +434,19 @@ export function reviveWithFeatherIfEquipped(character: Character): { character: 
  * tiny positive remainder (e.g. 0.3) that the health bar already displays
  * rounded down to 0 — without this, the boss would visually read "dead"
  * but not actually be defeated until one more hit.
+ *
+ * Also rolls a chance (TUNING.QUEST_DROP_CHANCE) to offer the player a
+ * quest, surfaced as questOffered — rolled strictly last, see the inline
+ * comment above that line.
  */
 export function resolveBossDefeatIfDead(
   character: Character,
   boss: Boss,
   rng: Rng,
-): { character: Character; boss: Boss; defeated: boolean; levelsGained: number; itemsDropped: ItemDef[] } {
-  if (Math.round(boss.health) > 0) return { character, boss, defeated: false, levelsGained: 0, itemsDropped: [] };
+): { character: Character; boss: Boss; defeated: boolean; levelsGained: number; itemsDropped: ItemDef[]; questOffered: boolean } {
+  if (Math.round(boss.health) > 0) {
+    return { character, boss, defeated: false, levelsGained: 0, itemsDropped: [], questOffered: false };
+  }
   const { character: leveled, levelsGained } = addExpAndResolveLevelUps(character, bossExpReward(boss.index));
   const itemsDropped = rollItemDrops(leveled, boss.index, rng);
   const withItems: Character = {
@@ -451,7 +458,12 @@ export function resolveBossDefeatIfDead(
   // just chase the cap upward and cancel itself out.
   const baseMaxHealth = statAtLevel(withItems.starterStats.health, withItems.level);
   const nextBoss = generateBoss(boss.index + 1, rng, boss.difficultyModifier, baseMaxHealth);
-  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped };
+  // Rolled last, strictly after generateBoss for the next boss, so adding
+  // this roll never perturbs the rng() sequence any existing seeded test
+  // depends on (same "rolled last" precedent as generateBoss's own
+  // woundsAbility roll).
+  const questOffered = rollQuestOffer(rng);
+  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped, questOffered };
 }
 
 /**
