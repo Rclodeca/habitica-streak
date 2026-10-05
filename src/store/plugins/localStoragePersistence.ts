@@ -8,6 +8,7 @@ import { useActivityLogStore } from '../activityLogStore';
 import { useBossStore } from '../bossStore';
 import { useCharacterStore } from '../characterStore';
 import { useHabitStore } from '../habitStore';
+import { useQuestStore } from '../questStore';
 import { writeSaveState } from './saveState';
 
 const DEBOUNCE_MS = 250;
@@ -33,6 +34,7 @@ export function setupPersistence(pinia: Pinia): void {
   const bossStore = useBossStore(pinia);
   const habitStore = useHabitStore(pinia);
   const activityLogStore = useActivityLogStore(pinia);
+  const questStore = useQuestStore(pinia);
 
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -45,6 +47,7 @@ export function setupPersistence(pinia: Pinia): void {
         boss: bossStore.boss,
         habits: habitStore.habits,
         activityLog: activityLogStore.entries,
+        quests: questStore.quests,
       });
     }, DEBOUNCE_MS);
   };
@@ -58,4 +61,5 @@ export function setupPersistence(pinia: Pinia): void {
   bossStore.$subscribe(scheduleWrite, subscribeOptions);
   habitStore.$subscribe(scheduleWrite, subscribeOptions);
   activityLogStore.$subscribe(scheduleWrite, subscribeOptions);
+  questStore.$subscribe(scheduleWrite, subscribeOptions);
 }

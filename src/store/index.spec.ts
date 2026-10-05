@@ -44,6 +44,7 @@ describe('store persistence smoke test', () => {
     expect(parsed.character.exp).toBe(characterStore.character.exp);
     expect(parsed.boss).toBeDefined();
     expect(parsed.habits).toEqual([]);
+    expect(parsed.quests).toEqual([]);
   });
 
   it('persists a one-time hydration migration (applyDamagePoolRebalance) without requiring a later, unrelated mutation', () => {

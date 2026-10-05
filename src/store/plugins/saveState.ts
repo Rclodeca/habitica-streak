@@ -1,7 +1,7 @@
 // Persistence schema and localStorage read/write helpers. Pure serialization
 // concerns only — no game logic lives here.
 
-import type { Boss, Character, Habit } from '../../game-engine';
+import type { Boss, Character, Habit, Quest } from '../../game-engine';
 import type { ActivityLogEntry } from '../activityLogStore';
 
 // Bumped 4 -> 5: Habit gained a required `isBad` field (Bad Habit support).
@@ -19,6 +19,10 @@ export interface SaveStateV5 {
   // existing depends on this field, so an old save just loads with no log
   // instead of forcing a fresh start (no schema/storage-key bump needed).
   activityLog?: ActivityLogEntry[];
+  // Optional, added after v5 shipped — same precedent as activityLog?:
+  // nothing existing depends on this field, so an old save without it just
+  // loads with zero pending quests instead of forcing a fresh start.
+  quests?: Quest[];
 }
 
 export function serializeSaveState(state: Omit<SaveStateV5, 'schemaVersion'>): string {

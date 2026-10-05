@@ -8,6 +8,7 @@ import { useActivityLogStore } from './activityLogStore';
 import { useBossStore } from './bossStore';
 import { useCharacterStore } from './characterStore';
 import { useHabitStore } from './habitStore';
+import { useQuestStore } from './questStore';
 import { setupHighScoreTracking } from './plugins/highScoreTracking';
 import { setupPersistence } from './plugins/localStoragePersistence';
 import { loadSaveState } from './plugins/saveState';
@@ -34,6 +35,7 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   const bossStore = useBossStore(targetPinia);
   const habitStore = useHabitStore(targetPinia);
   const activityLogStore = useActivityLogStore(targetPinia);
+  const questStore = useQuestStore(targetPinia);
 
   // Wired up BEFORE the initFromSave calls below (not after), so a
   // one-time, in-place migration those calls perform (e.g.
@@ -53,11 +55,13 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   bossStore.initFromSave(saved?.boss ?? null, rng);
   habitStore.initFromSave(saved?.habits ?? null);
   activityLogStore.initFromSave(saved?.activityLog ?? null);
+  questStore.initFromSave(saved?.quests ?? null);
 
   setupHighScoreTracking(targetPinia);
 
-  return { characterStore, bossStore, habitStore, activityLogStore };
+  return { characterStore, bossStore, habitStore, activityLogStore, questStore };
 }
 
 export { useActivityLogStore, useBossStore, useCharacterStore, useHabitStore };
+export { useQuestStore } from './questStore';
 export { useHighScoreStore } from './highScoreStore';
