@@ -13,19 +13,26 @@ const activityLogStore = useActivityLogStore();
           {{ entry.isTrueDamage ? '⚡' : '⚔️' }} Used "{{ entry.habitName }}" — dealt
           <span :class="entry.isTrueDamage ? 'log-true-damage' : 'log-damage'">{{ Math.round(entry.amount) }}</span>
           damage
+          <template v-if="entry.milestoneExp">
+            · <span class="log-exp">+{{ Math.round(entry.milestoneExp) }}</span> EXP
+          </template>
         </template>
         <template v-else-if="entry.kind === 'heal'">
           💚 Healed <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP using "{{ entry.habitName }}"
+          <template v-if="entry.milestoneExp">
+            · <span class="log-exp">+{{ Math.round(entry.milestoneExp) }}</span> EXP
+          </template>
         </template>
         <template v-else-if="entry.kind === 'exp-skill'">
-          ✨ Used "{{ entry.habitName }}" — gained <span class="log-exp">+{{ Math.round(entry.amount) }}</span> EXP
+          ✨ Used "{{ entry.habitName }}" — gained
+          <span class="log-exp">+{{ Math.round(entry.amount + (entry.milestoneExp ?? 0)) }}</span> EXP
         </template>
         <template v-else-if="entry.kind === 'hit'">
           💥 {{ entry.attackType === 'physical' ? 'Physical' : 'Magic' }} hit for
           <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage (missed "{{ entry.habitName }}")
         </template>
         <template v-else-if="entry.kind === 'level-up'">
-          ⭐ Leveled up to Lv {{ entry.newLevel }}! Healed
+          ⭐ Leveled up to Lv. {{ entry.newLevel }}! Healed
           <span class="log-heal">+{{ Math.round(entry.healthRestored) }}</span> HP · Physical Dmg
           <span class="log-stat">+{{ Math.round(entry.statDeltas.physicalDamage) }}</span>
           · Magic Dmg

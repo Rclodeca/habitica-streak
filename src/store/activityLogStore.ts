@@ -9,9 +9,11 @@ export type ActivityLogEntry =
   // isTrueDamage is set only for a 'trueDamage'-type habit, so ActivityLog
   // can render it in its own color — see HabitListItem's damageTypeColor
   // for the same physical/magic/healing/trueDamage/expGain color scheme.
-  | { id: string; kind: 'skill-damage'; habitName: string; amount: number; isTrueDamage?: boolean }
-  | { id: string; kind: 'heal'; habitName: string; amount: number }
-  | { id: string; kind: 'exp-skill'; habitName: string; amount: number }
+  // milestoneExp is the streak-milestone EXP bonus granted alongside this
+  // action (see useCombatActions/applyReward) — undefined/0 when none fired.
+  | { id: string; kind: 'skill-damage'; habitName: string; amount: number; isTrueDamage?: boolean; milestoneExp?: number }
+  | { id: string; kind: 'heal'; habitName: string; amount: number; milestoneExp?: number }
+  | { id: string; kind: 'exp-skill'; habitName: string; amount: number; milestoneExp?: number }
   | { id: string; kind: 'hit'; habitName: string; amount: number; attackType: 'physical' | 'magic' }
   | {
       id: string;

@@ -130,7 +130,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
     </div>
 
     <button type="button" class="title-button" @click="showDetails = true">
-      <h2>Character — Level {{ character.level }}</h2>
+      <h2>Character — Lv. {{ character.level }}</h2>
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
       <ExpBar :current="character.exp" :max="expNeeded" />
       <p class="stat-summary">
@@ -138,7 +138,6 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <span>🔮 {{ expectedMagicDamage.toFixed(0) }}</span>
         <span>💚 {{ expectedHealing.toFixed(0) }}</span>
         <span>⚡ {{ expectedTrueDamage.toFixed(0) }}</span>
-        <span>✨ {{ expectedExpGain.toFixed(0) }}</span>
         <span>💥 {{ (critChance * 100).toFixed(0) }}%</span>
         <span v-if="woundsEffect">🩹 {{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
       </p>

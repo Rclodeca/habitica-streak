@@ -105,7 +105,10 @@ const showStatsModal = ref(false);
 
 .habit-item.bad {
   border-left: 3px solid #dc2626;
-  padding-left: 0.5rem;
+  /* Compensate for the border's own width so the checkbox lines up with
+     non-bad items' — border sits outside padding, so without this the
+     content starts 3px further right than a bordered-less item. */
+  padding-left: calc(0.5rem - 3px);
   margin-left: -0.5rem;
 }
 

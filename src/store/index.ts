@@ -3,10 +3,11 @@
 // fresh) and wire up debounced localStorage persistence.
 
 import { createPinia, getActivePinia, setActivePinia, type Pinia } from 'pinia';
-import { createRng } from '../game-engine';
+import { createRng, dailyPeriodKey } from '../game-engine';
 import { useActivityLogStore } from './activityLogStore';
 import { useBossStore } from './bossStore';
 import { useCharacterStore } from './characterStore';
+import { useDebugClockStore } from './debugClockStore';
 import { useHabitStore } from './habitStore';
 import { useQuestStore } from './questStore';
 import { setupHighScoreTracking } from './plugins/highScoreTracking';
@@ -57,7 +58,7 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   activityLogStore.initFromSave(saved?.activityLog ?? null);
   questStore.initFromSave(saved?.quests ?? null);
 
-  setupHighScoreTracking(targetPinia);
+  setupHighScoreTracking(targetPinia, dailyPeriodKey(useDebugClockStore(targetPinia).now()));
 
   return { characterStore, bossStore, habitStore, activityLogStore, questStore };
 }

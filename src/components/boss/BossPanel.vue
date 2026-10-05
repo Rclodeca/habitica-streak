@@ -57,7 +57,7 @@ const magicAttack = computed(() => bossMissDamage(boss.value.magicAttack));
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
       <div class="summary-info">
-        <h2>Boss #{{ boss.index }} — {{ PERSONALITY_NAME[boss.personality] }}</h2>
+        <h2>{{ PERSONALITY_NAME[boss.personality] }}</h2>
         <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
         <p class="stat-summary">
           <span>⚔️ {{ physicalAttack.toFixed(0) }}</span>

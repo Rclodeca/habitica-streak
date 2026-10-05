@@ -34,7 +34,9 @@ import {
   completeHabit,
   createRng,
   dailyPeriodKey,
+  effectiveCritChance,
   effectiveStat,
+  ITEM_CATALOG,
   missHabit,
   overdriveHabit,
   overdriveUsesRemaining,
@@ -52,6 +54,7 @@ import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useDebugClockStore } from '../store/debugClockStore';
 import { useHabitStore } from '../store/habitStore';
+import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
 import { useDeathScreen } from './useDeathScreen';
 import { useReviveNotice } from './useReviveNotice';
@@ -68,6 +71,7 @@ export function useCombatActions() {
   const activityLogStore = useActivityLogStore();
   const questStore = useQuestStore();
   const debugClockStore = useDebugClockStore();
+  const highScoreStore = useHighScoreStore();
   const { triggerDeath, dismiss: dismissDeathScreen } = useDeathScreen();
   const { showReviveNotice } = useReviveNotice();
 
@@ -178,9 +182,15 @@ export function useCombatActions() {
         kind: 'heal',
         habitName: habit.name,
         amount: result.character.currentHealth - healthBefore,
+        milestoneExp: result.milestoneExp,
       });
     } else if (habit.damageType === 'expGain') {
-      activityLogStore.addEntry({ kind: 'exp-skill', habitName: habit.name, amount: result.expGained ?? 0 });
+      activityLogStore.addEntry({
+        kind: 'exp-skill',
+        habitName: habit.name,
+        amount: result.expGained ?? 0,
+        milestoneExp: result.milestoneExp,
+      });
     } else if (result.damageDealt !== undefined) {
       // Sub-effect entries pushed before the main one so the main "skill
       // used" entry — the headline of this action — lands on top (newest).
@@ -196,6 +206,7 @@ export function useCombatActions() {
         habitName: habit.name,
         amount: result.damageDealt,
         isTrueDamage: habit.damageType === 'trueDamage',
+        milestoneExp: result.milestoneExp,
       });
     }
 
@@ -383,10 +394,45 @@ export function useCombatActions() {
    * Performs the actual death reset (fresh character, boss back to index 1,
    * habits kept with re-rolled damage types) and closes the death screen.
    * Called once, from the "Restart" button — no-op if somehow not dead.
+   *
+   * Snapshots the just-ended run into the high-score leaderboard first,
+   * reading the character/boss/habits BEFORE `resolvePlayerDeathIfDead`
+   * overwrites them — this is the only place that run's peak state is still
+   * available.
    */
   function restart(): void {
-    const deathResult = resolvePlayerDeathIfDead(characterStore.character, bossStore.boss, habitStore.habits, rng);
+    const character = characterStore.character;
+    const bossIndexAtDeath = bossStore.boss.index;
+    const habits = habitStore.habits;
+
+    const deathResult = resolvePlayerDeathIfDead(character, bossStore.boss, habits, rng);
     if (deathResult.died) {
+      highScoreStore.recordRunEnd({
+        bossIndex: bossIndexAtDeath,
+        level: character.level,
+        endedDayKey: dailyPeriodKey(debugClockStore.now()),
+        stats: {
+          physicalDamage: effectiveStat(character, 'physicalDamage'),
+          magicDamage: effectiveStat(character, 'magicDamage'),
+          healing: effectiveStat(character, 'healing'),
+          health: effectiveStat(character, 'health'),
+          trueDamage: effectiveStat(character, 'trueDamage'),
+          expGain: effectiveStat(character, 'expGain'),
+          critChance: effectiveCritChance(character),
+        },
+        habits: habits.map((h) => ({
+          name: h.name,
+          period: h.period,
+          damageType: h.damageType,
+          isBad: h.isBad,
+          streakCount: h.streakCount,
+        })),
+        items: character.ownedItemIds.flatMap((id) => {
+          const item = ITEM_CATALOG.find((i) => i.id === id);
+          return item ? [{ id: item.id, name: item.name, icon: item.icon, equipped: character.equippedItemIds.includes(id) }] : [];
+        }),
+      });
+
       characterStore.setCharacter(deathResult.character);
       bossStore.setBoss(deathResult.boss);
       habitStore.setHabits(deathResult.habits);

@@ -79,11 +79,15 @@ describe('store persistence smoke test', () => {
   });
 
   it('does not accumulate duplicate $subscribe listeners when initializeStores() is called again against the same active pinia', () => {
-    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
-
     const first = initializeStores();
     const second = initializeStores(); // same active pinia — setupPersistence should be a no-op the 2nd time
     expect(second.characterStore).toBe(first.characterStore); // same store instance, confirming same pinia
+
+    // Installed only now (not around the initializeStores() calls above) —
+    // those calls make their own one-time setItem writes (e.g.
+    // highScoreStore.ensureRunStarted's first-run stamp), which aren't what
+    // this test is checking. This spy isolates just the mutation below.
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
 
     first.characterStore.character.exp += 5;
     vi.advanceTimersByTime(300);

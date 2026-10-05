@@ -12,6 +12,7 @@ import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
+import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
 import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
@@ -19,6 +20,7 @@ import { useReviveNotice } from './useReviveNotice';
 
 describe('useCombatActions', () => {
   beforeEach(() => {
+    localStorage.clear(); // highScoreStore persists outside Pinia's own state
     setActivePinia(createPinia());
   });
 
@@ -199,6 +201,38 @@ describe('useCombatActions', () => {
     expect(characterStore.character.currentHealth).toBe(characterStore.character.starterStats.health);
     expect(bossStore.boss.index).toBe(1);
     expect(habitStore.habits).toHaveLength(1); // habit definitions kept, not wiped
+  });
+
+  it('restart records the just-ended run into the high-score leaderboard before resetting', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const highScoreStore = useHighScoreStore();
+    const { checkMissedHabit, restart } = useCombatActions();
+
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
+    characterStore.character = { ...characterStore.character, currentHealth: 1, level: 4 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
+    checkMissedHabit(habit.id);
+    const habitAtDeath = habitStore.habits.find((h) => h.id === habit.id)!;
+
+    restart();
+
+    expect(highScoreStore.topRuns).toHaveLength(1);
+    const run = highScoreStore.topRuns[0];
+    expect(run.bossIndex).toBe(3); // the boss being fought at death, not the post-reset index 1
+    expect(run.level).toBe(4);
+    expect(run.habits).toEqual([
+      {
+        name: 'Exercise',
+        period: 'daily',
+        damageType: habitAtDeath.damageType,
+        isBad: false,
+        streakCount: habitAtDeath.streakCount,
+      },
+    ]);
+    expect(run.items).toEqual([]); // no items dropped in this test
+    expect(run.stats.health).toBeGreaterThan(0);
   });
 
   it('checkOffHabit on a bad habit damages the player (penalty), resets its streak, and stamps completed', () => {

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import BossPanel from '../boss/BossPanel.vue';
 import CharacterPanel from '../character/CharacterPanel.vue';
 import SkipDayButton from '../debug/SkipDayButton.vue';
 import HabitList from '../habits/HabitList.vue';
+import HighScorePage from '../highscores/HighScorePage.vue';
 import QuestSection from '../quests/QuestSection.vue';
 import ActivityLog from '../ui/ActivityLog.vue';
 import DeathScreen from '../ui/DeathScreen.vue';
@@ -22,6 +23,12 @@ const isDev = import.meta.env.DEV;
 
 const bossIndex = computed(() => bossStore.boss.index);
 const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
+
+// No router in this app — swaps the main content for HighScorePage in place
+// rather than navigating. The popup overlays below stay mounted regardless
+// (they're independently gated Teleports, see useModalPriority), so a
+// queued death/item/quest popup isn't hidden by this toggle.
+const showHighScores = ref(false);
 </script>
 
 <template>
@@ -29,6 +36,9 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
     <div class="progress-bar">
       <span>Boss #{{ bossIndex }}</span>
       <span>Best: Boss #{{ bestBossIndex }}</span>
+      <button type="button" class="nav-button" @click="showHighScores = !showHighScores">
+        {{ showHighScores ? '← Back' : '🏆 High Scores' }}
+      </button>
     </div>
     <DeathScreen />
     <ItemDropPopup />
@@ -36,14 +46,18 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
     <QuestOfferModal />
     <QuestMissPopup />
     <ReviveNotice />
-    <SkipDayButton v-if="isDev" />
-    <div class="top-panels">
-      <BossPanel />
-      <CharacterPanel />
-    </div>
-    <HabitList />
-    <QuestSection />
-    <ActivityLog />
+
+    <HighScorePage v-if="showHighScores" />
+    <template v-else>
+      <SkipDayButton v-if="isDev" />
+      <div class="top-panels">
+        <BossPanel />
+        <CharacterPanel />
+      </div>
+      <HabitList />
+      <QuestSection />
+      <ActivityLog />
+    </template>
   </div>
 </template>
 
@@ -57,10 +71,19 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
 
 .progress-bar {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-h);
+}
+
+.nav-button {
+  padding: 0.3em 0.7em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .top-panels {
