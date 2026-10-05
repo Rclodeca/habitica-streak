@@ -65,6 +65,12 @@ const activityLogStore = useActivityLogStore();
         <template v-else-if="entry.kind === 'wounds-applied'">
           🩹 Wounded for {{ entry.durationDays }} day(s) — healing at {{ (entry.effectRate * 100).toFixed(0) }}%
         </template>
+        <template v-else-if="entry.kind === 'quest-completed'">
+          🗒️ Completed quest "{{ entry.description }}" — gained <span class="log-exp">+{{ Math.round(entry.amount) }}</span> EXP
+        </template>
+        <template v-else-if="entry.kind === 'quest-failed'">
+          🗒️ Missed quest "{{ entry.description }}" — took <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage
+        </template>
       </li>
     </ul>
     <p v-else>No activity yet.</p>

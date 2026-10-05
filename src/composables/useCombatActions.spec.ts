@@ -8,9 +8,11 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createRng, effectiveStat, periodKeyFor } from '../game-engine';
+import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
+import { useQuestStore } from '../store/questStore';
 import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
 import { useReviveNotice } from './useReviveNotice';
@@ -70,12 +72,12 @@ describe('useCombatActions', () => {
     habitStore.updateHabit({ ...habit, damageType: 'physical' }); // deterministic damage type
     bossStore.setBoss({ ...bossStore.boss, health: 0.0001, armor: 0 }); // one hit from defeat
 
-    const itemsDropped = checkOffHabit(habit.id);
+    const result = checkOffHabit(habit.id);
 
-    expect(itemsDropped.length).toBeGreaterThan(0);
+    expect(result.itemsDropped.length).toBeGreaterThan(0);
   });
 
-  it('checkOffHabit returns [] when the habit completion does not defeat the boss', () => {
+  it('checkOffHabit returns no items dropped when the habit completion does not defeat the boss', () => {
     const habitStore = useHabitStore();
     const bossStore = useBossStore();
     const { checkOffHabit } = useCombatActions();
@@ -87,9 +89,26 @@ describe('useCombatActions', () => {
     // no-defeat path, not damage magnitude.
     bossStore.setBoss({ ...bossStore.boss, health: 1_000_000 });
 
-    const itemsDropped = checkOffHabit(habit.id);
+    const result = checkOffHabit(habit.id);
 
-    expect(itemsDropped).toEqual([]);
+    expect(result.itemsDropped).toEqual([]);
+  });
+
+  it('checkOffHabit surfaces questOffered/bossIndexAtOffer using the DEFEATED boss index, not the newly-spawned one', () => {
+    const habitStore = useHabitStore();
+    const bossStore = useBossStore();
+    const { checkOffHabit } = useCombatActions();
+
+    const habit = habitStore.addHabit('Slay the boss', 'daily', 'hard', false, createRng());
+    habitStore.updateHabit({ ...habit, damageType: 'physical' });
+    bossStore.setBoss({ ...bossStore.boss, index: 3, health: 0.0001, armor: 0 }); // one hit from defeat
+
+    const result = checkOffHabit(habit.id);
+
+    if (result.questOffered) {
+      expect(result.bossIndexAtOffer).toBe(3); // the boss just defeated, not bossStore.boss.index afterward (now 4)
+    }
+    expect(bossStore.boss.index).toBe(4); // sanity: the store itself has already moved on
   });
 
   it('checkMissedHabit flags the death screen instead of resetting immediately when it brings currentHealth to 0', () => {
@@ -193,7 +212,7 @@ describe('useCombatActions', () => {
     const healthBefore = characterStore.character.currentHealth;
     const bossHealthBefore = bossStore.boss.health;
 
-    const itemsDropped = checkOffHabit(habit.id);
+    const result = checkOffHabit(habit.id);
 
     const currentPeriodKey = periodKeyFor(habit.period, new Date());
     const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
@@ -202,7 +221,7 @@ describe('useCombatActions', () => {
     expect(bossStore.boss.health).toBe(bossHealthBefore); // tapping a bad habit never damages the boss
     expect(updatedHabit?.streakCount).toBe(0); // doing the bad thing resets the avoidance streak
     expect(updatedHabit?.lastCompletedPeriodKey).toBe(currentPeriodKey);
-    expect(itemsDropped).toEqual([]);
+    expect(result.itemsDropped).toEqual([]);
   });
 
   it('checkOffHabit is a no-op the second time on a bad habit already resolved this period', () => {
@@ -247,13 +266,13 @@ describe('useCombatActions', () => {
     bossStore.setBoss({ ...bossStore.boss, health: 1_000_000, maxHealth: 1_000_000 });
     const bossHealthBefore = bossStore.boss.health;
 
-    const itemsDropped = checkAvoidedHabit(habit.id);
+    const result = checkAvoidedHabit(habit.id);
 
     const updatedHabit = habitStore.habits.find((h) => h.id === habit.id);
     expect(bossStore.boss.health).toBeLessThan(bossHealthBefore);
     expect(updatedHabit?.streakCount).toBe(1);
     expect(updatedHabit?.lastCompletedPeriodKey).toBeNull(); // a rollover resolution is never an active tap
-    expect(itemsDropped).toEqual([]);
+    expect(result.itemsDropped).toEqual([]);
   });
 
   it("pools bad and good habits of the same damage type and period together", () => {
@@ -280,5 +299,84 @@ describe('useCombatActions', () => {
 
     expect(habitStore.habitsOfType('physical', 'daily')).toEqual([{ ...dailyHabit, damageType: 'physical' }]);
     expect(habitStore.habitsOfType('physical', 'weekly')).toEqual([{ ...weeklyHabit, damageType: 'physical' }]);
+  });
+
+  it('completeQuest grants questExpReward, logs quest-completed, and removes the quest', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { completeQuest } = useCombatActions();
+    const activityLogStore = useActivityLogStore();
+
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01', 1);
+    const expBefore = characterStore.character.exp;
+
+    completeQuest(quest.id);
+
+    expect(characterStore.character.exp).toBeGreaterThan(expBefore);
+    expect(questStore.quests).toEqual([]);
+    expect(activityLogStore.entries[0]).toMatchObject({ kind: 'quest-completed', description: 'Clean garage' });
+  });
+
+  it('completeQuest is a no-op for an id that is not in the quest store', () => {
+    const characterStore = useCharacterStore();
+    const { completeQuest } = useCombatActions();
+    const expBefore = characterStore.character.exp;
+
+    completeQuest('does-not-exist');
+
+    expect(characterStore.character.exp).toBe(expBefore);
+  });
+
+  it('failQuest damages the character via questMissDamage, logs quest-failed, and removes the quest', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { failQuest } = useCombatActions();
+    const activityLogStore = useActivityLogStore();
+
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01', 1);
+    const healthBefore = characterStore.character.currentHealth;
+
+    failQuest(quest.id);
+
+    expect(characterStore.character.currentHealth).toBeLessThan(healthBefore);
+    expect(questStore.quests).toEqual([]);
+    expect(activityLogStore.entries[0]).toMatchObject({ kind: 'quest-failed', description: 'Clean garage' });
+  });
+
+  it('failQuest flags the death screen instead of resetting immediately when it brings currentHealth to 0', () => {
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const questStore = useQuestStore();
+    const { failQuest } = useCombatActions();
+    const { isDead } = useDeathScreen();
+
+    const quest = questStore.addQuest('Clean garage', 'hard', '2026-02-01', 1);
+    characterStore.character = { ...characterStore.character, currentHealth: 1 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 10000, magicAttack: 10000 });
+
+    failQuest(quest.id);
+
+    expect(isDead.value).toBe(true);
+  });
+
+  it('restart() leaves pending quests untouched — same precedent as habit streaks, which also survive a death/reset', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const questStore = useQuestStore();
+    const { checkMissedHabit, restart } = useCombatActions();
+    const { isDead } = useDeathScreen();
+
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01', 1);
+    characterStore.character = { ...characterStore.character, currentHealth: 1 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
+    checkMissedHabit(habit.id);
+    expect(isDead.value).toBe(true);
+
+    restart();
+
+    expect(characterStore.character.level).toBe(1); // sanity: a real reset happened
+    expect(questStore.quests).toEqual([quest]); // the pending quest is untouched by the reset
   });
 });

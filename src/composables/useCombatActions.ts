@@ -39,6 +39,8 @@ import {
   overdriveHabit,
   overdriveUsesRemaining,
   periodKeyFor,
+  questExpReward,
+  questMissDamage,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
@@ -50,6 +52,7 @@ import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useDebugClockStore } from '../store/debugClockStore';
 import { useHabitStore } from '../store/habitStore';
+import { useQuestStore } from '../store/questStore';
 import { useDeathScreen } from './useDeathScreen';
 import { useReviveNotice } from './useReviveNotice';
 
@@ -63,6 +66,7 @@ export function useCombatActions() {
   const bossStore = useBossStore();
   const habitStore = useHabitStore();
   const activityLogStore = useActivityLogStore();
+  const questStore = useQuestStore();
   const debugClockStore = useDebugClockStore();
   const { triggerDeath, dismiss: dismissDeathScreen } = useDeathScreen();
   const { showReviveNotice } = useReviveNotice();
@@ -142,9 +146,13 @@ export function useCombatActions() {
    * Never checks for player death: this path never damages the player, so
    * it cannot kill them.
    */
-  function applyReward(habitId: string, stampPeriodKey?: string, options: { isOverdriveUse?: boolean } = {}): ItemDef[] {
+  function applyReward(
+    habitId: string,
+    stampPeriodKey?: string,
+    options: { isOverdriveUse?: boolean } = {},
+  ): { itemsDropped: ItemDef[]; questOffered: boolean; bossIndexAtOffer: number } {
     const habit = habitStore.habits.find((h) => h.id === habitId);
-    if (!habit) return [];
+    if (!habit) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
 
     const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.period);
     const healthBefore = characterStore.character.currentHealth;
@@ -205,6 +213,12 @@ export function useCombatActions() {
     }
 
     const beforeDefeat = characterStore.character;
+    // Captured BEFORE bossStore.setBoss() below overwrites it — this is the
+    // index of the boss actually defeated by this action, which is what a
+    // quest offered by this kill must be locked to (see Quest.bossIndexAtOffer
+    // / questExpReward) — NOT bossStore.boss.index read after the overwrite,
+    // which would already be the newly-spawned next boss.
+    const defeatedBossIndex = bossStore.boss.index;
     const defeatResult = resolveBossDefeatIfDead(characterStore.character, bossStore.boss, rng);
     if (defeatResult.defeated) {
       activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: bossStore.boss.index });
@@ -214,7 +228,7 @@ export function useCombatActions() {
       applyLevelRewards(defeatResult.levelsGained);
     }
 
-    return defeatResult.itemsDropped;
+    return { itemsDropped: defeatResult.itemsDropped, questOffered: defeatResult.questOffered, bossIndexAtOffer: defeatedBossIndex };
   }
 
   /**
@@ -291,16 +305,16 @@ export function useCombatActions() {
    * UI-layer `:disabled` binding. Mirrors the `isCompletedThisPeriod`
    * predicate used in `HabitListItem.vue`.
    */
-  function checkOffHabit(habitId: string): ItemDef[] {
+  function checkOffHabit(habitId: string): { itemsDropped: ItemDef[]; questOffered: boolean; bossIndexAtOffer: number } {
     const habit = habitStore.habits.find((h) => h.id === habitId);
-    if (!habit) return [];
+    if (!habit) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
 
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
-    if (habit.lastCompletedPeriodKey === currentPeriodKey) return [];
+    if (habit.lastCompletedPeriodKey === currentPeriodKey) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
 
     if (habit.isBad) {
       applyPenalty(habitId, currentPeriodKey);
-      return [];
+      return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
     }
     return applyReward(habitId, currentPeriodKey);
   }
@@ -321,7 +335,7 @@ export function useCombatActions() {
    * habit counterpart to `checkMissedHabit`, called the same way from
    * `useMissedSkillsGate.acknowledge()`.
    */
-  function checkAvoidedHabit(habitId: string): ItemDef[] {
+  function checkAvoidedHabit(habitId: string): { itemsDropped: ItemDef[]; questOffered: boolean; bossIndexAtOffer: number } {
     return applyReward(habitId);
   }
 
@@ -332,13 +346,13 @@ export function useCombatActions() {
    * guard, independent of the UI button's `:disabled` binding, mirroring
    * `checkOffHabit`'s own period-key guard above.
    */
-  function activateOverdrive(habitId: string): ItemDef[] {
+  function activateOverdrive(habitId: string): { itemsDropped: ItemDef[]; questOffered: boolean; bossIndexAtOffer: number } {
     const habit = habitStore.habits.find((h) => h.id === habitId);
-    if (!habit || habit.isBad || !habit.isOverdrive) return [];
+    if (!habit || habit.isBad || !habit.isOverdrive) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
 
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
-    if (habit.lastCompletedPeriodKey !== currentPeriodKey) return [];
-    if (overdriveUsesRemaining(habit, currentPeriodKey) <= 0) return [];
+    if (habit.lastCompletedPeriodKey !== currentPeriodKey) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
+    if (overdriveUsesRemaining(habit, currentPeriodKey) <= 0) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
 
     return applyReward(habitId, undefined, { isOverdriveUse: true });
   }
@@ -380,6 +394,58 @@ export function useCombatActions() {
     dismissDeathScreen();
   }
 
+  /**
+   * Grants a quest's bonus EXP (questExpReward) and resolves any resulting
+   * level-ups, logs a quest-completed entry, and removes it from the quest
+   * store. Used both for an on-time checkbox tap (QuestSection) and an "I
+   * actually did this" override from the missed-deadline gate (see
+   * useQuestMissGate) — the two cases resolve identically.
+   */
+  function completeQuest(questId: string): void {
+    const quest = questStore.quests.find((q) => q.id === questId);
+    if (!quest) return;
+
+    const amount = questExpReward(quest);
+    const beforeLevelUp = characterStore.character;
+    const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, amount);
+    logLevelUpIfAny(beforeLevelUp, character);
+    characterStore.setCharacter(character);
+    applyLevelRewards(levelsGained);
+
+    activityLogStore.addEntry({ kind: 'quest-completed', description: quest.description, amount });
+    questStore.removeQuest(questId);
+  }
+
+  /**
+   * Resolves a quest's missed due date (not overridden): applies
+   * questMissDamage to the character, checks for death (Phoenix Feather
+   * revive, same as applyPenalty), logs a quest-failed entry, and removes it
+   * from the quest store. Called only from useQuestMissGate.acknowledge()
+   * for a quest the player didn't flag as "I actually did this".
+   */
+  function failQuest(questId: string): void {
+    const quest = questStore.quests.find((q) => q.id === questId);
+    if (!quest) return;
+
+    const healthBefore = characterStore.character.currentHealth;
+    const amount = questMissDamage(quest, bossStore.boss, rng);
+    const newHealth = Math.max(0, healthBefore - amount);
+    characterStore.setCharacter({ ...characterStore.character, currentHealth: newHealth });
+
+    activityLogStore.addEntry({ kind: 'quest-failed', description: quest.description, amount });
+    questStore.removeQuest(questId);
+
+    if (Math.round(newHealth) <= 0) {
+      const reviveResult = reviveWithFeatherIfEquipped(characterStore.character);
+      if (reviveResult.revived) {
+        characterStore.setCharacter(reviveResult.character);
+        showReviveNotice();
+      } else {
+        triggerDeath();
+      }
+    }
+  }
+
   return {
     checkOffHabit,
     checkMissedHabit,
@@ -388,5 +454,7 @@ export function useCombatActions() {
     addHabit,
     restart,
     checkLevelRewards,
+    completeQuest,
+    failQuest,
   };
 }

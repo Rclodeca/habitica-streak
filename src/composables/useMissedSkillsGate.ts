@@ -30,6 +30,7 @@ import type { Habit } from '../game-engine';
 import { useCombatActions } from './useCombatActions';
 import { useHabitStore } from '../store/habitStore';
 import { useItemDropQueue } from './useItemDropQueue';
+import { useQuestOfferQueue } from './useQuestOfferQueue';
 
 interface PendingOutcome {
   habitId: string;
@@ -45,6 +46,7 @@ export function useMissedSkillsGate() {
   const habitStore = useHabitStore();
   const { checkMissedHabit, checkAvoidedHabit } = useCombatActions();
   const { enqueueDrops } = useItemDropQueue();
+  const { enqueueOffer } = useQuestOfferQueue();
 
   const misses = computed(() => pending.value.filter((item) => item.outcome === 'penalty'));
   const rewards = computed(() => pending.value.filter((item) => item.outcome === 'reward'));
@@ -90,7 +92,9 @@ export function useMissedSkillsGate() {
       if (effectiveOutcome === 'penalty') {
         checkMissedHabit(item.habitId);
       } else {
-        enqueueDrops(checkAvoidedHabit(item.habitId));
+        const result = checkAvoidedHabit(item.habitId);
+        if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
+        if (result.questOffered) enqueueOffer(result.bossIndexAtOffer);
       }
       const habit = habitStore.habits.find((h) => h.id === item.habitId);
       if (habit) {
