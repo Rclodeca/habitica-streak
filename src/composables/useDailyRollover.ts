@@ -18,10 +18,12 @@
 // If the app was closed across multiple period boundaries, only the single
 // immediately-preceding period is checked; earlier gaps are not backfilled.
 
-import { periodKeyFor } from '../game-engine';
+import { dailyPeriodKey, daysBetweenDayKeys, periodKeyFor } from '../game-engine';
 import type { Period } from '../game-engine';
 import { useHabitStore } from '../store/habitStore';
+import { useQuestStore } from '../store/questStore';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
+import { useQuestMissGate } from './useQuestMissGate';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -42,6 +44,8 @@ function previousPeriodKey(period: Period, date: Date): string {
 export function useDailyRollover(now: Date = new Date()): void {
   const habitStore = useHabitStore();
   const { queueMiss, queueReward } = useMissedSkillsGate();
+  const questStore = useQuestStore();
+  const { queueMiss: queueQuestMiss } = useQuestMissGate();
 
   for (const habit of habitStore.habits) {
     const currentPeriodKey = periodKeyFor(habit.period, now);
@@ -60,5 +64,12 @@ export function useDailyRollover(now: Date = new Date()): void {
     }
 
     habitStore.updateHabit({ ...habit, lastCheckedPeriodKey: currentPeriodKey });
+  }
+
+  const todayKey = dailyPeriodKey(now);
+  for (const quest of questStore.quests) {
+    if (daysBetweenDayKeys(quest.dueDateKey, todayKey) > 0) {
+      queueQuestMiss(quest);
+    }
   }
 }

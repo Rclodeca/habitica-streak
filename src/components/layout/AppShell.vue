@@ -9,6 +9,7 @@ import ActivityLog from '../ui/ActivityLog.vue';
 import DeathScreen from '../ui/DeathScreen.vue';
 import ItemDropPopup from '../ui/ItemDropPopup.vue';
 import MissedSkillsPopup from '../ui/MissedSkillsPopup.vue';
+import QuestMissPopup from '../quests/QuestMissPopup.vue';
 import QuestOfferModal from '../quests/QuestOfferModal.vue';
 import ReviveNotice from '../ui/ReviveNotice.vue';
 import { useBossStore } from '../../store/bossStore';
@@ -33,6 +34,7 @@ const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
     <ItemDropPopup />
     <MissedSkillsPopup />
     <QuestOfferModal />
+    <QuestMissPopup />
     <ReviveNotice />
     <SkipDayButton v-if="isDev" />
     <div class="top-panels">
