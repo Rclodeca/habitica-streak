@@ -132,3 +132,15 @@ export interface Habit {
   overdrivePeriodKey?: string | null; // period key overdriveUsesThisPeriod applies to — a stale key means 0 used
   overdriveUsesThisPeriod?: number;
 }
+
+export interface Quest {
+  id: string;
+  description: string; // free-text one-time task, player-authored
+  difficulty: Difficulty;
+  dueDateKey: string; // YYYY-MM-DD — same format as dailyPeriodKey
+  // The boss whose kill offered this quest. Locks in the EXP reward base
+  // (see questExpReward in quests.ts) so procrastinating past later boss
+  // kills can't inflate the payout — the reward is always "a slice of the
+  // boss that dropped it," not of whatever boss is current when resolved.
+  bossIndexAtOffer: number;
+}

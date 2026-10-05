@@ -114,6 +114,16 @@ export const TUNING = {
   // line in the stats modal instead of hiding it inside the base number.
   WEEKLY_BONUS_MULTIPLIER: 2,
   WEEKLY_MISS_MULTIPLIER: 2, // a missed/failed weekly deals 2x damage to the player
+  // Flat chance a boss kill offers a quest, independent of boss index —
+  // quests are a pacing/flavor mechanic, not a progression-scaling reward
+  // like items, so no growth curve to tune. See quests.ts/rollQuestOffer.
+  QUEST_DROP_CHANCE: 0.4,
+  // questExpReward scales a completed quest's bonus EXP by this percent of
+  // the EXP reward of the boss that offered it (quest.bossIndexAtOffer) —
+  // see quests.ts. Inherits BOSS_EXP_GROWTH_RATE's existing curve for free
+  // instead of needing a second independent growth rate to verify against
+  // the runaway-prevention margin (see BOSS_EXP_GROWTH_RATE's own comment).
+  QUEST_EXP_DIFFICULTY_PCT: { easy: 0.25, medium: 0.5, hard: 0.75 },
   HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.35, magic: 0.35, healing: 0.15, trueDamage: 0.08, expGain: 0.07 },
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates
   // 2x -> 3x -> 4x -> 5x, and each tier is 5x rarer than the one below it —

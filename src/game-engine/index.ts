@@ -10,6 +10,7 @@ export type {
   Habit,
   Period,
   Personality,
+  Quest,
   StatusEffect,
   WoundsAbility,
   WoundsStatusEffect,
@@ -74,6 +75,8 @@ export {
   maxEquipSlots,
   rollItemDrops,
 } from './items';
+
+export { createQuest, questExpReward, questMissDamage, rollQuestOffer } from './quests';
 
 export type { Rng } from './rng';
 export { createRng, pickRandom, pickWeighted, shuffle } from './rng';
