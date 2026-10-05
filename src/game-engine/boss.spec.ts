@@ -108,7 +108,7 @@ describe('bossExpReward', () => {
     expect(bossExpReward(1)).toBeCloseTo(TUNING.BASE_BOSS_EXP * Math.pow(TUNING.BOSS_EXP_GROWTH_RATE, 0), 10);
     expect(bossExpReward(5)).toBeCloseTo(TUNING.BASE_BOSS_EXP * Math.pow(TUNING.BOSS_EXP_GROWTH_RATE, 4), 10);
     expect(bossExpReward(10)).toBeCloseTo(TUNING.BASE_BOSS_EXP * Math.pow(TUNING.BOSS_EXP_GROWTH_RATE, 9), 10);
-    expect(bossExpReward(1)).toBe(40);
+    expect(bossExpReward(1)).toBe(33);
   });
 });
 

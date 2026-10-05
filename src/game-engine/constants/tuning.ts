@@ -60,7 +60,17 @@ export const TUNING = {
   RUN_DIFFICULTY_VARIANCE_PCT: 0.1,
   BOSS_STAT_SHARE: { health: 0.4, physicalAttack: 0.2, magicAttack: 0.2, armor: 0.1, magicResist: 0.1 }, // sums to 1
   RESIST_K: 1500, // scaled with BASE_BOSS_POWER so early-game resist % is unchanged (~14% at boss 1)
-  BASE_BOSS_EXP: 40, // deliberately NOT rescaled — EXP/leveling pace is a separate economy, untouched by this balance pass
+  // 40 -> 33 (40 / 1.2, rounded down): offsets the new quest-completion EXP
+  // income (see quests.ts/questExpReward) — assuming every offered quest is
+  // accepted and completed on time (the generous upper bound) and an
+  // average difficulty pick of "medium", expected extra EXP per boss kill is
+  // QUEST_DROP_CHANCE * QUEST_EXP_DIFFICULTY_PCT.medium = 0.4 * 0.5 = 20% on
+  // top of this reward — dividing by 1.2 holds overall leveling pace roughly
+  // where it was. Real-world accept/completion rates will be below 100%, so
+  // this cut is deliberately conservative (a slight net buff once quests
+  // ship), not an exact wash — same "approximate by design" philosophy as
+  // every other pass in this file. BOSS_EXP_GROWTH_RATE is untouched.
+  BASE_BOSS_EXP: 33,
   // Lowered 1.18 -> 1.12 as part of the same pacing pass as BASE_BOSS_POWER
   // above: this MUST stay below BOSS_GROWTH_RATE. If EXP income compounds
   // faster than boss difficulty, an extremely consistent player who chains
