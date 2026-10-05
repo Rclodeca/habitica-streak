@@ -2,21 +2,18 @@
 import { computed, ref, watch } from 'vue';
 import { dailyPeriodKey } from '../../game-engine';
 import type { Difficulty } from '../../game-engine';
-import { useItemDropQueue } from '../../composables/useItemDropQueue';
+import { useModalPriority } from '../../composables/useModalPriority';
 import { useQuestOfferQueue } from '../../composables/useQuestOfferQueue';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useQuestStore } from '../../store/questStore';
 import Modal from '../ui/Modal.vue';
 
 const { current, dismiss } = useQuestOfferQueue();
-// Both this modal and ItemDropPopup are full-screen, non-dismissible-by-
-// backdrop-click Modals that can be queued by the exact same boss-kill (a
-// kill can drop an item AND offer a quest at once) — without this gate,
-// whichever is mounted later in AppShell renders on top and permanently
-// blocks the other's buttons, since neither Modal yields to the other.
-// Deferring the quest offer until any pending item drop is resolved first
-// keeps exactly one full-screen modal interactable at a time.
-const { current: itemDropCurrent } = useItemDropQueue();
+// This modal competes with DeathScreen/ItemDropPopup/QuestMissPopup for
+// the same full-screen Teleport-to-body stacking context — see
+// useModalPriority for why a shared arbiter is needed instead of a
+// pairwise gate per modal.
+const { questOfferVisible } = useModalPriority();
 const questStore = useQuestStore();
 const debugClockStore = useDebugClockStore();
 
@@ -53,7 +50,7 @@ function onSubmit() {
 </script>
 
 <template>
-  <Modal :model-value="current !== null && itemDropCurrent === null" :dismissible="false" title="Quest">
+  <Modal :model-value="questOfferVisible" :dismissible="false" title="Quest">
     <template v-if="step === 'offer'">
       <p>A quest has appeared! Will you accept it?</p>
       <div class="offer-actions">

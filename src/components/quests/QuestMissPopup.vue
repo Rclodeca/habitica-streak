@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { useMissedSkillsGate } from '../../composables/useMissedSkillsGate';
+import { useModalPriority } from '../../composables/useModalPriority';
 import { useQuestMissGate } from '../../composables/useQuestMissGate';
 import Modal from '../ui/Modal.vue';
 
-const { misses, hasPending, isOverridden, toggleOverride, acknowledge } = useQuestMissGate();
-// useDailyRollover can queue a habit miss AND a quest miss in the same
-// synchronous call, so both this popup and MissedSkillsPopup could become
-// pending at once — same full-screen-modal collision as QuestOfferModal
-// vs. ItemDropPopup (see that component's comment). Deferring until the
-// habit-miss gate is clear keeps exactly one blocking modal up at a time.
-const { hasPending: habitMissHasPending } = useMissedSkillsGate();
+const { misses, isOverridden, toggleOverride, acknowledge } = useQuestMissGate();
+// This popup competes with DeathScreen/MissedSkillsPopup/QuestOfferModal
+// for the same full-screen Teleport-to-body stacking context — see
+// useModalPriority for why a shared arbiter is needed instead of a
+// pairwise gate per modal.
+const { questMissVisible } = useModalPriority();
 </script>
 
 <template>
-  <Modal :model-value="hasPending && !habitMissHasPending" :dismissible="false" title="Quest deadline passed">
+  <Modal :model-value="questMissVisible" :dismissible="false" title="Quest deadline passed">
     <p class="missed-intro">You didn't check these off by their due date — the boss struck back:</p>
     <ul class="missed-list">
       <li v-for="miss in misses" :key="miss.questId" class="outcome-row">
