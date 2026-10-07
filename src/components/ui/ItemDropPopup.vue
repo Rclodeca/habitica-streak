@@ -2,11 +2,13 @@
 import { computed } from 'vue';
 import { describeItemBonus, ITEM_CATALOG, maxEquipSlots } from '../../game-engine';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
+import { useSlotUnlockNotice } from '../../composables/useSlotUnlockNotice';
 import { useCharacterStore } from '../../store/characterStore';
 import Modal from './Modal.vue';
 
 const { current, dismiss, replace } = useItemDropQueue();
 const characterStore = useCharacterStore();
+const { isPending: slotNoticePending } = useSlotUnlockNotice();
 
 const equippedItems = computed(() =>
   ITEM_CATALOG.filter((item) => characterStore.character.equippedItemIds.includes(item.id)),
@@ -27,7 +29,7 @@ const isCurrentEquipped = computed(
 
 <template>
   <Modal
-    :model-value="current !== null"
+    :model-value="current !== null && !slotNoticePending"
     :dismissible="isCurrentEquipped"
     title="Item found!"
     @update:model-value="dismiss"

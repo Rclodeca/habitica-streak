@@ -13,6 +13,7 @@ import MissedSkillsPopup from '../ui/MissedSkillsPopup.vue';
 import QuestMissPopup from '../quests/QuestMissPopup.vue';
 import QuestOfferModal from '../quests/QuestOfferModal.vue';
 import ReviveNotice from '../ui/ReviveNotice.vue';
+import SlotUnlockPopup from '../ui/SlotUnlockPopup.vue';
 import { useBossStore } from '../../store/bossStore';
 import { useHighScoreStore } from '../../store/highScoreStore';
 
@@ -43,6 +44,7 @@ const showHighScores = ref(false);
     <DeathScreen />
     <ItemDropPopup />
     <MissedSkillsPopup />
+    <SlotUnlockPopup />
     <QuestOfferModal />
     <QuestMissPopup />
     <ReviveNotice />

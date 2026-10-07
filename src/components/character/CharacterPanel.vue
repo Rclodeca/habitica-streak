@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   activeWoundsEffect,
   dailyPeriodKey,
@@ -93,15 +93,22 @@ const equippedSlots = computed(() =>
     return itemId ? ITEM_CATALOG.find((item) => item.id === itemId) ?? null : null;
   }),
 );
-const gridRows = computed(() => Math.ceil(slotCount.value / 2));
+// 2x2 below level 10, 3 wide x 2 tall once the 6th/5th slots unlock.
+const gridCols = computed(() => (slotCount.value > 4 ? 3 : 2));
 
 // Which slot's stats callout is pinned open by a tap/click (persists until
-// tapped again or another slot is tapped) — separate from the CSS-only
-// :hover reveal, which only fires for mouse users.
+// tapped again, another slot is tapped, or any tap lands outside the slots)
+// — separate from the CSS-only :hover reveal, which only fires for mouse
+// users.
 const pinnedSlot = ref<number | null>(null);
 function togglePin(i: number) {
   pinnedSlot.value = pinnedSlot.value === i ? null : i;
 }
+function unpinOnOutsideTap(event: Event) {
+  if (!(event.target as Element | null)?.closest('.item-slot')) pinnedSlot.value = null;
+}
+onMounted(() => document.addEventListener('click', unpinOnOutsideTap));
+onBeforeUnmount(() => document.removeEventListener('click', unpinOnOutsideTap));
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
 </script>
@@ -113,12 +120,12 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <PlayerSprite :character="character" />
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
-      <div class="item-grid" :style="{ gridTemplateRows: `repeat(${gridRows}, 1fr)`, height: `${gridRows * 46}px` }">
+      <div class="item-grid" :style="{ gridTemplateColumns: `repeat(${gridCols}, 1fr)`, maxWidth: `${gridCols * 46 + (gridCols - 1) * 4}px` }">
         <div
           v-for="(item, i) in equippedSlots"
           :key="i"
           class="item-slot"
-          :class="{ pinned: pinnedSlot === i }"
+          :class="{ pinned: pinnedSlot === i, 'right-edge': (i + 1) % gridCols === 0 }"
           @click="item && togglePin(i)"
         >
           <template v-if="item">
@@ -238,17 +245,19 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   color: var(--text-h);
 }
 
-/* Same footprint as the sprite (96x96, see Sprite.vue) so the two sit as
-   equal-sized boxes side by side. */
+/* Cells target ~46px squares (so 2 rows match the 96px sprite, see
+   Sprite.vue); max-width is set inline from the column count, and the grid
+   shrinks below that on narrow panels. */
 .item-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 4px;
-  width: 96px;
+  flex: 1;
+  align-self: center;
 }
 
 .item-slot {
   position: relative;
+  aspect-ratio: 1;
   background: var(--border);
   border-radius: 6px;
   cursor: pointer;
@@ -259,6 +268,10 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   width: 100%;
   height: 100%;
   pointer-events: none;
+  /* The art has transparent padding around the item, so scaling past the
+     cell (the slot doesn't clip — the tooltip must overflow it) enlarges
+     the visible icon without growing the grid. */
+  transform: scale(1.45);
 }
 
 .item-tooltip {
@@ -286,15 +299,22 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
    already right-aligned within the panel (see .top-row) — so a
    center-anchored tooltip risks clipping off the right edge of a narrow
    phone screen. Anchor those to their own right edge instead. */
-.item-slot:nth-child(2n) .item-tooltip {
+.item-slot.right-edge .item-tooltip {
   left: auto;
   right: 0;
   transform: none;
 }
 
-.item-slot:hover .item-tooltip,
 .item-slot.pinned .item-tooltip {
   opacity: 1;
+}
+
+/* Gated to real hover devices: on touch screens :hover sticks after a tap,
+   which would keep the tooltip open even after tapping elsewhere. */
+@media (hover: hover) {
+  .item-slot:hover .item-tooltip {
+    opacity: 1;
+  }
 }
 
 .stat-list {

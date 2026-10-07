@@ -195,13 +195,28 @@ export function itemFlatBonus(character: Character, stat: BoostableStat): number
   return total;
 }
 
-/** Human-readable summary of what an item grants, for popups/tooltips. */
+const STAT_EMOJI: Record<BoostableStat, string> = {
+  physicalDamage: '⚔️',
+  magicDamage: '🔮',
+  healing: '💚',
+  health: '❤️',
+  trueDamage: '⚡',
+  expGain: '✨',
+  critChance: '💥',
+  lifesteal: '🩸',
+  armorPen: '🗡️',
+  magicPen: '🌀',
+  armor: '🛡️',
+  magicResist: '🔰',
+};
+
+/** Condensed summary of what an item grants (e.g. "⚔️ +25%"), for popups/tooltips. */
 export function describeItemBonus(item: ItemDef): string {
   if (item.type === 'consumable') return 'Consumable — grants one free revive on death, while equipped';
   const parts: string[] = [];
   for (const bonus of item.bonuses) {
-    if (bonus.percent) parts.push(`+${bonus.percent}% ${bonus.stat}`);
-    if (bonus.flat) parts.push(`+${bonus.flat} ${bonus.stat}`);
+    if (bonus.percent) parts.push(`${STAT_EMOJI[bonus.stat]} +${bonus.percent}%`);
+    if (bonus.flat) parts.push(`${STAT_EMOJI[bonus.stat]} +${bonus.flat}`);
   }
   return parts.join(', ');
 }

@@ -10,7 +10,7 @@
 // permanently blocks the others' buttons (confirmed via manual testing —
 // see the design spec's review notes). This centralizes the precedence
 // order so it's declared once instead of re-derived pairwise per modal:
-// death > item drop > habit miss > quest miss > quest offer.
+// death > slot-unlock notice > item drop > habit miss > quest miss > quest offer.
 
 import { computed } from 'vue';
 import { useDeathScreen } from './useDeathScreen';
@@ -18,6 +18,7 @@ import { useItemDropQueue } from './useItemDropQueue';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
 import { useQuestMissGate } from './useQuestMissGate';
 import { useQuestOfferQueue } from './useQuestOfferQueue';
+import { useSlotUnlockNotice } from './useSlotUnlockNotice';
 
 export function useModalPriority() {
   const { isDead } = useDeathScreen();
@@ -25,13 +26,14 @@ export function useModalPriority() {
   const { hasPending: habitMissPending } = useMissedSkillsGate();
   const { hasPending: questMissPending } = useQuestMissGate();
   const { current: questOfferCurrent } = useQuestOfferQueue();
+  const { isPending: slotNoticePending } = useSlotUnlockNotice();
 
   /** True only when a quest miss is pending and nothing higher-priority (death, habit miss) is. */
-  const questMissVisible = computed(() => questMissPending.value && !isDead.value && !habitMissPending.value);
+  const questMissVisible = computed(() => questMissPending.value && !isDead.value && !habitMissPending.value && !slotNoticePending.value);
 
   /** True only when a quest offer is queued and nothing higher-priority (death, item drop, quest miss) is. */
   const questOfferVisible = computed(
-    () => questOfferCurrent.value !== null && !isDead.value && itemDropCurrent.value === null && !questMissPending.value,
+    () => questOfferCurrent.value !== null && !isDead.value && itemDropCurrent.value === null && !questMissPending.value && !slotNoticePending.value,
   );
 
   return { questMissVisible, questOfferVisible };

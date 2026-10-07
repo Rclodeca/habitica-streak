@@ -190,11 +190,15 @@ describe('describeItemBonus', () => {
   }
 
   it('describes a single-stat item', () => {
-    expect(describeItemBonus(itemNamed('rusty-blade'))).toBe('+3% physicalDamage');
+    expect(describeItemBonus(itemNamed('rusty-blade'))).toBe('⚔️ +3%');
   });
 
   it('describes a hybrid item with both its primary and secondary stat', () => {
-    expect(describeItemBonus(itemNamed('battlemage-gauntlets'))).toBe('+4% physicalDamage, +4% magicDamage');
+    expect(describeItemBonus(itemNamed('battlemage-gauntlets'))).toBe('⚔️ +4%, 🔮 +4%');
+  });
+
+  it('describes flat bonuses without a percent sign', () => {
+    expect(describeItemBonus(itemNamed('juggernaut-carapace'))).toBe('🛡️ +300, ❤️ +200');
   });
 
   it('describes the consumable distinctly, with no stat percentages', () => {
