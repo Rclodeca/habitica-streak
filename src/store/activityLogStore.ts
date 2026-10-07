@@ -32,7 +32,7 @@ export type ActivityLogEntry =
   | { id: string; kind: 'crit'; by: 'player' | 'boss' }
   | { id: string; kind: 'lifesteal'; amount: number; healedWho: 'player' | 'boss' }
   | { id: string; kind: 'reflect'; amount: number }
-  | { id: string; kind: 'boss-defeated'; bossIndex: number }
+  | { id: string; kind: 'boss-defeated'; bossIndex: number; amount?: number }
   | { id: string; kind: 'special-assigned'; habitName: string }
   | { id: string; kind: 'ult-assigned'; habitName: string }
   | { id: string; kind: 'overdrive-granted'; habitName: string }

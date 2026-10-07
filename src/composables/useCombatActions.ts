@@ -31,6 +31,7 @@ import {
   addExpAndResolveLevelUps,
   assignSpecialIfEligible,
   assignUltIfEligible,
+  bossExpReward,
   completeHabit,
   createRng,
   dailyPeriodKey,
@@ -232,7 +233,7 @@ export function useCombatActions() {
     const defeatedBossIndex = bossStore.boss.index;
     const defeatResult = resolveBossDefeatIfDead(characterStore.character, bossStore.boss, rng);
     if (defeatResult.defeated) {
-      activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: bossStore.boss.index });
+      activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: bossStore.boss.index, amount: bossExpReward(bossStore.boss.index) });
       logLevelUpIfAny(beforeDefeat, defeatResult.character);
       characterStore.setCharacter(defeatResult.character);
       bossStore.setBoss(defeatResult.boss);

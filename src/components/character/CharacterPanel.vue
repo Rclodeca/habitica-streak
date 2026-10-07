@@ -53,6 +53,7 @@ const woundsDaysLeft = computed(() =>
 
 // Pre-item-bonus values, shown alongside the effective (post-item) ones in
 // the details modal so the player can see how much their gear is helping.
+const baseHealth = computed(() => statAtLevel(character.value.starterStats.health, character.value.level));
 const basePhysicalDamage = computed(() => statAtLevel(character.value.starterStats.physicalDamage, character.value.level));
 const baseMagicDamage = computed(() => statAtLevel(character.value.starterStats.magicDamage, character.value.level));
 const baseHealing = computed(() => statAtLevel(character.value.starterStats.healing, character.value.level));
@@ -156,6 +157,11 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <dd class="col-label">Base</dd>
         <dd class="col-label">Buffed</dd>
         <dd class="col-label">Effective</dd>
+
+        <dt>❤️ Max health</dt>
+        <dd>{{ baseHealth.toFixed(0) }}</dd>
+        <dd>{{ maxHealth.toFixed(0) }}</dd>
+        <dd>{{ maxHealth.toFixed(0) }}</dd>
 
         <dt>⚔️ Physical damage</dt>
         <dd>{{ basePhysicalDamage.toFixed(0) }}</dd>

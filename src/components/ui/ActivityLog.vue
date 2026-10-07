@@ -59,6 +59,9 @@ const activityLogStore = useActivityLogStore();
         </template>
         <template v-else-if="entry.kind === 'boss-defeated'">
           ☠️ Boss #{{ entry.bossIndex }} defeated!
+          <template v-if="entry.amount">
+            <span class="log-exp">+{{ Math.round(entry.amount) }}</span> EXP
+          </template>
         </template>
         <template v-else-if="entry.kind === 'special-assigned'">
           🌟 "{{ entry.habitName }}" is now your Special skill!
