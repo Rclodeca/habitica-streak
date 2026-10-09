@@ -413,4 +413,16 @@ describe('useCombatActions', () => {
     expect(characterStore.character.level).toBe(1); // sanity: a real reset happened
     expect(questStore.quests).toEqual([quest]); // the pending quest is untouched by the reset
   });
+
+  it('addHabit stamps lastCheckedPeriodKey so a brand-new habit is not a false miss on the next rollover', () => {
+    const habitStore = useHabitStore();
+    const { addHabit } = useCombatActions();
+
+    const daily = addHabit('Meditate', 'daily', 'medium', false);
+    const weekly = addHabit('Prayer list', 'weekly', 'medium', false);
+
+    const now = new Date();
+    expect(habitStore.habits.find((h) => h.id === daily.id)?.lastCheckedPeriodKey).toBe(periodKeyFor('daily', now));
+    expect(habitStore.habits.find((h) => h.id === weekly.id)?.lastCheckedPeriodKey).toBe(periodKeyFor('weekly', now));
+  });
 });

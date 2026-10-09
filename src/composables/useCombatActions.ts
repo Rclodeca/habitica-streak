@@ -376,7 +376,11 @@ export function useCombatActions() {
    * pool (see `applyLevelRewards`).
    */
   function addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean): Habit {
-    const habit = habitStore.addHabit(name, period, difficulty, isBad, rng);
+    const created = habitStore.addHabit(name, period, difficulty, isBad, rng);
+    // Stamped so the next rollover doesn't count the period before this
+    // habit existed as a miss.
+    const habit = { ...created, lastCheckedPeriodKey: periodKeyFor(period, debugClockStore.now()) };
+    habitStore.updateHabit(habit);
     applyLevelRewards(0);
     return habit;
   }
