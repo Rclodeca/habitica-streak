@@ -43,10 +43,23 @@ export function resetLevelRewards(habit: Habit): Habit {
 }
 
 /**
+ * How much a damage-type pool grows with the total difficulty weight in it:
+ * 1.0 for a single medium habit, +POOL_GROWTH_PER_MEDIUM_HABIT of base per
+ * extra medium-equivalent habit (easy/hard scaled by weight, so spamming
+ * easy habits isn't a shortcut). Never below 1, and always 1 for expGain.
+ */
+export function poolSizeMultiplier(damageType: DamageType, totalWeight: number): number {
+  if (damageType === 'expGain') return 1;
+  const growth = TUNING.POOL_GROWTH_PER_MEDIUM_HABIT;
+  return Math.max(1, 1 - growth + (growth * totalWeight) / DIFFICULTY_WEIGHT.medium);
+}
+
+/**
  * Damage-split formula (the core balancing formula): given a base stat value
- * `S` for a damage type and the list of habits of that type, each habit's
- * share of `S` is proportional to its difficulty weight:
- *   d_i = S * (w_i / Σ w_j)
+ * `S` for a damage type and the list of habits of that type, the pool is
+ * `S * poolSizeMultiplier(...)` and each habit's share of it is proportional
+ * to its difficulty weight:
+ *   d_i = S * poolMultiplier * (w_i / Σ w_j)
  *
  * This is a pure computation over the current habit list every time — a
  * habit's damage value is never stored/cached on the Habit object itself.
@@ -57,9 +70,10 @@ export function computeDamageSplit(habitsOfType: Habit[], statValue: number): Ma
     return result;
   }
   const totalWeight = habitsOfType.reduce((sum, habit) => sum + DIFFICULTY_WEIGHT[habit.difficulty], 0);
+  const pool = statValue * poolSizeMultiplier(habitsOfType[0].damageType, totalWeight);
   for (const habit of habitsOfType) {
     const weight = DIFFICULTY_WEIGHT[habit.difficulty];
-    result.set(habit.id, statValue * (weight / totalWeight));
+    result.set(habit.id, pool * (weight / totalWeight));
   }
   return result;
 }

@@ -28,6 +28,10 @@ export const TUNING = {
   // were rolled before this cut and need retroactively scaling down to
   // match (health/trueDamage/expGain untouched, same exemption as above).
   ONE_TIME_DAMAGE_POOL_REBALANCE_PCT: 30,
+  // Each additional medium-weight habit (easy/hard scale proportionally) in a
+  // damage-type pool grows that pool by this fraction of its base size — see
+  // `poolSizeMultiplier`. expGain pools are exempt (runaway-EXP risk).
+  POOL_GROWTH_PER_MEDIUM_HABIT: 0.2,
   STAT_RANDOMIZATION_PCT: 0.05, // ±5% at character creation
   LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level
   // Bumped from 0.01 (+1%/streak) to 0.10 (+10%/streak) so a well-kept

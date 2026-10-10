@@ -2,7 +2,7 @@ import { applyResist, bossExpReward, generateBoss } from './boss';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
-import { computeDamageSplit, rerollDamageType, resetLevelRewards } from './habits';
+import { computeDamageSplit, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
 import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
@@ -154,7 +154,9 @@ export function expectedMediumDailyDamage(character: Character, damageType: Dama
   const itemMultiplier = damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
   const existingWeight = habitsOfType.reduce((sum, h) => sum + DIFFICULTY_WEIGHT[h.difficulty], 0);
   const mediumShareRatio = existingWeight > 0 ? DIFFICULTY_WEIGHT.medium / existingWeight : 1;
-  return rawStat * itemMultiplier * mediumShareRatio;
+  // An empty list stands for a lone medium habit (weight 1.5), whose pool multiplier is 1.
+  const poolMultiplier = poolSizeMultiplier(damageType, existingWeight > 0 ? existingWeight : DIFFICULTY_WEIGHT.medium);
+  return rawStat * itemMultiplier * poolMultiplier * mediumShareRatio;
 }
 
 export type CombatResult = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDamageSplit, createHabit, rerollDamageType } from './habits';
+import { computeDamageSplit, createHabit, poolSizeMultiplier, rerollDamageType } from './habits';
 import { createRng } from './rng';
 import type { Habit } from './types';
 
@@ -88,9 +88,10 @@ describe('computeDamageSplit', () => {
       makeHabit({ id: `habit-${i}`, difficulty: 'easy', damageType: 'physical' }),
     );
     const split = computeDamageSplit(habits, 100);
+    const poolMultiplier = poolSizeMultiplier('physical', 5);
     expect(split.size).toBe(5);
     for (const habit of habits) {
-      expect(split.get(habit.id)).toBe(20);
+      expect(split.get(habit.id)).toBeCloseTo((100 * poolMultiplier) / 5, 10);
     }
   });
 
@@ -104,15 +105,16 @@ describe('computeDamageSplit', () => {
     const habits = [...easyHabits, ...hardHabits];
     const split = computeDamageSplit(habits, 100);
 
+    const pool = 100 * poolSizeMultiplier('physical', 3 * 1 + 2 * 2);
     for (const habit of easyHabits) {
-      expect(split.get(habit.id)).toBeCloseTo(100 / 7, 4);
+      expect(split.get(habit.id)).toBeCloseTo(pool / 7, 4);
     }
     for (const habit of hardHabits) {
-      expect(split.get(habit.id)).toBeCloseTo(200 / 7, 4);
+      expect(split.get(habit.id)).toBeCloseTo((pool * 2) / 7, 4);
     }
 
     const total = [...split.values()].reduce((sum, value) => sum + value, 0);
-    expect(total).toBeCloseTo(100, 10);
+    expect(total).toBeCloseTo(pool, 10);
   });
 
   it('gives a single habit the full stat value', () => {
@@ -125,5 +127,28 @@ describe('computeDamageSplit', () => {
     const split = computeDamageSplit([], 100);
     expect(split.size).toBe(0);
     expect(split instanceof Map).toBe(true);
+  });
+});
+
+describe('poolSizeMultiplier', () => {
+  it('is exactly 1 for a single medium habit', () => {
+    expect(poolSizeMultiplier('physical', 1.5)).toBe(1);
+  });
+
+  it('grows 20% of base per extra medium-equivalent habit', () => {
+    expect(poolSizeMultiplier('physical', 1.5 * 2)).toBeCloseTo(1.2, 10);
+    expect(poolSizeMultiplier('magic', 1.5 * 10)).toBeCloseTo(2.8, 10);
+  });
+
+  it('weights growth by difficulty — an easy habit adds less than a hard one', () => {
+    expect(poolSizeMultiplier('physical', 1.5 + 1)).toBeLessThan(poolSizeMultiplier('physical', 1.5 + 2));
+  });
+
+  it('never drops below 1 (a lone easy habit is not penalized)', () => {
+    expect(poolSizeMultiplier('physical', 1)).toBe(1);
+  });
+
+  it('never scales expGain pools', () => {
+    expect(poolSizeMultiplier('expGain', 1.5 * 10)).toBe(1);
   });
 });

@@ -5,6 +5,7 @@ import { MILESTONE_EXP } from './constants/milestones';
 import { TUNING } from './constants/tuning';
 import { ITEM_CATALOG, itemBonusPercent, itemFlatBonus } from './items';
 import { addExpAndResolveLevelUps, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
+import { poolSizeMultiplier } from './habits';
 import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
 import {
@@ -164,7 +165,7 @@ describe('completeHabit', () => {
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
-    const expectedBase = statValue * (1 / 3);
+    const expectedBase = statValue * poolSizeMultiplier('physical', 3) * (1 / 3);
     const expectedAmount = expectedBase * streakMultiplier(1);
 
     expect(result.damageDealt).toBeCloseTo(expectedAmount, 10);
@@ -320,7 +321,7 @@ describe('completeHabit', () => {
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
-    const expectedBase = statValue * (1 / 3);
+    const expectedBase = statValue * poolSizeMultiplier('healing', 3) * (1 / 3);
     const expectedAmount = expectedBase * streakMultiplier(1);
 
     expect(result.character.currentHealth).toBeCloseTo(10 + expectedAmount, 10);
@@ -353,7 +354,7 @@ describe('completeHabit', () => {
     const goodHealed = goodResult.character.currentHealth - character.currentHealth;
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
-    const expectedGoodBase = statValue * (1 / 3); // 1/(1+2) weight split
+    const expectedGoodBase = statValue * poolSizeMultiplier('healing', 3) * (1 / 3); // 1/(1+2) weight split
     const expectedGoodAmount = expectedGoodBase * streakMultiplier(1);
 
     expect(goodHealed).toBeCloseTo(expectedGoodAmount, 10);
@@ -1190,7 +1191,8 @@ describe('expectedMediumDailyDamage', () => {
     const character = makeCharacter();
     const existing = makeHabit({ id: 'existing', damageType: 'physical', difficulty: 'hard', streakCount: 50, isUlt: true });
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    const expectedShare = statValue * (DIFFICULTY_WEIGHT.medium / DIFFICULTY_WEIGHT.hard);
+    const expectedShare =
+      statValue * poolSizeMultiplier('physical', DIFFICULTY_WEIGHT.hard) * (DIFFICULTY_WEIGHT.medium / DIFFICULTY_WEIGHT.hard);
     expect(expectedMediumDailyDamage(character, 'physical', [existing])).toBeCloseTo(expectedShare, 10);
   });
 

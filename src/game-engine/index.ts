@@ -27,7 +27,7 @@ export {
   statAtLevel,
 } from './leveling';
 
-export { computeDamageSplit, createHabit, rerollDamageType, resetLevelRewards } from './habits';
+export { computeDamageSplit, createHabit, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
 
 export { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 
