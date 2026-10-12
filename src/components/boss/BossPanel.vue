@@ -74,8 +74,8 @@ const magicResistReduction = computed(
         <p class="stat-summary">
           <span>⚔️ {{ physicalAttack.toFixed(0) }}</span>
           <span>🔮 {{ magicAttack.toFixed(0) }}</span>
-          <span>🛡️ {{ boss.armor.toFixed(0) }} ({{ armorReduction.toFixed(0) }}%)</span>
-          <span>🔰 {{ boss.magicResist.toFixed(0) }} ({{ magicResistReduction.toFixed(0) }}%)</span>
+          <span>🛡️ {{ boss.armor.toFixed(0) }}</span>
+          <span>🔰 {{ boss.magicResist.toFixed(0) }}</span>
           <span>💥 {{ (boss.critChance * 100).toFixed(0) }}%</span>
           <span v-if="boss.reflectPct > 0">🪞 {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
           <span v-if="boss.lifestealPct > 0">🩸 {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
