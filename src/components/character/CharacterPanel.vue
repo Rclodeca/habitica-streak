@@ -94,8 +94,13 @@ const expectedHealing = computed(() =>
 const expectedTrueDamage = computed(() =>
   expectedMediumDailyDamage(character.value, 'trueDamage', habitStore.habitsOfType('trueDamage', 'daily')),
 );
-const expectedExpGain = computed(() =>
-  expectedMediumDailyDamage(character.value, 'expGain', habitStore.habitsOfType('expGain', 'daily')),
+// expectedMediumDailyDamage leaves expGain's item percent out (it's applied
+// when EXP is granted, see addExpAndResolveLevelUps), so fold it in here to
+// show the EXP a completion actually pays out.
+const expectedExpGain = computed(
+  () =>
+    expectedMediumDailyDamage(character.value, 'expGain', habitStore.habitsOfType('expGain', 'daily')) *
+    (1 + itemBonusPercent(character.value, 'expGain') / 100),
 );
 
 // Sized to the character's current level-dependent slot cap (4 below
