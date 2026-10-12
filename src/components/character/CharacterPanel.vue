@@ -180,71 +180,71 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
         <dt>❤️ Max health</dt>
         <dd>{{ baseHealth.toFixed(0) }}</dd>
-        <dd>{{ maxHealth.toFixed(0) }}</dd>
+        <dd>+{{ (maxHealth - baseHealth).toFixed(0) }}</dd>
         <dd>{{ maxHealth.toFixed(0) }}</dd>
 
         <dt>⚔️ Physical damage</dt>
         <dd>{{ basePhysicalDamage.toFixed(0) }}</dd>
-        <dd>{{ physicalDamage.toFixed(0) }}</dd>
+        <dd>+{{ (physicalDamage - basePhysicalDamage).toFixed(0) }}</dd>
         <dd>{{ expectedPhysicalDamage.toFixed(0) }}</dd>
 
         <dt>🔮 Magic damage</dt>
         <dd>{{ baseMagicDamage.toFixed(0) }}</dd>
-        <dd>{{ magicDamage.toFixed(0) }}</dd>
+        <dd>+{{ (magicDamage - baseMagicDamage).toFixed(0) }}</dd>
         <dd>{{ expectedMagicDamage.toFixed(0) }}</dd>
 
         <dt>💚 Healing</dt>
         <dd>{{ baseHealing.toFixed(0) }}</dd>
-        <dd>{{ healing.toFixed(0) }}</dd>
+        <dd>+{{ (healing - baseHealing).toFixed(0) }}</dd>
         <dd>{{ expectedHealing.toFixed(0) }}</dd>
 
         <dt>⚡ True damage</dt>
         <dd>{{ baseTrueDamage.toFixed(0) }}</dd>
-        <dd>{{ trueDamage.toFixed(0) }}</dd>
+        <dd>+{{ (trueDamage - baseTrueDamage).toFixed(0) }}</dd>
         <dd>{{ expectedTrueDamage.toFixed(0) }}</dd>
 
         <dt>✨ EXP gain</dt>
         <dd>{{ baseExpGain.toFixed(0) }}</dd>
-        <dd>{{ expGain.toFixed(0) }}</dd>
+        <dd>+{{ (expGain - baseExpGain).toFixed(0) }}</dd>
         <dd>{{ expectedExpGain.toFixed(0) }}</dd>
 
         <dt>💥 Crit chance</dt>
         <dd>{{ (baseCritChance * 100).toFixed(0) }}%</dd>
-        <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
+        <dd>+{{ ((critChance - baseCritChance) * 100).toFixed(0) }}%</dd>
         <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
 
         <template v-if="armor > 0">
           <dt>🛡️ Armor</dt>
           <dd>0</dd>
-          <dd>{{ armor.toFixed(0) }}</dd>
+          <dd>+{{ armor.toFixed(0) }}</dd>
           <dd>{{ armorReduction.toFixed(1) }}% reduction</dd>
         </template>
 
         <template v-if="magicResist > 0">
           <dt>🔰 Magic resist</dt>
           <dd>0</dd>
-          <dd>{{ magicResist.toFixed(0) }}</dd>
+          <dd>+{{ magicResist.toFixed(0) }}</dd>
           <dd>{{ magicResistReduction.toFixed(1) }}% reduction</dd>
         </template>
 
         <template v-if="lifesteal > 0">
           <dt>🩸 Lifesteal</dt>
           <dd>0%</dd>
-          <dd>{{ lifesteal.toFixed(0) }}%</dd>
+          <dd>+{{ lifesteal.toFixed(0) }}%</dd>
           <dd>{{ lifesteal.toFixed(0) }}%</dd>
         </template>
 
         <template v-if="armorPen > 0">
           <dt>🗡️ Armor pen</dt>
           <dd>0%</dd>
-          <dd>{{ armorPen.toFixed(0) }}%</dd>
+          <dd>+{{ armorPen.toFixed(0) }}%</dd>
           <dd>{{ armorPen.toFixed(0) }}%</dd>
         </template>
 
         <template v-if="magicPen > 0">
           <dt>🌀 Magic pen</dt>
           <dd>0%</dd>
-          <dd>{{ magicPen.toFixed(0) }}%</dd>
+          <dd>+{{ magicPen.toFixed(0) }}%</dd>
           <dd>{{ magicPen.toFixed(0) }}%</dd>
         </template>
 
