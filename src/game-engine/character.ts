@@ -46,17 +46,25 @@ export function createCharacter(rng: Rng): Character {
  * doesn't change for this — both fields are additive, not a shape break).
  * Rolled the same way `createCharacter` rolls every other stat; idempotent —
  * a character that already has both fields passes through untouched.
+ *
+ * Also backfills `newItemUnlockTiers` for a run that predates level-gated
+ * items — without it none of the 19 gated items can ever drop for that run.
  */
 export function migrateCharacter(character: Character, rng: Rng): Character {
   const { trueDamage, expGain } = character.starterStats as Partial<Character['starterStats']>;
-  if (trueDamage !== undefined && expGain !== undefined) return character;
+  const needsStats = trueDamage === undefined || expGain === undefined;
+  const needsTiers = character.newItemUnlockTiers === undefined;
+  if (!needsStats && !needsTiers) return character;
   return {
     ...character,
-    starterStats: {
-      ...character.starterStats,
-      trueDamage: trueDamage ?? randomizeStat(TUNING.BASE_STATS.trueDamage, rng),
-      expGain: expGain ?? randomizeStat(TUNING.BASE_STATS.expGain, rng),
-    },
+    starterStats: needsStats
+      ? {
+          ...character.starterStats,
+          trueDamage: trueDamage ?? randomizeStat(TUNING.BASE_STATS.trueDamage, rng),
+          expGain: expGain ?? randomizeStat(TUNING.BASE_STATS.expGain, rng),
+        }
+      : character.starterStats,
+    newItemUnlockTiers: character.newItemUnlockTiers ?? assignNewItemUnlockTiers(rng),
   };
 }
 

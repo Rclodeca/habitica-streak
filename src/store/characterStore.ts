@@ -13,8 +13,9 @@ import {
   migrateCharacter,
   missHabit,
   resolvePlayerDeathIfDead,
+  rollItemDrops,
 } from '../game-engine';
-import type { Boss, Character, Habit, Rng } from '../game-engine';
+import type { Boss, Character, Habit, ItemDef, Rng } from '../game-engine';
 
 export const useCharacterStore = defineStore('character', {
   state: () => ({
@@ -24,6 +25,13 @@ export const useCharacterStore = defineStore('character', {
     /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
     initFromSave(saved: Character | null, rng: Rng) {
       this.character = saved ? applyDamagePoolRebalance(migrateCharacter(saved, rng)) : createCharacter(rng);
+    },
+
+    /** Rolls one boss-kill's worth of item drops for `bossIndex`, adds them to owned items, and returns them. */
+    grantItemDrops(bossIndex: number, rng: Rng): ItemDef[] {
+      const dropped = rollItemDrops(this.character, bossIndex, rng);
+      this.character = { ...this.character, ownedItemIds: [...this.character.ownedItemIds, ...dropped.map((item) => item.id)] };
+      return dropped;
     },
 
     /** Replaces the character wholesale, e.g. after combat resolution elsewhere. */

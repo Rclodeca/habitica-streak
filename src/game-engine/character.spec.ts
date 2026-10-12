@@ -123,6 +123,17 @@ describe('migrateCharacter', () => {
     expect(migrated).toEqual(character);
   });
 
+  it('backfills newItemUnlockTiers on a save that predates level-gated items, leaving existing tiers alone', () => {
+    const character = createCharacter(createRng(7));
+    const { newItemUnlockTiers, ...withoutTiers } = character;
+
+    const migrated = migrateCharacter(withoutTiers as typeof character, createRng(8));
+    expect(Object.keys(migrated.newItemUnlockTiers ?? {}).sort()).toEqual(Object.keys(newItemUnlockTiers ?? {}).sort());
+    expect(migrated.starterStats).toEqual(character.starterStats);
+
+    expect(migrateCharacter(character, createRng(9)).newItemUnlockTiers).toEqual(newItemUnlockTiers);
+  });
+
   it('backfills only whichever of the two fields is actually missing', () => {
     const character = createCharacter(createRng(5));
     const { expGain, ...rest } = character.starterStats;
