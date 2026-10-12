@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   activeWoundsEffect,
   dailyPeriodKey,
+  damageReductionPct,
   daysBetweenDayKeys,
   describeItemBonus,
   effectiveCritChance,
@@ -10,9 +11,12 @@ import {
   expectedMediumDailyDamage,
   expToNextLevel,
   ITEM_CATALOG,
+  itemBonusPercent,
+  itemFlatBonus,
   maxEquipSlots,
   statAtLevel,
 } from '../../game-engine';
+import { TUNING } from '../../game-engine/constants/tuning';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
@@ -44,6 +48,17 @@ const healing = computed(() => effectiveStat(character.value, 'healing'));
 const trueDamage = computed(() => effectiveStat(character.value, 'trueDamage'));
 const expGain = computed(() => effectiveStat(character.value, 'expGain'));
 const critChance = computed(() => effectiveCritChance(character.value));
+
+// Item-only stats: no base value exists, they come purely from equipped gear.
+// Armor/MR are flat and show their damage reduction against boss attacks;
+// pen is capped at TUNING.ARMOR_MAGIC_PEN_CAP_PCT (see effectiveResistAfterPen).
+const armor = computed(() => itemFlatBonus(character.value, 'armor'));
+const magicResist = computed(() => itemFlatBonus(character.value, 'magicResist'));
+const armorReduction = computed(() => damageReductionPct(armor.value) * 100);
+const magicResistReduction = computed(() => damageReductionPct(magicResist.value) * 100);
+const lifesteal = computed(() => itemBonusPercent(character.value, 'lifesteal'));
+const armorPen = computed(() => Math.min(itemBonusPercent(character.value, 'armorPen'), TUNING.ARMOR_MAGIC_PEN_CAP_PCT));
+const magicPen = computed(() => Math.min(itemBonusPercent(character.value, 'magicPen'), TUNING.ARMOR_MAGIC_PEN_CAP_PCT));
 
 const currentDayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
 const woundsEffect = computed(() => activeWoundsEffect(character.value, currentDayKey.value));
@@ -147,6 +162,11 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <span>💚 {{ expectedHealing.toFixed(0) }}</span>
         <span>⚡ {{ expectedTrueDamage.toFixed(0) }}</span>
         <span>💥 {{ (critChance * 100).toFixed(0) }}%</span>
+        <span>🛡️ {{ armor.toFixed(0) }}</span>
+        <span>🔰 {{ magicResist.toFixed(0) }}</span>
+        <span>🩸 {{ lifesteal.toFixed(0) }}%</span>
+        <span>🗡️ {{ armorPen.toFixed(0) }}%</span>
+        <span>🌀 {{ magicPen.toFixed(0) }}%</span>
         <span v-if="woundsEffect">🩹 {{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
       </p>
     </button>
@@ -192,6 +212,31 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <dd>{{ (baseCritChance * 100).toFixed(0) }}%</dd>
         <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
         <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
+
+        <dt>🛡️ Armor</dt>
+        <dd>0</dd>
+        <dd>{{ armor.toFixed(0) }}</dd>
+        <dd>{{ armorReduction.toFixed(1) }}% reduction</dd>
+
+        <dt>🔰 Magic resist</dt>
+        <dd>0</dd>
+        <dd>{{ magicResist.toFixed(0) }}</dd>
+        <dd>{{ magicResistReduction.toFixed(1) }}% reduction</dd>
+
+        <dt>🩸 Lifesteal</dt>
+        <dd>0%</dd>
+        <dd>{{ lifesteal.toFixed(0) }}%</dd>
+        <dd>{{ lifesteal.toFixed(0) }}%</dd>
+
+        <dt>🗡️ Armor pen</dt>
+        <dd>0%</dd>
+        <dd>{{ armorPen.toFixed(0) }}%</dd>
+        <dd>{{ armorPen.toFixed(0) }}%</dd>
+
+        <dt>🌀 Magic pen</dt>
+        <dd>0%</dd>
+        <dd>{{ magicPen.toFixed(0) }}%</dd>
+        <dd>{{ magicPen.toFixed(0) }}%</dd>
 
         <template v-if="woundsEffect">
           <dt>🩹 Wounded</dt>
