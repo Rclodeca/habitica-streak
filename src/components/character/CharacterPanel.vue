@@ -162,11 +162,11 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <span>💚 {{ expectedHealing.toFixed(0) }}</span>
         <span>⚡ {{ expectedTrueDamage.toFixed(0) }}</span>
         <span>💥 {{ (critChance * 100).toFixed(0) }}%</span>
-        <span>🛡️ {{ armor.toFixed(0) }}</span>
-        <span>🔰 {{ magicResist.toFixed(0) }}</span>
-        <span>🩸 {{ lifesteal.toFixed(0) }}%</span>
-        <span>🗡️ {{ armorPen.toFixed(0) }}%</span>
-        <span>🌀 {{ magicPen.toFixed(0) }}%</span>
+        <span v-if="armor > 0">🛡️ {{ armor.toFixed(0) }}</span>
+        <span v-if="magicResist > 0">🔰 {{ magicResist.toFixed(0) }}</span>
+        <span v-if="lifesteal > 0">🩸 {{ lifesteal.toFixed(0) }}%</span>
+        <span v-if="armorPen > 0">🗡️ {{ armorPen.toFixed(0) }}%</span>
+        <span v-if="magicPen > 0">🌀 {{ magicPen.toFixed(0) }}%</span>
         <span v-if="woundsEffect">🩹 {{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
       </p>
     </button>
@@ -213,30 +213,40 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
         <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
 
-        <dt>🛡️ Armor</dt>
-        <dd>0</dd>
-        <dd>{{ armor.toFixed(0) }}</dd>
-        <dd>{{ armorReduction.toFixed(1) }}% reduction</dd>
+        <template v-if="armor > 0">
+          <dt>🛡️ Armor</dt>
+          <dd>0</dd>
+          <dd>{{ armor.toFixed(0) }}</dd>
+          <dd>{{ armorReduction.toFixed(1) }}% reduction</dd>
+        </template>
 
-        <dt>🔰 Magic resist</dt>
-        <dd>0</dd>
-        <dd>{{ magicResist.toFixed(0) }}</dd>
-        <dd>{{ magicResistReduction.toFixed(1) }}% reduction</dd>
+        <template v-if="magicResist > 0">
+          <dt>🔰 Magic resist</dt>
+          <dd>0</dd>
+          <dd>{{ magicResist.toFixed(0) }}</dd>
+          <dd>{{ magicResistReduction.toFixed(1) }}% reduction</dd>
+        </template>
 
-        <dt>🩸 Lifesteal</dt>
-        <dd>0%</dd>
-        <dd>{{ lifesteal.toFixed(0) }}%</dd>
-        <dd>{{ lifesteal.toFixed(0) }}%</dd>
+        <template v-if="lifesteal > 0">
+          <dt>🩸 Lifesteal</dt>
+          <dd>0%</dd>
+          <dd>{{ lifesteal.toFixed(0) }}%</dd>
+          <dd>{{ lifesteal.toFixed(0) }}%</dd>
+        </template>
 
-        <dt>🗡️ Armor pen</dt>
-        <dd>0%</dd>
-        <dd>{{ armorPen.toFixed(0) }}%</dd>
-        <dd>{{ armorPen.toFixed(0) }}%</dd>
+        <template v-if="armorPen > 0">
+          <dt>🗡️ Armor pen</dt>
+          <dd>0%</dd>
+          <dd>{{ armorPen.toFixed(0) }}%</dd>
+          <dd>{{ armorPen.toFixed(0) }}%</dd>
+        </template>
 
-        <dt>🌀 Magic pen</dt>
-        <dd>0%</dd>
-        <dd>{{ magicPen.toFixed(0) }}%</dd>
-        <dd>{{ magicPen.toFixed(0) }}%</dd>
+        <template v-if="magicPen > 0">
+          <dt>🌀 Magic pen</dt>
+          <dd>0%</dd>
+          <dd>{{ magicPen.toFixed(0) }}%</dd>
+          <dd>{{ magicPen.toFixed(0) }}%</dd>
+        </template>
 
         <template v-if="woundsEffect">
           <dt>🩹 Wounded</dt>

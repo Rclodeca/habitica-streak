@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { bossMissDamage, PERSONALITY_NAME } from '../../game-engine';
+import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
 import type { Personality } from '../../game-engine';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useBossStore } from '../../store/bossStore';
+import { useCharacterStore } from '../../store/characterStore';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
 import Sprite from '../ui/Sprite.vue';
@@ -35,6 +36,7 @@ const PERSONALITY_SPRITE: Record<Personality, string> = {
 };
 
 const bossStore = useBossStore();
+const characterStore = useCharacterStore();
 
 const boss = computed(() => bossStore.boss);
 
@@ -47,6 +49,16 @@ const showDetails = ref(false);
 
 const physicalAttack = computed(() => bossMissDamage(boss.value.physicalAttack));
 const magicAttack = computed(() => bossMissDamage(boss.value.magicAttack));
+
+// Damage reduction against the player's attacks, after the player's own
+// armorPen/magicPen items shave the boss's resist stat (same math as
+// completeHabit in combat.ts).
+const armorReduction = computed(
+  () => damageReductionPct(effectiveResistAfterPen(boss.value.armor, itemBonusPercent(characterStore.character, 'armorPen'))) * 100,
+);
+const magicResistReduction = computed(
+  () => damageReductionPct(effectiveResistAfterPen(boss.value.magicResist, itemBonusPercent(characterStore.character, 'magicPen'))) * 100,
+);
 </script>
 
 <template>
@@ -62,8 +74,8 @@ const magicAttack = computed(() => bossMissDamage(boss.value.magicAttack));
         <p class="stat-summary">
           <span>⚔️ {{ physicalAttack.toFixed(0) }}</span>
           <span>🔮 {{ magicAttack.toFixed(0) }}</span>
-          <span>🛡️ {{ boss.armor.toFixed(0) }}</span>
-          <span>🔰 {{ boss.magicResist.toFixed(0) }}</span>
+          <span>🛡️ {{ boss.armor.toFixed(0) }} ({{ armorReduction.toFixed(0) }}%)</span>
+          <span>🔰 {{ boss.magicResist.toFixed(0) }} ({{ magicResistReduction.toFixed(0) }}%)</span>
           <span>💥 {{ (boss.critChance * 100).toFixed(0) }}%</span>
           <span v-if="boss.reflectPct > 0">🪞 {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
           <span v-if="boss.lifestealPct > 0">🩸 {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
@@ -88,11 +100,11 @@ const magicAttack = computed(() => bossMissDamage(boss.value.magicAttack));
 
         <dt>🛡️ Armor</dt>
         <dd>{{ boss.armor.toFixed(0) }}</dd>
-        <dd>{{ boss.armor.toFixed(0) }}</dd>
+        <dd>{{ armorReduction.toFixed(1) }}% reduction</dd>
 
         <dt>🔰 Magic resist</dt>
         <dd>{{ boss.magicResist.toFixed(0) }}</dd>
-        <dd>{{ boss.magicResist.toFixed(0) }}</dd>
+        <dd>{{ magicResistReduction.toFixed(1) }}% reduction</dd>
 
         <dt>💥 Crit chance</dt>
         <dd>{{ (boss.critChance * 100).toFixed(0) }}%</dd>
@@ -119,7 +131,8 @@ const magicAttack = computed(() => bossMissDamage(boss.value.magicAttack));
       <p class="stat-note">
         Physical/magic attack: Base is the boss's raw attack stat; Effective is the damage a missed medium daily
         habit actually deals (Base × miss-damage factor). Easy misses take ~0.67x, hard ~1.33x, and a crit or missed
-        weekly doubles it. Other stats have no separate multiplier, so Base and Effective match.
+        weekly doubles it. Armor/Magic resist: Effective is the damage reduction your attacks face, after your armor/magic
+        pen items. Other stats have no separate multiplier, so Base and Effective match.
       </p>
       <p v-if="boss.woundsAbility" class="stat-note">
         Wounds: on a successful hit at this chance, reduces your healing to
