@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamagePoolRebalance, createCharacter, migrateCharacter, randomizeStat } from './character';
+import { applyDamagePoolRebalance, createCharacter, discardUnequippedItems, migrateCharacter, randomizeStat } from './character';
 import { ITEM_CATALOG } from './items';
 import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
@@ -187,5 +187,17 @@ describe('randomizeStat', () => {
       expect(result).toBeGreaterThanOrEqual(100 * (1 - TUNING.STAT_RANDOMIZATION_PCT));
       expect(result).toBeLessThanOrEqual(100 * (1 + TUNING.STAT_RANDOMIZATION_PCT));
     }
+  });
+});
+
+describe('discardUnequippedItems', () => {
+  it('drops owned items that are not equipped', () => {
+    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['a', 'b', 'c'], equippedItemIds: ['b'] };
+    expect(discardUnequippedItems(character).ownedItemIds).toEqual(['b']);
+  });
+
+  it('returns the same object when everything owned is equipped', () => {
+    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['a'], equippedItemIds: ['a'] };
+    expect(discardUnequippedItems(character)).toBe(character);
   });
 });

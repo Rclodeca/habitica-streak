@@ -29,15 +29,15 @@
 
 import {
   addExpAndResolveLevelUps,
-  assignSpecialIfEligible,
-  assignUltIfEligible,
   bossExpReward,
   completeHabit,
   createRng,
   dailyPeriodKey,
   effectiveCritChance,
   effectiveStat,
+  describeItemBonus,
   ITEM_CATALOG,
+  itemDoubleFactor,
   missHabit,
   overdriveHabit,
   overdriveUsesRemaining,
@@ -47,7 +47,6 @@ import {
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
-  rollOverdriveForLevelUps,
 } from '../game-engine';
 import type { Character, Difficulty, Habit, ItemDef, Period } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
@@ -102,39 +101,11 @@ export function useCombatActions() {
     });
   }
 
-  /**
-   * Rolls the level-triggered rewards (Special/Ult threshold checks, plus an
-   * Overdrive roll per level gained) against the current habit list and
-   * writes back only if something changed, logging each grant. Called with
-   * `levelsGained` after every level-up and with 0 after every new habit is
-   * added / once on app load — the Special/Ult checks are idempotent
-   * (no-op once assigned, retried until an eligible habit exists), so
-   * calling this liberally is safe and is how a save already past level
-   * 3/6 gets its retroactive assignment.
-   */
-  function applyLevelRewards(levelsGained: number): void {
-    const level = characterStore.character.level;
-    let habits = habitStore.habits;
-
-    const beforeSpecial = habits;
-    habits = assignSpecialIfEligible(habits, level, rng);
-    const specialHabit = habits.find((h, i) => h.isSpecial && !beforeSpecial[i]?.isSpecial);
-    if (specialHabit) activityLogStore.addEntry({ kind: 'special-assigned', habitName: specialHabit.name });
-
-    const beforeUlt = habits;
-    habits = assignUltIfEligible(habits, level, rng);
-    const ultHabit = habits.find((h, i) => h.isUlt && !beforeUlt[i]?.isUlt);
-    if (ultHabit) activityLogStore.addEntry({ kind: 'ult-assigned', habitName: ultHabit.name });
-
-    if (levelsGained > 0) {
-      const rolled = rollOverdriveForLevelUps(habits, levelsGained, rng);
-      habits = rolled.habits;
-      for (const granted of rolled.granted) {
-        activityLogStore.addEntry({ kind: 'overdrive-granted', habitName: granted.name });
-      }
-    }
-
-    if (habits !== habitStore.habits) habitStore.setHabits(habits);
+  /** Queues one event pick per level gained; the player resolves them in EventChoiceModal. */
+  function grantEventPicks(levelsGained: number): void {
+    if (levelsGained <= 0) return;
+    const character = characterStore.character;
+    characterStore.setCharacter({ ...character, pendingEventPicks: (character.pendingEventPicks ?? 0) + levelsGained });
   }
 
   /**
@@ -155,9 +126,9 @@ export function useCombatActions() {
     habitId: string,
     stampPeriodKey?: string,
     options: { isOverdriveUse?: boolean } = {},
-  ): { itemsDropped: ItemDef[]; questOffered: boolean; bossIndexAtOffer: number } {
+  ): { itemsDropped: ItemDef[] } {
     const habit = habitStore.habits.find((h) => h.id === habitId);
-    if (!habit) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
+    if (!habit) return { itemsDropped: [] };
 
     const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.period);
     const healthBefore = characterStore.character.currentHealth;
@@ -221,26 +192,20 @@ export function useCombatActions() {
       const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, totalExpGained);
       logLevelUpIfAny(beforeLevelUp, character);
       characterStore.setCharacter(character);
-      applyLevelRewards(levelsGained);
+      grantEventPicks(levelsGained);
     }
 
     const beforeDefeat = characterStore.character;
-    // Captured BEFORE bossStore.setBoss() below overwrites it — this is the
-    // index of the boss actually defeated by this action, which is what a
-    // quest offered by this kill must be locked to (see Quest.bossIndexAtOffer
-    // / questExpReward) — NOT bossStore.boss.index read after the overwrite,
-    // which would already be the newly-spawned next boss.
-    const defeatedBossIndex = bossStore.boss.index;
     const defeatResult = resolveBossDefeatIfDead(characterStore.character, bossStore.boss, rng);
     if (defeatResult.defeated) {
       activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: bossStore.boss.index, amount: bossExpReward(bossStore.boss.index) });
       logLevelUpIfAny(beforeDefeat, defeatResult.character);
       characterStore.setCharacter(defeatResult.character);
       bossStore.setBoss(defeatResult.boss);
-      applyLevelRewards(defeatResult.levelsGained);
+      grantEventPicks(defeatResult.levelsGained);
     }
 
-    return { itemsDropped: defeatResult.itemsDropped, questOffered: defeatResult.questOffered, bossIndexAtOffer: defeatedBossIndex };
+    return { itemsDropped: defeatResult.itemsDropped };
   }
 
   /**
@@ -317,16 +282,16 @@ export function useCombatActions() {
    * UI-layer `:disabled` binding. Mirrors the `isCompletedThisPeriod`
    * predicate used in `HabitListItem.vue`.
    */
-  function checkOffHabit(habitId: string): { itemsDropped: ItemDef[]; questOffered: boolean; bossIndexAtOffer: number } {
+  function checkOffHabit(habitId: string): { itemsDropped: ItemDef[] } {
     const habit = habitStore.habits.find((h) => h.id === habitId);
-    if (!habit) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
+    if (!habit) return { itemsDropped: [] };
 
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
-    if (habit.lastCompletedPeriodKey === currentPeriodKey) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
+    if (habit.lastCompletedPeriodKey === currentPeriodKey) return { itemsDropped: [] };
 
     if (habit.isBad) {
       applyPenalty(habitId, currentPeriodKey);
-      return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
+      return { itemsDropped: [] };
     }
     return applyReward(habitId, currentPeriodKey);
   }
@@ -347,7 +312,7 @@ export function useCombatActions() {
    * habit counterpart to `checkMissedHabit`, called the same way from
    * `useMissedSkillsGate.acknowledge()`.
    */
-  function checkAvoidedHabit(habitId: string): { itemsDropped: ItemDef[]; questOffered: boolean; bossIndexAtOffer: number } {
+  function checkAvoidedHabit(habitId: string): { itemsDropped: ItemDef[] } {
     return applyReward(habitId);
   }
 
@@ -358,22 +323,19 @@ export function useCombatActions() {
    * guard, independent of the UI button's `:disabled` binding, mirroring
    * `checkOffHabit`'s own period-key guard above.
    */
-  function activateOverdrive(habitId: string): { itemsDropped: ItemDef[]; questOffered: boolean; bossIndexAtOffer: number } {
+  function activateOverdrive(habitId: string): { itemsDropped: ItemDef[] } {
     const habit = habitStore.habits.find((h) => h.id === habitId);
-    if (!habit || habit.isBad || !habit.isOverdrive) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
+    if (!habit || habit.isBad || !habit.isOverdrive) return { itemsDropped: [] };
 
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
-    if (habit.lastCompletedPeriodKey !== currentPeriodKey) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
-    if (overdriveUsesRemaining(habit, currentPeriodKey) <= 0) return { itemsDropped: [], questOffered: false, bossIndexAtOffer: 0 };
+    if (habit.lastCompletedPeriodKey !== currentPeriodKey) return { itemsDropped: [] };
+    if (overdriveUsesRemaining(habit, currentPeriodKey) <= 0) return { itemsDropped: [] };
 
     return applyReward(habitId, undefined, { isOverdriveUse: true });
   }
 
   /**
    * Thin wrapper around `habitStore.addHabit`, sharing this module's Rng.
-   * Also re-checks the Special/Ult thresholds: a newly-added habit may be
-   * the first eligible one for a bonus that was stuck waiting on an empty
-   * pool (see `applyLevelRewards`).
    */
   function addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean): Habit {
     const created = habitStore.addHabit(name, period, difficulty, isBad, rng);
@@ -381,18 +343,7 @@ export function useCombatActions() {
     // habit existed as a miss.
     const habit = { ...created, lastCheckedPeriodKey: periodKeyFor(period, debugClockStore.now()) };
     habitStore.updateHabit(habit);
-    applyLevelRewards(0);
     return habit;
-  }
-
-  /**
-   * Re-checks the Special/Ult thresholds against the character's current
-   * level with no new levels gained — call once on app load so a save
-   * already past level 3/6 (from before these mechanics existed) gets its
-   * assignment without waiting for another level-up.
-   */
-  function checkLevelRewards(): void {
-    applyLevelRewards(0);
   }
 
   /**
@@ -434,7 +385,18 @@ export function useCombatActions() {
         })),
         items: character.ownedItemIds.flatMap((id) => {
           const item = ITEM_CATALOG.find((i) => i.id === id);
-          return item ? [{ id: item.id, name: item.name, icon: item.icon, equipped: character.equippedItemIds.includes(id) }] : [];
+          if (!item) return [];
+          const factor = itemDoubleFactor(character, id);
+          return [
+            {
+              id: item.id,
+              name: item.name,
+              icon: item.icon,
+              equipped: character.equippedItemIds.includes(id),
+              stats: describeItemBonus(item, factor),
+              enchanted: factor > 1,
+            },
+          ];
         }),
       });
 
@@ -461,7 +423,7 @@ export function useCombatActions() {
     const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, amount);
     logLevelUpIfAny(beforeLevelUp, character);
     characterStore.setCharacter(character);
-    applyLevelRewards(levelsGained);
+    grantEventPicks(levelsGained);
 
     activityLogStore.addEntry({ kind: 'quest-completed', description: quest.description, amount });
     questStore.removeQuest(questId);
@@ -504,7 +466,6 @@ export function useCombatActions() {
     activateOverdrive,
     addHabit,
     restart,
-    checkLevelRewards,
     completeQuest,
     failQuest,
   };

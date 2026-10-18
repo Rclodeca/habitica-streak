@@ -3,10 +3,9 @@ import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { computeDamageSplit, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
-import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
+import { activeHealBoost, addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
-import { rollQuestOffer } from './quests';
 import type { Rng } from './rng';
 import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 import { daysBetweenDayKeys } from './time';
@@ -82,9 +81,11 @@ export function activeWoundsEffect(character: Character, currentDayKey: string):
   return daysBetweenDayKeys(wounds.appliedDayKey, currentDayKey) < wounds.durationDays ? wounds : undefined;
 }
 
-/** Healing multiplier from any currently-active Wounds effect — 1 (no-op) if none. */
+/** Healing multiplier from any active Wounds effect and Healing boost — 1 (no-op) if neither. */
 export function healingMultiplier(character: Character, currentDayKey: string): number {
-  return activeWoundsEffect(character, currentDayKey)?.effectRate ?? 1;
+  const wounds = activeWoundsEffect(character, currentDayKey)?.effectRate ?? 1;
+  const boost = 1 + (activeHealBoost(character, currentDayKey)?.bonus ?? 0);
+  return wounds * boost;
 }
 
 export type HabitDamageBreakdown = {
@@ -245,7 +246,7 @@ export function completeHabit(
     return { character, boss, updatedHabit, milestoneExp, expGained: amount };
   }
 
-  const wasCrit = rng() < effectiveCritChance(character);
+  const wasCrit = rng() < effectiveCritChance(character, currentDayKey);
   const critAmount = wasCrit ? amount * TUNING.CRIT_MULTIPLIER : amount;
   // True damage ignores armor/magicResist entirely — it's not physical or
   // magic, so neither mitigation stat (nor armorPen/magicPen) applies to it.
@@ -436,18 +437,14 @@ export function reviveWithFeatherIfEquipped(character: Character): { character: 
  * tiny positive remainder (e.g. 0.3) that the health bar already displays
  * rounded down to 0 — without this, the boss would visually read "dead"
  * but not actually be defeated until one more hit.
- *
- * Also rolls a chance (TUNING.QUEST_DROP_CHANCE) to offer the player a
- * quest, surfaced as questOffered — rolled strictly last, see the inline
- * comment above that line.
  */
 export function resolveBossDefeatIfDead(
   character: Character,
   boss: Boss,
   rng: Rng,
-): { character: Character; boss: Boss; defeated: boolean; levelsGained: number; itemsDropped: ItemDef[]; questOffered: boolean } {
+): { character: Character; boss: Boss; defeated: boolean; levelsGained: number; itemsDropped: ItemDef[] } {
   if (Math.round(boss.health) > 0) {
-    return { character, boss, defeated: false, levelsGained: 0, itemsDropped: [], questOffered: false };
+    return { character, boss, defeated: false, levelsGained: 0, itemsDropped: [] };
   }
   const { character: leveled, levelsGained } = addExpAndResolveLevelUps(character, bossExpReward(boss.index));
   const itemsDropped = rollItemDrops(leveled, boss.index, rng);
@@ -460,12 +457,7 @@ export function resolveBossDefeatIfDead(
   // just chase the cap upward and cancel itself out.
   const baseMaxHealth = statAtLevel(withItems.starterStats.health, withItems.level);
   const nextBoss = generateBoss(boss.index + 1, rng, boss.difficultyModifier, baseMaxHealth);
-  // Rolled last, strictly after generateBoss for the next boss, so adding
-  // this roll never perturbs the rng() sequence any existing seeded test
-  // depends on (same "rolled last" precedent as generateBoss's own
-  // woundsAbility roll).
-  const questOffered = rollQuestOffer(rng);
-  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped, questOffered };
+  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped };
 }
 
 /**

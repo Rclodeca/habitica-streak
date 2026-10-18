@@ -36,6 +36,12 @@ export type ActivityLogEntry =
   | { id: string; kind: 'special-assigned'; habitName: string }
   | { id: string; kind: 'ult-assigned'; habitName: string }
   | { id: string; kind: 'overdrive-granted'; habitName: string }
+  | { id: string; kind: 'item-slots-gained' }
+  | { id: string; kind: 'event-heal'; amount: number }
+  | { id: string; kind: 'heal-boost-gained'; days: number }
+  | { id: string; kind: 'item-doubled'; itemName: string }
+  | { id: string; kind: 'crit-boost-gained'; days: number }
+  | { id: string; kind: 'skill-rerolled'; habitName: string; damageType: string }
   | { id: string; kind: 'wounds-applied'; durationDays: number; effectRate: number }
   | { id: string; kind: 'quest-completed'; description: string; amount: number }
   | { id: string; kind: 'quest-failed'; description: string; amount: number };

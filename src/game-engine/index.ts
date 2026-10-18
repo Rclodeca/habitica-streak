@@ -13,13 +13,17 @@ export type {
   Quest,
   StatusEffect,
   WoundsAbility,
+  CritBoostStatusEffect,
+  HealBoostStatusEffect,
   WoundsStatusEffect,
 } from './types';
 
-export { applyDamagePoolRebalance, createCharacter, migrateCharacter, randomizeStat } from './character';
+export { applyDamagePoolRebalance, createCharacter, discardUnequippedItems, migrateCharacter, randomizeStat } from './character';
 
 export {
   addExpAndResolveLevelUps,
+  activeCritBoost,
+  activeHealBoost,
   effectiveCritChance,
   effectiveStat,
   expToNextLevel,
@@ -34,14 +38,33 @@ export { completeHabitStreak, resetHabitStreak, streakMultiplier } from './strea
 export {
   applyResist,
   bossExpReward,
-  bossPowerBudget,
+  bossBaseHealth,
   damageReductionPct,
   generateBoss,
   PERSONALITY_NAME,
+  resistPctForIndex,
   rollRunDifficultyModifier,
 } from './boss';
 
-export { assignSpecialIfEligible, assignUltIfEligible, rollOverdriveForLevelUps } from './levelRewards';
+export { assignSpecialIfEligible, assignUltIfEligible, grantOverdrive } from './levelRewards';
+export {
+  applyCritBoostEvent,
+  applyDoubleItemEvent,
+  applyHealBoostEvent,
+  applyHealEvent,
+  applyOverdriveEvent,
+  applyRerollSkillEvent,
+  applySpecialEvent,
+  applyUltEvent,
+  consumeEventPick,
+  eligibleEvents,
+  EVENT_DEFS,
+  EVENTS_PER_CHOICE,
+  getEventDef,
+  migrateEventState,
+  rollEventChoices,
+} from './events';
+export type { EventDef, EventId } from './events';
 
 export type { CombatResult, HabitDamageBreakdown } from './combat';
 export {
@@ -69,6 +92,9 @@ export {
   assignNewItemUnlockTiers,
   bodySpriteFor,
   describeItemBonus,
+  describeItemBonusParts,
+  doublableItems,
+  itemDoubleFactor,
   ITEM_CATALOG,
   itemBonusPercent,
   itemFlatBonus,
@@ -76,7 +102,7 @@ export {
   rollItemDrops,
 } from './items';
 
-export { createQuest, questExpReward, questMissDamage, rollQuestOffer } from './quests';
+export { createQuest, questExpReward, questMissDamage } from './quests';
 
 export type { Rng } from './rng';
 export { createRng, pickRandom, pickWeighted, shuffle } from './rng';

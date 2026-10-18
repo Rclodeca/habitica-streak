@@ -39,8 +39,8 @@ export interface Character {
     expGain: number;
   };
   currentHealth: number;
-  ownedItemIds: string[]; // all items ever dropped for this character (equipped + unequipped)
-  equippedItemIds: string[]; // subset of ownedItemIds, length <= 4
+  ownedItemIds: string[]; // items the character has; equal to equippedItemIds except for drops still waiting in the popup queue
+  equippedItemIds: string[]; // subset of ownedItemIds, length <= maxEquipSlots
   // Rolled once per run by assignNewItemUnlockTiers (see character.ts),
   // mapping each level-gated item's id to the player level at which it
   // starts being droppable. Optional so an existing save (no schema-version
@@ -64,13 +64,37 @@ export interface Character {
   // never double-applies once a fresh character gets saved and reloaded).
   // health/trueDamage/expGain are deliberately untouched by this migration.
   damagePoolRebalanceApplied?: boolean;
+  // Events mechanic (see events.ts). `takenEventIds` holds one-time events
+  // already picked this run; `pendingEventPicks` is how many level-ups are
+  // still waiting for the player to choose an event. Both optional so an
+  // existing save still loads — the store hydration seeds them once (see
+  // initializeStores). A fresh character starts empty, so death resets them.
+  // The equipped item currently doubled by the Double item event; cleared when it's discarded.
+  doubledItemId?: string;
+  takenEventIds?: string[];
+  pendingEventPicks?: number;
 }
 
-// Discriminated on `type` — more status effects are planned (see the Wounds
-// mechanic below), but only one exists today, so this is intentionally not
-// a registry/plugin system; it'll grow into a real union once a second
-// effect exists.
-export type StatusEffect = WoundsStatusEffect;
+// Discriminated on `type`. Intentionally a plain union rather than a
+// registry/plugin system — each effect has its own small lookup helper
+// (activeWoundsEffect in combat.ts, activeCritBoost/activeHealBoost in leveling.ts).
+export type StatusEffect = WoundsStatusEffect | CritBoostStatusEffect | HealBoostStatusEffect;
+
+/** Temporary crit-chance bonus granted by the Crit boost event; expires after `durationDays` days. */
+export interface CritBoostStatusEffect {
+  type: 'critBoost';
+  appliedDayKey: string; // dailyPeriodKey() when picked
+  durationDays: number;
+  bonus: number; // added to crit chance, e.g. 0.2 = +20 percentage points
+}
+
+/** Temporary healing bonus granted by the Healing boost event; multiplies healing by (1 + bonus) for `durationDays` days. */
+export interface HealBoostStatusEffect {
+  type: 'healBoost';
+  appliedDayKey: string; // dailyPeriodKey() when picked
+  durationDays: number;
+  bonus: number; // e.g. 0.2 = +20% healing
+}
 
 export interface WoundsStatusEffect {
   type: 'wounds';

@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRng, effectiveStat, periodKeyFor } from '../game-engine';
+import { createRng, effectiveStat, expToNextLevel, periodKeyFor } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
@@ -94,23 +94,6 @@ describe('useCombatActions', () => {
     const result = checkOffHabit(habit.id);
 
     expect(result.itemsDropped).toEqual([]);
-  });
-
-  it('checkOffHabit surfaces questOffered/bossIndexAtOffer using the DEFEATED boss index, not the newly-spawned one', () => {
-    const habitStore = useHabitStore();
-    const bossStore = useBossStore();
-    const { checkOffHabit } = useCombatActions();
-
-    const habit = habitStore.addHabit('Slay the boss', 'daily', 'hard', false, createRng());
-    habitStore.updateHabit({ ...habit, damageType: 'physical' });
-    bossStore.setBoss({ ...bossStore.boss, index: 3, health: 0.0001, armor: 0 }); // one hit from defeat
-
-    const result = checkOffHabit(habit.id);
-
-    if (result.questOffered) {
-      expect(result.bossIndexAtOffer).toBe(3); // the boss just defeated, not bossStore.boss.index afterward (now 4)
-    }
-    expect(bossStore.boss.index).toBe(4); // sanity: the store itself has already moved on
   });
 
   it('checkMissedHabit flags the death screen instead of resetting immediately when it brings currentHealth to 0', () => {
@@ -201,6 +184,41 @@ describe('useCombatActions', () => {
     expect(characterStore.character.currentHealth).toBe(characterStore.character.starterStats.health);
     expect(bossStore.boss.index).toBe(1);
     expect(habitStore.habits).toHaveLength(1); // habit definitions kept, not wiped
+  });
+
+  it('restart keeps in-progress quests and clears event state', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const questStore = useQuestStore();
+    const { checkMissedHabit, restart } = useCombatActions();
+
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
+    questStore.addQuest('Clean garage', 'medium', '2099-01-01', 5);
+    characterStore.character = { ...characterStore.character, currentHealth: 1, takenEventIds: ['special'], pendingEventPicks: 2 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
+    checkMissedHabit(habit.id);
+
+    restart();
+
+    expect(questStore.quests).toHaveLength(1);
+    expect(questStore.quests[0].description).toBe('Clean garage');
+    expect(characterStore.character.takenEventIds).toEqual([]);
+    expect(characterStore.character.pendingEventPicks).toBe(0);
+  });
+
+  it('a level-up queues one pending event pick per level gained', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { completeQuest } = useCombatActions();
+
+    const quest = questStore.addQuest('Clean garage', 'hard', '2099-01-01', 1);
+    characterStore.character = { ...characterStore.character, exp: expToNextLevel(1) - 1, pendingEventPicks: 0 };
+
+    completeQuest(quest.id);
+
+    expect(characterStore.character.level).toBeGreaterThan(1);
+    expect(characterStore.character.pendingEventPicks).toBe(characterStore.character.level - 1);
   });
 
   it('restart records the just-ended run into the high-score leaderboard before resetting', () => {

@@ -4,11 +4,6 @@ import { TUNING } from './constants/tuning';
 import type { Rng } from './rng';
 import type { Boss, Difficulty, Quest } from './types';
 
-/** Flat per-boss-kill chance (TUNING.QUEST_DROP_CHANCE) that a kill offers a quest, independent of boss index. */
-export function rollQuestOffer(rng: Rng): boolean {
-  return rng() < TUNING.QUEST_DROP_CHANCE;
-}
-
 /**
  * Bonus EXP for completing `quest` on time: a difficulty-scaled slice of the
  * EXP reward of the boss that offered it (quest.bossIndexAtOffer), NOT
@@ -24,7 +19,7 @@ export function questExpReward(quest: Quest): number {
  * Damage dealt for missing `quest`'s due date: the same attack-stat *
  * MISS_DAMAGE_FACTOR formula bossMissDamage (combat.ts) uses, inlined here
  * rather than imported to avoid a combat.ts <-> quests.ts import cycle
- * (combat.ts imports rollQuestOffer from this module). Uses the CURRENT
+ * (combat.ts would otherwise import from this module). Uses the CURRENT
  * boss (not quest.bossIndexAtOffer) — consistent with missHabit, which
  * always uses live boss state for damage. Deliberately simpler than a full
  * missHabit resolution: no crit roll, no player armor/magicResist

@@ -2,11 +2,11 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useDeathScreen } from './useDeathScreen';
+import { useEventChoice } from './useEventChoice';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
 import { useModalPriority } from './useModalPriority';
 import { useQuestMissGate } from './useQuestMissGate';
-import { useQuestOfferQueue } from './useQuestOfferQueue';
 import { useQuestStore } from '../store/questStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
@@ -25,50 +25,66 @@ describe('useModalPriority', () => {
     while (current.value) dismiss();
     useMissedSkillsGate().acknowledge();
     useQuestMissGate().acknowledge();
-    const { current: qCurrent, dismiss: qDismiss } = useQuestOfferQueue();
-    while (qCurrent.value !== null) qDismiss();
   });
 
-  describe('questOfferVisible', () => {
-    it('is false when no quest offer is queued', () => {
-      const { questOfferVisible } = useModalPriority();
-      expect(questOfferVisible.value).toBe(false);
+  describe('eventChoiceVisible', () => {
+    function givePendingPick() {
+      const characterStore = useCharacterStore();
+      characterStore.setCharacter({ ...characterStore.character, pendingEventPicks: 1 });
+    }
+
+    it('stays visible for an enchant reveal even with no picks left', () => {
+      const characterStore = useCharacterStore();
+      characterStore.setCharacter({ ...characterStore.character, level: 10, ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'], pendingEventPicks: 1 });
+      const events = useEventChoice();
+      events.choose('double-item');
+      expect(characterStore.character.pendingEventPicks).toBe(0);
+      expect(useModalPriority().eventChoiceVisible.value).toBe(true);
+      events.dismissReveal();
+      expect(useModalPriority().eventChoiceVisible.value).toBe(false);
     });
 
-    it('is true when a quest offer is queued and nothing else is blocking', () => {
-      const { enqueueOffer } = useQuestOfferQueue();
-      enqueueOffer(1);
-
-      const { questOfferVisible } = useModalPriority();
-      expect(questOfferVisible.value).toBe(true);
+    it('is false when no event pick is pending', () => {
+      const { eventChoiceVisible } = useModalPriority();
+      expect(eventChoiceVisible.value).toBe(false);
     });
 
-    it('is false while the character is dead, even with a quest offer queued', () => {
-      useQuestOfferQueue().enqueueOffer(1);
+    it('is true when an event pick is pending and nothing else is blocking', () => {
+      givePendingPick();
+      const { eventChoiceVisible } = useModalPriority();
+      expect(eventChoiceVisible.value).toBe(true);
+    });
+
+    it('is false while the character is dead', () => {
+      givePendingPick();
       useDeathScreen().triggerDeath();
-
-      const { questOfferVisible } = useModalPriority();
-      expect(questOfferVisible.value).toBe(false);
+      const { eventChoiceVisible } = useModalPriority();
+      expect(eventChoiceVisible.value).toBe(false);
     });
 
-    it('is false while an item drop is pending, even with a quest offer queued', () => {
-      useQuestOfferQueue().enqueueOffer(1);
+    it('is false while an item drop is pending', () => {
+      givePendingPick();
       useItemDropQueue().enqueueDrops([
         { id: 'rusty-blade', name: 'Rusty Blade', icon: 'items/rusty-blade', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'physicalDamage', percent: 3 }] },
       ]);
-
-      const { questOfferVisible } = useModalPriority();
-      expect(questOfferVisible.value).toBe(false);
+      const { eventChoiceVisible } = useModalPriority();
+      expect(eventChoiceVisible.value).toBe(false);
     });
 
-    it('is false while a quest miss is pending, even with a quest offer queued', () => {
-      const questStore = useQuestStore();
-      const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01', 1);
-      useQuestMissGate().queueMiss(quest);
-      useQuestOfferQueue().enqueueOffer(1);
+    it('is false while a habit miss is pending', () => {
+      givePendingPick();
+      const habit = useHabitStore().addHabit('Meditate', 'daily', 'medium', false, createRng());
+      useMissedSkillsGate().queueMiss(habit, '2024-01-02');
+      const { eventChoiceVisible } = useModalPriority();
+      expect(eventChoiceVisible.value).toBe(false);
+    });
 
-      const { questOfferVisible } = useModalPriority();
-      expect(questOfferVisible.value).toBe(false);
+    it('is false while a quest miss is pending', () => {
+      givePendingPick();
+      const quest = useQuestStore().addQuest('Clean garage', 'medium', '2026-01-01', 1);
+      useQuestMissGate().queueMiss(quest);
+      const { eventChoiceVisible } = useModalPriority();
+      expect(eventChoiceVisible.value).toBe(false);
     });
   });
 

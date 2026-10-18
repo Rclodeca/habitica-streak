@@ -22,7 +22,7 @@ export function useItemDropQueue() {
   const characterStore = useCharacterStore();
 
   const current = computed<ItemDef | null>(() => queue.value[0] ?? null);
-  const isFull = computed(() => characterStore.character.equippedItemIds.length >= maxEquipSlots(characterStore.character.level));
+  const isFull = computed(() => characterStore.character.equippedItemIds.length >= maxEquipSlots(characterStore.character));
 
   function processFront() {
     const front = current.value;
@@ -37,6 +37,12 @@ export function useItemDropQueue() {
   }
 
   function dismiss() {
+    const front = current.value;
+    // An unequipped front item was declined (no slot, player chose to drop
+    // it): it's gone, and goes back into the drop pool.
+    if (front && !characterStore.character.equippedItemIds.includes(front.id)) {
+      characterStore.discardItem(front.id);
+    }
     queue.value.shift();
     processFront();
   }
@@ -44,7 +50,7 @@ export function useItemDropQueue() {
   function replace(oldItemId: string) {
     const front = current.value;
     if (!front) return;
-    characterStore.unequipItem(oldItemId);
+    characterStore.discardItem(oldItemId);
     characterStore.equipItem(front.id);
     queue.value.shift();
     processFront();

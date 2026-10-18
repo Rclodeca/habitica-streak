@@ -23,10 +23,13 @@ export function createHabit(
   };
 }
 
-export function rerollDamageType(habit: Habit, rng: Rng): Habit {
+/** Re-rolls a habit's damage type; with `excludeCurrent`, the result is guaranteed to differ from the current type. */
+export function rerollDamageType(habit: Habit, rng: Rng, excludeCurrent = false): Habit {
+  const weights: Record<string, number> = { ...TUNING.HABIT_DAMAGE_TYPE_WEIGHTS };
+  if (excludeCurrent) delete weights[habit.damageType];
   return {
     ...habit,
-    damageType: pickWeighted<DamageType>(TUNING.HABIT_DAMAGE_TYPE_WEIGHTS, rng),
+    damageType: pickWeighted<DamageType>(weights, rng),
   };
 }
 

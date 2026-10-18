@@ -4,20 +4,40 @@ import { pickRandom, pickWeighted } from './rng';
 import type { Boss, Personality, WoundsAbility } from './types';
 
 /**
- * Total "power budget" a boss at the given index gets to distribute across
- * its stats. Grows exponentially forever so the game never runs out of
- * challenge — see `damageReductionPct` for how the resist formula keeps
- * bosses killable despite this unbounded growth. `difficultyModifier`
- * (default 1, i.e. no change) is the current run's hidden per-run scaling —
- * see `generateBoss`.
+ * Un-jittered health a balanced boss at the given index starts with. Grows
+ * exponentially forever so the game never runs out of challenge.
+ * `difficultyModifier` (default 1, i.e. no change) is the current run's
+ * hidden per-run scaling — see `generateBoss`.
  */
-export function bossPowerBudget(index: number, difficultyModifier = 1): number {
-  return TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, index - 1) * difficultyModifier;
+export function bossBaseHealth(index: number, difficultyModifier = 1): number {
+  return TUNING.BASE_BOSS_HEALTH * Math.pow(TUNING.BOSS_HEALTH_GROWTH_RATE, index - 1) * difficultyModifier;
+}
+
+/**
+ * Target damage-reduction fraction for a boss's armor or magicResist at this
+ * index. Without `tierMultiplier` (the boss isn't armored/warded for this
+ * resist) it follows the base line from BOSS_RESIST_BASE_PCT_START to
+ * _END, flat after BOSS_RESIST_RAMP_END_INDEX. With one (2-5, from the
+ * armored/warded personality tier) it ramps from that base line up to the
+ * tier's cap over the same index range, so tanky bosses only pull away from
+ * the pack deep into a run. Authored directly as a percent (not derived from
+ * an exponential stat) so it can't saturate toward 100% for every boss.
+ */
+export function resistPctForIndex(index: number, tierMultiplier?: number): number {
+  const t = Math.min(1, Math.max(0, (index - 1) / (TUNING.BOSS_RESIST_RAMP_END_INDEX - 1)));
+  const base = TUNING.BOSS_RESIST_BASE_PCT_START + (TUNING.BOSS_RESIST_BASE_PCT_END - TUNING.BOSS_RESIST_BASE_PCT_START) * t;
+  if (tierMultiplier === undefined) return base;
+  return base + (TUNING.BOSS_RESIST_TIER_CAP_PCT[tierMultiplier] - base) * t;
+}
+
+/** Inverse of `damageReductionPct`: the resist stat that yields the given reduction fraction. */
+function resistStatForReduction(reductionPct: number): number {
+  return (TUNING.RESIST_K * reductionPct) / (1 - reductionPct);
 }
 
 /**
  * Rolls a new hidden per-run difficulty modifier: a multiplier applied to
- * every boss's power budget for the rest of this run, so some runs are
+ * every boss's health for the rest of this run, so some runs are
  * quietly a bit tougher or easier throughout than the tuned baseline —
  * never surfaced in the UI, so the player can't tell how hard their current
  * run is stacked to be.
@@ -31,7 +51,9 @@ export function bossExpReward(index: number): number {
   return TUNING.BASE_BOSS_EXP * Math.pow(TUNING.BOSS_EXP_GROWTH_RATE, index - 1);
 }
 
-const PERSONALITY_STAT: Record<Personality, keyof typeof TUNING.BOSS_STAT_SHARE | null> = {
+type EmphasizedStat = 'health' | 'physicalAttack' | 'magicAttack' | 'armor' | 'magicResist';
+
+const PERSONALITY_STAT: Record<Personality, EmphasizedStat | null> = {
   balanced: null,
   tank: 'health',
   armored: 'armor',
@@ -53,8 +75,8 @@ const PERSONALITY_STAT: Record<Personality, keyof typeof TUNING.BOSS_STAT_SHARE 
 };
 
 /**
- * How many multiples of its fair share of the stat budget each personality's
- * emphasized stat gets. `balanced` never emphasizes anything (PERSONALITY_STAT
+ * How strongly each personality emphasizes its stat (attack multiplier, or the
+ * armored/warded tier that picks the resist cap). `balanced` never emphasizes anything (PERSONALITY_STAT
  * maps it to null), so it has no entry here.
  */
 const PERSONALITY_MULTIPLIER: Record<Exclude<Personality, 'balanced'>, number> = {
@@ -158,8 +180,8 @@ const MISS_DAMAGE_CURVE = solveLogisticParams(
  * The target miss-damage-as-%-of-base-max-HP for a non attack-emphasized
  * boss at this index: an S-curve that starts small, rises through the two
  * checkpoints in TUNING.MISS_DAMAGE_CURVE_*, and plateaus near
- * MISS_DAMAGE_CEILING_PCT_OF_MAX_HP afterward — unlike every other boss
- * stat, which grows unbounded forever off the shared power budget. See
+ * MISS_DAMAGE_CEILING_PCT_OF_MAX_HP afterward — unlike boss
+ * health, which grows unbounded forever. See
  * `generateBoss` for how this becomes an actual attack stat, and how
  * brute/arcane personalities multiply past it.
  */
@@ -168,11 +190,18 @@ export function missDamagePctForIndex(index: number): number {
   return TUNING.MISS_DAMAGE_CEILING_PCT_OF_MAX_HP / (1 + Math.exp(-steepness * (index - midpoint)));
 }
 
+/** Rolls the ±3-point jitter on a resist's target reduction, clamped to the top tier's cap, and converts it to a stat. */
+function jitteredResistStat(index: number, tierMultiplier: number | undefined, rng: Rng): number {
+  const maxPct = TUNING.BOSS_RESIST_TIER_CAP_PCT[5];
+  const pct = resistPctForIndex(index, tierMultiplier) + (rng() * 2 - 1) * 0.03;
+  return resistStatForReduction(Math.min(maxPct, Math.max(0, pct)));
+}
+
 /**
- * Generates a boss for the given index: rolls a personality, distributes the
- * index's power budget across health/armor/magicResist (emphasizing one
- * stat if the personality calls for it), jitters each stat by ±10%, and
- * independently rolls a crit chance, reflect%, and lifesteal% (see TUNING
+ * Generates a boss for the given index: rolls a personality, scales health
+ * off the index's exponential curve (tank personalities get more), sets
+ * armor/magicResist from the authored `resistPctForIndex` curve (armored/
+ * warded personalities ramp higher), jitters each, and independently rolls a crit chance, reflect%, and lifesteal% (see TUNING
  * for the odds of each). physicalAttack/magicAttack are handled separately
  * — see below.
  *
@@ -206,13 +235,10 @@ export function generateBoss(
   const resolvedDifficultyModifier = difficultyModifier ?? rollRunDifficultyModifier(rng);
   const personality = pickWeighted<Personality>(personalityWeightsForIndex(index), rng);
   const emphasizedStat = PERSONALITY_STAT[personality];
-  const shares: Record<keyof typeof TUNING.BOSS_STAT_SHARE, number> = { ...TUNING.BOSS_STAT_SHARE };
-  if (emphasizedStat) shares[emphasizedStat] *= PERSONALITY_MULTIPLIER[personality as Exclude<Personality, 'balanced'>];
-  const totalShare = Object.values(shares).reduce((a, b) => a + b, 0);
-  const budget = bossPowerBudget(index, resolvedDifficultyModifier);
-  const jittered = (share: number) => budget * (share / totalShare) * (1 + (rng() * 2 - 1) * 0.1); // ±10%
+  const tierMultiplier = emphasizedStat ? PERSONALITY_MULTIPLIER[personality as Exclude<Personality, 'balanced'>] : undefined;
+  const healthMultiplier = emphasizedStat === 'health' ? TUNING.BOSS_TANK_HEALTH_MULTIPLIER : 1;
 
-  const health = jittered(shares.health); // rolled once, reused for maxHealth below
+  const health = bossBaseHealth(index, resolvedDifficultyModifier) * healthMultiplier * (1 + (rng() * 2 - 1) * 0.1); // ±10%, rolled once, reused for maxHealth below
   const critChance =
     rng() < TUNING.BOSS_RARE_CRIT_CHANCE_PROBABILITY
       ? TUNING.BOSS_RARE_CRIT_CHANCE
@@ -221,10 +247,9 @@ export function generateBoss(
   const lifestealPct = parseFloat(pickWeighted<string>(TUNING.BOSS_LIFESTEAL_WEIGHTS, rng));
 
   // The non-emphasized baseline attack value for this index — deliberately
-  // NOT derived from `budget`/`shares` like every other stat, since the
-  // whole point is to author its growth against the player's own health
-  // curve instead of the boss's unbounded power budget. Jittered the same
-  // ±10% way as every other stat, then a brute/arcane boss's own emphasized
+  // NOT derived from the boss health curve, since the whole point is to
+  // author its growth against the player's own health curve instead.
+  // Jittered ±10%, then a brute/arcane boss's own emphasized
   // attack multiplies past this baseline (asymptoting near ceiling *
   // multiplier instead), while the other attack type and every other
   // personality's attacks stay on the curve.
@@ -240,8 +265,8 @@ export function generateBoss(
     health,
     physicalAttack: targetAttack * attackJitter() * physicalMultiplier,
     magicAttack: targetAttack * attackJitter() * magicMultiplier,
-    armor: jittered(shares.armor),
-    magicResist: jittered(shares.magicResist),
+    armor: jitteredResistStat(index, emphasizedStat === 'armor' ? tierMultiplier : undefined, rng),
+    magicResist: jitteredResistStat(index, emphasizedStat === 'magicResist' ? tierMultiplier : undefined, rng),
     critChance,
     reflectPct,
     lifestealPct,

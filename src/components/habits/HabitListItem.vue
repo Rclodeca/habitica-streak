@@ -4,7 +4,6 @@ import { habitDamageBreakdown, periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
-import { useQuestOfferQueue } from '../../composables/useQuestOfferQueue';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
@@ -14,7 +13,6 @@ const props = defineProps<{ habit: Habit }>();
 
 const { checkOffHabit } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
-const { enqueueOffer } = useQuestOfferQueue();
 const debugClockStore = useDebugClockStore();
 const characterStore = useCharacterStore();
 const habitStore = useHabitStore();
@@ -47,7 +45,6 @@ const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habi
 function onCheckOff() {
   const result = checkOffHabit(props.habit.id);
   if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
-  if (result.questOffered) enqueueOffer(result.bossIndexAtOffer);
 }
 
 const showStatsModal = ref(false);

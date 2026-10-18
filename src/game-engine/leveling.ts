@@ -1,6 +1,7 @@
 import { TUNING } from './constants/tuning';
 import { itemBonusPercent, itemFlatBonus } from './items';
-import type { Character } from './types';
+import { daysBetweenDayKeys } from './time';
+import type { Character, CritBoostStatusEffect, HealBoostStatusEffect } from './types';
 
 export function expToNextLevel(level: number): number {
   if (level < 5) return 25 * level;
@@ -75,9 +76,34 @@ export function effectiveStat(
 /**
  * The character's crit chance (0-1) after equipped-item bonuses, capped at
  * TUNING.CRIT_CHANCE_CAP so a hit is never guaranteed no matter how many
- * crit items are stacked.
+ * crit items are stacked. Pass `currentDayKey` to include an active Crit boost.
  */
-export function effectiveCritChance(character: Character): number {
-  const raw = character.critChance + itemBonusPercent(character, 'critChance') / 100;
+export function effectiveCritChance(character: Character, currentDayKey?: string): number {
+  const boost = currentDayKey ? (activeCritBoost(character, currentDayKey)?.bonus ?? 0) : 0;
+  const raw = character.critChance + itemBonusPercent(character, 'critChance') / 100 + boost;
   return Math.min(raw, TUNING.CRIT_CHANCE_CAP);
+}
+
+/**
+ * The character's active Crit boost as of `currentDayKey` (`dailyPeriodKey(now)`),
+ * or undefined once it has expired. Lazy like activeWoundsEffect — the stale
+ * entry stays in `statusEffects` until it's overwritten.
+ */
+export function activeCritBoost(character: Character, currentDayKey: string): CritBoostStatusEffect | undefined {
+  return activeTimedBoost<CritBoostStatusEffect>(character, 'critBoost', currentDayKey);
+}
+
+/** The character's active Healing boost as of `currentDayKey`, or undefined once expired. */
+export function activeHealBoost(character: Character, currentDayKey: string): HealBoostStatusEffect | undefined {
+  return activeTimedBoost<HealBoostStatusEffect>(character, 'healBoost', currentDayKey);
+}
+
+function activeTimedBoost<T extends CritBoostStatusEffect | HealBoostStatusEffect>(
+  character: Character,
+  type: T['type'],
+  currentDayKey: string,
+): T | undefined {
+  const boost = character.statusEffects?.find((e): e is T => e.type === type);
+  if (!boost) return undefined;
+  return daysBetweenDayKeys(boost.appliedDayKey, currentDayKey) < boost.durationDays ? boost : undefined;
 }

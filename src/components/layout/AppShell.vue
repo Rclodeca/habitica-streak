@@ -11,19 +11,15 @@ import DeathScreen from '../ui/DeathScreen.vue';
 import ItemDropPopup from '../ui/ItemDropPopup.vue';
 import MissedSkillsPopup from '../ui/MissedSkillsPopup.vue';
 import QuestMissPopup from '../quests/QuestMissPopup.vue';
-import QuestOfferModal from '../quests/QuestOfferModal.vue';
+import EventChoiceModal from '../events/EventChoiceModal.vue';
 import ReviveNotice from '../ui/ReviveNotice.vue';
-import SlotUnlockPopup from '../ui/SlotUnlockPopup.vue';
 import { useBossStore } from '../../store/bossStore';
-import { useHighScoreStore } from '../../store/highScoreStore';
 
 const bossStore = useBossStore();
-const highScoreStore = useHighScoreStore();
 
 const isDev = import.meta.env.DEV;
 
 const bossIndex = computed(() => bossStore.boss.index);
-const bestBossIndex = computed(() => highScoreStore.highestBossIndex);
 
 // No router in this app — swaps the main content for HighScorePage in place
 // rather than navigating. The popup overlays below stay mounted regardless
@@ -36,7 +32,6 @@ const showHighScores = ref(false);
   <div class="app-shell">
     <div class="progress-bar">
       <span>Boss #{{ bossIndex }}</span>
-      <span>Best: Boss #{{ bestBossIndex }}</span>
       <button type="button" class="nav-button" @click="showHighScores = !showHighScores">
         {{ showHighScores ? '← Back' : '🏆 High Scores' }}
       </button>
@@ -44,8 +39,7 @@ const showHighScores = ref(false);
     <DeathScreen />
     <ItemDropPopup />
     <MissedSkillsPopup />
-    <SlotUnlockPopup />
-    <QuestOfferModal />
+    <EventChoiceModal />
     <QuestMissPopup />
     <ReviveNotice />
 

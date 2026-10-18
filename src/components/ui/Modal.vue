@@ -3,8 +3,9 @@
 // state lives here. Consumers pass their content via the default slot and
 // control visibility via the `modelValue` prop (v-model:modelValue / v-model).
 
-const props = withDefaults(defineProps<{ modelValue: boolean; title?: string; dismissible?: boolean }>(), {
+const props = withDefaults(defineProps<{ modelValue: boolean; title?: string; dismissible?: boolean; maxWidth?: string }>(), {
   dismissible: true,
+  maxWidth: '420px',
 });
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
@@ -17,7 +18,7 @@ function close() {
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="modal-backdrop" @click="close">
-      <div class="modal-content" @click.stop>
+      <div class="modal-content" :style="{ maxWidth }" @click.stop>
         <div class="modal-header">
           <h3 v-if="title">{{ title }}</h3>
           <button v-if="dismissible" type="button" class="modal-close" aria-label="Close" @click="close">×</button>
@@ -47,7 +48,6 @@ function close() {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem 1.25rem;
-  max-width: 420px;
   width: 100%;
   max-height: 80vh;
   overflow-y: auto;

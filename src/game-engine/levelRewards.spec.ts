@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assignSpecialIfEligible, assignUltIfEligible, rollOverdriveForLevelUps } from './levelRewards';
+import { assignSpecialIfEligible, assignUltIfEligible, grantOverdrive } from './levelRewards';
 import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
 import type { Habit } from './types';
@@ -89,65 +89,28 @@ describe('assignUltIfEligible', () => {
   });
 });
 
-describe('rollOverdriveForLevelUps', () => {
-  it('grants no Overdrive when levelsGained is 0', () => {
-    const habits = [makeHabit({ id: 'a' })];
-    const { habits: result, granted } = rollOverdriveForLevelUps(habits, 0, createRng(1));
-    expect(result).toBe(habits);
-    expect(granted).toEqual([]);
-  });
-
+describe('grantOverdrive', () => {
   it('is a no-op when there are no good habits to grant it to', () => {
     const habits = [makeHabit({ id: 'a', isBad: true })];
-    const { habits: result, granted } = rollOverdriveForLevelUps(habits, 5, createRng(1));
+    const { habits: result, granted } = grantOverdrive(habits, createRng(1));
     expect(result).toBe(habits);
-    expect(granted).toEqual([]);
+    expect(granted).toBeNull();
   });
 
-  it('never grants Overdrive to a bad habit, only good ones', () => {
-    const habits = [makeHabit({ id: 'good', isBad: false }), makeHabit({ id: 'bad', isBad: true })];
-    // A rng biased to always succeed the chance roll and always pick index 0
-    // of whatever pool is passed in.
-    const alwaysSucceedRng = () => 0;
-    const { habits: result } = rollOverdriveForLevelUps(habits, 3, alwaysSucceedRng);
-    expect(result.find((h) => h.id === 'bad')?.isOverdrive).toBeFalsy();
-  });
-
-  it('grants Overdrive to a random good habit roughly OVERDRIVE_CHANCE_PER_LEVEL of the time across many single-level rolls', () => {
-    const iterations = 2000;
-    let grantedCount = 0;
-    for (let seed = 0; seed < iterations; seed++) {
-      const habits = [makeHabit({ id: 'a' })];
-      const { granted } = rollOverdriveForLevelUps(habits, 1, createRng(seed));
-      if (granted.length > 0) grantedCount += 1;
-    }
-    expect(grantedCount / iterations).toBeCloseTo(TUNING.OVERDRIVE_CHANCE_PER_LEVEL, 1);
-  });
-
-  it('can grant multiple distinct habits across multiple levels gained in one call', () => {
-    const habits = [makeHabit({ id: 'a' }), makeHabit({ id: 'b' }), makeHabit({ id: 'c' })];
-    const alwaysSucceedRng = createRng(3);
-    // Force every chance-roll to succeed by wrapping: first call of each
-    // pair (the chance roll) always passes, second call (the pick) uses the
-    // real rng for variety.
-    let callCount = 0;
-    const forcedRng = () => {
-      callCount += 1;
-      return callCount % 2 === 1 ? 0 : alwaysSucceedRng();
-    };
-    const { granted } = rollOverdriveForLevelUps(habits, 3, forcedRng);
-    expect(granted.length).toBeGreaterThan(0);
-    for (const habit of granted) {
-      expect(habit.isOverdrive).toBe(true);
+  it('always grants Overdrive to a good habit and never to a bad one', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const habits = [makeHabit({ id: 'good', isBad: false }), makeHabit({ id: 'bad', isBad: true })];
+      const { habits: result, granted } = grantOverdrive(habits, createRng(seed));
+      expect(granted?.id).toBe('good');
+      expect(result.find((h) => h.id === 'good')?.isOverdrive).toBe(true);
+      expect(result.find((h) => h.id === 'bad')?.isOverdrive).toBeFalsy();
     }
   });
 
-  it('does not double-count a habit that already had Overdrive granted earlier in the same call', () => {
-    const habits = [makeHabit({ id: 'only-one' })];
-    const alwaysSucceedRng = () => 0; // chance roll always passes, pick always index 0
-    const { granted } = rollOverdriveForLevelUps(habits, 5, alwaysSucceedRng);
-    // Only one habit exists, so it can only be granted once — every later
-    // roll re-picks it but sees isOverdrive already true and skips.
-    expect(granted).toHaveLength(1);
+  it('is a no-op when the picked habit already has Overdrive', () => {
+    const habits = [makeHabit({ id: 'only-one', isOverdrive: true })];
+    const { habits: result, granted } = grantOverdrive(habits, createRng(1));
+    expect(result).toBe(habits);
+    expect(granted).toBeNull();
   });
 });

@@ -72,6 +72,24 @@ const activityLogStore = useActivityLogStore();
         <template v-else-if="entry.kind === 'overdrive-granted'">
           🔥 "{{ entry.habitName }}" gained Overdrive!
         </template>
+        <template v-else-if="entry.kind === 'event-heal'">
+          💖 Restored <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP
+        </template>
+        <template v-else-if="entry.kind === 'item-doubled'">
+          ⚒️ "{{ entry.itemName }}" now has double stats!
+        </template>
+        <template v-else-if="entry.kind === 'heal-boost-gained'">
+          🌿 Healing boosted for {{ entry.days }} days
+        </template>
+        <template v-else-if="entry.kind === 'crit-boost-gained'">
+          🎯 Crit chance boosted for {{ entry.days }} days
+        </template>
+        <template v-else-if="entry.kind === 'item-slots-gained'">
+          🎒 Item slots increased to 6!
+        </template>
+        <template v-else-if="entry.kind === 'skill-rerolled'">
+          🎲 "{{ entry.habitName }}" was re-rolled to {{ entry.damageType }}
+        </template>
         <template v-else-if="entry.kind === 'wounds-applied'">
           🩹 Wounded for {{ entry.durationDays }} day(s) — healing at {{ (entry.effectRate * 100).toFixed(0) }}%
         </template>

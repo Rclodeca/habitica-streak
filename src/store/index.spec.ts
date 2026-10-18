@@ -78,6 +78,22 @@ describe('store persistence smoke test', () => {
     expect(parsed.character.damagePoolRebalanceApplied).toBe(true);
   });
 
+  it('seeds takenEventIds on a save that predates events, so slots/Special/Ult are not lost or re-offered', () => {
+    const rng = createRng(1);
+    const staleSave = {
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      character: { ...createCharacter(rng), level: 10, takenEventIds: undefined, pendingEventPicks: undefined },
+      boss: generateBoss(1, rng),
+      habits: [{ id: 'a', name: 'A', period: 'daily', difficulty: 'easy', damageType: 'physical', isBad: false, isSpecial: true, streakCount: 0, lastCompletedPeriodKey: null, lastCheckedPeriodKey: null }],
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(staleSave));
+
+    const { characterStore } = initializeStores();
+
+    expect(characterStore.character.takenEventIds?.sort()).toEqual(['item-slots', 'special']);
+    expect(characterStore.character.pendingEventPicks).toBe(0);
+  });
+
   it('backfills unlock tiers on a save that predates level-gated items, grants one compensating drop roll once, and persists both', () => {
     const rng = createRng(1);
     const staleSave = {
@@ -102,8 +118,9 @@ describe('store persistence smoke test', () => {
 
     setActivePinia(createPinia());
     const second = initializeStores();
-    expect(second.backfilledDrops).toEqual([]);
-    expect(second.characterStore.character.ownedItemIds).toHaveLength(3);
+    expect(second.backfilledDrops).toEqual([]); // not granted twice
+    // Drops that were never equipped (popup queue lost to the reload) are discarded back into the pool.
+    expect(second.characterStore.character.ownedItemIds).toEqual([]);
   });
 
   it('does not accumulate duplicate $subscribe listeners when initializeStores() is called again against the same active pinia', () => {

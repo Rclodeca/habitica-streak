@@ -29,6 +29,8 @@ export interface HighScoreRunItem {
   name: string;
   icon: string;
   equipped: boolean;
+  stats?: string; // bonus summary at run end (includes enchant doubling); older records fall back to the catalog
+  enchanted?: boolean;
 }
 
 export interface HighScoreRunStats {

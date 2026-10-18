@@ -161,6 +161,16 @@ function weightedSampleWithoutReplacement(items: ItemDef[], count: number, rarit
   return result;
 }
 
+/** TUNING.DOUBLED_ITEM_MULTIPLIER for the character's doubled item, 1 for every other item. */
+export function itemDoubleFactor(character: Pick<Character, 'doubledItemId'>, itemId: string): number {
+  return character.doubledItemId === itemId ? TUNING.DOUBLED_ITEM_MULTIPLIER : 1;
+}
+
+/** Equipped items the Double item event could pick: anything with stat bonuses (not consumables). */
+export function doublableItems(character: Character): ItemDef[] {
+  return ITEM_CATALOG.filter((item) => character.equippedItemIds.includes(item.id) && item.type !== 'consumable' && item.bonuses.length > 0);
+}
+
 /**
  * Sums bonus.percent across every equipped item's `bonuses` entries matching
  * `stat`. 0 if none equipped/matching.
@@ -171,7 +181,7 @@ export function itemBonusPercent(character: Character, stat: BoostableStat): num
     const item = ITEM_CATALOG.find((candidate) => candidate.id === id);
     if (!item) continue;
     for (const bonus of item.bonuses) {
-      if (bonus.stat === stat && bonus.percent) total += bonus.percent;
+      if (bonus.stat === stat && bonus.percent) total += bonus.percent * itemDoubleFactor(character, id);
     }
   }
   return total;
@@ -189,7 +199,7 @@ export function itemFlatBonus(character: Character, stat: BoostableStat): number
     const item = ITEM_CATALOG.find((candidate) => candidate.id === id);
     if (!item) continue;
     for (const bonus of item.bonuses) {
-      if (bonus.stat === stat && bonus.flat) total += bonus.flat;
+      if (bonus.stat === stat && bonus.flat) total += bonus.flat * itemDoubleFactor(character, id);
     }
   }
   return total;
@@ -210,34 +220,65 @@ const STAT_EMOJI: Record<BoostableStat, string> = {
   magicResist: '🔰',
 };
 
-/** Condensed summary of what an item grants (e.g. "⚔️ +25%"), for popups/tooltips. */
-export function describeItemBonus(item: ItemDef): string {
-  if (item.type === 'consumable') return 'Consumable — grants one free revive on death, while equipped';
-  const parts: string[] = [];
+const STAT_LABEL: Record<BoostableStat, string> = {
+  physicalDamage: 'Physical damage',
+  magicDamage: 'Magic damage',
+  healing: 'Healing',
+  health: 'Max health',
+  trueDamage: 'True damage (ignores armor and magic resist)',
+  expGain: 'EXP gain',
+  critChance: 'Crit chance',
+  lifesteal: 'Lifesteal (heal from damage dealt)',
+  armorPen: 'Armor penetration',
+  magicPen: 'Magic penetration',
+  armor: 'Armor',
+  magicResist: 'Magic resist',
+};
+
+/** One entry per stat bonus on `item`: the short display text (e.g. "⚔️ +25%") and a plain-English label for the stat. */
+export function describeItemBonusParts(item: ItemDef, factor = 1): { text: string; label: string }[] {
+  if (item.type === 'consumable') return [];
+  const parts: { text: string; label: string }[] = [];
   for (const bonus of item.bonuses) {
-    if (bonus.percent) parts.push(`${STAT_EMOJI[bonus.stat]} +${bonus.percent}%`);
-    if (bonus.flat) parts.push(`${STAT_EMOJI[bonus.stat]} +${bonus.flat}`);
+    const label = STAT_LABEL[bonus.stat];
+    if (bonus.percent) parts.push({ text: `${STAT_EMOJI[bonus.stat]} +${bonus.percent * factor}%`, label });
+    if (bonus.flat) parts.push({ text: `${STAT_EMOJI[bonus.stat]} +${bonus.flat * factor}`, label });
   }
-  return parts.join(', ');
+  return parts;
+}
+
+/** Condensed summary of what an item grants (e.g. "⚔️ +25%"), for popups/tooltips. */
+export function describeItemBonus(item: ItemDef, factor = 1): string {
+  if (item.type === 'consumable') return 'Consumable — grants one free revive on death, while equipped';
+  return describeItemBonusParts(item, factor)
+    .map((part) => part.text)
+    .join(', ');
+}
+
+/** Catalog items the character doesn't own yet and can currently drop (level-gated ones only once unlocked). */
+export function unownedDroppableItems(character: Character): ItemDef[] {
+  return ITEM_CATALOG.filter((item) => {
+    if (character.ownedItemIds.includes(item.id)) return false;
+    if (!item.levelGated) return true;
+    const unlockLevel = character.newItemUnlockTiers?.[item.id];
+    return unlockLevel !== undefined && character.level >= unlockLevel;
+  });
 }
 
 /**
- * Rolls this character's item drop for defeating the boss at `bossIndex`.
+ * Rolls this character's item drop for defeating the boss at `bossIndex`
+ * (`maxCount` further caps how many items drop, e.g. 1 for a single-item reward).
  * Desired count follows a step curve (more items from later bosses, capped
  * at ITEM_DROP_MAX_COUNT), further capped by how many catalog items this
  * character doesn't already own — returns [] once every item is owned.
  * Rare items are weighted much lower than common ones (see RARITY_WEIGHT).
  */
-export function rollItemDrops(character: Character, bossIndex: number, rng: Rng): ItemDef[] {
-  const droppablePool = ITEM_CATALOG.filter((item) => {
-    if (!item.levelGated) return true;
-    const unlockLevel = character.newItemUnlockTiers?.[item.id];
-    return unlockLevel !== undefined && character.level >= unlockLevel;
-  });
-  const unowned = droppablePool.filter((item) => !character.ownedItemIds.includes(item.id));
+export function rollItemDrops(character: Character, bossIndex: number, rng: Rng, maxCount: number = TUNING.ITEM_DROP_MAX_COUNT): ItemDef[] {
+  const unowned = unownedDroppableItems(character);
   const desiredCount = Math.min(
     1 + Math.floor((bossIndex - 1) / TUNING.ITEM_DROP_EVERY_N_BOSSES),
     TUNING.ITEM_DROP_MAX_COUNT,
+    maxCount,
   );
   const count = Math.min(desiredCount, unowned.length);
   const rarityWeight = rarityWeightByBossIndex(bossIndex);
@@ -264,9 +305,9 @@ export function assignNewItemUnlockTiers(rng: Rng): Record<string, 10 | 15 | 20>
   return tiers;
 }
 
-/** 4 equip slots below level 10, 6 at level 10+. */
-export function maxEquipSlots(level: number): number {
-  return level >= 10 ? 6 : 4;
+/** 4 equip slots, 6 once the character has taken the one-time `item-slots` event. */
+export function maxEquipSlots(character: Pick<Character, 'takenEventIds'>): number {
+  return character.takenEventIds?.includes('item-slots') ? 6 : 4;
 }
 
 // Which body-worn sprite slot each stat category renders as on the player

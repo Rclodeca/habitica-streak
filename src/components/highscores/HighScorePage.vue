@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
+import { describeItemBonus, ITEM_CATALOG } from '../../game-engine';
 import type { DamageType } from '../../game-engine';
+import type { HighScoreRunItem } from '../../store/highScoreStore';
 import { useHighScoreStore } from '../../store/highScoreStore';
 
 const highScoreStore = useHighScoreStore();
@@ -10,6 +12,12 @@ const highScoreStore = useHighScoreStore();
 const expanded = reactive<Record<string, boolean>>({});
 function toggle(id: string) {
   expanded[id] = !expanded[id];
+}
+
+function itemStats(item: HighScoreRunItem): string {
+  if (item.stats !== undefined) return item.stats;
+  const def = ITEM_CATALOG.find((i) => i.id === item.id);
+  return def ? describeItemBonus(def) : '';
 }
 
 // Day keys are YYYY-MM-DD (see game-engine/time.ts) — parsed as local
@@ -61,7 +69,7 @@ const DAMAGE_TYPE_ICON: Record<DamageType, string> = {
             <ul class="detail-list">
               <li v-for="item in run.items" :key="item.id">
                 {{ item.name }}
-                <span v-if="item.equipped" class="equipped-tag">equipped</span>
+                <span class="item-stats" :class="{ enchanted: item.enchanted }">{{ itemStats(item) }}</span>
               </li>
             </ul>
           </template>
@@ -162,10 +170,15 @@ const DAMAGE_TYPE_ICON: Record<DamageType, string> = {
   padding: 0.15rem 0;
 }
 
-.equipped-tag {
+.item-stats {
   margin-left: 0.4em;
-  font-size: 0.75em;
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.item-stats.enchanted {
   color: var(--accent);
+  opacity: 1;
 }
 
 .habit-meta {

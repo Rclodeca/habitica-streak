@@ -74,6 +74,13 @@ describe('rerollDamageType', () => {
     expect(['physical', 'magic', 'healing', 'trueDamage', 'expGain']).toContain(rerolled.damageType);
   });
 
+  it('with excludeCurrent, never returns the current damage type', () => {
+    for (let seed = 0; seed < 300; seed++) {
+      const rerolled = rerollDamageType(makeHabit({ damageType: 'physical' }), createRng(seed), true);
+      expect(rerolled.damageType).not.toBe('physical');
+    }
+  });
+
   it('does not mutate the original habit', () => {
     const rng = createRng(4);
     const original = makeHabit({ damageType: 'healing' });

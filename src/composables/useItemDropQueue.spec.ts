@@ -35,14 +35,14 @@ describe('useItemDropQueue', () => {
     while (current.value) dismiss();
   });
 
-  it('isFull reflects the level-10 6-slot cap, not the base 4', () => {
+  it('isFull reflects the 6-slot cap once the item-slots event is taken, not the base 4', () => {
     const characterStore = useCharacterStore();
     const owned = ['rusty-blade', 'steel-sword', 'apprentice-wand', 'arcane-staff', 'novices-charm'];
-    characterStore.character = { ...characterStore.character, level: 10, ownedItemIds: owned, equippedItemIds: owned };
+    characterStore.character = { ...characterStore.character, ownedItemIds: owned, equippedItemIds: owned, takenEventIds: ['item-slots'] };
 
     const { isFull } = useItemDropQueue();
 
-    expect(isFull.value).toBe(false); // 5 equipped, cap is 6 at level 10
+    expect(isFull.value).toBe(false); // 5 equipped, cap is 6 with the event
   });
 
   it('auto-equips a drop immediately when a slot is open', () => {
@@ -99,7 +99,7 @@ describe('useItemDropQueue', () => {
     expect(characterStore.character.equippedItemIds).not.toContain('lucky-coin');
   });
 
-  it('replace unequips the chosen item and equips the pending drop, then advances the queue', () => {
+  it('replace discards the chosen item for good and equips the pending drop, then advances the queue', () => {
     const characterStore = useCharacterStore();
     const existing = ['steel-sword', 'archmages-rod', 'padded-vest', 'sacred-chalice'];
     const dropped = makeItem({ id: 'rusty-blade' });
@@ -118,8 +118,41 @@ describe('useItemDropQueue', () => {
     replace('padded-vest');
 
     expect(characterStore.character.equippedItemIds).not.toContain('padded-vest');
+    expect(characterStore.character.ownedItemIds).not.toContain('padded-vest'); // gone, back in the drop pool
     expect(characterStore.character.equippedItemIds).toContain('rusty-blade');
     expect(characterStore.character.equippedItemIds).toHaveLength(4);
     expect(current.value).toBeNull();
+  });
+
+  it('dropping an item that does not fit discards it so it can drop again later', () => {
+    const characterStore = useCharacterStore();
+    const existing = ['steel-sword', 'archmages-rod', 'padded-vest', 'sacred-chalice'];
+    const dropped = makeItem({ id: 'rusty-blade' });
+    characterStore.character = {
+      ...characterStore.character,
+      ownedItemIds: [...existing, dropped.id],
+      equippedItemIds: existing,
+    };
+
+    const { current, enqueueDrops, dismiss } = useItemDropQueue();
+    enqueueDrops([dropped]);
+    dismiss();
+
+    expect(current.value).toBeNull();
+    expect(characterStore.character.ownedItemIds).toEqual(existing);
+    expect(characterStore.character.equippedItemIds).toEqual(existing);
+  });
+
+  it('dismissing an item that auto-equipped keeps it', () => {
+    const characterStore = useCharacterStore();
+    const item = makeItem();
+    characterStore.character = { ...characterStore.character, ownedItemIds: [item.id], equippedItemIds: [] };
+
+    const { enqueueDrops, dismiss } = useItemDropQueue();
+    enqueueDrops([item]);
+    dismiss();
+
+    expect(characterStore.character.ownedItemIds).toEqual([item.id]);
+    expect(characterStore.character.equippedItemIds).toEqual([item.id]);
   });
 });

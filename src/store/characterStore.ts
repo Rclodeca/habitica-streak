@@ -6,6 +6,7 @@ import { defineStore } from 'pinia';
 import {
   addExpAndResolveLevelUps,
   applyDamagePoolRebalance,
+  discardUnequippedItems,
   completeHabit,
   createCharacter,
   createRng,
@@ -24,12 +25,12 @@ export const useCharacterStore = defineStore('character', {
   actions: {
     /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
     initFromSave(saved: Character | null, rng: Rng) {
-      this.character = saved ? applyDamagePoolRebalance(migrateCharacter(saved, rng)) : createCharacter(rng);
+      this.character = saved ? discardUnequippedItems(applyDamagePoolRebalance(migrateCharacter(saved, rng))) : createCharacter(rng);
     },
 
     /** Rolls one boss-kill's worth of item drops for `bossIndex`, adds them to owned items, and returns them. */
-    grantItemDrops(bossIndex: number, rng: Rng): ItemDef[] {
-      const dropped = rollItemDrops(this.character, bossIndex, rng);
+    grantItemDrops(bossIndex: number, rng: Rng, maxCount?: number): ItemDef[] {
+      const dropped = rollItemDrops(this.character, bossIndex, rng, maxCount);
       this.character = { ...this.character, ownedItemIds: [...this.character.ownedItemIds, ...dropped.map((item) => item.id)] };
       return dropped;
     },
@@ -41,18 +42,23 @@ export const useCharacterStore = defineStore('character', {
 
     /** Equips an owned item into an empty slot. No-op if not owned, already equipped, or all slots are full (see maxEquipSlots). */
     equipItem(itemId: string) {
-      const { ownedItemIds, equippedItemIds, level } = this.character;
+      const { ownedItemIds, equippedItemIds } = this.character;
       if (!ownedItemIds.includes(itemId)) return;
       if (equippedItemIds.includes(itemId)) return;
-      if (equippedItemIds.length >= maxEquipSlots(level)) return;
+      if (equippedItemIds.length >= maxEquipSlots(this.character)) return;
       this.character = { ...this.character, equippedItemIds: [...equippedItemIds, itemId] };
     },
 
-    /** Unequips an item. No-op if it isn't currently equipped. */
-    unequipItem(itemId: string) {
-      const { equippedItemIds } = this.character;
-      if (!equippedItemIds.includes(itemId)) return;
-      this.character = { ...this.character, equippedItemIds: equippedItemIds.filter((id) => id !== itemId) };
+    /** Discards an item for good — it leaves the character and returns to the drop pool. No-op if not owned. */
+    discardItem(itemId: string) {
+      const { ownedItemIds, equippedItemIds } = this.character;
+      if (!ownedItemIds.includes(itemId)) return;
+      this.character = {
+        ...this.character,
+        ownedItemIds: ownedItemIds.filter((id) => id !== itemId),
+        equippedItemIds: equippedItemIds.filter((id) => id !== itemId),
+        doubledItemId: this.character.doubledItemId === itemId ? undefined : this.character.doubledItemId,
+      };
     },
 
     /** Grants EXP and resolves any resulting level-ups. Returns levels gained. */

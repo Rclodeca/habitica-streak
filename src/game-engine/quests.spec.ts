@@ -3,7 +3,7 @@ import { bossExpReward } from './boss';
 import { bossMissDamage } from './combat';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
-import { createQuest, questExpReward, questMissDamage, rollQuestOffer } from './quests';
+import { createQuest, questExpReward, questMissDamage } from './quests';
 import { createRng } from './rng';
 import type { Boss, Quest } from './types';
 
@@ -34,24 +34,6 @@ function makeBoss(overrides: Partial<Boss> = {}): Boss {
     ...overrides,
   };
 }
-
-describe('rollQuestOffer', () => {
-  it('returns true when the roll beats QUEST_DROP_CHANCE, false otherwise', () => {
-    expect(rollQuestOffer(() => 0)).toBe(true); // 0 < 0.4
-    expect(rollQuestOffer(() => 0.99)).toBe(false); // 0.99 >= 0.4
-  });
-
-  it('returns true roughly QUEST_DROP_CHANCE of the time across many seeds', () => {
-    let offered = 0;
-    const trials = 1000;
-    for (let seed = 0; seed < trials; seed++) {
-      if (rollQuestOffer(createRng(seed))) offered++;
-    }
-    const rate = offered / trials;
-    expect(rate).toBeGreaterThan(TUNING.QUEST_DROP_CHANCE - 0.05);
-    expect(rate).toBeLessThan(TUNING.QUEST_DROP_CHANCE + 0.05);
-  });
-});
 
 describe('questExpReward', () => {
   it('scales by QUEST_EXP_DIFFICULTY_PCT off the boss that offered it', () => {

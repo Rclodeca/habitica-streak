@@ -2,28 +2,61 @@ import { describe, expect, it } from 'vitest';
 import {
   applyResist,
   bossExpReward,
-  bossPowerBudget,
+  bossBaseHealth,
   damageReductionPct,
   generateBoss,
   PERSONALITY_NAME,
   personalityWeightsForIndex,
+  resistPctForIndex,
   rollRunDifficultyModifier,
 } from './boss';
 import { createRng, type Rng } from './rng';
 import { TUNING } from './constants/tuning';
 import type { Personality } from './types';
 
-describe('bossPowerBudget', () => {
-  it('matches BASE_BOSS_POWER * BOSS_GROWTH_RATE^(index-1) exactly at index 1, 5, 10', () => {
-    expect(bossPowerBudget(1)).toBeCloseTo(TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, 0), 10);
-    expect(bossPowerBudget(5)).toBeCloseTo(TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, 4), 10);
-    expect(bossPowerBudget(10)).toBeCloseTo(TUNING.BASE_BOSS_POWER * Math.pow(TUNING.BOSS_GROWTH_RATE, 9), 10);
-    expect(bossPowerBudget(1)).toBe(TUNING.BASE_BOSS_POWER);
+type EmphasizedStat = 'health' | 'physicalAttack' | 'magicAttack' | 'armor' | 'magicResist';
+
+describe('bossBaseHealth', () => {
+  it('matches BASE_BOSS_HEALTH * BOSS_HEALTH_GROWTH_RATE^(index-1) exactly at index 1, 5, 10', () => {
+    expect(bossBaseHealth(1)).toBe(TUNING.BASE_BOSS_HEALTH);
+    expect(bossBaseHealth(5)).toBeCloseTo(TUNING.BASE_BOSS_HEALTH * Math.pow(TUNING.BOSS_HEALTH_GROWTH_RATE, 4), 10);
+    expect(bossBaseHealth(10)).toBeCloseTo(TUNING.BASE_BOSS_HEALTH * Math.pow(TUNING.BOSS_HEALTH_GROWTH_RATE, 9), 10);
   });
 
   it('scales linearly with an explicit difficultyModifier', () => {
-    expect(bossPowerBudget(5, 1.1)).toBeCloseTo(bossPowerBudget(5) * 1.1, 10);
-    expect(bossPowerBudget(5, 0.9)).toBeCloseTo(bossPowerBudget(5) * 0.9, 10);
+    expect(bossBaseHealth(5, 1.1)).toBeCloseTo(bossBaseHealth(5) * 1.1, 10);
+    expect(bossBaseHealth(5, 0.9)).toBeCloseTo(bossBaseHealth(5) * 0.9, 10);
+  });
+});
+
+describe('resistPctForIndex', () => {
+  it('starts at BOSS_RESIST_BASE_PCT_START at boss 1 for every tier', () => {
+    for (const tier of [undefined, 2, 3, 4, 5]) {
+      expect(resistPctForIndex(1, tier)).toBeCloseTo(TUNING.BOSS_RESIST_BASE_PCT_START, 10);
+    }
+  });
+
+  it('reaches the base END (no tier) and each tier cap at BOSS_RESIST_RAMP_END_INDEX, and stays flat afterward', () => {
+    const end = TUNING.BOSS_RESIST_RAMP_END_INDEX;
+    expect(resistPctForIndex(end)).toBeCloseTo(TUNING.BOSS_RESIST_BASE_PCT_END, 10);
+    expect(resistPctForIndex(end + 50)).toBeCloseTo(TUNING.BOSS_RESIST_BASE_PCT_END, 10);
+    for (const tier of [2, 3, 4, 5]) {
+      expect(resistPctForIndex(end, tier)).toBeCloseTo(TUNING.BOSS_RESIST_TIER_CAP_PCT[tier], 10);
+      expect(resistPctForIndex(end + 50, tier)).toBeCloseTo(TUNING.BOSS_RESIST_TIER_CAP_PCT[tier], 10);
+    }
+  });
+
+  it('never exceeds the 5x cap, never decreases with index, and higher tiers never reduce less', () => {
+    for (let i = 1; i <= 60; i++) {
+      let previousTier = resistPctForIndex(i);
+      for (const tier of [2, 3, 4, 5]) {
+        const pct = resistPctForIndex(i, tier);
+        expect(pct).toBeGreaterThanOrEqual(previousTier);
+        expect(pct).toBeLessThanOrEqual(TUNING.BOSS_RESIST_TIER_CAP_PCT[5]);
+        previousTier = pct;
+      }
+      if (i > 1) expect(resistPctForIndex(i)).toBeGreaterThanOrEqual(resistPctForIndex(i - 1));
+    }
   });
 });
 
@@ -54,13 +87,19 @@ describe('generateBoss difficulty modifier', () => {
     expect(boss.difficultyModifier).toBe(1.1);
   });
 
-  it('scales health/armor/magicResist by the provided modifier, holding the rng seed fixed', () => {
+  it('scales health by the provided modifier, holding the rng seed fixed', () => {
     const baseline = generateBoss(5, createRng(7), 1);
     const harder = generateBoss(5, createRng(7), 1.1);
     // Same seed, same personality/jitter rolls — only the budget differs.
     expect(harder.personality).toBe(baseline.personality);
     expect(harder.health).toBeCloseTo(baseline.health * 1.1, 6);
-    expect(harder.armor).toBeCloseTo(baseline.armor * 1.1, 6);
+  });
+
+  it('leaves armor/magicResist untouched by the modifier — they follow resistPctForIndex, not the health curve', () => {
+    const baseline = generateBoss(5, createRng(7), 1);
+    const harder = generateBoss(5, createRng(7), 1.1);
+    expect(harder.armor).toBeCloseTo(baseline.armor, 10);
+    expect(harder.magicResist).toBeCloseTo(baseline.magicResist, 10);
   });
 
   it('leaves physicalAttack/magicAttack untouched by the modifier — they follow missDamagePctForIndex, not the budget', () => {
@@ -207,7 +246,7 @@ describe('generateBoss', () => {
     }
   });
 
-  const EMPHASIZED_STAT: Record<Exclude<Personality, 'balanced'>, keyof typeof TUNING.BOSS_STAT_SHARE> = {
+  const EMPHASIZED_STAT: Record<Exclude<Personality, 'balanced'>, EmphasizedStat> = {
     tank: 'health',
     armored: 'armor',
     armored3x: 'armor',
@@ -227,7 +266,15 @@ describe('generateBoss', () => {
     arcane5x: 'magicAttack',
   };
 
-  it.each(Object.entries(EMPHASIZED_STAT) as [Exclude<Personality, 'balanced'>, keyof typeof TUNING.BOSS_STAT_SHARE][])(
+  // Armored/warded only diverge from balanced as the index climbs — see the
+  // resist-personality tests below — so they're excluded from the index-1 checks.
+  const RESIST_STATS: EmphasizedStat[] = ['armor', 'magicResist'];
+
+  it.each(
+    (Object.entries(EMPHASIZED_STAT) as [Exclude<Personality, 'balanced'>, EmphasizedStat][]).filter(
+      ([, stat]) => !RESIST_STATS.includes(stat),
+    ),
+  )(
     "personality '%s' makes its emphasized stat '%s' statistically higher than the balanced baseline",
     (personality, stat) => {
       const iterations = 150;
@@ -268,7 +315,7 @@ describe('generateBoss', () => {
     { lower: 'arcane4x', higher: 'arcane5x' },
   ];
 
-  it.each(MULTIPLIER_TIERS)(
+  it.each(MULTIPLIER_TIERS.filter(({ lower }) => !RESIST_STATS.includes(EMPHASIZED_STAT[lower])))(
     "personality '$higher' emphasizes its stat more than '$lower'",
     ({ lower, higher }) => {
       const stat = EMPHASIZED_STAT[lower];
@@ -287,6 +334,73 @@ describe('generateBoss', () => {
       expect(higherTotal / iterations).toBeGreaterThan(lowerTotal / iterations);
     },
   );
+});
+
+describe('generateBoss armor/magicResist by personality', () => {
+  // At BOSS_PERSONALITY_RAMP_END_INDEX every personality has equal weight, so
+  // a personality's forced roll is just the middle of its slot in key order.
+  const keys = Object.keys(TUNING.BOSS_PERSONALITY_WEIGHTS) as Personality[];
+  const index = TUNING.BOSS_PERSONALITY_RAMP_END_INDEX;
+  const bossFor = (personality: Personality, seed: number) => {
+    const roll = (keys.indexOf(personality) + 0.5) / keys.length;
+    let usedFirst = false;
+    const underlying = createRng(seed);
+    const rng: Rng = () => {
+      if (!usedFirst) {
+        usedFirst = true;
+        return roll;
+      }
+      return underlying();
+    };
+    return generateBoss(index, rng, 1);
+  };
+  const reduction = (stat: number) => damageReductionPct(stat);
+
+  it.each([
+    ['armored', 'armor', 2],
+    ['armored3x', 'armor', 3],
+    ['armored4x', 'armor', 4],
+    ['armored5x', 'armor', 5],
+    ['warded', 'magicResist', 2],
+    ['warded3x', 'magicResist', 3],
+    ['warded4x', 'magicResist', 4],
+    ['warded5x', 'magicResist', 5],
+  ] as const)("'%s' reaches its tier's reduction on %s deep in a run, within jitter", (personality, stat, tier) => {
+    for (let seed = 0; seed < 40; seed++) {
+      const boss = bossFor(personality, seed);
+      expect(boss.personality).toBe(personality);
+      expect(Math.abs(reduction(boss[stat]) - TUNING.BOSS_RESIST_TIER_CAP_PCT[tier])).toBeLessThanOrEqual(0.0301);
+    }
+  });
+
+  it('keeps the non-emphasized resist, and brute/arcane/balanced bosses, on the base curve', () => {
+    for (let seed = 0; seed < 40; seed++) {
+      for (const personality of ['balanced', 'brute5x', 'arcane5x', 'tank'] as const) {
+        const boss = bossFor(personality, seed);
+        expect(Math.abs(reduction(boss.armor) - TUNING.BOSS_RESIST_BASE_PCT_END)).toBeLessThanOrEqual(0.0301);
+        expect(Math.abs(reduction(boss.magicResist) - TUNING.BOSS_RESIST_BASE_PCT_END)).toBeLessThanOrEqual(0.0301);
+      }
+      expect(reduction(bossFor('armored5x', seed).magicResist)).toBeLessThan(0.4);
+    }
+  });
+
+  it('never lets jitter push a reduction past the 5x cap or below 0', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const boss = bossFor('armored5x', seed);
+      expect(reduction(boss.armor)).toBeLessThanOrEqual(TUNING.BOSS_RESIST_TIER_CAP_PCT[5] + 1e-9);
+      expect(reduction(boss.magicResist)).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('gives a tank personality more health than a balanced boss', () => {
+    let tankTotal = 0;
+    let balancedTotal = 0;
+    for (let seed = 0; seed < 100; seed++) {
+      tankTotal += bossFor('tank', seed).health;
+      balancedTotal += bossFor('balanced', seed).health;
+    }
+    expect(tankTotal / balancedTotal).toBeCloseTo(TUNING.BOSS_TANK_HEALTH_MULTIPLIER, 1);
+  });
 });
 
 describe('damageReductionPct', () => {

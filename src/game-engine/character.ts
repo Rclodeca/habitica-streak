@@ -31,6 +31,8 @@ export function createCharacter(rng: Rng): Character {
     equippedItemIds: [],
     critChance: TUNING.BASE_CRIT_CHANCE,
     newItemUnlockTiers: assignNewItemUnlockTiers(rng),
+    takenEventIds: [],
+    pendingEventPicks: 0,
     // Already at the post-rebalance baseline (BASE_STATS is already the
     // reduced value) — must be set here, not left undefined, or this fresh
     // character would get double-cut by applyDamagePoolRebalance the next
@@ -66,6 +68,17 @@ export function migrateCharacter(character: Character, rng: Rng): Character {
       : character.starterStats,
     newItemUnlockTiers: character.newItemUnlockTiers ?? assignNewItemUnlockTiers(rng),
   };
+}
+
+/**
+ * Items only exist while equipped: anything owned but not equipped is
+ * discarded (and so returns to the drop pool). Covers saves from before that
+ * rule, and drops still waiting in the in-memory popup queue when the page
+ * was closed. Returns the same object when there is nothing to discard.
+ */
+export function discardUnequippedItems(character: Character): Character {
+  if (character.ownedItemIds.every((id) => character.equippedItemIds.includes(id))) return character;
+  return { ...character, ownedItemIds: character.ownedItemIds.filter((id) => character.equippedItemIds.includes(id)) };
 }
 
 /**

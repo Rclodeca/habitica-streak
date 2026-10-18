@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
+  activeCritBoost,
+  itemDoubleFactor,
+  activeHealBoost,
   activeWoundsEffect,
   dailyPeriodKey,
   damageReductionPct,
@@ -47,7 +50,7 @@ const magicDamage = computed(() => effectiveStat(character.value, 'magicDamage')
 const healing = computed(() => effectiveStat(character.value, 'healing'));
 const trueDamage = computed(() => effectiveStat(character.value, 'trueDamage'));
 const expGain = computed(() => effectiveStat(character.value, 'expGain'));
-const critChance = computed(() => effectiveCritChance(character.value));
+const critChance = computed(() => effectiveCritChance(character.value, currentDayKey.value));
 
 // Item-only stats: no base value exists, they come purely from equipped gear.
 // Armor/MR are flat and show their damage reduction against boss attacks;
@@ -62,6 +65,14 @@ const magicPen = computed(() => Math.min(itemBonusPercent(character.value, 'magi
 
 const currentDayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
 const woundsEffect = computed(() => activeWoundsEffect(character.value, currentDayKey.value));
+const critBoost = computed(() => activeCritBoost(character.value, currentDayKey.value));
+const critBoostDaysLeft = computed(() =>
+  critBoost.value ? critBoost.value.durationDays - daysBetweenDayKeys(critBoost.value.appliedDayKey, currentDayKey.value) : 0,
+);
+const healBoost = computed(() => activeHealBoost(character.value, currentDayKey.value));
+const healBoostDaysLeft = computed(() =>
+  healBoost.value ? healBoost.value.durationDays - daysBetweenDayKeys(healBoost.value.appliedDayKey, currentDayKey.value) : 0,
+);
 const woundsDaysLeft = computed(() =>
   woundsEffect.value ? woundsEffect.value.durationDays - daysBetweenDayKeys(woundsEffect.value.appliedDayKey, currentDayKey.value) : 0,
 );
@@ -103,11 +114,11 @@ const expectedExpGain = computed(
     (1 + itemBonusPercent(character.value, 'expGain') / 100),
 );
 
-// Sized to the character's current level-dependent slot cap (4 below
-// level 10, 6 at 10+), in whatever order they were equipped — empty ones
+// Sized to the character's current slot cap (4, or 6 after the item-slots
+// event), in whatever order they were equipped — empty ones
 // render as blank grid cells rather than being compacted away, so the grid
 // never visually shifts as items are gained/replaced.
-const slotCount = computed(() => maxEquipSlots(character.value.level));
+const slotCount = computed(() => maxEquipSlots(character.value));
 const equippedSlots = computed(() =>
   Array.from({ length: slotCount.value }, (_, i) => {
     const itemId = character.value.equippedItemIds[i];
@@ -146,12 +157,12 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
           v-for="(item, i) in equippedSlots"
           :key="i"
           class="item-slot"
-          :class="{ pinned: pinnedSlot === i, 'right-edge': (i + 1) % gridCols === 0 }"
+          :class="{ pinned: pinnedSlot === i, 'right-edge': (i + 1) % gridCols === 0, enchanted: !!item && itemDoubleFactor(character, item.id) > 1 }"
           @click="item && togglePin(i)"
         >
           <template v-if="item">
             <img class="item-icon" :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
-            <div class="item-tooltip">{{ item.name }} — {{ describeItemBonus(item) }}</div>
+            <div class="item-tooltip">{{ item.name }} — <span class="item-stats">{{ describeItemBonus(item, itemDoubleFactor(character, item.id)) }}</span></div>
           </template>
         </div>
       </div>
@@ -172,6 +183,8 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <span v-if="lifesteal > 0">🩸 {{ lifesteal.toFixed(0) }}%</span>
         <span v-if="armorPen > 0">🗡️ {{ armorPen.toFixed(0) }}%</span>
         <span v-if="magicPen > 0">🌀 {{ magicPen.toFixed(0) }}%</span>
+        <span v-if="critBoost">🎯 +{{ (critBoost.bonus * 100).toFixed(0) }}% crit · {{ critBoostDaysLeft }}d</span>
+        <span v-if="healBoost">🌿 +{{ (healBoost.bonus * 100).toFixed(0) }}% heal · {{ healBoostDaysLeft }}d</span>
         <span v-if="woundsEffect">🩹 {{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
       </p>
     </button>
@@ -253,6 +266,20 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
           <dd>{{ magicPen.toFixed(0) }}%</dd>
         </template>
 
+        <template v-if="critBoost">
+          <dt>🎯 Crit boost</dt>
+          <dd>+{{ (critBoost.bonus * 100).toFixed(0) }}% crit</dd>
+          <dd>{{ critBoostDaysLeft }} day(s) left</dd>
+          <dd></dd>
+        </template>
+
+        <template v-if="healBoost">
+          <dt>🌿 Healing boost</dt>
+          <dd>+{{ (healBoost.bonus * 100).toFixed(0) }}% healing</dd>
+          <dd>{{ healBoostDaysLeft }} day(s) left</dd>
+          <dd></dd>
+        </template>
+
         <template v-if="woundsEffect">
           <dt>🩹 Wounded</dt>
           <dd>{{ (woundsEffect.effectRate * 100).toFixed(0) }}% healing</dd>
@@ -327,6 +354,14 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   background: var(--border);
   border-radius: 6px;
   cursor: pointer;
+}
+
+.item-slot.enchanted {
+  border: 1px solid var(--accent);
+}
+
+.item-slot.enchanted .item-stats {
+  color: var(--accent);
 }
 
 .item-icon {

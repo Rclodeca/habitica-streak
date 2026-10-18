@@ -10,7 +10,7 @@ import { createCharacter, createRng } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
 import { useCharacterStore } from './characterStore';
 
-describe('characterStore equip/unequip', () => {
+describe('characterStore equip/discard', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
   });
@@ -53,40 +53,52 @@ describe('characterStore equip/unequip', () => {
     expect(store.character.equippedItemIds).toHaveLength(4);
   });
 
-  it('allows a 6th item once the character is level 10', () => {
+  it('allows a 6th item once the item-slots event is taken', () => {
     const store = useCharacterStore();
     const owned = ['rusty-blade', 'steel-sword', 'apprentice-wand', 'arcane-staff', 'novices-charm', 'blessed-censer'];
-    store.character = { ...store.character, level: 10, ownedItemIds: owned, equippedItemIds: owned.slice(0, 5) };
+    store.character = { ...store.character, level: 10, ownedItemIds: owned, equippedItemIds: owned.slice(0, 5), takenEventIds: ['item-slots'] };
 
     store.equipItem('blessed-censer');
 
     expect(store.character.equippedItemIds).toHaveLength(6);
   });
 
-  it('still refuses a 5th item below level 10', () => {
+  it('still refuses a 5th item without the item-slots event, even at a high level', () => {
     const store = useCharacterStore();
     const owned = ['rusty-blade', 'steel-sword', 'apprentice-wand', 'arcane-staff', 'novices-charm'];
-    store.character = { ...store.character, level: 9, ownedItemIds: owned, equippedItemIds: owned.slice(0, 4) };
+    store.character = { ...store.character, level: 20, ownedItemIds: owned, equippedItemIds: owned.slice(0, 4) };
 
     store.equipItem('novices-charm');
 
     expect(store.character.equippedItemIds).toHaveLength(4);
   });
 
-  it('unequips a currently equipped item', () => {
+  it('discards an owned item from both owned and equipped', () => {
     const store = useCharacterStore();
-    store.character = { ...store.character, ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'] };
+    store.character = { ...store.character, ownedItemIds: ['rusty-blade', 'steel-sword'], equippedItemIds: ['rusty-blade'] };
 
-    store.unequipItem('rusty-blade');
+    store.discardItem('rusty-blade');
 
     expect(store.character.equippedItemIds).toEqual([]);
+    expect(store.character.ownedItemIds).toEqual(['steel-sword']);
   });
 
-  it('does nothing when unequipping an item that is not currently equipped', () => {
+  it('clears the doubled item when it is discarded, but not when another item is', () => {
+    const store = useCharacterStore();
+    store.character = { ...store.character, ownedItemIds: ['rusty-blade', 'steel-sword'], equippedItemIds: ['rusty-blade', 'steel-sword'], doubledItemId: 'rusty-blade' };
+
+    store.discardItem('steel-sword');
+    expect(store.character.doubledItemId).toBe('rusty-blade');
+
+    store.discardItem('rusty-blade');
+    expect(store.character.doubledItemId).toBeUndefined();
+  });
+
+  it('does nothing when discarding an item that is not owned', () => {
     const store = useCharacterStore();
     const before = store.character;
 
-    store.unequipItem('rusty-blade');
+    store.discardItem('rusty-blade');
 
     expect(store.character).toEqual(before);
   });

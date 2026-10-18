@@ -4,7 +4,7 @@ import { useQuestMissGate } from '../../composables/useQuestMissGate';
 import Modal from '../ui/Modal.vue';
 
 const { misses, isOverridden, toggleOverride, acknowledge } = useQuestMissGate();
-// This popup competes with DeathScreen/MissedSkillsPopup/QuestOfferModal
+// This popup competes with DeathScreen/MissedSkillsPopup/EventChoiceModal
 // for the same full-screen Teleport-to-body stacking context — see
 // useModalPriority for why a shared arbiter is needed instead of a
 // pairwise gate per modal.

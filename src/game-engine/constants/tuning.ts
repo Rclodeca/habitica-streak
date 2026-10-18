@@ -41,42 +41,49 @@ export const TUNING = {
   // Weeklies take much longer to stack a streak (once/week vs. every day),
   // so each streak count is worth 3x as much as a daily's.
   WEEKLY_STREAK_MULTIPLIER_PER_COUNT: 0.30,
-  // Lowered 2650 -> 1800, alongside retaining habit streaks across death
-  // (see resolvePlayerDeathIfDead) and MISS_DAMAGE_FACTOR below, as a
-  // coordinated pacing pass — tuned via a throwaway per-life simulation
-  // (spawn-to-death, not a fixed day window) across completion-rate
-  // archetypes. The old 2650/1.30 pair cleared ~1 boss/day flat and gave
-  // far too little spread between archetypes (~3 to ~8).
-  BASE_BOSS_POWER: 1800,
-  // BOSS_GROWTH_RATE bumped 1.16 -> 1.205 in a follow-up pass (bad/balanced
-  // were already on target; only the high-completion tiers needed pulling
-  // back in) once two more archetypes (good+ 80-90%, amazing 80-100%, extra
-  // amazing 90-100%) were added, targeting a rough avg-boss-at-death curve
-  // of bad 3 / balanced 6 / good 9 / good+ 12 / amazing 15 / extra amazing
-  // 20 — approximate by design, not meant to hit exactly. 1.16 alone gave
-  // too little separation between the top two tiers (~24 vs ~20).
-  BOSS_GROWTH_RATE: 1.205,
+  // Boss health at index 1, and its per-index exponential growth. Armor and
+  // magicResist no longer draw from a shared power budget (a fixed RESIST_K
+  // made `resist / (resist + K)` saturate past ~80% by boss 20 for every
+  // boss regardless of personality) — they're authored directly as damage
+  // reduction percents below, so health grows faster to keep effective HP
+  // (health / (1 - reduction)) close to the old curve through boss ~20.
+  BASE_BOSS_HEALTH: 650,
+  BOSS_HEALTH_GROWTH_RATE: 1.285,
+  // Tank personality's health multiplier over a balanced boss.
+  BOSS_TANK_HEALTH_MULTIPLIER: 1.5,
+  // Non-emphasized armor/magicResist damage reduction: a straight line from
+  // START at boss 1 to END at RAMP_END_INDEX, flat afterward. Armored/warded
+  // bosses ramp from this same line toward their tier cap over the same
+  // index range (see resistPctForIndex in boss.ts), so tanky bosses look
+  // like everyone else early and only diverge deep into a run.
+  BOSS_RESIST_BASE_PCT_START: 0.1,
+  BOSS_RESIST_BASE_PCT_END: 0.35,
+  BOSS_RESIST_RAMP_END_INDEX: 30,
+  // Reduction an armored/warded boss reaches at RAMP_END_INDEX, keyed by the
+  // personality's multiplier tier (2x/3x/4x/5x).
+  BOSS_RESIST_TIER_CAP_PCT: { 2: 0.55, 3: 0.7, 4: 0.82, 5: 0.9 } as Record<number, number>,
   // Each run's bosses are scaled by a hidden ±10% multiplier, rolled once
   // per run (see rollRunDifficultyModifier) and never shown in the UI, so
   // some runs are quietly a bit tougher or easier throughout than the
   // tuned baseline above — replay variety without the player being able to
   // tell how hard their current run is stacked to be.
   RUN_DIFFICULTY_VARIANCE_PCT: 0.1,
-  BOSS_STAT_SHARE: { health: 0.4, physicalAttack: 0.2, magicAttack: 0.2, armor: 0.1, magicResist: 0.1 }, // sums to 1
-  RESIST_K: 1500, // scaled with BASE_BOSS_POWER so early-game resist % is unchanged (~14% at boss 1)
+  // Converts a damage reduction percent to the armor/magicResist stat shown
+  // and fed through damageReductionPct: stat = K * r / (1 - r).
+  RESIST_K: 1500,
   // 40 -> 33 (40 / 1.2, rounded down): offsets the new quest-completion EXP
   // income (see quests.ts/questExpReward) — assuming every offered quest is
   // accepted and completed on time (the generous upper bound) and an
   // average difficulty pick of "medium", expected extra EXP per boss kill is
-  // QUEST_DROP_CHANCE * QUEST_EXP_DIFFICULTY_PCT.medium = 0.4 * 0.5 = 20% on
+  // 0.4 (the quest drop chance at the time; quests are now an event pick) * 0.5 (medium) = 20% on
   // top of this reward — dividing by 1.2 holds overall leveling pace roughly
   // where it was. Real-world accept/completion rates will be below 100%, so
   // this cut is deliberately conservative (a slight net buff once quests
   // ship), not an exact wash — same "approximate by design" philosophy as
   // every other pass in this file. BOSS_EXP_GROWTH_RATE is untouched.
   BASE_BOSS_EXP: 33,
-  // Lowered 1.18 -> 1.12 as part of the same pacing pass as BASE_BOSS_POWER
-  // above: this MUST stay below BOSS_GROWTH_RATE. If EXP income compounds
+  // Lowered 1.18 -> 1.12 as part of the same pacing pass as the old boss power
+  // curve: this MUST stay below BOSS_HEALTH_GROWTH_RATE. If EXP income compounds
   // faster than boss difficulty, an extremely consistent player who chains
   // same-day kills for long enough can drive boss index — and therefore a
   // single kill's EXP reward — arbitrarily high, since the two curves race
@@ -84,7 +91,7 @@ export const TUNING = {
   // hard-caps levels-gained-per-grant as defense in depth, but keeping this
   // rate strictly lower is what actually prevents the runaway in practice.)
   BOSS_EXP_GROWTH_RATE: 1.12,
-  // Lowered 0.3 -> 0.17, then -> 0.15 in the BOSS_GROWTH_RATE follow-up pass
+  // Lowered 0.3 -> 0.17, then -> 0.15 in a boss-growth follow-up pass
   // above: a low-completion ("bad") player accumulates far more misses than
   // anyone else, so this specifically stretches their survivable run length
   // without meaningfully changing a high-completion player's pace (they
@@ -93,7 +100,7 @@ export const TUNING = {
   MISS_DAMAGE_FACTOR: 0.15,
   // Governs physicalAttack/magicAttack — the stats that hurt the player on
   // a missed habit — via an S-curve (logistic) over boss index instead of
-  // the shared power budget every other boss stat uses: see
+  // the unbounded exponential boss health uses: see
   // missDamagePctForIndex in boss.ts. It starts small, rises through the
   // two checkpoints below, and plateaus near this ceiling % of the
   // player's BASE (pre-item) max health afterward, instead of growing
@@ -119,6 +126,21 @@ export const TUNING = {
   // Unconditional per-level heal on top of any lifesteal-item bonus (see
   // addExpAndResolveLevelUps) — applied once per level gained in a grant.
   LEVEL_UP_HEAL_PCT: 20,
+  // The Heal event restores this % of max health.
+  EVENT_HEAL_PCT: 10,
+  // The Crit boost event adds CRIT_BOOST_BONUS to crit chance (still subject
+  // to CRIT_CHANCE_CAP) for CRIT_BOOST_DAYS days, counting the day it's picked.
+  CRIT_BOOST_BONUS: 0.2,
+  CRIT_BOOST_DAYS: 3,
+  // The Healing boost event multiplies healing by (1 + HEAL_BOOST_BONUS) for
+  // HEAL_BOOST_DAYS days, counting the day it's picked. Stacks multiplicatively
+  // with Wounds (see healingMultiplier in combat.ts).
+  HEAL_BOOST_BONUS: 0.2,
+  HEAL_BOOST_DAYS: 3,
+  // The Double item event (from DOUBLE_ITEM_MIN_LEVEL) multiplies every bonus
+  // of one equipped item by DOUBLED_ITEM_MULTIPLIER until that item is discarded.
+  DOUBLE_ITEM_MIN_LEVEL: 10,
+  DOUBLED_ITEM_MULTIPLIER: 2,
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
   CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed
   CRIT_MULTIPLIER: 2, // crit hits deal 2x damage
@@ -128,10 +150,6 @@ export const TUNING = {
   // line in the stats modal instead of hiding it inside the base number.
   WEEKLY_BONUS_MULTIPLIER: 2,
   WEEKLY_MISS_MULTIPLIER: 2, // a missed/failed weekly deals 2x damage to the player
-  // Flat chance a boss kill offers a quest, independent of boss index —
-  // quests are a pacing/flavor mechanic, not a progression-scaling reward
-  // like items, so no growth curve to tune. See quests.ts/rollQuestOffer.
-  QUEST_DROP_CHANCE: 0.4,
   // questExpReward scales a completed quest's bonus EXP by this percent of
   // the EXP reward of the boss that offered it (quest.bossIndexAtOffer) —
   // see quests.ts. Inherits BOSS_EXP_GROWTH_RATE's existing curve for free
@@ -220,21 +238,22 @@ export const TUNING = {
     [0.4, 0.6],
     [0.3, 0.7],
   ],
-  // Special: at SPECIAL_LEVEL, a random daily good habit permanently deals
-  // SPECIAL_MULTIPLIER damage on its first (non-Overdrive) use each period.
+  // Special: from SPECIAL_LEVEL the Special event can be picked, making a
+  // random daily good habit permanently deal SPECIAL_MULTIPLIER damage on
+  // its first (non-Overdrive) use each period.
   SPECIAL_LEVEL: 3,
   SPECIAL_MULTIPLIER: 1.5,
-  // Ult: at ULT_LEVEL, a random weekly good habit permanently deals
-  // ULT_MULTIPLIER damage on its first (non-Overdrive) use each period.
+  // Ult: from ULT_LEVEL the Ult event can be picked, making a random weekly
+  // good habit permanently deal ULT_MULTIPLIER damage on its first
+  // (non-Overdrive) use each period.
   ULT_LEVEL: 6,
   ULT_MULTIPLIER: 2.5,
-  // Overdrive: each level gained independently rolls this chance to grant a
-  // random good habit (any period) the ability to be activated
-  // OVERDRIVE_MAX_EXTRA_USES extra times per period, each at
-  // OVERDRIVE_DAMAGE_FACTOR damage (and never with the Special/Ult bonus).
-  // Permanent and stacking — a habit that already has it is a valid, no-op
-  // re-roll, so over a long run many habits can end up Overdrive-capable.
-  OVERDRIVE_CHANCE_PER_LEVEL: 0.6,
+  // Overdrive: the Overdrive event grants a random good habit (any period)
+  // the ability to be activated OVERDRIVE_MAX_EXTRA_USES extra times per
+  // period, each at OVERDRIVE_DAMAGE_FACTOR damage (and never with the
+  // Special/Ult bonus). Permanent and stacking — a habit that already has it
+  // is a valid, no-op pick, so over a long run many habits can end up
+  // Overdrive-capable.
   OVERDRIVE_MAX_EXTRA_USES: 2,
   OVERDRIVE_DAMAGE_FACTOR: 0.5,
 } as const;

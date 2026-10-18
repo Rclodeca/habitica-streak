@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { describeItemBonus, ITEM_CATALOG, maxEquipSlots } from '../../game-engine';
+import { describeItemBonus, ITEM_CATALOG, itemDoubleFactor } from '../../game-engine';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
-import { useSlotUnlockNotice } from '../../composables/useSlotUnlockNotice';
 import { useCharacterStore } from '../../store/characterStore';
+import ItemHero from './ItemHero.vue';
 import Modal from './Modal.vue';
 
 const { current, dismiss, replace } = useItemDropQueue();
 const characterStore = useCharacterStore();
-const { isPending: slotNoticePending } = useSlotUnlockNotice();
+const baseUrl = import.meta.env.BASE_URL;
 
 const equippedItems = computed(() =>
   ITEM_CATALOG.filter((item) => characterStore.character.equippedItemIds.includes(item.id)),
 );
-
-const slotCount = computed(() => maxEquipSlots(characterStore.character.level));
 
 // `current` can already be sitting in `equippedItemIds` if it auto-equipped
 // into the last open slot (see `useItemDropQueue.processFront` — an
@@ -29,43 +27,59 @@ const isCurrentEquipped = computed(
 
 <template>
   <Modal
-    :model-value="current !== null && !slotNoticePending"
+    :model-value="current !== null"
     :dismissible="isCurrentEquipped"
     title="Item found!"
+    max-width="460px"
     @update:model-value="dismiss"
   >
     <template v-if="current">
-      <p class="found-item">{{ current.name }} — {{ describeItemBonus(current) }}</p>
+      <ItemHero :item="current" />
 
       <template v-if="!isCurrentEquipped">
-        <p class="replace-prompt">Your {{ slotCount }} slots are full — choose one to replace, or drop the new item:</p>
         <ul class="replace-list">
-          <li v-for="item in equippedItems" :key="item.id" class="replace-row">
-            <span>{{ item.name }} ({{ describeItemBonus(item) }})</span>
-            <button type="button" @click="replace(item.id)">Replace</button>
+          <li v-for="item in equippedItems" :key="item.id" class="replace-row" :class="`rarity-${item.rarity}`">
+            <img class="row-icon" :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
+            <div class="row-text">
+              <strong class="row-name">{{ item.name }}</strong>
+              <span class="row-bonus" :class="{ enchanted: itemDoubleFactor(characterStore.character, item.id) > 1 }">
+                {{ describeItemBonus(item, itemDoubleFactor(characterStore.character, item.id)) }}
+              </span>
+            </div>
+            <button type="button" class="replace-button" @click="replace(item.id)">Replace</button>
           </li>
         </ul>
         <button type="button" class="drop-button" @click="dismiss">Drop {{ current.name }}</button>
       </template>
 
-      <button v-else type="button" class="dismiss-button" @click="dismiss">Nice!</button>
+      <template v-else>
+        <p class="equipped-note">✓ Equipped</p>
+        <button type="button" class="dismiss-button" @click="dismiss">Nice!</button>
+      </template>
     </template>
   </Modal>
 </template>
 
 <style scoped>
-.found-item {
-  font-weight: 600;
-  margin: 0 0 0.75rem;
+.rarity-common {
+  --rarity: #9ca3af;
 }
 
-.replace-prompt {
-  margin: 0 0 0.5rem;
+.rarity-uncommon {
+  --rarity: #34d399;
+}
+
+.rarity-rare {
+  --rarity: #60a5fa;
+}
+
+.rarity-epic {
+  --rarity: #c084fc;
 }
 
 .replace-list {
   list-style: none;
-  margin: 0;
+  margin: 0.75rem 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -75,17 +89,67 @@ const isCurrentEquipped = computed(
 .replace-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--rarity);
+  border-radius: 8px;
+}
+
+.row-icon {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  transform: scale(1.4);
+}
+
+.row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.row-name {
+  color: var(--text-h);
+  font-size: 0.9rem;
+}
+
+.row-bonus {
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.replace-button {
+  padding: 0.35em 0.9em;
+  font-size: 0.85rem;
+}
+
+.row-bonus.enchanted {
+  color: var(--accent);
+}
+
+.equipped-note {
+  margin: 0.75rem 0 0;
+  text-align: center;
+  color: var(--heal-color);
+  font-size: 0.9rem;
 }
 
 .dismiss-button {
   display: block;
+  width: 100%;
+  margin-top: 0.5rem;
 }
 
 .drop-button {
   display: block;
+  width: 100%;
   margin-top: 0.75rem;
   background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-h);
 }
 </style>

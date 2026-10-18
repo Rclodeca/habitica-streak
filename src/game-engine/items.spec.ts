@@ -4,6 +4,7 @@ import {
   assignNewItemUnlockTiers,
   bodySpriteFor,
   describeItemBonus,
+  describeItemBonusParts,
   ITEM_CATALOG,
   itemBonusPercent,
   itemFlatBonus,
@@ -362,13 +363,31 @@ describe('bodySpriteFor', () => {
 });
 
 describe('maxEquipSlots', () => {
-  it('is 4 below level 10', () => {
-    expect(maxEquipSlots(1)).toBe(4);
-    expect(maxEquipSlots(9)).toBe(4);
+  it('is 4 until the item-slots event is taken', () => {
+    expect(maxEquipSlots({})).toBe(4);
+    expect(maxEquipSlots({ takenEventIds: ['special'] })).toBe(4);
   });
 
-  it('is 6 at level 10 and above', () => {
-    expect(maxEquipSlots(10)).toBe(6);
-    expect(maxEquipSlots(20)).toBe(6);
+  it('is 6 once the item-slots event is taken', () => {
+    expect(maxEquipSlots({ takenEventIds: ['item-slots'] })).toBe(6);
+  });
+});
+
+describe('describeItemBonusParts', () => {
+  it('pairs each bonus text with a plain-English stat label, and matches describeItemBonus', () => {
+    const item = ITEM_CATALOG.find((i) => i.id === 'battlemage-gauntlets');
+    if (!item) throw new Error('missing fixture item');
+    const parts = describeItemBonusParts(item);
+    expect(parts).toEqual([
+      { text: '⚔️ +4%', label: 'Physical damage' },
+      { text: '🔮 +4%', label: 'Magic damage' },
+    ]);
+    expect(describeItemBonus(item)).toBe(parts.map((p) => p.text).join(', '));
+  });
+
+  it('has no parts for a consumable', () => {
+    const feather = ITEM_CATALOG.find((i) => i.type === 'consumable');
+    if (!feather) throw new Error('missing fixture item');
+    expect(describeItemBonusParts(feather)).toEqual([]);
   });
 });

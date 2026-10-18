@@ -9,7 +9,6 @@ import {
 import type { DamageType, Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
-import { useQuestOfferQueue } from '../../composables/useQuestOfferQueue';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
@@ -23,7 +22,6 @@ const habitStore = useHabitStore();
 const debugClockStore = useDebugClockStore();
 const { activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
-const { enqueueOffer } = useQuestOfferQueue();
 
 const breakdown = computed(() => {
   const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.period);
@@ -59,7 +57,6 @@ const canOverdrive = computed(() => isCompletedThisPeriod.value && overdriveRema
 function onOverdrive() {
   const result = activateOverdrive(props.habit.id);
   if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
-  if (result.questOffered) enqueueOffer(result.bossIndexAtOffer);
 }
 
 // Two-tap confirm: the first click just reveals the "really remove?" state,
