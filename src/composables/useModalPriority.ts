@@ -10,12 +10,13 @@
 // buttons (confirmed via manual testing — see the quests design spec's
 // review notes). This centralizes the precedence order so it's declared
 // once instead of re-derived pairwise per modal:
-// death > item drop > habit miss > quest miss > event choice.
+// death > item drop > habit miss > quest miss > quest complete > event choice.
 
 import { computed } from 'vue';
 import { useDeathScreen } from './useDeathScreen';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
+import { useQuestCompleteQueue } from './useQuestCompleteQueue';
 import { useQuestMissGate } from './useQuestMissGate';
 import { useCharacterStore } from '../store/characterStore';
 import { useEventChoice } from './useEventChoice';
@@ -27,6 +28,7 @@ export function useModalPriority() {
   const { hasPending: questMissPending } = useQuestMissGate();
   const characterStore = useCharacterStore();
   const { revealed } = useEventChoice();
+  const { current: questCompleteCurrent } = useQuestCompleteQueue();
 
   /** True only when a quest miss is pending and nothing higher-priority (death, habit miss) is. */
   const questMissVisible = computed(() => questMissPending.value && !isDead.value && !habitMissPending.value);
@@ -38,8 +40,14 @@ export function useModalPriority() {
       !isDead.value &&
       itemDropCurrent.value === null &&
       !habitMissPending.value &&
-      !questMissPending.value,
+      !questMissPending.value &&
+      questCompleteCurrent.value === null,
   );
 
-  return { questMissVisible, eventChoiceVisible };
+  /** True while a quest-completion celebration is queued — it shows before any level-up pick its EXP triggered. */
+  const questCompleteVisible = computed(
+    () => questCompleteCurrent.value !== null && !isDead.value && !habitMissPending.value && !questMissPending.value,
+  );
+
+  return { questMissVisible, eventChoiceVisible, questCompleteVisible };
 }

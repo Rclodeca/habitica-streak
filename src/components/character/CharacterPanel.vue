@@ -9,6 +9,7 @@ import {
   damageReductionPct,
   daysBetweenDayKeys,
   describeItemBonus,
+  describeItemBonusParts,
   effectiveCritChance,
   effectiveStat,
   expectedMediumDailyDamage,
@@ -29,11 +30,10 @@ import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
 import PlayerSprite from './PlayerSprite.vue';
 
-// A condensed, always-visible emoji stat line (Effective numbers only — what
-// a medium daily of that type deals right now, mirroring the boss's own
-// condensed row) sits next to the title; the full Base/Buffed/Effective
-// breakdown lives in a modal behind the same tap. See BossPanel.vue for the
-// same pattern.
+// A condensed, always-visible emoji stat line (Buffed numbers) sits next to
+// the title; the Base/Buffed breakdown plus what a new medium daily would
+// deal lives in a modal behind the same tap. See BossPanel.vue for the same
+// pattern.
 const showDetails = ref(false);
 
 const characterStore = useCharacterStore();
@@ -77,8 +77,8 @@ const woundsDaysLeft = computed(() =>
   woundsEffect.value ? woundsEffect.value.durationDays - daysBetweenDayKeys(woundsEffect.value.appliedDayKey, currentDayKey.value) : 0,
 );
 
-// Pre-item-bonus values, shown alongside the effective (post-item) ones in
-// the details modal so the player can see how much their gear is helping.
+// Pre-item-bonus values, shown alongside the buffed (post-item) ones in the
+// details modal so the player can see how much their gear is helping.
 const baseHealth = computed(() => statAtLevel(character.value.starterStats.health, character.value.level));
 const basePhysicalDamage = computed(() => statAtLevel(character.value.starterStats.physicalDamage, character.value.level));
 const baseMagicDamage = computed(() => statAtLevel(character.value.starterStats.magicDamage, character.value.level));
@@ -87,12 +87,14 @@ const baseTrueDamage = computed(() => statAtLevel(character.value.starterStats.t
 const baseExpGain = computed(() => statAtLevel(character.value.starterStats.expGain, character.value.level));
 const baseCritChance = computed(() => character.value.critChance);
 
-// What a medium DAILY habit of each damage type deals right now — the
-// "Effective" column, analogous to a boss's own Effective attack stat (see
-// BossPanel.vue), computed against this character's real daily habits of
-// that type only — the daily pool and weekly pool are separate (see
-// habitStore.habitsOfType), so a weekly habit of the same damage type never
-// factors into this number.
+function gain(buffed: number, base: number, scale = 1) {
+  return Math.round((buffed - base) * scale);
+}
+
+// What a new medium DAILY habit of each type would deal right now, computed
+// against this character's real daily habits of that type only — the daily
+// pool and weekly pool are separate (see habitStore.habitsOfType), so a
+// weekly habit of the same type never factors into this number.
 const expectedPhysicalDamage = computed(() =>
   expectedMediumDailyDamage(character.value, 'physical', habitStore.habitsOfType('physical', 'daily')),
 );
@@ -142,6 +144,65 @@ function unpinOnOutsideTap(event: Event) {
 onMounted(() => document.addEventListener('click', unpinOnOutsideTap));
 onBeforeUnmount(() => document.removeEventListener('click', unpinOnOutsideTap));
 
+interface StatTile {
+  icon: string;
+  label: string;
+  value: string;
+  gain?: string;
+  note?: string;
+}
+
+function tile(icon: string, label: string, value: number, base?: number): StatTile {
+  const gained = base === undefined ? 0 : gain(value, base);
+  return { icon, label, value: value.toFixed(0), gain: gained > 0 ? `+${gained}` : undefined };
+}
+
+const statTiles = computed<StatTile[]>(() => {
+  const crit = gain(critChance.value, baseCritChance.value, 100);
+  return [
+    tile('❤️', 'Max health', maxHealth.value, baseHealth.value),
+    tile('⚔️', 'Physical', physicalDamage.value, basePhysicalDamage.value),
+    tile('🔮', 'Magic', magicDamage.value, baseMagicDamage.value),
+    tile('⚡', 'True', trueDamage.value, baseTrueDamage.value),
+    tile('💚', 'Healing', healing.value, baseHealing.value),
+    tile('✨', 'EXP gain', expGain.value, baseExpGain.value),
+    {
+      icon: '💥',
+      label: 'Crit chance',
+      value: `${(critChance.value * 100).toFixed(0)}%`,
+      gain: crit > 0 ? `+${crit}%` : undefined,
+    },
+    ...(armor.value > 0
+      ? [{ icon: '🛡️', label: 'Armor', value: armor.value.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` }]
+      : []),
+    ...(magicResist.value > 0
+      ? [{ icon: '🔰', label: 'Magic resist', value: magicResist.value.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` }]
+      : []),
+    ...(lifesteal.value > 0 ? [{ icon: '🩸', label: 'Lifesteal', value: `${lifesteal.value.toFixed(0)}%` }] : []),
+    ...(armorPen.value > 0 ? [{ icon: '🗡️', label: 'Armor pen', value: `${armorPen.value.toFixed(0)}%` }] : []),
+    ...(magicPen.value > 0 ? [{ icon: '🌀', label: 'Magic pen', value: `${magicPen.value.toFixed(0)}%` }] : []),
+  ];
+});
+
+const activeEffects = computed(() => {
+  const effects: { icon: string; text: string; days: number; tone: 'boon' | 'bane' }[] = [];
+  if (critBoost.value) effects.push({ icon: '🎯', text: `+${(critBoost.value.bonus * 100).toFixed(0)}% crit`, days: critBoostDaysLeft.value, tone: 'boon' });
+  if (healBoost.value) effects.push({ icon: '🌿', text: `+${(healBoost.value.bonus * 100).toFixed(0)}% heal`, days: healBoostDaysLeft.value, tone: 'boon' });
+  if (woundsEffect.value) effects.push({ icon: '🩹', text: `Wounded · ${(woundsEffect.value.effectRate * 100).toFixed(0)}% heal`, days: woundsDaysLeft.value, tone: 'bane' });
+  return effects;
+});
+
+const newHabitTiles = computed(() => [
+  { icon: '⚔️', label: 'Physical', value: expectedPhysicalDamage.value, color: '#ef4444' },
+  { icon: '🔮', label: 'Magic', value: expectedMagicDamage.value, color: '#a855f7' },
+  { icon: '💚', label: 'Healing', value: expectedHealing.value, color: '#22c55e' },
+  { icon: '⚡', label: 'True', value: expectedTrueDamage.value, color: '#f9fafb' },
+  { icon: '✨', label: 'EXP', value: expectedExpGain.value, color: '#60a5fa' },
+]);
+
+const equippedItems = computed(() => equippedSlots.value.flatMap((item) => (item ? [item] : [])));
+const emptySlotCount = computed(() => slotCount.value - equippedItems.value.length);
+
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
 </script>
 
@@ -173,10 +234,10 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
       <ExpBar :current="character.exp" :max="expNeeded" />
       <p class="stat-summary">
-        <span>⚔️ {{ expectedPhysicalDamage.toFixed(0) }}</span>
-        <span>🔮 {{ expectedMagicDamage.toFixed(0) }}</span>
-        <span>💚 {{ expectedHealing.toFixed(0) }}</span>
-        <span>⚡ {{ expectedTrueDamage.toFixed(0) }}</span>
+        <span>⚔️ {{ physicalDamage.toFixed(0) }}</span>
+        <span>🔮 {{ magicDamage.toFixed(0) }}</span>
+        <span>💚 {{ healing.toFixed(0) }}</span>
+        <span>⚡ {{ trueDamage.toFixed(0) }}</span>
         <span>💥 {{ (critChance * 100).toFixed(0) }}%</span>
         <span v-if="armor > 0">🛡️ {{ armor.toFixed(0) }}</span>
         <span v-if="magicResist > 0">🔰 {{ magicResist.toFixed(0) }}</span>
@@ -189,109 +250,78 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
       </p>
     </button>
 
-    <Modal v-model="showDetails" title="Character details">
-      <dl class="stat-list">
-        <dt></dt>
-        <dd class="col-label">Base</dd>
-        <dd class="col-label">Buffed</dd>
-        <dd class="col-label">Effective</dd>
+    <Modal v-model="showDetails" title="Character" max-width="520px">
+      <div class="hero">
+        <div class="hero-sprite">
+          <PlayerSprite :character="character" />
+        </div>
+        <div class="hero-info">
+          <span class="hero-level">Level {{ character.level }}</span>
+          <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
+          <ExpBar :current="character.exp" :max="expNeeded" />
+        </div>
+      </div>
 
-        <dt>❤️ Max health</dt>
-        <dd>{{ baseHealth.toFixed(0) }}</dd>
-        <dd>+{{ (maxHealth - baseHealth).toFixed(0) }}</dd>
-        <dd>{{ maxHealth.toFixed(0) }}</dd>
+      <div v-if="activeEffects.length" class="effects">
+        <span v-for="effect in activeEffects" :key="effect.text" class="effect" :class="effect.tone">
+          {{ effect.icon }} {{ effect.text }} · {{ effect.days }}d
+        </span>
+      </div>
 
-        <dt>⚔️ Physical damage</dt>
-        <dd>{{ basePhysicalDamage.toFixed(0) }}</dd>
-        <dd>+{{ (physicalDamage - basePhysicalDamage).toFixed(0) }}</dd>
-        <dd>{{ expectedPhysicalDamage.toFixed(0) }}</dd>
+      <section class="stat-group">
+        <h4 class="group-label">Equipment</h4>
+        <ul class="gear-list">
+          <li
+            v-for="item in equippedItems"
+            :key="item.id"
+            class="gear-row"
+            :class="[`rarity-${item.rarity}`, { enchanted: itemDoubleFactor(character, item.id) > 1 }]"
+          >
+            <span class="gear-icon">
+              <img :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
+            </span>
+            <div class="gear-text">
+              <span class="gear-name">
+                {{ item.name }}
+                <span class="gear-rarity">{{ item.rarity }}</span>
+                <span v-if="itemDoubleFactor(character, item.id) > 1" class="gear-enchanted">Enchanted</span>
+              </span>
+              <span v-if="item.type === 'consumable'" class="gear-bonus">{{ describeItemBonus(item) }}</span>
+              <span v-else class="gear-bonuses">
+                <span v-for="part in describeItemBonusParts(item, itemDoubleFactor(character, item.id))" :key="part.text" class="gear-bonus">
+                  {{ part.text }} <span class="gear-bonus-label">{{ part.label }}</span>
+                </span>
+              </span>
+            </div>
+          </li>
+          <li v-for="n in emptySlotCount" :key="`empty-${n}`" class="gear-row empty">Empty slot</li>
+        </ul>
+      </section>
 
-        <dt>🔮 Magic damage</dt>
-        <dd>{{ baseMagicDamage.toFixed(0) }}</dd>
-        <dd>+{{ (magicDamage - baseMagicDamage).toFixed(0) }}</dd>
-        <dd>{{ expectedMagicDamage.toFixed(0) }}</dd>
+      <section class="stat-group">
+        <h4 class="group-label">Stats</h4>
+        <div class="tiles">
+          <div v-for="stat in statTiles" :key="stat.label" class="stat-tile">
+            <span class="tile-label">{{ stat.icon }} {{ stat.label }}</span>
+            <span class="tile-value">
+              {{ stat.value }}
+              <span v-if="stat.gain" class="tile-gain">{{ stat.gain }}</span>
+            </span>
+            <span v-if="stat.note" class="tile-note">{{ stat.note }}</span>
+          </div>
+        </div>
+      </section>
 
-        <dt>💚 Healing</dt>
-        <dd>{{ baseHealing.toFixed(0) }}</dd>
-        <dd>+{{ (healing - baseHealing).toFixed(0) }}</dd>
-        <dd>{{ expectedHealing.toFixed(0) }}</dd>
-
-        <dt>⚡ True damage</dt>
-        <dd>{{ baseTrueDamage.toFixed(0) }}</dd>
-        <dd>+{{ (trueDamage - baseTrueDamage).toFixed(0) }}</dd>
-        <dd>{{ expectedTrueDamage.toFixed(0) }}</dd>
-
-        <dt>✨ EXP gain</dt>
-        <dd>{{ baseExpGain.toFixed(0) }}</dd>
-        <dd>+{{ (expGain - baseExpGain).toFixed(0) }}</dd>
-        <dd>{{ expectedExpGain.toFixed(0) }}</dd>
-
-        <dt>💥 Crit chance</dt>
-        <dd>{{ (baseCritChance * 100).toFixed(0) }}%</dd>
-        <dd>+{{ ((critChance - baseCritChance) * 100).toFixed(0) }}%</dd>
-        <dd>{{ (critChance * 100).toFixed(0) }}%</dd>
-
-        <template v-if="armor > 0">
-          <dt>🛡️ Armor</dt>
-          <dd>0</dd>
-          <dd>+{{ armor.toFixed(0) }}</dd>
-          <dd>{{ armorReduction.toFixed(1) }}% reduction</dd>
-        </template>
-
-        <template v-if="magicResist > 0">
-          <dt>🔰 Magic resist</dt>
-          <dd>0</dd>
-          <dd>+{{ magicResist.toFixed(0) }}</dd>
-          <dd>{{ magicResistReduction.toFixed(1) }}% reduction</dd>
-        </template>
-
-        <template v-if="lifesteal > 0">
-          <dt>🩸 Lifesteal</dt>
-          <dd>0%</dd>
-          <dd>+{{ lifesteal.toFixed(0) }}%</dd>
-          <dd>{{ lifesteal.toFixed(0) }}%</dd>
-        </template>
-
-        <template v-if="armorPen > 0">
-          <dt>🗡️ Armor pen</dt>
-          <dd>0%</dd>
-          <dd>+{{ armorPen.toFixed(0) }}%</dd>
-          <dd>{{ armorPen.toFixed(0) }}%</dd>
-        </template>
-
-        <template v-if="magicPen > 0">
-          <dt>🌀 Magic pen</dt>
-          <dd>0%</dd>
-          <dd>+{{ magicPen.toFixed(0) }}%</dd>
-          <dd>{{ magicPen.toFixed(0) }}%</dd>
-        </template>
-
-        <template v-if="critBoost">
-          <dt>🎯 Crit boost</dt>
-          <dd>+{{ (critBoost.bonus * 100).toFixed(0) }}% crit</dd>
-          <dd>{{ critBoostDaysLeft }} day(s) left</dd>
-          <dd></dd>
-        </template>
-
-        <template v-if="healBoost">
-          <dt>🌿 Healing boost</dt>
-          <dd>+{{ (healBoost.bonus * 100).toFixed(0) }}% healing</dd>
-          <dd>{{ healBoostDaysLeft }} day(s) left</dd>
-          <dd></dd>
-        </template>
-
-        <template v-if="woundsEffect">
-          <dt>🩹 Wounded</dt>
-          <dd>{{ (woundsEffect.effectRate * 100).toFixed(0) }}% healing</dd>
-          <dd>{{ woundsDaysLeft }} day(s) left</dd>
-          <dd></dd>
-        </template>
-      </dl>
-      <p class="stat-note">
-        Effective: what a brand-new medium daily habit of that type would deal right now, given your current habits
-        already sharing that pool — no crit, streak, or Special/Ult bonus. Adding more habits of the same type
-        dilutes this number.
-      </p>
+      <section class="stat-group">
+        <h4 class="group-label">A new medium daily would deal</h4>
+        <div class="tiles five">
+          <div v-for="entry in newHabitTiles" :key="entry.label" class="stat-tile" :style="{ '--tone': entry.color }">
+            <span class="tile-label">{{ entry.icon }} {{ entry.label }}</span>
+            <span class="tile-value tinted">{{ entry.value.toFixed(0) }}</span>
+          </div>
+        </div>
+        <p class="stat-note">Habits of the same type share a pool.</p>
+      </section>
     </Modal>
   </section>
 </template>
@@ -418,35 +448,266 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   }
 }
 
-.stat-list {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr 1fr;
-  gap: 0.3rem 0.75rem;
+.rarity-common {
+  --rarity: #9ca3af;
+}
+
+.rarity-uncommon {
+  --rarity: #34d399;
+}
+
+.rarity-rare {
+  --rarity: #60a5fa;
+}
+
+.rarity-epic {
+  --rarity: #c084fc;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--code-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  box-shadow: 0 0 18px -8px var(--accent);
+}
+
+.hero-sprite {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: radial-gradient(circle, var(--accent-bg), transparent 70%);
+  border-radius: 12px;
+}
+
+.hero-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hero-level {
+  color: var(--text-h);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.gear-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gear-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--rarity);
+  border-radius: 8px;
+}
+
+.gear-row.enchanted {
+  box-shadow: 0 0 12px -6px var(--accent);
+}
+
+.gear-row.empty {
+  justify-content: center;
+  color: var(--text);
+  font-size: 0.8rem;
+  border-style: dashed;
+  border-left-style: dashed;
+  border-left-color: var(--border);
+}
+
+.gear-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, color-mix(in srgb, var(--rarity) 28%, transparent), transparent 70%);
+  border-radius: 8px;
+}
+
+.gear-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  transform: scale(1.4);
+}
+
+.gear-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.gear-name {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.gear-rarity {
+  margin-left: 0.4rem;
+  color: var(--rarity);
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gear-enchanted {
+  margin-left: 0.4rem;
+  padding: 0 0.4rem;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.gear-bonuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+}
+
+.gear-bonus {
+  color: var(--text-h);
   font-size: 0.8rem;
 }
 
-.stat-list dt {
-  font-weight: 600;
-  color: var(--text-h);
+.enchanted .gear-bonuses .gear-bonus {
+  color: var(--accent);
 }
 
-.stat-list dd {
-  margin: 0;
-  text-align: right;
-  color: var(--text-h);
-}
-
-.stat-list .col-label {
-  font-weight: 600;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+.gear-bonus-label {
   color: var(--text);
 }
 
+.effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.effect {
+  padding: 0.15rem 0.6rem;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.effect.boon {
+  color: var(--heal-color);
+  background: color-mix(in srgb, var(--heal-color) 12%, transparent);
+  border-color: color-mix(in srgb, var(--heal-color) 45%, transparent);
+}
+
+.effect.bane {
+  color: var(--damage-color);
+  background: color-mix(in srgb, var(--damage-color) 12%, transparent);
+  border-color: color-mix(in srgb, var(--damage-color) 45%, transparent);
+}
+
+.stat-group {
+  margin-top: 1rem;
+}
+
+.group-label {
+  margin: 0 0 0.4rem;
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+}
+
+.tiles.five {
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+}
+
+.tiles.five .stat-tile {
+  padding: 0.55rem 0.5rem;
+}
+
+.tiles.five .tile-label {
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.stat-tile {
+  --tone: var(--accent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.tile-label {
+  color: var(--text);
+  font-size: 0.75rem;
+}
+
+.tile-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  color: var(--text-h);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.tile-value.tinted {
+  color: var(--tone);
+}
+
+.tile-gain {
+  padding: 0 0.4rem;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-shadow: 0 0 8px var(--accent);
+}
+
+.tile-note {
+  color: var(--text);
+  font-size: 0.7rem;
+}
+
 .stat-note {
-  margin: 0.75rem 0 0;
+  margin: 0.4rem 0 0;
   font-size: 0.75rem;
   color: var(--text);
 }

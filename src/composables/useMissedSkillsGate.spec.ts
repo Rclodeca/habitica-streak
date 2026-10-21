@@ -34,7 +34,7 @@ describe('useMissedSkillsGate', () => {
     const { misses, rewards, hasPending } = useMissedSkillsGate();
     expect(hasPending.value).toBe(true);
     expect(misses.value).toEqual([
-      { habitId: habit.id, habitName: 'Meditate', periodKeyToStamp: '2024-01-02', outcome: 'penalty' },
+      { habitId: habit.id, habitName: 'Meditate', difficulty: 'medium', period: 'daily', periodKeyToStamp: '2024-01-02', outcome: 'penalty' },
     ]);
     expect(rewards.value).toEqual([]);
   });
@@ -47,7 +47,7 @@ describe('useMissedSkillsGate', () => {
     const { misses, rewards, hasPending } = useMissedSkillsGate();
     expect(hasPending.value).toBe(true);
     expect(rewards.value).toEqual([
-      { habitId: habit.id, habitName: 'Skip dessert', periodKeyToStamp: '2024-01-02', outcome: 'reward' },
+      { habitId: habit.id, habitName: 'Skip dessert', difficulty: 'medium', period: 'daily', periodKeyToStamp: '2024-01-02', outcome: 'reward' },
     ]);
     expect(misses.value).toEqual([]);
   });

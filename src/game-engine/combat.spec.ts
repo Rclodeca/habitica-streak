@@ -92,7 +92,7 @@ describe('completeHabit', () => {
 
     // Solo habit of its type -> baseDamage is the full stat value at level.
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    const expectedMultiplier = streakMultiplier(5); // streak bumped from 4 -> 5
+    const expectedMultiplier = streakMultiplier(4); // damage applies at the pre-increment streak (4), then it bumps to 5
     const expectedAmount = statValue * expectedMultiplier;
     const expectedDealt = applyResist(expectedAmount, boss.armor);
 
@@ -112,7 +112,7 @@ describe('completeHabit', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.magicDamage, character.level);
-    const expectedAmount = statValue * streakMultiplier(1);
+    const expectedAmount = statValue * streakMultiplier(0);
     const expectedDealt = applyResist(expectedAmount, boss.magicResist);
 
     expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
@@ -131,9 +131,9 @@ describe('completeHabit', () => {
     const weeklyResult = completeHabit(character, weekly, [weekly], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    expect(dailyResult.damageDealt).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
+    expect(dailyResult.damageDealt).toBeCloseTo(statValue * streakMultiplier(0, 'daily'), 10);
     expect(weeklyResult.damageDealt).toBeCloseTo(
-      statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER,
+      statValue * streakMultiplier(0, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER,
       10,
     );
   });
@@ -151,8 +151,8 @@ describe('completeHabit', () => {
     const statValue = statAtLevel(dailyCharacter.starterStats.healing, dailyCharacter.level);
     const dailyHealed = dailyResult.character.currentHealth - dailyCharacter.currentHealth;
     const weeklyHealed = weeklyResult.character.currentHealth - weeklyCharacter.currentHealth;
-    expect(dailyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'daily'), 10);
-    expect(weeklyHealed).toBeCloseTo(statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER, 10);
+    expect(dailyHealed).toBeCloseTo(statValue * streakMultiplier(0, 'daily'), 10);
+    expect(weeklyHealed).toBeCloseTo(statValue * streakMultiplier(0, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER, 10);
   });
 
   it('splits damage proportionally to difficulty weight across multiple habits of the same type', () => {
@@ -166,7 +166,7 @@ describe('completeHabit', () => {
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
     const expectedBase = statValue * poolSizeMultiplier('physical', 3) * (1 / 3);
-    const expectedAmount = expectedBase * streakMultiplier(1);
+    const expectedAmount = expectedBase * streakMultiplier(0);
 
     expect(result.damageDealt).toBeCloseTo(expectedAmount, 10);
   });
@@ -180,7 +180,7 @@ describe('completeHabit', () => {
 
     const boosted = effectiveStat(character, 'physicalDamage');
     expect(boosted).toBeCloseTo(statAtLevel(character.starterStats.physicalDamage, character.level) * 1.03, 10);
-    expect(result.damageDealt).toBeCloseTo(boosted * streakMultiplier(1), 10);
+    expect(result.damageDealt).toBeCloseTo(boosted * streakMultiplier(0), 10);
   });
 
   it('never reduces boss health below 0', () => {
@@ -201,7 +201,7 @@ describe('completeHabit', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
-    const expectedHealAmount = statValue * streakMultiplier(1);
+    const expectedHealAmount = statValue * streakMultiplier(0);
     const maxHealth = statAtLevel(character.starterStats.health, character.level);
 
     expect(result.character.currentHealth).toBeCloseTo(Math.min(30 + expectedHealAmount, maxHealth), 10);
@@ -248,7 +248,7 @@ describe('completeHabit', () => {
 
     // Healed only by the habit's own healing amount, not doubled by lifesteal.
     const statValue = statAtLevel(character.starterStats.healing, character.level);
-    const expectedHealAmount = statValue * streakMultiplier(1);
+    const expectedHealAmount = statValue * streakMultiplier(0);
     expect(result.character.currentHealth).toBeCloseTo(1 + expectedHealAmount, 10);
   });
 
@@ -307,7 +307,7 @@ describe('completeHabit', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
-    const expectedHealAmount = statValue * streakMultiplier(1);
+    const expectedHealAmount = statValue * streakMultiplier(0);
     expect(result.character.currentHealth).toBeCloseTo(30 + expectedHealAmount, 10);
   });
 
@@ -322,7 +322,7 @@ describe('completeHabit', () => {
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
     const expectedBase = statValue * poolSizeMultiplier('healing', 3) * (1 / 3);
-    const expectedAmount = expectedBase * streakMultiplier(1);
+    const expectedAmount = expectedBase * streakMultiplier(0);
 
     expect(result.character.currentHealth).toBeCloseTo(10 + expectedAmount, 10);
   });
@@ -355,20 +355,20 @@ describe('completeHabit', () => {
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     const expectedGoodBase = statValue * poolSizeMultiplier('healing', 3) * (1 / 3); // 1/(1+2) weight split
-    const expectedGoodAmount = expectedGoodBase * streakMultiplier(1);
+    const expectedGoodAmount = expectedGoodBase * streakMultiplier(0);
 
     expect(goodHealed).toBeCloseTo(expectedGoodAmount, 10);
   });
 
   it('adds a flat item bonus into the stat pool before the streak multiplier, so the flat amount is also multiplied by streak', () => {
     const character = makeCharacter({ equippedItemIds: ['berserkers-war-axe'] }); // +200 flat physicalDamage, +5% lifesteal
-    const habit = makeHabit({ damageType: 'physical', streakCount: 9 }); // bumps to streak 10 this completion
+    const habit = makeHabit({ damageType: 'physical', streakCount: 9 }); // damage uses streak 9, then bumps to 10
     const boss = makeBoss({ armor: 0, health: 10000 }); // armor 0 -> no reduction, easier to reason about
 
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
-    const expectedDealt = statValue * streakMultiplier(10);
+    const expectedDealt = statValue * streakMultiplier(9);
     expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
   });
 
@@ -380,7 +380,7 @@ describe('completeHabit', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
-    const amount = statValue * itemStatMultiplier(character, 'physicalDamage') * streakMultiplier(1);
+    const amount = statValue * itemStatMultiplier(character, 'physicalDamage') * streakMultiplier(0);
     const expectedEffectiveArmor = effectiveResistAfterPen(boss.armor, itemBonusPercent(character, 'armorPen'));
     const expectedDealt = applyResist(amount, expectedEffectiveArmor);
     expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
@@ -397,7 +397,7 @@ describe('completeHabit', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
-    const amount = statValue * itemStatMultiplier(character, 'physicalDamage') * streakMultiplier(1);
+    const amount = statValue * itemStatMultiplier(character, 'physicalDamage') * streakMultiplier(0);
     const expectedEffectiveArmor = effectiveResistAfterPen(boss.armor, itemBonusPercent(character, 'armorPen'));
     const expectedDealt = applyResist(amount, expectedEffectiveArmor);
     expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
@@ -411,7 +411,7 @@ describe('completeHabit', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.magicDamage, character.level) + itemFlatBonus(character, 'magicDamage');
-    const amount = statValue * itemStatMultiplier(character, 'magicDamage') * streakMultiplier(1);
+    const amount = statValue * itemStatMultiplier(character, 'magicDamage') * streakMultiplier(0);
     const expectedEffectiveResist = effectiveResistAfterPen(boss.magicResist, itemBonusPercent(character, 'magicPen'));
     const expectedDealt = applyResist(amount, expectedEffectiveResist);
     expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
@@ -622,7 +622,7 @@ describe('completeHabit — Special/Ult bonus', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    const expected = statValue * streakMultiplier(1) * TUNING.SPECIAL_MULTIPLIER;
+    const expected = statValue * streakMultiplier(0) * TUNING.SPECIAL_MULTIPLIER;
     expect(result.damageDealt).toBeCloseTo(expected, 10);
   });
 
@@ -634,7 +634,7 @@ describe('completeHabit — Special/Ult bonus', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    const expected = statValue * streakMultiplier(1, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER * TUNING.ULT_MULTIPLIER;
+    const expected = statValue * streakMultiplier(0, 'weekly') * TUNING.WEEKLY_BONUS_MULTIPLIER * TUNING.ULT_MULTIPLIER;
     expect(result.damageDealt).toBeCloseTo(expected, 10);
   });
 
@@ -646,7 +646,7 @@ describe('completeHabit — Special/Ult bonus', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    expect(result.damageDealt).toBeCloseTo(statValue * streakMultiplier(1), 10);
+    expect(result.damageDealt).toBeCloseTo(statValue * streakMultiplier(0), 10);
   });
 });
 
@@ -1076,7 +1076,7 @@ describe('completeHabit — healing reduced by an active Wounds effect', () => {
     const result = completeHabit(character, habit, [habit], boss, '2026-01-02', noCritRng); // still active
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
-    const expectedFullHeal = statValue * streakMultiplier(1);
+    const expectedFullHeal = statValue * streakMultiplier(0);
     expect(result.character.currentHealth).toBeCloseTo(1 + expectedFullHeal * 0.5, 10);
   });
 
@@ -1089,7 +1089,7 @@ describe('completeHabit — healing reduced by an active Wounds effect', () => {
     const result = completeHabit(character, habit, [habit], boss, '2026-01-03', noCritRng); // expired
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
-    const expectedFullHeal = statValue * streakMultiplier(1);
+    const expectedFullHeal = statValue * streakMultiplier(0);
     expect(result.character.currentHealth).toBeCloseTo(1 + expectedFullHeal, 10);
   });
 });
@@ -1121,38 +1121,29 @@ describe('expectedMediumDailyDamage', () => {
     expect(expectedMediumDailyDamage(character, 'physical', [])).toBeCloseTo(statValue, 10);
   });
 
-  it('matches a real medium daily\'s own displayed damage when it is the only habit of that type', () => {
-    // Regression test: a real medium daily must NOT be diluted by a
-    // phantom extra entrant on top of itself — it already IS the medium
-    // entrant `habitsOfType` represents.
+  it('adds the new medium to the pool when one easy habit already exists', () => {
     const character = makeCharacter();
-    const realHabit = makeHabit({ id: 'real', damageType: 'physical', difficulty: 'medium', streakCount: 0 });
-    const siblings = [realHabit];
-
-    const breakdown = habitDamageBreakdown(character, realHabit, siblings);
-    expect(expectedMediumDailyDamage(character, 'physical', siblings)).toBeCloseTo(breakdown.effectiveDamage, 10);
-  });
-
-  it('matches a real medium daily\'s own displayed damage when it shares the pool with other habits', () => {
-    // Same regression, but with a second (differently-weighted) habit
-    // genuinely sharing the pool — this is the exact shape of the reported
-    // bug (a medium daily reading lower here than its own habit-list damage).
-    const character = makeCharacter();
-    const realHabit = makeHabit({ id: 'real', damageType: 'physical', difficulty: 'medium', streakCount: 0 });
-    const otherHabit = makeHabit({ id: 'other', damageType: 'physical', difficulty: 'hard', streakCount: 3 });
-    const siblings = [realHabit, otherHabit];
-
-    const breakdown = habitDamageBreakdown(character, realHabit, siblings);
-    expect(expectedMediumDailyDamage(character, 'physical', siblings)).toBeCloseTo(breakdown.effectiveDamage, 10);
+    const existing = makeHabit({ id: 'existing', damageType: 'physical', difficulty: 'easy', streakCount: 0 });
+    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
+    const totalWeight = DIFFICULTY_WEIGHT.easy + DIFFICULTY_WEIGHT.medium;
+    const expected =
+      statValue *
+      itemStatMultiplier(character, 'physicalDamage') *
+      poolSizeMultiplier('physical', totalWeight) *
+      (DIFFICULTY_WEIGHT.medium / totalWeight);
+    expect(expectedMediumDailyDamage(character, 'physical', [existing])).toBeCloseTo(expected, 10);
+    // Never more than the pool it joins grows to.
+    expect(expectedMediumDailyDamage(character, 'physical', [existing])).toBeLessThan(statValue * poolSizeMultiplier('physical', totalWeight));
   });
 
   it('ignores the existing habits\' own streak/Special/Ult — only their difficulty weight affects the split', () => {
     const character = makeCharacter();
-    const existing = makeHabit({ id: 'existing', damageType: 'physical', difficulty: 'hard', streakCount: 50, isUlt: true });
-    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
-    const expectedShare =
-      statValue * poolSizeMultiplier('physical', DIFFICULTY_WEIGHT.hard) * (DIFFICULTY_WEIGHT.medium / DIFFICULTY_WEIGHT.hard);
-    expect(expectedMediumDailyDamage(character, 'physical', [existing])).toBeCloseTo(expectedShare, 10);
+    const plain = makeHabit({ id: 'existing', damageType: 'physical', difficulty: 'hard', streakCount: 0 });
+    const boosted = makeHabit({ id: 'existing', damageType: 'physical', difficulty: 'hard', streakCount: 50, isUlt: true });
+    expect(expectedMediumDailyDamage(character, 'physical', [boosted])).toBeCloseTo(
+      expectedMediumDailyDamage(character, 'physical', [plain]),
+      10,
+    );
   });
 
   it('never double-counts the expGain item bonus, mirroring completeHabit\'s special case', () => {

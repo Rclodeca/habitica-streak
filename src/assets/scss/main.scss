@@ -15,14 +15,17 @@ body {
 }
 
 #app {
+  width: 100%;
+
   @include m.mobile {
     padding: v.$space-md;
   }
 }
 
 .panel {
+  background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 14px;
   padding: v.$space-md;
 
   @include m.mobile {
@@ -39,14 +42,4 @@ body {
   @include m.mobile {
     gap: v.$space-md;
   }
-}
-
-.top-panels {
-  @include m.mobile {
-    gap: v.$space-sm;
-  }
-}
-
-.top-panels > * {
-  min-width: 0; // let panels shrink below their content width on narrow viewports
 }

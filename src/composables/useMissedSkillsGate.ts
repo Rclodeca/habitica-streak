@@ -26,7 +26,7 @@
 // trusting the rollover's detected outcome blindly.
 
 import { computed, ref } from 'vue';
-import type { Habit } from '../game-engine';
+import type { Difficulty, Habit, Period } from '../game-engine';
 import { useCombatActions } from './useCombatActions';
 import { useHabitStore } from '../store/habitStore';
 import { useItemDropQueue } from './useItemDropQueue';
@@ -34,6 +34,8 @@ import { useItemDropQueue } from './useItemDropQueue';
 interface PendingOutcome {
   habitId: string;
   habitName: string;
+  difficulty: Difficulty;
+  period: Period;
   periodKeyToStamp: string;
   outcome: 'penalty' | 'reward';
 }
@@ -65,12 +67,26 @@ export function useMissedSkillsGate() {
 
   /** Records a good-habit miss for `habit`, stamping `periodKeyToStamp` once acknowledged. */
   function queueMiss(habit: Habit, periodKeyToStamp: string) {
-    pending.value.push({ habitId: habit.id, habitName: habit.name, periodKeyToStamp, outcome: 'penalty' });
+    pending.value.push({
+      habitId: habit.id,
+      habitName: habit.name,
+      difficulty: habit.difficulty,
+      period: habit.period,
+      periodKeyToStamp,
+      outcome: 'penalty',
+    });
   }
 
   /** Records a bad-habit avoidance reward for `habit`, stamping `periodKeyToStamp` once acknowledged. */
   function queueReward(habit: Habit, periodKeyToStamp: string) {
-    pending.value.push({ habitId: habit.id, habitName: habit.name, periodKeyToStamp, outcome: 'reward' });
+    pending.value.push({
+      habitId: habit.id,
+      habitName: habit.name,
+      difficulty: habit.difficulty,
+      period: habit.period,
+      periodKeyToStamp,
+      outcome: 'reward',
+    });
   }
 
   /**

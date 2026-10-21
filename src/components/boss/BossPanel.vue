@@ -59,6 +59,38 @@ const armorReduction = computed(
 const magicResistReduction = computed(
   () => damageReductionPct(effectiveResistAfterPen(boss.value.magicResist, itemBonusPercent(characterStore.character, 'magicPen'))) * 100,
 );
+
+interface StatTile {
+  icon: string;
+  label: string;
+  value: string;
+  note?: string;
+}
+
+const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
+
+const statTiles = computed<StatTile[]>(() => {
+  const b = boss.value;
+  return [
+    { icon: '⚔️', label: 'Physical attack', value: physicalAttack.value.toFixed(0), note: `Base ${b.physicalAttack.toFixed(0)}` },
+    { icon: '🔮', label: 'Magic attack', value: magicAttack.value.toFixed(0), note: `Base ${b.magicAttack.toFixed(0)}` },
+    { icon: '🛡️', label: 'Armor', value: b.armor.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` },
+    { icon: '🔰', label: 'Magic resist', value: b.magicResist.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` },
+    { icon: '💥', label: 'Crit chance', value: pct(b.critChance) },
+    ...(b.reflectPct > 0 ? [{ icon: '🪞', label: 'Reflect', value: pct(b.reflectPct) }] : []),
+    ...(b.lifestealPct > 0 ? [{ icon: '🩸', label: 'Lifesteal', value: pct(b.lifestealPct) }] : []),
+    ...(b.woundsAbility
+      ? [
+          {
+            icon: '🩹',
+            label: 'Wounds chance',
+            value: pct(b.woundsAbility.hitChance),
+            note: `${pct(b.woundsAbility.effectRate)} healing for ${b.woundsAbility.durationDays}d`,
+          },
+        ]
+      : []),
+  ];
+});
 </script>
 
 <template>
@@ -84,61 +116,32 @@ const magicResistReduction = computed(
       </div>
     </button>
 
-    <Modal v-model="showDetails" title="Boss details">
-      <dl class="stat-list">
-        <dt></dt>
-        <dd class="col-label">Base</dd>
-        <dd class="col-label">Effective</dd>
+    <Modal v-model="showDetails" title="Boss" max-width="520px">
+      <div class="hero">
+        <div class="hero-sprite">
+          <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
+        </div>
+        <div class="hero-info">
+          <span class="hero-tag">Boss #{{ boss.index }}</span>
+          <span class="hero-name">{{ PERSONALITY_NAME[boss.personality] }}</span>
+          <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
+        </div>
+      </div>
 
-        <dt>⚔️ Physical attack</dt>
-        <dd>{{ boss.physicalAttack.toFixed(0) }}</dd>
-        <dd>{{ physicalAttack.toFixed(0) }}</dd>
-
-        <dt>🔮 Magic attack</dt>
-        <dd>{{ boss.magicAttack.toFixed(0) }}</dd>
-        <dd>{{ magicAttack.toFixed(0) }}</dd>
-
-        <dt>🛡️ Armor</dt>
-        <dd>{{ boss.armor.toFixed(0) }}</dd>
-        <dd>{{ armorReduction.toFixed(1) }}% reduction</dd>
-
-        <dt>🔰 Magic resist</dt>
-        <dd>{{ boss.magicResist.toFixed(0) }}</dd>
-        <dd>{{ magicResistReduction.toFixed(1) }}% reduction</dd>
-
-        <dt>💥 Crit chance</dt>
-        <dd>{{ (boss.critChance * 100).toFixed(0) }}%</dd>
-        <dd>{{ (boss.critChance * 100).toFixed(0) }}%</dd>
-
-        <template v-if="boss.reflectPct > 0">
-          <dt>🪞 Reflect</dt>
-          <dd>{{ (boss.reflectPct * 100).toFixed(0) }}%</dd>
-          <dd>{{ (boss.reflectPct * 100).toFixed(0) }}%</dd>
-        </template>
-
-        <template v-if="boss.lifestealPct > 0">
-          <dt>🩸 Lifesteal</dt>
-          <dd>{{ (boss.lifestealPct * 100).toFixed(0) }}%</dd>
-          <dd>{{ (boss.lifestealPct * 100).toFixed(0) }}%</dd>
-        </template>
-
-        <template v-if="boss.woundsAbility">
-          <dt>🩹 Wounds chance</dt>
-          <dd>{{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</dd>
-          <dd>{{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</dd>
-        </template>
-      </dl>
-      <p class="stat-note">
-        Physical/magic attack: Base is the boss's raw attack stat; Effective is the damage a missed medium daily
-        habit actually deals (Base × miss-damage factor). Easy misses take ~0.67x, hard ~1.33x, and a crit or missed
-        weekly doubles it. Armor/Magic resist: Effective is the damage reduction your attacks face, after your armor/magic
-        pen items. Other stats have no separate multiplier, so Base and Effective match.
-      </p>
-      <p v-if="boss.woundsAbility" class="stat-note">
-        Wounds: on a successful hit at this chance, reduces your healing to
-        {{ (boss.woundsAbility.effectRate * 100).toFixed(0) }}% for {{ boss.woundsAbility.durationDays }} day(s) —
-        doesn't stack or refresh while already active.
-      </p>
+      <section class="stat-group">
+        <h4 class="group-label">Stats</h4>
+        <div class="tiles">
+          <div v-for="stat in statTiles" :key="stat.label" class="stat-tile">
+            <span class="tile-label">{{ stat.icon }} {{ stat.label }}</span>
+            <span class="tile-value">{{ stat.value }}</span>
+            <span v-if="stat.note" class="tile-note">{{ stat.note }}</span>
+          </div>
+        </div>
+        <p class="stat-note">
+          Attack is what a missed medium daily deals. Easy ~0.67x, hard ~1.33x; a crit or missed weekly doubles it.
+          Armor and magic resist show the reduction your attacks face after your pen items.
+        </p>
+      </section>
     </Modal>
   </section>
 </template>
@@ -152,8 +155,10 @@ const magicResistReduction = computed(
 
 .summary-row {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
+  text-align: center;
   width: 100%;
   background: none;
   border: none;
@@ -161,15 +166,14 @@ const magicResistReduction = computed(
   margin: 0;
   font: inherit;
   color: inherit;
-  text-align: left;
   cursor: pointer;
 }
 
 .summary-info {
-  flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.4rem;
 }
 
 .summary-info h2 {
@@ -179,6 +183,7 @@ const magicResistReduction = computed(
 .stat-summary {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.5rem 0.75rem;
   margin: 0;
   font-size: 0.8rem;
@@ -186,35 +191,95 @@ const magicResistReduction = computed(
   color: var(--text-h);
 }
 
-.stat-list {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr;
-  gap: 0.3rem 1rem;
-  margin: 0;
-  font-size: 0.8rem;
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--code-bg);
+  border: 1px solid color-mix(in srgb, var(--damage-color) 50%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 0 18px -8px var(--damage-color);
 }
 
-.stat-list dt {
-  font-weight: 600;
-  color: var(--text-h);
+.hero-sprite {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: radial-gradient(circle, color-mix(in srgb, var(--damage-color) 22%, transparent), transparent 70%);
+  border-radius: 12px;
 }
 
-.stat-list dd {
-  margin: 0;
-  text-align: right;
-  color: var(--text-h);
+.hero-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.stat-list .col-label {
-  font-weight: 600;
+.hero-tag {
+  color: var(--damage-color);
   font-size: 0.7rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+}
+
+.hero-name {
+  color: var(--text-h);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.stat-group {
+  margin-top: 1rem;
+}
+
+.group-label {
+  margin: 0 0 0.4rem;
   color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.tile-label {
+  color: var(--text);
+  font-size: 0.75rem;
+}
+
+.tile-value {
+  color: var(--text-h);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.tile-note {
+  color: var(--text);
+  font-size: 0.7rem;
 }
 
 .stat-note {
-  margin: 0.75rem 0 0;
+  margin: 0.6rem 0 0;
   font-size: 0.75rem;
   color: var(--text);
 }

@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRng, dailyPeriodKey, periodKeyFor } from '../game-engine';
+import { createRng, dailyPeriodKey, periodKeyFor, questExpReward } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
@@ -61,7 +61,14 @@ describe('useDailyRollover', () => {
     expect(updatedHabit?.streakCount).toBe(3);
     expect(updatedHabit?.lastCheckedPeriodKey).toBe(yesterdayKey);
     expect(useMissedSkillsGate().misses.value).toEqual([
-      { habitId: habit.id, habitName: 'Meditate', periodKeyToStamp: currentPeriodKey, outcome: 'penalty' },
+      {
+        habitId: habit.id,
+        habitName: 'Meditate',
+        difficulty: habit.difficulty,
+        period: habit.period,
+        periodKeyToStamp: currentPeriodKey,
+        outcome: 'penalty',
+      },
     ]);
   });
 
@@ -187,7 +194,14 @@ describe('useDailyRollover', () => {
     expect(updatedHabit?.streakCount).toBe(3);
     expect(updatedHabit?.lastCheckedPeriodKey).toBe(yesterdayKey);
     expect(useMissedSkillsGate().rewards.value).toEqual([
-      { habitId: habit.id, habitName: 'Skip dessert', periodKeyToStamp: currentPeriodKey, outcome: 'reward' },
+      {
+        habitId: habit.id,
+        habitName: 'Skip dessert',
+        difficulty: habit.difficulty,
+        period: habit.period,
+        periodKeyToStamp: currentPeriodKey,
+        outcome: 'reward',
+      },
     ]);
   });
 
@@ -239,7 +253,9 @@ describe('useDailyRollover — quests', () => {
 
     useDailyRollover(now);
 
-    expect(useQuestMissGate().misses.value).toEqual([{ questId: quest.id, description: 'Clean garage', dueDateKey: yesterday }]);
+    expect(useQuestMissGate().misses.value).toEqual([
+      { questId: quest.id, description: 'Clean garage', dueDateKey: yesterday, difficulty: 'medium', expReward: questExpReward(quest) },
+    ]);
   });
 
   it('does not queue a miss for a quest due exactly today', () => {

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { questExpReward } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useQuestStore } from '../store/questStore';
@@ -30,7 +31,15 @@ describe('useQuestMissGate', () => {
 
     const { misses, hasPending } = useQuestMissGate();
     expect(hasPending.value).toBe(true);
-    expect(misses.value).toEqual([{ questId: quest.id, description: 'Clean garage', dueDateKey: '2026-01-01' }]);
+    expect(misses.value).toEqual([
+      {
+        questId: quest.id,
+        description: 'Clean garage',
+        dueDateKey: '2026-01-01',
+        difficulty: 'medium',
+        expReward: questExpReward(quest),
+      },
+    ]);
   });
 
   it('acknowledge applies damage (failQuest) for a non-overridden miss and clears the queue', () => {

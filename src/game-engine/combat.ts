@@ -130,17 +130,10 @@ export function habitDamageBreakdown(character: Character, habit: Habit, allHabi
 }
 
 /**
- * What a medium daily habit of `damageType` deals right now — a fixed
- * reference point analogous to a boss's own Effective attack stat
- * (`bossMissDamage`): no crit, no streak bonus, no Special/Ult. Computed as
- * a medium weight's share of `habitsOfType`'s total weight — NOT
- * medium-weight-on-top-of that total, since a real medium daily of this
- * type, if one already exists, is already counted inside `habitsOfType`;
- * treating it as an *additional* entrant would double-dilute the pool and
- * read as lower than that same real habit's own displayed damage (see
- * `habitDamageBreakdown`, which splits the actual pool the same way). Zero
- * existing habits of this type is treated as a 1:1 ratio (the whole pool),
- * since there's nothing yet to share it with.
+ * What a NEW medium daily habit of `damageType` would deal if added right now
+ * — no crit, no streak bonus, no Special/Ult. The new habit joins
+ * `habitsOfType`, so the pool grows by its weight and it takes a medium
+ * weight's share of the new total (a lone habit gets the whole pool).
  *
  * Callers must pass `habitsOfType` already scoped to the daily period
  * (e.g. `habitStore.habitsOfType(damageType, 'daily')`) — daily and weekly
@@ -153,10 +146,9 @@ export function expectedMediumDailyDamage(character: Character, damageType: Dama
   // expGain's item bonus is applied later via addExpAndResolveLevelUps, not
   // here — mirrors the same exclusion in completeHabit/habitDamageBreakdown.
   const itemMultiplier = damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
-  const existingWeight = habitsOfType.reduce((sum, h) => sum + DIFFICULTY_WEIGHT[h.difficulty], 0);
-  const mediumShareRatio = existingWeight > 0 ? DIFFICULTY_WEIGHT.medium / existingWeight : 1;
-  // An empty list stands for a lone medium habit (weight 1.5), whose pool multiplier is 1.
-  const poolMultiplier = poolSizeMultiplier(damageType, existingWeight > 0 ? existingWeight : DIFFICULTY_WEIGHT.medium);
+  const totalWeight = habitsOfType.reduce((sum, h) => sum + DIFFICULTY_WEIGHT[h.difficulty], 0) + DIFFICULTY_WEIGHT.medium;
+  const mediumShareRatio = DIFFICULTY_WEIGHT.medium / totalWeight;
+  const poolMultiplier = poolSizeMultiplier(damageType, totalWeight);
   return rawStat * itemMultiplier * poolMultiplier * mediumShareRatio;
 }
 
@@ -228,7 +220,7 @@ export function completeHabit(
   const { habit: updatedHabit, milestoneExp } = isOverdriveUse
     ? { habit, milestoneExp: 0 }
     : completeHabitStreak(habit);
-  const multiplier = streakMultiplier(updatedHabit.streakCount, habit.period);
+  const multiplier = streakMultiplier(habit.streakCount, habit.period);
   const weeklyMult = weeklyBonusMultiplier(habit.period);
   const bonusMultiplier = isOverdriveUse ? 1 : levelRewardMultiplier(habit);
   const overdriveFactor = isOverdriveUse ? TUNING.OVERDRIVE_DAMAGE_FACTOR : 1;

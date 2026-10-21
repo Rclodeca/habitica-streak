@@ -2,14 +2,17 @@
 import { computed, ref } from 'vue';
 import BossPanel from '../boss/BossPanel.vue';
 import CharacterPanel from '../character/CharacterPanel.vue';
+import PopupPreview from '../debug/PopupPreview.vue';
 import SkipDayButton from '../debug/SkipDayButton.vue';
 import HabitList from '../habits/HabitList.vue';
 import HighScorePage from '../highscores/HighScorePage.vue';
 import QuestSection from '../quests/QuestSection.vue';
+import ProgressSummary from './ProgressSummary.vue';
 import ActivityLog from '../ui/ActivityLog.vue';
 import DeathScreen from '../ui/DeathScreen.vue';
 import ItemDropPopup from '../ui/ItemDropPopup.vue';
 import MissedSkillsPopup from '../ui/MissedSkillsPopup.vue';
+import QuestCompletePopup from '../quests/QuestCompletePopup.vue';
 import QuestMissPopup from '../quests/QuestMissPopup.vue';
 import EventChoiceModal from '../events/EventChoiceModal.vue';
 import ReviveNotice from '../ui/ReviveNotice.vue';
@@ -41,18 +44,25 @@ const showHighScores = ref(false);
     <MissedSkillsPopup />
     <EventChoiceModal />
     <QuestMissPopup />
+    <QuestCompletePopup />
     <ReviveNotice />
 
     <HighScorePage v-if="showHighScores" />
     <template v-else>
       <SkipDayButton v-if="isDev" />
-      <div class="top-panels">
-        <BossPanel />
-        <CharacterPanel />
+      <PopupPreview v-if="isDev" />
+      <div class="layout">
+        <aside class="side">
+          <BossPanel />
+          <CharacterPanel />
+        </aside>
+        <main class="main">
+          <ProgressSummary />
+          <HabitList />
+          <QuestSection />
+          <ActivityLog />
+        </main>
       </div>
-      <HabitList />
-      <QuestSection />
-      <ActivityLog />
     </template>
   </div>
 </template>
@@ -82,13 +92,37 @@ const showHighScores = ref(false);
   white-space: nowrap;
 }
 
-.top-panels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+.layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
 }
 
-.top-panels > * {
-  flex: 1 1 260px;
+.side {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+@media (max-width: 820px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .side {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
 }
 </style>

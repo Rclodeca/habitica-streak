@@ -10,13 +10,17 @@
 // list and clicked OK.
 
 import { computed, ref } from 'vue';
-import type { Quest } from '../game-engine';
+import { questExpReward } from '../game-engine';
+import type { Difficulty, Quest } from '../game-engine';
 import { useCombatActions } from './useCombatActions';
 
 interface PendingQuestMiss {
   questId: string;
   description: string;
   dueDateKey: string;
+  difficulty: Difficulty;
+  /** EXP granted if the player flags this as "I actually did this". */
+  expReward: number;
 }
 
 const pending = ref<PendingQuestMiss[]>([]);
@@ -43,7 +47,13 @@ export function useQuestMissGate() {
 
   /** Records an overdue quest for the popup. */
   function queueMiss(quest: Quest): void {
-    pending.value.push({ questId: quest.id, description: quest.description, dueDateKey: quest.dueDateKey });
+    pending.value.push({
+      questId: quest.id,
+      description: quest.description,
+      dueDateKey: quest.dueDateKey,
+      difficulty: quest.difficulty,
+      expReward: questExpReward(quest),
+    });
   }
 
   /**

@@ -27,7 +27,7 @@ const weeklyHabits = computed(() =>
   <section class="panel habit-list">
     <div class="habit-list-header">
       <h2>Skills</h2>
-      <button type="button" class="add-button" aria-label="Add habit" @click="showAddModal = true">+</button>
+      <button type="button" class="add-button" aria-label="Add habit" @click="showAddModal = true">+ New habit</button>
     </div>
 
     <p v-if="!habitStore.habits.length">No habits yet — tap + to add one.</p>
@@ -65,12 +65,11 @@ const weeklyHabits = computed(() =>
 }
 
 .add-button {
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  font-size: 1.25rem;
-  line-height: 1;
+  padding: 0.35rem 0.9rem;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
   border-radius: 999px;
+  font-size: 0.85rem;
   flex-shrink: 0;
 }
 
@@ -80,13 +79,13 @@ const weeklyHabits = computed(() =>
   padding: 0;
 }
 
-.habit-group + .habit-group {
-  margin-top: 1.25rem;
+.habit-group {
+  margin-top: 1rem;
 }
 
 .habit-group-title {
-  margin: 0 0 0.5rem;
-  font-size: 0.85rem;
+  margin: 0 0 0.3rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;

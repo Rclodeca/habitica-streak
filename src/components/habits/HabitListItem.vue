@@ -36,9 +36,10 @@ const damageTypeColor = computed(() => {
   return '#ef4444'; // red for physical
 });
 
-const metaText = computed(
-  () => `${props.habit.difficulty} · streak ${props.habit.streakCount}`,
+const damageTypeIcon = computed(
+  () => ({ healing: '💚', physical: '⚔️', magic: '🔮', trueDamage: '⚡', expGain: '✨' })[props.habit.damageType],
 );
+const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);
 
 const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
 
@@ -51,9 +52,10 @@ const showStatsModal = ref(false);
 </script>
 
 <template>
-  <li class="habit-item" :class="{ bad: habit.isBad }" @click="showStatsModal = true">
+  <li class="habit-item" :class="{ bad: habit.isBad }" :style="{ '--c': damageTypeColor }" @click="showStatsModal = true">
     <input
       type="checkbox"
+      class="check"
       :aria-label="`Complete ${habit.name}`"
       :checked="isCompletedThisPeriod"
       :disabled="isCompletedThisPeriod"
@@ -62,10 +64,19 @@ const showStatsModal = ref(false);
     />
     <div class="left">
       <span class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
+      <span v-if="habit.isBad" class="tag resist">Resist</span>
       <span v-if="rewardTag" class="tag">{{ rewardTag }}</span>
     </div>
-    <span class="meta">{{ metaText }}</span>
-    <span class="effective-damage" :style="{ color: damageTypeColor }">{{ effectiveDamage.toFixed(0) }}</span>
+    <span class="meta">
+      <span class="streak" :title="`${habit.streakCount} streak`">🔥 {{ habit.streakCount }}</span>
+      <span class="pips" :title="habit.difficulty">
+        <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= difficultyPips }" />
+      </span>
+    </span>
+    <span class="damage">
+      <span class="damage-icon">{{ damageTypeIcon }}</span>
+      <span class="damage-amount">{{ effectiveDamage.toFixed(0) }}</span>
+    </span>
   </li>
 
   <HabitStatsModal v-model="showStatsModal" :habit="habit" />
@@ -73,16 +84,74 @@ const showStatsModal = ref(false);
 
 <style scoped>
 .habit-item {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
+  gap: 0.8rem;
+  padding: 0.6rem 0.6rem;
+  border-radius: 10px;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
-.habit-item input[type="checkbox"] {
+.habit-item.bad::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  width: 3px;
+  background: var(--damage-color);
+  border-radius: 3px;
+}
+
+.habit-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* One neutral check color for every row — the type color lives only on the
+   damage number, so a long list doesn't turn into a rainbow. */
+.check {
+  appearance: none;
   flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.check:hover:not(:disabled) {
+  border-color: var(--accent-border);
+}
+
+.check:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.check:checked::after {
+  content: '✓';
+  color: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.check:disabled {
+  cursor: default;
+}
+
+.check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .left {
@@ -93,49 +162,89 @@ const showStatsModal = ref(false);
   min-width: 0;
 }
 
-.habit-item .name {
-  flex: 1;
+.name {
   min-width: 0;
   text-align: left;
+  color: var(--text-h);
   overflow-wrap: anywhere;
 }
 
-.habit-item.bad {
-  border-left: 3px solid #dc2626;
-  /* Compensate for the border's own width so the checkbox lines up with
-     non-bad items' — border sits outside padding, so without this the
-     content starts 3px further right than a bordered-less item. */
-  padding-left: calc(0.5rem - 3px);
-  margin-left: -0.5rem;
-}
-
-.done {
+.name.done {
   text-decoration: line-through;
   color: var(--text);
   opacity: 0.6;
 }
 
-.meta {
-  font-size: 0.85em;
-  opacity: 0.7;
-  flex-shrink: 0;
-}
-
-.effective-damage {
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.9em;
-  min-width: 3em;
-  text-align: right;
-}
-
 .tag {
   flex-shrink: 0;
-  background: #16a34a;
-  color: white;
-  font-size: 0.7em;
-  font-weight: 600;
-  padding: 0.1rem 0.45rem;
+  padding: 0 0.45rem;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
   border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.tag.resist {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--damage-color) 60%, transparent);
+  color: var(--damage-color);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pips {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.pip {
+  width: 6px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 50%;
+}
+
+.pip.lit {
+  background: var(--accent);
+}
+
+.damage {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 5.5rem;
+  color: var(--c);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.damage-icon {
+  width: 1.25rem;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .habit-item {
+    gap: 0.6rem;
+  }
+
+  .meta {
+    gap: 0.5rem;
+  }
+
+  .damage {
+    width: 4.75rem;
+  }
 }
 </style>
