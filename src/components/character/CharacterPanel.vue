@@ -345,7 +345,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   margin: 0;
   font: inherit;
   color: inherit;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -358,6 +358,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 .stat-summary {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.5rem 0.75rem;
   margin: 0;
   font-size: 0.8rem;
