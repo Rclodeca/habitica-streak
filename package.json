@@ -12,16 +12,17 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "vue": "^3.5.42",
-    "pinia": "^2.2.2"
+    "lucide-vue-next": "^1.0.0",
+    "pinia": "^2.2.2",
+    "vue": "^3.5.42"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
-    "@vitejs/plugin-vue": "^6.0.8",
-    "@vue/tsconfig": "^0.9.1",
-    "@vue/test-utils": "^2.4.6",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.9.1",
     "eslint": "^9.0.0",
     "eslint-plugin-vue": "^9.28.0",
     "jsdom": "^25.0.0",

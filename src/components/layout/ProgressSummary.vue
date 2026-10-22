@@ -4,6 +4,7 @@ import { periodKeyFor } from '../../game-engine';
 import type { Period } from '../../game-engine';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
+import StatIcon from '../ui/StatIcon.vue';
 
 const habitStore = useHabitStore();
 const debugClockStore = useDebugClockStore();
@@ -39,7 +40,7 @@ const bestStreak = computed(() => Math.max(0, ...habitStore.habits.map((h) => h.
       </div>
     </div>
     <div class="panel stat">
-      <span class="streak-icon">🔥</span>
+      <span class="streak-icon"><StatIcon name="streak" :size="24" /></span>
       <div>
         <b>{{ bestStreak }}</b>
         <span>Best streak</span>
@@ -105,7 +106,7 @@ span:not(.ring):not(.streak-icon) {
 
 @media (max-width: 560px) {
   .summary {
-    grid-template-columns: 1fr;
+    display: none;
   }
 }
 </style>

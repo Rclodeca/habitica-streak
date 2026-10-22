@@ -8,12 +8,11 @@ import { defineStore } from 'pinia';
 export type ActivityLogEntry =
   // isTrueDamage is set only for a 'trueDamage'-type habit, so ActivityLog
   // can render it in its own color — see HabitListItem's damageTypeColor
-  // for the same physical/magic/healing/trueDamage/expGain color scheme.
+  // for the same physical/magic/healing/trueDamage color scheme.
   // milestoneExp is the streak-milestone EXP bonus granted alongside this
   // action (see useCombatActions/applyReward) — undefined/0 when none fired.
   | { id: string; kind: 'skill-damage'; habitName: string; amount: number; isTrueDamage?: boolean; milestoneExp?: number }
   | { id: string; kind: 'heal'; habitName: string; amount: number; milestoneExp?: number }
-  | { id: string; kind: 'exp-skill'; habitName: string; amount: number; milestoneExp?: number }
   | { id: string; kind: 'hit'; habitName: string; amount: number; attackType: 'physical' | 'magic' }
   | {
       id: string;
@@ -26,7 +25,6 @@ export type ActivityLogEntry =
         healing: number;
         health: number;
         trueDamage: number;
-        expGain: number;
       };
     }
   | { id: string; kind: 'crit'; by: 'player' | 'boss' }
@@ -43,7 +41,7 @@ export type ActivityLogEntry =
   | { id: string; kind: 'crit-boost-gained'; days: number }
   | { id: string; kind: 'skill-rerolled'; habitName: string; damageType: string }
   | { id: string; kind: 'wounds-applied'; durationDays: number; effectRate: number }
-  | { id: string; kind: 'quest-completed'; description: string; amount: number }
+  | { id: string; kind: 'quest-completed'; description: string; amount: number; itemName?: string }
   | { id: string; kind: 'quest-failed'; description: string; amount: number };
 
 // Plain `Omit<ActivityLogEntry, 'id'>` collapses the discriminated union
@@ -61,7 +59,8 @@ export const useActivityLogStore = defineStore('activityLog', {
   actions: {
     /** Hydrates from a save slice, or starts empty if there isn't one. */
     initFromSave(saved: ActivityLogEntry[] | null) {
-      this.entries = saved ?? [];
+      // Drops entries from the removed expGain skill type.
+      this.entries = (saved ?? []).filter((entry) => (entry.kind as string) !== 'exp-skill');
     },
 
     /** Prepends a new entry (newest-first) and caps the list at the most recent 10. */

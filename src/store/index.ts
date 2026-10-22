@@ -40,8 +40,8 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
 
   // Wired up BEFORE the initFromSave calls below (not after), so a
   // one-time, in-place migration those calls perform (e.g.
-  // applyDamagePoolRebalance, migrateCharacter's trueDamage/expGain
-  // backfill) gets captured by the debounced writer immediately instead of
+  // applyDamagePoolRebalance, migrateCharacter's trueDamage
+  // backfill, migrateHabitDamageType) gets captured by the debounced writer immediately instead of
   // only persisting on some later, unrelated mutation — otherwise a player
   // who closes the tab right after load, before anything else mutates
   // state, would never persist the migration and it would silently
@@ -60,7 +60,7 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
 
   characterStore.initFromSave(saved?.character ?? null, rng);
   bossStore.initFromSave(saved?.boss ?? null, rng);
-  habitStore.initFromSave(saved?.habits ?? null);
+  habitStore.initFromSave(saved?.habits ?? null, rng);
   activityLogStore.initFromSave(saved?.activityLog ?? null);
   questStore.initFromSave(saved?.quests ?? null);
   characterStore.setCharacter(migrateEventState(characterStore.character, habitStore.habits));

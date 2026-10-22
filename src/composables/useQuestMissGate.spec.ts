@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { questExpReward } from '../game-engine';
+import { ITEM_CATALOG } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useQuestStore } from '../store/questStore';
@@ -25,7 +25,7 @@ describe('useQuestMissGate', () => {
 
   it('queueMiss adds a pending entry visible from a separate call', () => {
     const questStore = useQuestStore();
-    const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01');
 
     useQuestMissGate().queueMiss(quest);
 
@@ -37,7 +37,8 @@ describe('useQuestMissGate', () => {
         description: 'Clean garage',
         dueDateKey: '2026-01-01',
         difficulty: 'medium',
-        expReward: questExpReward(quest),
+        kind: 'regular',
+        rewardText: 'Medium EXP',
       },
     ]);
   });
@@ -47,7 +48,7 @@ describe('useQuestMissGate', () => {
     const questStore = useQuestStore();
     useBossStore();
 
-    const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01');
     const healthBefore = characterStore.character.currentHealth;
 
     useQuestMissGate().queueMiss(quest);
@@ -63,7 +64,7 @@ describe('useQuestMissGate', () => {
     const questStore = useQuestStore();
     useBossStore();
 
-    const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01');
     const healthBefore = characterStore.character.currentHealth;
     const expBefore = characterStore.character.exp;
 
@@ -82,7 +83,7 @@ describe('useQuestMissGate', () => {
     useCharacterStore();
     useBossStore();
 
-    const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01');
     const { queueMiss, isOverridden, toggleOverride, acknowledge } = useQuestMissGate();
 
     queueMiss(quest);
@@ -92,5 +93,24 @@ describe('useQuestMissGate', () => {
 
     acknowledge();
     expect(isOverridden(quest.id)).toBe(false);
+  });
+
+  it('acknowledge grants a side quest its item (and no EXP) when overridden', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    useBossStore();
+
+    const itemId = characterStore.character.sideOnlyItemIds![0];
+    const quest = questStore.addQuest('Slay it', 'medium', '2026-01-01', 'side', itemId);
+    const expBefore = characterStore.character.exp;
+
+    const { queueMiss, toggleOverride, acknowledge } = useQuestMissGate();
+    queueMiss(quest);
+    expect(useQuestMissGate().misses.value[0].rewardText).toBe(ITEM_CATALOG.find((i) => i.id === itemId)!.name);
+    toggleOverride(quest.id);
+    acknowledge();
+
+    expect(characterStore.character.ownedItemIds).toContain(itemId);
+    expect(characterStore.character.exp).toBe(expBefore);
   });
 });

@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createCharacter, createRng, generateBoss } from '../game-engine';
+import { createCharacter, createHabit, createRng, generateBoss } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
 import { initializeStores } from './index';
 import { CURRENT_SCHEMA_VERSION, STORAGE_KEY } from './plugins/saveState';
@@ -76,6 +76,42 @@ describe('store persistence smoke test', () => {
     expect(parsed.character.starterStats.physicalDamage).toBeCloseTo(character.starterStats.physicalDamage * factor, 10);
     expect(parsed.character.starterStats.trueDamage).toBe(character.starterStats.trueDamage); // exempt, unchanged
     expect(parsed.character.damagePoolRebalanceApplied).toBe(true);
+  });
+
+  it('persists the quest and expGain-removal migrations on hydration, without a later mutation', () => {
+    const rng = createRng(1);
+    const base = createCharacter(rng);
+    const character = {
+      ...base,
+      expGainRebalanceApplied: true,
+      sideOnlyItemIds: undefined,
+      starterStats: { ...base.starterStats, expGain: 11 },
+    };
+    const oldQuest = { id: 'q', description: 'Old', difficulty: 'easy', dueDateKey: '2099-01-01', bossIndexAtOffer: 3 };
+    const legacyHabit = { ...createHabit('Study', 'daily', 'medium', false, createRng(2)), damageType: 'expGain' };
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, character, boss: generateBoss(1, rng), habits: [legacyHabit], quests: [oldQuest] }),
+    );
+
+    initializeStores();
+    vi.advanceTimersByTime(300);
+
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) as string);
+    expect('expGain' in parsed.character.starterStats).toBe(false);
+    expect('expGainRebalanceApplied' in parsed.character).toBe(false);
+    expect(parsed.habits).toHaveLength(1);
+    expect(['physical', 'magic', 'healing', 'trueDamage']).toContain(parsed.habits[0].damageType);
+    expect(parsed.habits[0].id).toBe(legacyHabit.id);
+    expect(parsed.character.sideOnlyItemIds).toHaveLength(TUNING.SIDE_QUEST_ITEM_COUNT);
+    expect(parsed.quests).toEqual([{ id: 'q', kind: 'regular', description: 'Old', difficulty: 'easy', dueDateKey: '2099-01-01' }]);
+
+    // Reloading keeps the migrated habit type (it is not re-rolled again).
+    const migratedType = parsed.habits[0].damageType;
+    setActivePinia(createPinia());
+    const second = initializeStores();
+    expect(second.habitStore.habits[0].damageType).toBe(migratedType);
+    expect('expGain' in second.characterStore.character.starterStats).toBe(false);
   });
 
   it('seeds takenEventIds on a save that predates events, so slots/Special/Ult are not lost or re-offered', () => {

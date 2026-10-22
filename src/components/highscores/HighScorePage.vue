@@ -4,6 +4,8 @@ import { describeItemBonus, ITEM_CATALOG } from '../../game-engine';
 import type { DamageType } from '../../game-engine';
 import type { HighScoreRunItem } from '../../store/highScoreStore';
 import { useHighScoreStore } from '../../store/highScoreStore';
+import StatIcon from '../ui/StatIcon.vue';
+import type { StatIconName } from '../ui/statIcons';
 
 const highScoreStore = useHighScoreStore();
 
@@ -31,12 +33,11 @@ function formatDayKey(dayKey: string): string {
   });
 }
 
-const DAMAGE_TYPE_ICON: Record<DamageType, string> = {
-  physical: '⚔️',
-  magic: '🔮',
-  healing: '💚',
-  trueDamage: '⚡',
-  expGain: '✨',
+const DAMAGE_TYPE_ICON: Record<DamageType, StatIconName> = {
+  physical: 'physical',
+  magic: 'magic',
+  healing: 'healing',
+  trueDamage: 'true',
 };
 </script>
 
@@ -56,12 +57,11 @@ const DAMAGE_TYPE_ICON: Record<DamageType, string> = {
 
         <div v-if="expanded[run.id]" class="run-details">
           <p class="stat-summary">
-            <span>⚔️ {{ run.stats.physicalDamage.toFixed(0) }}</span>
-            <span>🔮 {{ run.stats.magicDamage.toFixed(0) }}</span>
-            <span>💚 {{ run.stats.healing.toFixed(0) }}</span>
-            <span>⚡ {{ run.stats.trueDamage.toFixed(0) }}</span>
-            <span>✨ {{ run.stats.expGain.toFixed(0) }}</span>
-            <span>💥 {{ (run.stats.critChance * 100).toFixed(0) }}%</span>
+            <span><StatIcon name="physical" /> {{ run.stats.physicalDamage.toFixed(0) }}</span>
+            <span><StatIcon name="magic" /> {{ run.stats.magicDamage.toFixed(0) }}</span>
+            <span><StatIcon name="healing" /> {{ run.stats.healing.toFixed(0) }}</span>
+            <span><StatIcon name="true" /> {{ run.stats.trueDamage.toFixed(0) }}</span>
+            <span><StatIcon name="crit" /> {{ (run.stats.critChance * 100).toFixed(0) }}%</span>
           </p>
 
           <template v-if="run.items.length">
@@ -78,7 +78,7 @@ const DAMAGE_TYPE_ICON: Record<DamageType, string> = {
             <h4>Skills</h4>
             <ul class="detail-list">
               <li v-for="(habit, hi) in run.habits" :key="hi">
-                {{ DAMAGE_TYPE_ICON[habit.damageType] }} {{ habit.name }}
+                <StatIcon :name="DAMAGE_TYPE_ICON[habit.damageType]" class="habit-icon" />{{ habit.name }}
                 <span class="habit-meta">({{ habit.period }} · streak {{ habit.streakCount }})</span>
               </li>
             </ul>
@@ -147,6 +147,16 @@ const DAMAGE_TYPE_ICON: Record<DamageType, string> = {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--text);
+}
+
+.stat-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.habit-icon {
+  margin-right: 0.4rem;
 }
 
 .stat-summary {

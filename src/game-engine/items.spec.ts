@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { TUNING } from './constants/tuning';
 import {
   assignNewItemUnlockTiers,
+  assignSideOnlyItems,
+  availableSideOnlyItems,
   bodySpriteFor,
   describeItemBonus,
   describeItemBonusParts,
@@ -10,13 +12,15 @@ import {
   itemFlatBonus,
   maxEquipSlots,
   rollItemDrops,
+  unownedDroppableItems,
 } from './items';
 import type { ItemDef } from './items';
 import { createRng } from './rng';
+import { createQuest } from './quests';
 import type { Character } from './types';
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
-  const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 };
+  const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 };
   return {
     level: 1,
     exp: 0,
@@ -191,15 +195,15 @@ describe('describeItemBonus', () => {
   }
 
   it('describes a single-stat item', () => {
-    expect(describeItemBonus(itemNamed('rusty-blade'))).toBe('⚔️ +3%');
+    expect(describeItemBonus(itemNamed('rusty-blade'))).toBe('Physical +3%');
   });
 
   it('describes a hybrid item with both its primary and secondary stat', () => {
-    expect(describeItemBonus(itemNamed('battlemage-gauntlets'))).toBe('⚔️ +4%, 🔮 +4%');
+    expect(describeItemBonus(itemNamed('battlemage-gauntlets'))).toBe('Physical +4%, Magic +4%');
   });
 
   it('describes flat bonuses without a percent sign', () => {
-    expect(describeItemBonus(itemNamed('juggernaut-carapace'))).toBe('🛡️ +300, ❤️ +200');
+    expect(describeItemBonus(itemNamed('juggernaut-carapace'))).toBe('Armor +300, Health +200');
   });
 
   it('describes the consumable distinctly, with no stat percentages', () => {
@@ -374,20 +378,56 @@ describe('maxEquipSlots', () => {
 });
 
 describe('describeItemBonusParts', () => {
-  it('pairs each bonus text with a plain-English stat label, and matches describeItemBonus', () => {
+  it('pairs each bonus with its stat and a plain-English label', () => {
     const item = ITEM_CATALOG.find((i) => i.id === 'battlemage-gauntlets');
     if (!item) throw new Error('missing fixture item');
     const parts = describeItemBonusParts(item);
     expect(parts).toEqual([
-      { text: '⚔️ +4%', label: 'Physical damage' },
-      { text: '🔮 +4%', label: 'Magic damage' },
+      { stat: 'physicalDamage', text: '+4%', label: 'Physical damage' },
+      { stat: 'magicDamage', text: '+4%', label: 'Magic damage' },
     ]);
-    expect(describeItemBonus(item)).toBe(parts.map((p) => p.text).join(', '));
   });
 
   it('has no parts for a consumable', () => {
     const feather = ITEM_CATALOG.find((i) => i.type === 'consumable');
     if (!feather) throw new Error('missing fixture item');
     expect(describeItemBonusParts(feather)).toEqual([]);
+  });
+});
+
+describe('side-only items', () => {
+  it('assignSideOnlyItems picks SIDE_QUEST_ITEM_COUNT distinct rare/epic items and skips excluded ids', () => {
+    const picked = assignSideOnlyItems(createRng(1));
+    expect(picked).toHaveLength(TUNING.SIDE_QUEST_ITEM_COUNT);
+    expect(new Set(picked).size).toBe(picked.length);
+    const excluded = assignSideOnlyItems(createRng(1), picked);
+    for (const id of excluded) expect(picked).not.toContain(id);
+  });
+
+  it('never drops a side-only item, from boss drops or the item-drop pool', () => {
+    const sideOnly = assignSideOnlyItems(createRng(2));
+    const character = makeCharacter({ sideOnlyItemIds: sideOnly });
+    expect(unownedDroppableItems(character).map((i) => i.id)).not.toEqual(expect.arrayContaining(sideOnly));
+    for (const id of sideOnly) expect(unownedDroppableItems(character).map((i) => i.id)).not.toContain(id);
+    for (let seed = 0; seed < 100; seed++) {
+      const dropped = rollItemDrops(character, 1000, createRng(seed)).map((i) => i.id);
+      for (const id of sideOnly) expect(dropped).not.toContain(id);
+    }
+  });
+
+  it('a character with no side-only items can drop those same items normally', () => {
+    const [id] = assignSideOnlyItems(createRng(2));
+    expect(unownedDroppableItems(makeCharacter()).map((i) => i.id)).toContain(id);
+  });
+
+  it('availableSideOnlyItems excludes owned items and items promised to a pending side quest', () => {
+    const [a, b] = assignSideOnlyItems(createRng(3));
+    const character = makeCharacter({ sideOnlyItemIds: [a, b] });
+    expect(availableSideOnlyItems(character, []).map((i) => i.id)).toEqual([a, b]);
+    expect(availableSideOnlyItems({ ...character, ownedItemIds: [a] }, []).map((i) => i.id)).toEqual([b]);
+    const promised = createQuest('q', 'easy', '2099-01-01', 'side', a);
+    expect(availableSideOnlyItems(character, [promised]).map((i) => i.id)).toEqual([b]);
+    // Once that quest is gone (missed), the item is available again.
+    expect(availableSideOnlyItems(character, []).map((i) => i.id)).toContain(a);
   });
 });

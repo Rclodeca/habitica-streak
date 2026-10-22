@@ -36,7 +36,7 @@ const alwaysCritRng = () => 0;
 const DAY_KEY = '2026-01-01';
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
-  const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 };
+  const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 };
   return {
     level: 1,
     exp: 0,
@@ -101,7 +101,7 @@ describe('completeHabit', () => {
     expect(result.updatedHabit.streakCount).toBe(5);
     // Streak 4 -> 5 crosses the milestone at 5 (MILESTONE_EXP[5] = 20).
     expect(result.milestoneExp).toBe(MILESTONE_EXP[5]);
-    expect(result.milestoneExp).toBe(20);
+    expect(result.milestoneExp).toBe(5);
   });
 
   it('deals baseDamage * streakMultiplier reduced by the boss magicResist for a magic habit, and returns 0 milestone exp on a non-milestone completion', () => {
@@ -165,7 +165,7 @@ describe('completeHabit', () => {
 
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
-    const expectedBase = statValue * poolSizeMultiplier('physical', 3) * (1 / 3);
+    const expectedBase = statValue * poolSizeMultiplier(3) * (1 / 3);
     const expectedAmount = expectedBase * streakMultiplier(0);
 
     expect(result.damageDealt).toBeCloseTo(expectedAmount, 10);
@@ -321,7 +321,7 @@ describe('completeHabit', () => {
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
     // easy weight=1, hard weight=2 -> easy gets 1/3 of the stat value.
-    const expectedBase = statValue * poolSizeMultiplier('healing', 3) * (1 / 3);
+    const expectedBase = statValue * poolSizeMultiplier(3) * (1 / 3);
     const expectedAmount = expectedBase * streakMultiplier(0);
 
     expect(result.character.currentHealth).toBeCloseTo(10 + expectedAmount, 10);
@@ -354,7 +354,7 @@ describe('completeHabit', () => {
     const goodHealed = goodResult.character.currentHealth - character.currentHealth;
 
     const statValue = statAtLevel(character.starterStats.healing, character.level);
-    const expectedGoodBase = statValue * poolSizeMultiplier('healing', 3) * (1 / 3); // 1/(1+2) weight split
+    const expectedGoodBase = statValue * poolSizeMultiplier(3) * (1 / 3); // 1/(1+2) weight split
     const expectedGoodAmount = expectedGoodBase * streakMultiplier(0);
 
     expect(goodHealed).toBeCloseTo(expectedGoodAmount, 10);
@@ -820,6 +820,15 @@ describe('resolveBossDefeatIfDead', () => {
     expect(result.boss.difficultyModifier).toBe(1.1);
   });
 
+  it("sizes the next boss's attack with the damped expected-level anchor, so a higher-level player takes a smaller hit as % of max HP", () => {
+    const hitPctNextBoss = (level: number) => {
+      const character = makeCharacter({ level });
+      const result = resolveBossDefeatIfDead(character, makeBoss({ index: 14, health: 0 }), createRng(5));
+      return (result.boss.physicalAttack * TUNING.MISS_DAMAGE_FACTOR) / statAtLevel(character.starterStats.health, result.character.level);
+    };
+    expect(hitPctNextBoss(25)).toBeLessThan(hitPctNextBoss(10));
+  });
+
   it('treats a tiny positive boss.health that rounds to 0 as defeated', () => {
     const character = makeCharacter();
     const boss = makeBoss({ index: 3, health: 0.3 }); // rounds to 0 on the health bar, but is not literally 0
@@ -1129,11 +1138,11 @@ describe('expectedMediumDailyDamage', () => {
     const expected =
       statValue *
       itemStatMultiplier(character, 'physicalDamage') *
-      poolSizeMultiplier('physical', totalWeight) *
+      poolSizeMultiplier(totalWeight) *
       (DIFFICULTY_WEIGHT.medium / totalWeight);
     expect(expectedMediumDailyDamage(character, 'physical', [existing])).toBeCloseTo(expected, 10);
     // Never more than the pool it joins grows to.
-    expect(expectedMediumDailyDamage(character, 'physical', [existing])).toBeLessThan(statValue * poolSizeMultiplier('physical', totalWeight));
+    expect(expectedMediumDailyDamage(character, 'physical', [existing])).toBeLessThan(statValue * poolSizeMultiplier(totalWeight));
   });
 
   it('ignores the existing habits\' own streak/Special/Ult — only their difficulty weight affects the split', () => {
@@ -1144,14 +1153,5 @@ describe('expectedMediumDailyDamage', () => {
       expectedMediumDailyDamage(character, 'physical', [plain]),
       10,
     );
-  });
-
-  it('never double-counts the expGain item bonus, mirroring completeHabit\'s special case', () => {
-    const character = makeCharacter({ ownedItemIds: [], equippedItemIds: [] });
-    const statValue = statAtLevel(character.starterStats.expGain, character.level);
-    // No items equipped, so itemStatMultiplier is 1 regardless — this just
-    // pins expGain to the same "whole pool, no multiplier" baseline as any
-    // other damage type when unshared.
-    expect(expectedMediumDailyDamage(character, 'expGain', [])).toBeCloseTo(statValue, 10);
   });
 });

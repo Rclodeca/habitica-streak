@@ -2,6 +2,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createRng } from '../game-engine';
+import { TUNING } from '../game-engine/constants/tuning';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
@@ -105,15 +106,59 @@ describe('useEventChoice', () => {
     expect(events.revealed.value).toBeNull();
   });
 
-  it('quest creates a quest locked to the current boss index and spends the pick', () => {
+  it('side-quest creates a side quest promised an unclaimed side-only item and spends the pick', () => {
     const { characterStore, events } = setup(1, 1);
-    useBossStore().setBoss({ ...useBossStore().boss, index: 4 });
-    events.chooseQuest('Clean garage', 'hard', '2099-01-01');
+    const sideOnly = characterStore.character.sideOnlyItemIds ?? [];
+    events.chooseSideQuest('Clean garage', 'hard', '2099-01-01');
 
     const quests = useQuestStore().quests;
     expect(quests).toHaveLength(1);
-    expect(quests[0].bossIndexAtOffer).toBe(4);
+    expect(quests[0]).toMatchObject({ kind: 'side', difficulty: 'hard', dueDateKey: '2099-01-01' });
+    expect(sideOnly).toContain(quests[0].rewardItemId);
     expect(characterStore.character.pendingEventPicks).toBe(0);
     expect(characterStore.character.takenEventIds).toEqual([]);
+  });
+
+  it('a second side quest is promised the other side-only item, never the same one', () => {
+    const { characterStore, events } = setup(1, 2);
+    events.chooseSideQuest('One', 'easy', '2099-01-01');
+    characterStore.setCharacter({ ...characterStore.character, pendingEventPicks: 1 });
+    events.ensureChoices();
+    events.chooseSideQuest('Two', 'easy', '2099-01-01');
+
+    const rewards = useQuestStore().quests.map((q) => q.rewardItemId);
+    expect(new Set(rewards).size).toBe(2);
+  });
+
+  it('resets the guarantee count when side-quest is offered, even if the pick claims the last unclaimed side-only item', () => {
+    const characterStore = useCharacterStore();
+    const habitStore = useHabitStore();
+    habitStore.addHabit('Daily good', 'daily', 'medium', false, createRng(1));
+    const onlyItem = (characterStore.character.sideOnlyItemIds ?? [])[0];
+    characterStore.setCharacter({
+      ...characterStore.character,
+      level: 1,
+      pendingEventPicks: 1,
+      takenEventIds: [],
+      sideOnlyItemIds: [onlyItem],
+      sideQuestPicksMissed: TUNING.SIDE_QUEST_GUARANTEE_LEVELS,
+    });
+    const events = useEventChoice();
+    events.ensureChoices();
+    expect(events.choices.value.map((c) => c.id)).toContain('side-quest');
+
+    events.chooseSideQuest('Slay it', 'easy', '2099-01-01');
+
+    expect(useQuestStore().quests[0].rewardItemId).toBe(onlyItem);
+    expect(characterStore.character.sideQuestPicksMissed).toBe(0);
+  });
+
+  it('counts a pick where side-quest was eligible but not offered, toward the guarantee', () => {
+    const { characterStore, events } = setup(7, 1);
+    const offered = events.choices.value.map((c) => c.id);
+    const pick = offered.find((id) => id !== 'side-quest' && id !== 'reroll-skill');
+    expect(pick).toBeDefined();
+    events.choose(pick as Exclude<typeof offered[number], 'side-quest' | 'reroll-skill'>);
+    expect(characterStore.character.sideQuestPicksMissed).toBe(offered.includes('side-quest') ? 0 : 1);
   });
 });

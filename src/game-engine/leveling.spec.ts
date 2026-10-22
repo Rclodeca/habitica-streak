@@ -39,7 +39,7 @@ describe('addExpAndResolveLevelUps', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
@@ -164,7 +164,7 @@ describe('effectiveStat', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
@@ -203,7 +203,7 @@ describe('addExpAndResolveLevelUps with item bonuses', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
@@ -225,7 +225,7 @@ describe('effectiveCritChance', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],
@@ -259,7 +259,7 @@ describe('effectiveStat — flat item bonus', () => {
     return {
       level: 1,
       exp: 0,
-      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6, expGain: 1 },
+      starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 },
       currentHealth: 50,
       ownedItemIds: [],
       equippedItemIds: [],

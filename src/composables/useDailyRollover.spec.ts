@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRng, dailyPeriodKey, periodKeyFor, questExpReward } from '../game-engine';
+import { createRng, dailyPeriodKey, ITEM_CATALOG, periodKeyFor } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
@@ -249,19 +249,34 @@ describe('useDailyRollover — quests', () => {
     const questStore = useQuestStore();
     const now = new Date();
     const yesterday = dailyPeriodKey(new Date(now.getTime() - 24 * 60 * 60 * 1000));
-    const quest = questStore.addQuest('Clean garage', 'medium', yesterday, 1);
+    const quest = questStore.addQuest('Clean garage', 'medium', yesterday);
 
     useDailyRollover(now);
 
     expect(useQuestMissGate().misses.value).toEqual([
-      { questId: quest.id, description: 'Clean garage', dueDateKey: yesterday, difficulty: 'medium', expReward: questExpReward(quest) },
+      { questId: quest.id, description: 'Clean garage', dueDateKey: yesterday, difficulty: 'medium', kind: 'regular', rewardText: 'Medium EXP' },
     ]);
+  });
+
+  it('queues a miss for a past-due side quest too, offering its item as the override reward', () => {
+    const questStore = useQuestStore();
+    const characterStore = useCharacterStore();
+    const now = new Date();
+    const yesterday = dailyPeriodKey(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+    const itemId = characterStore.character.sideOnlyItemIds![0];
+    const quest = questStore.addQuest('Slay it', 'hard', yesterday, 'side', itemId);
+
+    useDailyRollover(now);
+
+    const [miss] = useQuestMissGate().misses.value;
+    expect(miss).toMatchObject({ questId: quest.id, kind: 'side' });
+    expect(miss.rewardText).toBe(ITEM_CATALOG.find((i) => i.id === itemId)!.name);
   });
 
   it('does not queue a miss for a quest due exactly today', () => {
     const questStore = useQuestStore();
     const now = new Date();
-    questStore.addQuest('Clean garage', 'medium', dailyPeriodKey(now), 1);
+    questStore.addQuest('Clean garage', 'medium', dailyPeriodKey(now));
 
     useDailyRollover(now);
 
@@ -272,7 +287,7 @@ describe('useDailyRollover — quests', () => {
     const questStore = useQuestStore();
     const now = new Date();
     const tomorrow = dailyPeriodKey(new Date(now.getTime() + 24 * 60 * 60 * 1000));
-    questStore.addQuest('Clean garage', 'medium', tomorrow, 1);
+    questStore.addQuest('Clean garage', 'medium', tomorrow);
 
     useDailyRollover(now);
 

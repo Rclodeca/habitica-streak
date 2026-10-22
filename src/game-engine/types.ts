@@ -1,4 +1,4 @@
-export type DamageType = 'physical' | 'magic' | 'healing' | 'trueDamage' | 'expGain';
+export type DamageType = 'physical' | 'magic' | 'healing' | 'trueDamage';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -36,7 +36,6 @@ export interface Character {
     healing: number;
     health: number;
     trueDamage: number;
-    expGain: number;
   };
   currentHealth: number;
   ownedItemIds: string[]; // items the character has; equal to equippedItemIds except for drops still waiting in the popup queue
@@ -62,7 +61,7 @@ export interface Character {
   // it's already been applied, or the character was created fresh after
   // the rebalance (createCharacter sets this immediately so the migration
   // never double-applies once a fresh character gets saved and reloaded).
-  // health/trueDamage/expGain are deliberately untouched by this migration.
+  // health/trueDamage are deliberately untouched by this migration.
   damagePoolRebalanceApplied?: boolean;
   // Events mechanic (see events.ts). `takenEventIds` holds one-time events
   // already picked this run; `pendingEventPicks` is how many level-ups are
@@ -73,6 +72,16 @@ export interface Character {
   doubledItemId?: string;
   takenEventIds?: string[];
   pendingEventPicks?: number;
+  // Regular-quest completions this calendar week (undefined = none yet). Lives
+  // on the character, so a death starts a fresh count along with everything
+  // else in the run.
+  questWeek?: QuestWeek;
+  // Rare items flagged at character creation as obtainable only through side
+  // quests this run (see assignSideOnlyItems); undefined = none.
+  sideOnlyItemIds?: string[];
+  // Consecutive level-up picks where the side-quest event was eligible but
+  // not offered — drives the guarantee in rollEventChoices.
+  sideQuestPicksMissed?: number;
 }
 
 // Discriminated on `type`. Intentionally a plain union rather than a
@@ -157,14 +166,20 @@ export interface Habit {
   overdriveUsesThisPeriod?: number;
 }
 
+/** 'regular' quests pay EXP from the weekly curve; 'side' quests (offered by an event) pay an item and no EXP. */
+export type QuestKind = 'regular' | 'side';
+
 export interface Quest {
   id: string;
+  kind: QuestKind; // a save from before side quests has none; migrateQuest backfills 'regular'
   description: string; // free-text one-time task, player-authored
   difficulty: Difficulty;
-  dueDateKey: string; // YYYY-MM-DD — same format as dailyPeriodKey
-  // The boss whose kill offered this quest. Locks in the EXP reward base
-  // (see questExpReward in quests.ts) so procrastinating past later boss
-  // kills can't inflate the payout — the reward is always "a slice of the
-  // boss that dropped it," not of whatever boss is current when resolved.
-  bossIndexAtOffer: number;
+  dueDateKey: string; // YYYY-MM-DD — same format as dailyPeriodKey; required for every quest
+  rewardItemId?: string; // side quests only: the item granted on completion
+}
+
+/** Regular-quest completions in one calendar week — see questSlotExp in quests.ts. */
+export interface QuestWeek {
+  weekKey: string; // weeklyPeriodKey() of the week `completed` counts
+  completed: number;
 }

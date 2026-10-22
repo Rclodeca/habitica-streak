@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyDamagePoolRebalance, createCharacter, discardUnequippedItems, migrateCharacter, randomizeStat } from './character';
 import { ITEM_CATALOG } from './items';
+import type { Character } from './types';
 import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
 
@@ -14,7 +15,7 @@ describe('createCharacter', () => {
 
     for (let i = 0; i < 200; i++) {
       const character = createCharacter(rng);
-      const { physicalDamage, magicDamage, healing, health, trueDamage, expGain } = character.starterStats;
+      const { physicalDamage, magicDamage, healing, health, trueDamage } = character.starterStats;
 
       expect(physicalDamage).toBeGreaterThanOrEqual(damagePool * minShare * 0.95);
       expect(physicalDamage).toBeLessThanOrEqual(damagePool * maxShare * 1.05);
@@ -35,9 +36,6 @@ describe('createCharacter', () => {
 
       expect(trueDamage).toBeGreaterThanOrEqual(TUNING.BASE_STATS.trueDamage * 0.95);
       expect(trueDamage).toBeLessThanOrEqual(TUNING.BASE_STATS.trueDamage * 1.05);
-
-      expect(expGain).toBeGreaterThanOrEqual(TUNING.BASE_STATS.expGain * 0.95);
-      expect(expGain).toBeLessThanOrEqual(TUNING.BASE_STATS.expGain * 1.05);
     }
   });
 
@@ -99,25 +97,37 @@ describe('createCharacter', () => {
 });
 
 describe('migrateCharacter', () => {
-  it('backfills trueDamage/expGain on a pre-migration save, leaving every other field untouched', () => {
+  it('backfills trueDamage on a pre-migration save, leaving every other field untouched', () => {
     const character = createCharacter(createRng(1));
-    const { trueDamage, expGain, ...rest } = character.starterStats;
+    const { trueDamage, ...rest } = character.starterStats;
+    void trueDamage;
     const preMigrationSave = { ...character, starterStats: rest } as typeof character;
 
     const migrated = migrateCharacter(preMigrationSave, createRng(2));
 
     expect(migrated.starterStats.trueDamage).toBeGreaterThan(0);
-    expect(migrated.starterStats.expGain).toBeGreaterThan(0);
-    expect({ ...migrated.starterStats, trueDamage: undefined, expGain: undefined }).toEqual({
-      ...rest,
-      trueDamage: undefined,
-      expGain: undefined,
-    });
+    expect({ ...migrated.starterStats, trueDamage: undefined }).toEqual({ ...rest, trueDamage: undefined });
     expect(migrated.level).toBe(character.level);
     expect(migrated.currentHealth).toBe(character.currentHealth);
   });
 
-  it('is a no-op on a character that already has both fields', () => {
+  it('drops a stray starterStats.expGain and expGainRebalanceApplied from a save written before the expGain skill was removed', () => {
+    const character = createCharacter(createRng(1));
+    const legacy = {
+      ...character,
+      expGainRebalanceApplied: true,
+      starterStats: { ...character.starterStats, expGain: 11 },
+    } as unknown as Character;
+
+    const migrated = migrateCharacter(legacy, createRng(2));
+
+    expect('expGain' in migrated.starterStats).toBe(false);
+    expect('expGainRebalanceApplied' in migrated).toBe(false);
+    expect(migrated.starterStats).toEqual(character.starterStats);
+    expect(migrated.level).toBe(character.level);
+  });
+
+  it('is a no-op on a character with nothing to migrate', () => {
     const character = createCharacter(createRng(3));
     const migrated = migrateCharacter(character, createRng(4));
     expect(migrated).toEqual(character);
@@ -133,16 +143,49 @@ describe('migrateCharacter', () => {
 
     expect(migrateCharacter(character, createRng(9)).newItemUnlockTiers).toEqual(newItemUnlockTiers);
   });
+});
 
-  it('backfills only whichever of the two fields is actually missing', () => {
-    const character = createCharacter(createRng(5));
-    const { expGain, ...rest } = character.starterStats;
-    const partialSave = { ...character, starterStats: rest } as typeof character;
+describe('createCharacter — quests v2 / run state', () => {
+  it('starts with TUNING.SIDE_QUEST_ITEM_COUNT distinct side-only rare/epic items', () => {
+    const { sideOnlyItemIds } = createCharacter(createRng(1));
+    expect(sideOnlyItemIds).toHaveLength(TUNING.SIDE_QUEST_ITEM_COUNT);
+    expect(new Set(sideOnlyItemIds).size).toBe(TUNING.SIDE_QUEST_ITEM_COUNT);
+    for (const id of sideOnlyItemIds ?? []) {
+      const item = ITEM_CATALOG.find((i) => i.id === id);
+      expect(['rare', 'epic']).toContain(item?.rarity);
+      expect(item?.levelGated).toBeUndefined();
+      expect(item?.type).toBe('equipment');
+    }
+  });
 
-    const migrated = migrateCharacter(partialSave, createRng(6));
+  it('rolls a fresh side-only set per character (a death re-rolls it)', () => {
+    const sets = new Set(Array.from({ length: 30 }, (_, seed) => (createCharacter(createRng(seed)).sideOnlyItemIds ?? []).join(',')));
+    expect(sets.size).toBeGreaterThan(1);
+  });
 
-    expect(migrated.starterStats.trueDamage).toBe(character.starterStats.trueDamage);
-    expect(migrated.starterStats.expGain).toBeGreaterThan(0);
+  it('has no expGain starter stat or rebalance flag', () => {
+    const character = createCharacter(createRng(1));
+    expect('expGain' in character.starterStats).toBe(false);
+    expect('expGainRebalanceApplied' in character).toBe(false);
+    expect(character.questWeek).toBeUndefined();
+  });
+});
+
+describe('migrateCharacter — side-only items', () => {
+  it('backfills side-only items on a save that predates side quests, never picking one the player owns', () => {
+    const character = createCharacter(createRng(3));
+    const rareOwned = ITEM_CATALOG.filter((i) => (i.rarity === 'rare' || i.rarity === 'epic') && i.type === 'equipment' && !i.levelGated).map((i) => i.id);
+    const preSideQuests: Character = { ...character, sideOnlyItemIds: undefined, ownedItemIds: rareOwned.slice(2), equippedItemIds: [] };
+
+    const migrated = migrateCharacter(preSideQuests, createRng(4));
+
+    expect(migrated.sideOnlyItemIds).toHaveLength(2);
+    for (const id of migrated.sideOnlyItemIds ?? []) expect(preSideQuests.ownedItemIds).not.toContain(id);
+  });
+
+  it('leaves existing side-only items alone', () => {
+    const character = createCharacter(createRng(3));
+    expect(migrateCharacter(character, createRng(4))).toBe(character);
   });
 });
 
@@ -156,10 +199,9 @@ describe('applyDamagePoolRebalance', () => {
     expect(rebalanced.starterStats.physicalDamage).toBeCloseTo(character.starterStats.physicalDamage * factor, 10);
     expect(rebalanced.starterStats.magicDamage).toBeCloseTo(character.starterStats.magicDamage * factor, 10);
     expect(rebalanced.starterStats.healing).toBeCloseTo(character.starterStats.healing * factor, 10);
-    // health/trueDamage/expGain are deliberately exempt.
+    // health/trueDamage are deliberately exempt.
     expect(rebalanced.starterStats.health).toBe(character.starterStats.health);
     expect(rebalanced.starterStats.trueDamage).toBe(character.starterStats.trueDamage);
-    expect(rebalanced.starterStats.expGain).toBe(character.starterStats.expGain);
     expect(rebalanced.damagePoolRebalanceApplied).toBe(true);
   });
 

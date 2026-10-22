@@ -2,22 +2,22 @@
 // randomization live here — everything delegates into `game-engine`.
 
 import { defineStore } from 'pinia';
-import { createQuest } from '../game-engine';
-import type { Difficulty, Quest } from '../game-engine';
+import { createQuest, migrateQuest } from '../game-engine';
+import type { Difficulty, Quest, QuestKind } from '../game-engine';
 
 export const useQuestStore = defineStore('quest', {
   state: () => ({
     quests: [] as Quest[],
   }),
   actions: {
-    /** Hydrates from a save slice, or bootstraps an empty quest list. */
+    /** Hydrates from a save slice (migrating quests saved before quests v2), or bootstraps an empty quest list. */
     initFromSave(saved: Quest[] | null) {
-      this.quests = saved ?? [];
+      this.quests = (saved ?? []).map(migrateQuest);
     },
 
     /** Creates a new quest via the engine and adds it to the list. */
-    addQuest(description: string, difficulty: Difficulty, dueDateKey: string, bossIndexAtOffer: number): Quest {
-      const quest = createQuest(description, difficulty, dueDateKey, bossIndexAtOffer);
+    addQuest(description: string, difficulty: Difficulty, dueDateKey: string, kind: QuestKind = 'regular', rewardItemId?: string): Quest {
+      const quest = createQuest(description, difficulty, dueDateKey, kind, rewardItemId);
       this.quests.push(quest);
       return quest;
     },

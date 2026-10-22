@@ -7,15 +7,17 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRng, effectiveStat, expToNextLevel, periodKeyFor } from '../game-engine';
+import { availableSideOnlyItems, createRng, effectiveStat, expToNextLevel, periodKeyFor, questSlotExp, weeklyPeriodKey } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
+import { useDebugClockStore } from '../store/debugClockStore';
 import { useHabitStore } from '../store/habitStore';
 import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
 import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
+import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
 
 describe('useCombatActions', () => {
@@ -194,7 +196,7 @@ describe('useCombatActions', () => {
     const { checkMissedHabit, restart } = useCombatActions();
 
     const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
-    questStore.addQuest('Clean garage', 'medium', '2099-01-01', 5);
+    questStore.addQuest('Clean garage', 'medium', '2099-01-01');
     characterStore.character = { ...characterStore.character, currentHealth: 1, takenEventIds: ['special'], pendingEventPicks: 2 };
     bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
     checkMissedHabit(habit.id);
@@ -212,7 +214,7 @@ describe('useCombatActions', () => {
     const questStore = useQuestStore();
     const { completeQuest } = useCombatActions();
 
-    const quest = questStore.addQuest('Clean garage', 'hard', '2099-01-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'hard', '2099-01-01');
     characterStore.character = { ...characterStore.character, exp: expToNextLevel(1) - 1, pendingEventPicks: 0 };
 
     completeQuest(quest.id);
@@ -353,20 +355,119 @@ describe('useCombatActions', () => {
     expect(habitStore.habitsOfType('physical', 'weekly')).toEqual([{ ...weeklyHabit, damageType: 'physical' }]);
   });
 
-  it('completeQuest grants questExpReward, logs quest-completed, and removes the quest', () => {
+  it('completeQuest grants the slot-1 weekly-curve EXP, logs quest-completed, and removes the quest', () => {
     const characterStore = useCharacterStore();
     const questStore = useQuestStore();
     const { completeQuest } = useCombatActions();
     const activityLogStore = useActivityLogStore();
 
-    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01');
+    const { exp, level } = characterStore.character;
+
+    const result = completeQuest(quest.id);
+
+    const expected = questSlotExp(level, 'medium', 0);
+    expect(expected).toBeLessThan(expToNextLevel(level)); // well under one level at level 1
+    expect(result).toEqual({ amount: expected, item: null });
+    expect(characterStore.character.exp).toBeCloseTo(exp + expected, 10);
+    expect(questStore.quests).toEqual([]);
+    expect(activityLogStore.entries[0]).toMatchObject({ kind: 'quest-completed', description: 'Clean garage', amount: expected });
+  });
+
+  it('each further regular completion in the same calendar week takes the next, smaller slot', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { completeQuest } = useCombatActions();
+    // Level 20 keeps three quests' worth of EXP from levelling the character mid-test.
+    characterStore.character = { ...characterStore.character, level: 20, exp: 0 };
+
+    const amounts = [1, 2, 3].map((n) => completeQuest(questStore.addQuest(`Quest ${n}`, 'medium', '2099-01-01').id)?.amount);
+
+    expect(amounts).toEqual([questSlotExp(20, 'medium', 0), questSlotExp(20, 'medium', 1), questSlotExp(20, 'medium', 2)]);
+    expect(amounts[0]!).toBeGreaterThan(amounts[1]!);
+    expect(amounts[1]!).toBeGreaterThan(amounts[2]!);
+    expect(characterStore.character.questWeek).toEqual({ weekKey: weeklyPeriodKey(useDebugClockStore().now()), completed: 3 });
+  });
+
+  it('slot 8 and beyond pays nothing but still completes and clears the quest', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { completeQuest } = useCombatActions();
+    characterStore.character = { ...characterStore.character, level: 20, questWeek: { weekKey: weeklyPeriodKey(useDebugClockStore().now()), completed: 7 } };
     const expBefore = characterStore.character.exp;
 
-    completeQuest(quest.id);
+    const result = completeQuest(questStore.addQuest('Late one', 'hard', '2099-01-01').id);
 
-    expect(characterStore.character.exp).toBeGreaterThan(expBefore);
+    expect(result?.amount).toBe(0);
+    expect(characterStore.character.exp).toBe(expBefore);
     expect(questStore.quests).toEqual([]);
-    expect(activityLogStore.entries[0]).toMatchObject({ kind: 'quest-completed', description: 'Clean garage' });
+  });
+
+  it('a new calendar week starts back at slot 1', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const clock = useDebugClockStore();
+    const { completeQuest } = useCombatActions();
+    characterStore.character = { ...characterStore.character, level: 20, exp: 0 };
+
+    completeQuest(questStore.addQuest('This week', 'medium', '2099-01-01').id);
+    clock.offsetMs += 7 * 24 * 60 * 60 * 1000;
+    const next = completeQuest(questStore.addQuest('Next week', 'medium', '2099-01-01').id);
+
+    expect(next?.amount).toBe(questSlotExp(20, 'medium', 0));
+    expect(characterStore.character.questWeek).toEqual({ weekKey: weeklyPeriodKey(clock.now()), completed: 1 });
+  });
+
+  it('a failed quest does not consume a slot', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { completeQuest, failQuest } = useCombatActions();
+    characterStore.character = { ...characterStore.character, level: 20, exp: 0 };
+
+    failQuest(questStore.addQuest('Missed', 'easy', '2026-02-01').id);
+    expect(characterStore.character.questWeek).toBeUndefined();
+    const result = completeQuest(questStore.addQuest('Done', 'medium', '2099-01-01').id);
+
+    expect(result?.amount).toBe(questSlotExp(20, 'medium', 0));
+  });
+
+  it('completing a side quest grants its item and no EXP, and leaves the weekly count alone', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const activityLogStore = useActivityLogStore();
+    const { completeQuest } = useCombatActions();
+    const { current, dismiss } = useItemDropQueue();
+
+    const itemId = characterStore.character.sideOnlyItemIds![0];
+    const quest = questStore.addQuest('Slay it', 'hard', '2099-01-01', 'side', itemId);
+    const { exp, questWeek } = characterStore.character;
+
+    const result = completeQuest(quest.id);
+
+    expect(result?.amount).toBe(0);
+    expect(result?.item?.id).toBe(itemId);
+    expect(characterStore.character.exp).toBe(exp);
+    expect(characterStore.character.questWeek).toBe(questWeek);
+    expect(characterStore.character.ownedItemIds).toContain(itemId);
+    expect(current.value?.id).toBe(itemId); // goes through the item-drop popup path
+    expect(questStore.quests).toEqual([]);
+    expect(activityLogStore.entries[0]).toMatchObject({ kind: 'quest-completed', amount: 0, itemName: result?.item?.name });
+    dismiss();
+  });
+
+  it('a missed side quest returns its item to the unassigned side-only pool', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { failQuest } = useCombatActions();
+
+    const itemId = characterStore.character.sideOnlyItemIds![0];
+    const quest = questStore.addQuest('Slay it', 'easy', '2026-02-01', 'side', itemId);
+    expect(availableSideOnlyItems(characterStore.character, questStore.quests).map((i) => i.id)).not.toContain(itemId);
+
+    failQuest(quest.id);
+
+    expect(characterStore.character.ownedItemIds).not.toContain(itemId);
+    expect(availableSideOnlyItems(characterStore.character, questStore.quests).map((i) => i.id)).toContain(itemId);
   });
 
   it('completeQuest is a no-op for an id that is not in the quest store', () => {
@@ -385,7 +486,7 @@ describe('useCombatActions', () => {
     const { failQuest } = useCombatActions();
     const activityLogStore = useActivityLogStore();
 
-    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01');
     const healthBefore = characterStore.character.currentHealth;
 
     failQuest(quest.id);
@@ -402,7 +503,7 @@ describe('useCombatActions', () => {
     const { failQuest } = useCombatActions();
     const { isDead } = useDeathScreen();
 
-    const quest = questStore.addQuest('Clean garage', 'hard', '2026-02-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'hard', '2026-02-01');
     characterStore.character = { ...characterStore.character, currentHealth: 1 };
     bossStore.setBoss({ ...bossStore.boss, physicalAttack: 10000, magicAttack: 10000 });
 
@@ -420,7 +521,7 @@ describe('useCombatActions', () => {
     const { isDead } = useDeathScreen();
 
     const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
-    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01', 1);
+    const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01');
     characterStore.character = { ...characterStore.character, currentHealth: 1 };
     bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
     checkMissedHabit(habit.id);

@@ -81,7 +81,7 @@ describe('useModalPriority', () => {
 
     it('is false while a quest miss is pending', () => {
       givePendingPick();
-      const quest = useQuestStore().addQuest('Clean garage', 'medium', '2026-01-01', 1);
+      const quest = useQuestStore().addQuest('Clean garage', 'medium', '2026-01-01');
       useQuestMissGate().queueMiss(quest);
       const { eventChoiceVisible } = useModalPriority();
       expect(eventChoiceVisible.value).toBe(false);
@@ -96,7 +96,7 @@ describe('useModalPriority', () => {
 
     it('is true when a quest miss is pending and nothing else is blocking', () => {
       const questStore = useQuestStore();
-      const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01', 1);
+      const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01');
       useQuestMissGate().queueMiss(quest);
 
       const { questMissVisible } = useModalPriority();
@@ -105,7 +105,7 @@ describe('useModalPriority', () => {
 
     it('is false while the character is dead, even with a quest miss pending', () => {
       const questStore = useQuestStore();
-      const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01', 1);
+      const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01');
       useQuestMissGate().queueMiss(quest);
       useDeathScreen().triggerDeath();
 
@@ -119,7 +119,7 @@ describe('useModalPriority', () => {
       const questStore = useQuestStore();
       const habit = habitStore.addHabit('Meditate', 'daily', 'medium', false, createRng());
       useMissedSkillsGate().queueMiss(habit, '2024-01-02');
-      const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01', 1);
+      const quest = questStore.addQuest('Clean garage', 'medium', '2026-01-01');
       useQuestMissGate().queueMiss(quest);
 
       const { questMissVisible } = useModalPriority();

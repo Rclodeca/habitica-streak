@@ -13,10 +13,12 @@ import {
   consumeEventPick,
   eligibleEvents,
   migrateEventState,
+  recordSideQuestOffer,
   rollEventChoices,
 } from './events';
 import { effectiveCritChance } from './leveling';
 import { createRng } from './rng';
+import { createQuest } from './quests';
 import type { Character, Habit } from './types';
 
 function makeHabit(overrides: Partial<Habit> = {}): Habit {
@@ -42,7 +44,7 @@ const ids = (events: { id: string }[]) => events.map((e) => e.id).sort();
 
 describe('eligibleEvents', () => {
   it('offers only the always-available events at level 1 with no habits and full health', () => {
-    expect(ids(eligibleEvents(makeCharacter({ level: 1 }), []))).toEqual(['crit-boost', 'heal-boost', 'item-drop', 'quest']);
+    expect(ids(eligibleEvents(makeCharacter({ level: 1 }), []))).toEqual(['crit-boost', 'heal-boost', 'item-drop', 'side-quest']);
   });
 
   it('offers heal only when below max health', () => {
@@ -59,7 +61,7 @@ describe('eligibleEvents', () => {
 
   it('gates events by level', () => {
     const habits = [makeHabit({ id: 'd' }), makeHabit({ id: 'w', period: 'weekly' })];
-    expect(ids(eligibleEvents(makeCharacter({ level: TUNING.SPECIAL_LEVEL }), habits))).toEqual(['crit-boost', 'heal', 'heal-boost', 'item-drop', 'overdrive', 'quest', 'reroll-skill', 'special']);
+    expect(ids(eligibleEvents(makeCharacter({ level: TUNING.SPECIAL_LEVEL }), habits))).toEqual(['crit-boost', 'heal', 'heal-boost', 'item-drop', 'overdrive', 'reroll-skill', 'side-quest', 'special']);
     expect(ids(eligibleEvents(makeCharacter({ level: TUNING.ULT_LEVEL }), habits))).toContain('ult');
     expect(ids(eligibleEvents(makeCharacter({ level: 6 }), habits))).not.toContain('item-slots');
     expect(ids(eligibleEvents(makeCharacter({ level: 7 }), habits))).toContain('item-slots');
@@ -67,12 +69,12 @@ describe('eligibleEvents', () => {
 
   it('hides one-time events once taken, but keeps repeatable ones', () => {
     const habits = [makeHabit({ id: 'd' })];
-    const character = makeCharacter({ level: 7, takenEventIds: ['special', 'item-slots', 'overdrive', 'quest'] });
+    const character = makeCharacter({ level: 7, takenEventIds: ['special', 'item-slots', 'overdrive', 'side-quest'] });
     const result = ids(eligibleEvents(character, habits));
     expect(result).not.toContain('special');
     expect(result).not.toContain('item-slots');
     expect(result).toContain('overdrive');
-    expect(result).toContain('quest');
+    expect(result).toContain('side-quest');
   });
 
   it('hides special/ult/overdrive when no matching good habit exists', () => {
@@ -96,7 +98,65 @@ describe('rollEventChoices', () => {
   });
 
   it('respects a smaller count', () => {
-    expect(rollEventChoices(makeCharacter({ level: 1 }), [], createRng(1), 2)).toHaveLength(2);
+    expect(rollEventChoices(makeCharacter({ level: 1 }), [], createRng(1), [], 2)).toHaveLength(2);
+  });
+});
+
+describe('side-quest event', () => {
+  const sideOnly = (c: Character) => c.sideOnlyItemIds ?? [];
+
+  it('is ineligible when the run has no side-only items', () => {
+    expect(ids(eligibleEvents(makeCharacter({ sideOnlyItemIds: [] }), []))).not.toContain('side-quest');
+    expect(ids(eligibleEvents(makeCharacter({ sideOnlyItemIds: undefined }), []))).not.toContain('side-quest');
+  });
+
+  it('is ineligible once every side-only item is owned or promised to a pending side quest', () => {
+    const base = makeCharacter();
+    const [first, second] = sideOnly(base);
+    const ownedAll = makeCharacter({ ownedItemIds: [first, second] });
+    expect(ids(eligibleEvents(ownedAll, []))).not.toContain('side-quest');
+
+    const quests = [createQuest('a', 'easy', '2099-01-01', 'side', first), createQuest('b', 'easy', '2099-01-01', 'side', second)];
+    expect(ids(eligibleEvents(base, [], quests))).not.toContain('side-quest');
+    expect(ids(eligibleEvents(base, [], quests.slice(0, 1)))).toContain('side-quest');
+  });
+
+  it('a regular quest does not promise a side-only item', () => {
+    expect(ids(eligibleEvents(makeCharacter(), [], [createQuest('a', 'easy', '2099-01-01')]))).toContain('side-quest');
+  });
+
+  it('is forced into the choices once SIDE_QUEST_GUARANTEE_LEVELS picks passed without it', () => {
+    const habits = [makeHabit({ id: 'd' }), makeHabit({ id: 'w', period: 'weekly' })];
+    const waiting = makeCharacter({ level: 10, sideQuestPicksMissed: TUNING.SIDE_QUEST_GUARANTEE_LEVELS });
+    for (let seed = 0; seed < 40; seed++) {
+      const choices = rollEventChoices(waiting, habits, createRng(seed));
+      expect(choices).toHaveLength(3);
+      expect(choices.map((c) => c.id)).toContain('side-quest');
+    }
+  });
+
+  it('is not forced before the cap, so it can be absent from a roll', () => {
+    const habits = [makeHabit({ id: 'd' }), makeHabit({ id: 'w', period: 'weekly' })];
+    const early = makeCharacter({ level: 10, sideQuestPicksMissed: TUNING.SIDE_QUEST_GUARANTEE_LEVELS - 1 });
+    const absent = Array.from({ length: 60 }, (_, seed) => rollEventChoices(early, habits, createRng(seed))).filter(
+      (choices) => !choices.some((c) => c.id === 'side-quest'),
+    );
+    expect(absent.length).toBeGreaterThan(0);
+  });
+});
+
+describe('recordSideQuestOffer', () => {
+  it('counts a pick where it was eligible but not offered, and resets when offered', () => {
+    const c0 = makeCharacter();
+    const c1 = recordSideQuestOffer(c0, ['heal', 'crit-boost'], true);
+    const c2 = recordSideQuestOffer(c1, ['heal', 'crit-boost'], true);
+    expect(c2.sideQuestPicksMissed).toBe(2);
+    expect(recordSideQuestOffer(c2, ['side-quest', 'heal'], true).sideQuestPicksMissed).toBe(0);
+  });
+
+  it('leaves the count alone while the event is not eligible', () => {
+    const c = makeCharacter({ sideQuestPicksMissed: 3 });
+    expect(recordSideQuestOffer(c, ['heal'], false)).toBe(c);
   });
 });
 
@@ -108,7 +168,7 @@ describe('consumeEventPick', () => {
   });
 
   it('does not record repeatable events as taken and never goes below 0', () => {
-    const result = consumeEventPick(makeCharacter({ pendingEventPicks: 0, takenEventIds: [] }), 'quest');
+    const result = consumeEventPick(makeCharacter({ pendingEventPicks: 0, takenEventIds: [] }), 'side-quest');
     expect(result.pendingEventPicks).toBe(0);
     expect(result.takenEventIds).toEqual([]);
   });

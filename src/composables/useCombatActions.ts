@@ -42,11 +42,14 @@ import {
   overdriveHabit,
   overdriveUsesRemaining,
   periodKeyFor,
-  questExpReward,
   questMissDamage,
+  questSlotExp,
+  questWeekFor,
+  recordQuestCompletion,
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
+  weeklyPeriodKey,
 } from '../game-engine';
 import type { Character, Difficulty, Habit, ItemDef, Period } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
@@ -57,6 +60,7 @@ import { useHabitStore } from '../store/habitStore';
 import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
 import { useDeathScreen } from './useDeathScreen';
+import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
 
 // Shared across calls made through this composable. This is app runtime
@@ -74,6 +78,7 @@ export function useCombatActions() {
   const highScoreStore = useHighScoreStore();
   const { triggerDeath, dismiss: dismissDeathScreen } = useDeathScreen();
   const { showReviveNotice } = useReviveNotice();
+  const { enqueueDrops } = useItemDropQueue();
 
   /**
    * Writes a `level-up` log entry if `after` is at a higher level than
@@ -96,7 +101,6 @@ export function useCombatActions() {
         healing: effectiveStat(after, 'healing') - effectiveStat(before, 'healing'),
         health: effectiveStat(after, 'health') - effectiveStat(before, 'health'),
         trueDamage: effectiveStat(after, 'trueDamage') - effectiveStat(before, 'trueDamage'),
-        expGain: effectiveStat(after, 'expGain') - effectiveStat(before, 'expGain'),
       },
     });
   }
@@ -156,13 +160,6 @@ export function useCombatActions() {
         amount: result.character.currentHealth - healthBefore,
         milestoneExp: result.milestoneExp,
       });
-    } else if (habit.damageType === 'expGain') {
-      activityLogStore.addEntry({
-        kind: 'exp-skill',
-        habitName: habit.name,
-        amount: result.expGained ?? 0,
-        milestoneExp: result.milestoneExp,
-      });
     } else if (result.damageDealt !== undefined) {
       // Sub-effect entries pushed before the main one so the main "skill
       // used" entry — the headline of this action — lands on top (newest).
@@ -182,14 +179,9 @@ export function useCombatActions() {
       });
     }
 
-    // Streak-milestone EXP and an expGain skill's own payout are granted
-    // together in one call, so expGain items' percent bonus (see
-    // addExpAndResolveLevelUps) is applied once to their combined total
-    // rather than once per source.
-    const totalExpGained = result.milestoneExp + (result.expGained ?? 0);
-    if (totalExpGained > 0) {
+    if (result.milestoneExp > 0) {
       const beforeLevelUp = characterStore.character;
-      const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, totalExpGained);
+      const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, result.milestoneExp);
       logLevelUpIfAny(beforeLevelUp, character);
       characterStore.setCharacter(character);
       grantEventPicks(levelsGained);
@@ -373,7 +365,6 @@ export function useCombatActions() {
           healing: effectiveStat(character, 'healing'),
           health: effectiveStat(character, 'health'),
           trueDamage: effectiveStat(character, 'trueDamage'),
-          expGain: effectiveStat(character, 'expGain'),
           critChance: effectiveCritChance(character),
         },
         habits: habits.map((h) => ({
@@ -408,25 +399,41 @@ export function useCombatActions() {
   }
 
   /**
-   * Grants a quest's bonus EXP (questExpReward) and resolves any resulting
-   * level-ups, logs a quest-completed entry, and removes it from the quest
-   * store. Used both for an on-time checkbox tap (QuestSection) and an "I
-   * actually did this" override from the missed-deadline gate (see
-   * useQuestMissGate) — the two cases resolve identically.
+   * Completes a quest — used both for an on-time checkbox tap (QuestSection)
+   * and an "I actually did this" override from the missed-deadline gate (see
+   * useQuestMissGate); the two cases resolve identically.
+   *
+   * Regular: grants the weekly-curve EXP for the next slot (questSlotExp, at
+   * the level held right now), bumps this calendar week's completion count,
+   * and resolves any level-ups. Side: grants its reward item through the item
+   * drop popup and nothing else — no EXP, and the weekly count is untouched.
+   * Either way it logs a quest-completed entry and removes the quest. Returns
+   * what was paid out (null for an unknown id) so the caller can celebrate it.
    */
-  function completeQuest(questId: string): void {
+  function completeQuest(questId: string): { amount: number; item: ItemDef | null } | null {
     const quest = questStore.quests.find((q) => q.id === questId);
-    if (!quest) return;
+    if (!quest) return null;
 
-    const amount = questExpReward(quest);
+    if (quest.kind === 'side') {
+      const item = quest.rewardItemId ? characterStore.grantItem(quest.rewardItemId) : null;
+      if (item) enqueueDrops([item]);
+      activityLogStore.addEntry({ kind: 'quest-completed', description: quest.description, amount: 0, itemName: item?.name });
+      questStore.removeQuest(questId);
+      return { amount: 0, item };
+    }
+
+    const weekKey = weeklyPeriodKey(debugClockStore.now());
     const beforeLevelUp = characterStore.character;
+    const week = questWeekFor(beforeLevelUp.questWeek, weekKey);
+    const amount = questSlotExp(beforeLevelUp.level, quest.difficulty, week.completed);
     const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, amount);
     logLevelUpIfAny(beforeLevelUp, character);
-    characterStore.setCharacter(character);
+    characterStore.setCharacter({ ...character, questWeek: recordQuestCompletion(beforeLevelUp.questWeek, weekKey) });
     grantEventPicks(levelsGained);
 
     activityLogStore.addEntry({ kind: 'quest-completed', description: quest.description, amount });
     questStore.removeQuest(questId);
+    return { amount, item: null };
   }
 
   /**

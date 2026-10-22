@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { dailyPeriodKey, questExpReward } from '../../game-engine';
-import type { Difficulty, Quest } from '../../game-engine';
+import { computed, ref } from 'vue';
+import { dailyPeriodKey, ITEM_CATALOG } from '../../game-engine';
+import type { Difficulty, ItemDef, Quest } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useQuestCompleteQueue } from '../../composables/useQuestCompleteQueue';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useQuestStore } from '../../store/questStore';
+import Modal from '../ui/Modal.vue';
+import QuestDetailModal from './QuestDetailModal.vue';
+import QuestForm from './QuestForm.vue';
 
 const questStore = useQuestStore();
 const debugClockStore = useDebugClockStore();
@@ -14,8 +17,12 @@ const { enqueue: enqueueCompletion } = useQuestCompleteQueue();
 
 const PIPS: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
 const MS_PER_DAY = 86_400_000;
+const baseUrl = import.meta.env.BASE_URL;
 
 const todayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
+const showAdd = ref(false);
+const detailId = ref<string | null>(null);
+const detailQuest = computed(() => questStore.quests.find((q) => q.id === detailId.value) ?? null);
 
 function daysLeft(quest: Quest): number {
   return Math.round((Date.parse(`${quest.dueDateKey}T00:00:00Z`) - Date.parse(`${todayKey.value}T00:00:00Z`)) / MS_PER_DAY);
@@ -35,19 +42,33 @@ function dueText(quest: Quest): string {
   return `${days} days left`;
 }
 
+function rewardItem(quest: Quest): ItemDef | null {
+  return ITEM_CATALOG.find((item) => item.id === quest.rewardItemId) ?? null;
+}
+
+function onAdd(description: string, difficulty: Difficulty, dueDateKey: string) {
+  questStore.addQuest(description, difficulty, dueDateKey);
+  showAdd.value = false;
+}
+
 function onCheckOff(quest: Quest) {
-  enqueueCompletion({ description: quest.description, difficulty: quest.difficulty, amount: questExpReward(quest) });
-  completeQuest(quest.id);
+  const result = completeQuest(quest.id);
+  if (result && result.amount > 0) {
+    enqueueCompletion({ description: quest.description, difficulty: quest.difficulty, amount: result.amount });
+  }
 }
 </script>
 
 <template>
   <section class="panel quest-section">
-    <h2>Quests</h2>
+    <div class="quest-header">
+      <h2>Quests</h2>
+      <button type="button" class="add-button" aria-label="Add quest" @click="showAdd = true">+ New quest</button>
+    </div>
     <ul v-if="questStore.quests.length">
-      <li v-for="quest in questStore.quests" :key="quest.id" class="quest-item" :class="urgency(quest)">
+      <li v-for="quest in questStore.quests" :key="quest.id" class="quest-item" :class="[urgency(quest), { side: quest.kind === 'side' }]">
         <input type="checkbox" class="check" :aria-label="`Complete ${quest.description}`" @change="onCheckOff(quest)" />
-        <div class="body">
+        <button type="button" class="body" @click="detailId = quest.id">
           <span class="description">{{ quest.description }}</span>
           <span class="meta">
             <span class="pips" :title="quest.difficulty">
@@ -55,12 +76,18 @@ function onCheckOff(quest: Quest) {
             </span>
             <span class="due">{{ dueText(quest) }}</span>
           </span>
-        </div>
-        <span class="reward">+{{ Math.round(questExpReward(quest)) }} EXP</span>
+        </button>
+        <img v-if="quest.kind === 'side' && rewardItem(quest)" class="reward-icon" :src="`${baseUrl}sprites/${rewardItem(quest)!.icon}.png`" alt="" />
       </li>
     </ul>
     <p v-else>No active quests.</p>
   </section>
+
+  <Modal v-model="showAdd" title="New quest" max-width="480px">
+    <QuestForm kind="regular" @submit="onAdd" />
+  </Modal>
+
+  <QuestDetailModal :quest="detailQuest" @close="detailId = null" />
 </template>
 
 <style scoped>
@@ -133,13 +160,52 @@ function onCheckOff(quest: Quest) {
   outline-offset: 2px;
 }
 
+.quest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quest-header h2 {
+  margin: 0;
+}
+
+.add-button {
+  padding: 0.35rem 0.9rem;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.quest-section ul {
+  margin-top: 0.75rem;
+}
+
+.quest-item.side {
+  --tone: #fbbf24;
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.1), var(--code-bg) 60%);
+  box-shadow: 0 0 14px -8px #fbbf24;
+}
+
+.quest-item.side.urgent {
+  --tone: var(--damage-color);
+  box-shadow: 0 0 14px -8px var(--damage-color);
+}
+
 .body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   text-align: left;
+  cursor: pointer;
 }
 
 .description {
@@ -182,9 +248,11 @@ function onCheckOff(quest: Quest) {
   color: var(--damage-color);
 }
 
-.reward {
+.reward-icon {
   flex-shrink: 0;
-  color: var(--stat-color);
-  font-size: 0.85rem;
+  width: 44px;
+  height: 44px;
+  margin: -0.4rem 0;
+  image-rendering: pixelated;
 }
 </style>

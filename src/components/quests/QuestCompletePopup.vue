@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useModalPriority } from '../../composables/useModalPriority';
 import { useQuestCompleteQueue } from '../../composables/useQuestCompleteQueue';
+import { BadgeCheck } from 'lucide-vue-next';
 import Modal from '../ui/Modal.vue';
 
 const { current, dismiss } = useQuestCompleteQueue();
@@ -13,7 +14,7 @@ const PIPS = { easy: 1, medium: 2, hard: 3 };
   <Modal :model-value="questCompleteVisible" title="Quest complete" max-width="420px" @update:model-value="dismiss">
     <div v-if="current" :key="current.description" class="hero">
       <div class="seal" aria-hidden="true">
-        <span class="seal-icon">✦</span>
+        <BadgeCheck class="seal-icon" :size="42" :stroke-width="1.75" />
       </div>
       <p class="deed">{{ current.description }}</p>
       <span class="pips" :title="current.difficulty">
@@ -21,7 +22,7 @@ const PIPS = { easy: 1, medium: 2, hard: 3 };
       </span>
       <strong class="reward">+{{ Math.round(current.amount) }} EXP</strong>
     </div>
-    <button type="button" class="onward" @click="dismiss">Onward</button>
+    <button type="button" class="onward primary-button" @click="dismiss">Onward</button>
   </Modal>
 </template>
 
@@ -66,9 +67,7 @@ const PIPS = { easy: 1, medium: 2, hard: 3 };
 
 .seal-icon {
   color: var(--accent);
-  font-size: 2.6rem;
-  line-height: 1;
-  text-shadow: 0 0 16px var(--accent);
+  filter: drop-shadow(0 0 10px var(--accent));
 }
 
 .deed {
@@ -107,10 +106,6 @@ const PIPS = { easy: 1, medium: 2, hard: 3 };
   width: 100%;
   margin-top: 0.75rem;
   padding: 0.8rem 1.2rem;
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--text-h);
-  font-weight: 600;
   letter-spacing: 0.04em;
 }
 

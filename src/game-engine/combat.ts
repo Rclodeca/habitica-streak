@@ -1,4 +1,4 @@
-import { applyResist, bossExpReward, generateBoss } from './boss';
+import { applyResist, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
@@ -20,7 +20,6 @@ export const DAMAGE_TYPE_STARTER_STAT: Record<DamageType, keyof Character['start
   magic: 'magicDamage',
   healing: 'healing',
   trueDamage: 'trueDamage',
-  expGain: 'expGain',
 };
 
 /**
@@ -112,10 +111,7 @@ export function habitDamageBreakdown(character: Character, habit: Habit, allHabi
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const baseDamage = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
-  // expGain's percent item bonus is applied once, later, inside
-  // addExpAndResolveLevelUps (same path a boss kill's EXP goes through) —
-  // applying it here too would double-count it. See completeHabit.
-  const itemMultiplier = habit.damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
+  const itemMultiplier = itemStatMultiplier(character, statField);
   const streakMult = streakMultiplier(habit.streakCount, habit.period);
   const weeklyMult = weeklyBonusMultiplier(habit.period);
   const bonusMultiplier = levelRewardMultiplier(habit);
@@ -143,12 +139,10 @@ export function habitDamageBreakdown(character: Character, habit: Habit, allHabi
 export function expectedMediumDailyDamage(character: Character, damageType: DamageType, habitsOfType: Habit[]): number {
   const statField = DAMAGE_TYPE_STARTER_STAT[damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
-  // expGain's item bonus is applied later via addExpAndResolveLevelUps, not
-  // here — mirrors the same exclusion in completeHabit/habitDamageBreakdown.
-  const itemMultiplier = damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
+  const itemMultiplier = itemStatMultiplier(character, statField);
   const totalWeight = habitsOfType.reduce((sum, h) => sum + DIFFICULTY_WEIGHT[h.difficulty], 0) + DIFFICULTY_WEIGHT.medium;
   const mediumShareRatio = DIFFICULTY_WEIGHT.medium / totalWeight;
-  const poolMultiplier = poolSizeMultiplier(damageType, totalWeight);
+  const poolMultiplier = poolSizeMultiplier(totalWeight);
   return rawStat * itemMultiplier * poolMultiplier * mediumShareRatio;
 }
 
@@ -164,10 +158,6 @@ export type CombatResult = {
   // without recomputing this function's formulas themselves.
   lifestealHealed?: number;
   reflectedDamage?: number;
-  // Set only for an 'expGain'-type habit — the raw EXP amount this
-  // completion earned, for the caller to grant via addExpAndResolveLevelUps
-  // (not granted internally, mirroring how milestoneExp is handled).
-  expGained?: number;
 };
 
 /**
@@ -210,10 +200,7 @@ export function completeHabit(
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const baseDamage = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
-  // expGain's percent item bonus is applied once, later, inside
-  // addExpAndResolveLevelUps (same path a boss kill's EXP goes through) —
-  // applying it here too would double-count it.
-  const itemMultiplier = habit.damageType === 'expGain' ? 1 : itemStatMultiplier(character, statField);
+  const itemMultiplier = itemStatMultiplier(character, statField);
   // An Overdrive activation is an extra use of an already-checked-off habit:
   // it doesn't touch the streak or grant milestone EXP again, and never
   // gets the Special/Ult bonus — only OVERDRIVE_DAMAGE_FACTOR damage.
@@ -230,12 +217,6 @@ export function completeHabit(
     const woundedAmount = amount * healingMultiplier(character, currentDayKey);
     const healed = Math.min(character.currentHealth + woundedAmount, effectiveStat(character, 'health'));
     return { character: { ...character, currentHealth: healed }, boss, updatedHabit, milestoneExp };
-  }
-
-  // Granted by the caller via addExpAndResolveLevelUps, not here — mirrors
-  // how milestoneExp is handed back unresolved above.
-  if (habit.damageType === 'expGain') {
-    return { character, boss, updatedHabit, milestoneExp, expGained: amount };
   }
 
   const wasCrit = rng() < effectiveCritChance(character, currentDayKey);
@@ -444,10 +425,10 @@ export function resolveBossDefeatIfDead(
     ...leveled,
     ownedItemIds: [...leveled.ownedItemIds, ...itemsDropped.map((item) => item.id)],
   };
-  // Base (pre-item) health anchors the next boss's attack soft cap — see
-  // generateBoss's baseMaxHealth param — so equipping health items doesn't
-  // just chase the cap upward and cancel itself out.
-  const baseMaxHealth = statAtLevel(withItems.starterStats.health, withItems.level);
+  // Base (pre-item) health anchors the next boss's attack — see
+  // bossAttackAnchorHealth — so equipping health items doesn't just chase
+  // the cap upward and cancel itself out.
+  const baseMaxHealth = bossAttackAnchorHealth(boss.index + 1, withItems.starterStats.health, withItems.level);
   const nextBoss = generateBoss(boss.index + 1, rng, boss.difficultyModifier, baseMaxHealth);
   return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped };
 }
@@ -475,7 +456,7 @@ export function resolvePlayerDeathIfDead(
   const freshCharacter = createCharacter(rng);
   return {
     character: freshCharacter,
-    boss: generateBoss(1, rng, undefined, statAtLevel(freshCharacter.starterStats.health, freshCharacter.level)),
+    boss: generateBoss(1, rng, undefined, bossAttackAnchorHealth(1, freshCharacter.starterStats.health, freshCharacter.level)),
     habits: habits.map((h) => resetLevelRewards(rerollDamageType(h, rng))),
     died: true,
   };

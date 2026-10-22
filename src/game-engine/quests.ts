@@ -1,18 +1,66 @@
-import { bossExpReward } from './boss';
-import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
+import { DIFFICULTY_WEIGHT } from './constants/difficulty';
+import { expToNextLevel } from './leveling';
 import type { Rng } from './rng';
-import type { Boss, Difficulty, Quest } from './types';
+import type { Boss, Difficulty, Quest, QuestKind, QuestWeek } from './types';
+
+export interface QuestCurveOptions {
+  /** How many quests per week count as the baseline (TUNING.QUESTS_PER_WEEK_ON_CURVE). */
+  onCurve?: number;
+  /** Percent of the weekly target paid by each successive weekly completion (TUNING.QUEST_SLOT_WEIGHTS). */
+  weights?: readonly number[];
+  /** Fraction of expToNextLevel the weekly target is worth (TUNING.QUEST_TARGET_LEVEL_FRACTION). */
+  fraction?: number;
+}
+
+/** Sum of the first `n` slot weights; fractional `n` interpolates linearly into the next slot. */
+export function cumulativeSlotWeight(n: number, weights: readonly number[] = TUNING.QUEST_SLOT_WEIGHTS): number {
+  let total = 0;
+  for (let i = 0; i < weights.length && i < n; i++) {
+    total += weights[i] * Math.min(1, n - i);
+  }
+  return total;
+}
+
+/** EXP a medium slot-1 quest pays at `level` — the weekly target the slot curve is a percentage of. */
+export function questWeeklyTargetExp(level: number, fraction: number = TUNING.QUEST_TARGET_LEVEL_FRACTION): number {
+  return Math.max(TUNING.QUEST_MIN_TARGET_EXP, expToNextLevel(level) * fraction);
+}
 
 /**
- * Bonus EXP for completing `quest` on time: a difficulty-scaled slice of the
- * EXP reward of the boss that offered it (quest.bossIndexAtOffer), NOT
- * whatever boss is current when it's resolved — so procrastinating past
- * later boss kills can't inflate the payout, and the reward automatically
- * inherits BOSS_EXP_GROWTH_RATE's existing curve instead of needing a new one.
+ * EXP for completing a regular quest: the weekly target at `level`, times the
+ * slot's weight, rescaled so the first `onCurve` slots sum to exactly the
+ * target, times the difficulty multiplier. `completedThisWeek` is how many
+ * regular quests were already completed this calendar week (0 = slot 1);
+ * slots past the last weight pay 0.
  */
-export function questExpReward(quest: Quest): number {
-  return bossExpReward(quest.bossIndexAtOffer) * TUNING.QUEST_EXP_DIFFICULTY_PCT[quest.difficulty];
+export function questSlotExp(
+  level: number,
+  difficulty: Difficulty,
+  completedThisWeek: number,
+  options: QuestCurveOptions = {},
+): number {
+  const { onCurve = TUNING.QUESTS_PER_WEEK_ON_CURVE, weights = TUNING.QUEST_SLOT_WEIGHTS, fraction } = options;
+  const weight = weights[completedThisWeek] ?? 0;
+  if (weight === 0) return 0;
+  const scale = 100 / cumulativeSlotWeight(onCurve, weights);
+  return questWeeklyTargetExp(level, fraction) * (weight / 100) * scale * TUNING.QUEST_DIFFICULTY_MULT[difficulty];
+}
+
+/** The week counter as of `weekKey`: a stale (or missing) counter starts over at 0. */
+export function questWeekFor(questWeek: QuestWeek | undefined, weekKey: string): QuestWeek {
+  return questWeek && questWeek.weekKey === weekKey ? questWeek : { weekKey, completed: 0 };
+}
+
+/** The counter after one more on-time regular-quest completion in `weekKey`'s week. */
+export function recordQuestCompletion(questWeek: QuestWeek | undefined, weekKey: string): QuestWeek {
+  const current = questWeekFor(questWeek, weekKey);
+  return { weekKey, completed: current.completed + 1 };
+}
+
+/** Vague player-facing reward tier — the exact EXP depends on the week's slot, so it's never shown. */
+export function questRewardTier(difficulty: Difficulty): 'Small' | 'Medium' | 'Large' {
+  return difficulty === 'easy' ? 'Small' : difficulty === 'medium' ? 'Medium' : 'Large';
 }
 
 /**
@@ -20,11 +68,11 @@ export function questExpReward(quest: Quest): number {
  * MISS_DAMAGE_FACTOR formula bossMissDamage (combat.ts) uses, inlined here
  * rather than imported to avoid a combat.ts <-> quests.ts import cycle
  * (combat.ts would otherwise import from this module). Uses the CURRENT
- * boss (not quest.bossIndexAtOffer) — consistent with missHabit, which
- * always uses live boss state for damage. Deliberately simpler than a full
- * missHabit resolution: no crit roll, no player armor/magicResist
- * mitigation, no boss lifesteal — quests are a flatter, simpler risk
- * mechanic than habits by design (see the design spec).
+ * boss — consistent with missHabit, which always uses live boss state for
+ * damage. Deliberately simpler than a full missHabit resolution: no crit
+ * roll, no player armor/magicResist mitigation, no boss lifesteal — quests
+ * are a flatter, simpler risk mechanic than habits by design. Identical for
+ * regular and side quests.
  */
 export function questMissDamage(quest: Quest, boss: Boss, rng: Rng): number {
   const attackType: 'physical' | 'magic' = rng() < 0.5 ? 'physical' : 'magic';
@@ -33,6 +81,25 @@ export function questMissDamage(quest: Quest, boss: Boss, rng: Rng): number {
 }
 
 /** Builds a new Quest record with a generated id. */
-export function createQuest(description: string, difficulty: Difficulty, dueDateKey: string, bossIndexAtOffer: number): Quest {
-  return { id: crypto.randomUUID(), description, difficulty, dueDateKey, bossIndexAtOffer };
+export function createQuest(
+  description: string,
+  difficulty: Difficulty,
+  dueDateKey: string,
+  kind: QuestKind = 'regular',
+  rewardItemId?: string,
+): Quest {
+  if (!dueDateKey) throw new Error('A quest needs a due date');
+  const quest: Quest = { id: crypto.randomUUID(), kind, description, difficulty, dueDateKey };
+  if (rewardItemId !== undefined) quest.rewardItemId = rewardItemId;
+  return quest;
+}
+
+/**
+ * Brings a quest saved before quests v2 up to the current shape: backfills
+ * `kind: 'regular'` and drops the removed `bossIndexAtOffer`. Idempotent.
+ */
+export function migrateQuest(quest: Omit<Quest, 'kind'> & { kind?: QuestKind; bossIndexAtOffer?: number }): Quest {
+  const migrated: Quest & { bossIndexAtOffer?: number } = { ...quest, kind: quest.kind ?? 'regular' };
+  delete migrated.bossIndexAtOffer;
+  return migrated;
 }

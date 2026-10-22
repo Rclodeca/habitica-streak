@@ -4,42 +4,39 @@
 
 import { TUNING } from './constants/tuning';
 import { rerollDamageType } from './habits';
-import { doublableItems, unownedDroppableItems } from './items';
+import { availableSideOnlyItems, doublableItems, unownedDroppableItems } from './items';
 import type { ItemDef } from './items';
 import { effectiveStat } from './leveling';
 import { assignSpecialIfEligible, assignUltIfEligible, grantOverdrive } from './levelRewards';
 import { shuffle, type Rng } from './rng';
-import type { Character, CritBoostStatusEffect, Habit, HealBoostStatusEffect } from './types';
+import type { Character, CritBoostStatusEffect, Habit, HealBoostStatusEffect, Quest } from './types';
 
-export type EventId = 'quest' | 'special' | 'ult' | 'overdrive' | 'item-slots' | 'reroll-skill' | 'heal' | 'item-drop' | 'heal-boost' | 'crit-boost' | 'double-item';
+export type EventId = 'side-quest' | 'special' | 'ult' | 'overdrive' | 'item-slots' | 'reroll-skill' | 'heal' | 'item-drop' | 'heal-boost' | 'crit-boost' | 'double-item';
 
 export interface EventDef {
   id: EventId;
-  icon: string;
   title: string;
   description: string;
   minLevel: number;
   /** Once picked, never offered again this run (tracked in Character.takenEventIds). */
   oneTime: boolean;
   /** Level and one-time checks are done by `eligibleEvents`; this covers event-specific requirements. */
-  isEligible: (character: Character, habits: Habit[]) => boolean;
+  isEligible: (character: Character, habits: Habit[], quests: Quest[]) => boolean;
 }
 
 export const EVENTS_PER_CHOICE = 3;
 
 export const EVENT_DEFS: readonly EventDef[] = [
   {
-    id: 'quest',
-    icon: '🗒️',
-    title: 'Quest',
-    description: 'Take on a bonus challenge.',
+    id: 'side-quest',
+    title: 'Side quest',
+    description: 'Something rare awaits.',
     minLevel: 1,
     oneTime: false,
-    isEligible: () => true,
+    isEligible: (character, _habits, quests) => availableSideOnlyItems(character, quests).length > 0,
   },
   {
     id: 'special',
-    icon: '🌟',
     title: 'Gain a Special',
     description: `A random daily skill permanently deals ×${TUNING.SPECIAL_MULTIPLIER} damage.`,
     minLevel: TUNING.SPECIAL_LEVEL,
@@ -48,7 +45,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'ult',
-    icon: '💫',
     title: 'Gain an Ult',
     description: `A random weekly skill permanently deals ×${TUNING.ULT_MULTIPLIER} damage.`,
     minLevel: TUNING.ULT_LEVEL,
@@ -57,7 +53,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'overdrive',
-    icon: '🔥',
     title: 'Gain Overdrive',
     description: `A random good skill can be used ${TUNING.OVERDRIVE_MAX_EXTRA_USES} extra times per period.`,
     minLevel: 1,
@@ -66,7 +61,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'item-slots',
-    icon: '🎒',
     title: 'More item slots',
     description: 'Your equipment slots increase from 4 to 6.',
     minLevel: 7,
@@ -75,7 +69,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'reroll-skill',
-    icon: '🎲',
     title: 'Reroll a skill',
     description: 'Choose a skill and re-roll its damage type.',
     minLevel: 3,
@@ -84,7 +77,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'heal',
-    icon: '💖',
     title: 'Restore health',
     description: `Heal ${TUNING.EVENT_HEAL_PCT}% of your max health.`,
     minLevel: 1,
@@ -93,7 +85,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'item-drop',
-    icon: '🎁',
     title: 'Find an item',
     description: 'Receive one random item.',
     minLevel: 1,
@@ -102,7 +93,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'heal-boost',
-    icon: '🌿',
     title: 'Healing boost',
     description: `+${Math.round(TUNING.HEAL_BOOST_BONUS * 100)}% healing for ${TUNING.HEAL_BOOST_DAYS} days.`,
     minLevel: 1,
@@ -111,7 +101,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'double-item',
-    icon: '⚒️',
     title: 'Enchant an item',
     description: "Increase a random item's stats.",
     minLevel: TUNING.DOUBLE_ITEM_MIN_LEVEL,
@@ -121,7 +110,6 @@ export const EVENT_DEFS: readonly EventDef[] = [
   },
   {
     id: 'crit-boost',
-    icon: '🎯',
     title: 'Crit boost',
     description: `+${Math.round(TUNING.CRIT_BOOST_BONUS * 100)}% crit chance for ${TUNING.CRIT_BOOST_DAYS} days.`,
     minLevel: 1,
@@ -137,16 +125,38 @@ export function getEventDef(id: EventId): EventDef {
 }
 
 /** Every event the character could be offered right now (level gate, one-time already taken, event-specific checks). */
-export function eligibleEvents(character: Character, habits: Habit[]): EventDef[] {
+export function eligibleEvents(character: Character, habits: Habit[], quests: Quest[] = []): EventDef[] {
   const taken = character.takenEventIds ?? [];
   return EVENT_DEFS.filter(
-    (e) => character.level >= e.minLevel && !(e.oneTime && taken.includes(e.id)) && e.isEligible(character, habits),
+    (e) => character.level >= e.minLevel && !(e.oneTime && taken.includes(e.id)) && e.isEligible(character, habits, quests),
   );
 }
 
-/** Up to `count` distinct eligible events in random order; fewer if fewer are eligible. */
-export function rollEventChoices(character: Character, habits: Habit[], rng: Rng, count = EVENTS_PER_CHOICE): EventDef[] {
-  return shuffle(eligibleEvents(character, habits), rng).slice(0, count);
+/**
+ * Up to `count` distinct eligible events in random order; fewer if fewer are eligible.
+ * Once TUNING.SIDE_QUEST_GUARANTEE_LEVELS picks have passed with the side-quest
+ * event eligible but never offered, it is forced into the choices (replacing the
+ * last one) so a run's side-only items stay obtainable.
+ */
+export function rollEventChoices(character: Character, habits: Habit[], rng: Rng, quests: Quest[] = [], count = EVENTS_PER_CHOICE): EventDef[] {
+  const eligible = eligibleEvents(character, habits, quests);
+  let choices = shuffle(eligible, rng).slice(0, count);
+  const sideQuest = eligible.find((e) => e.id === 'side-quest');
+  if (sideQuest && !choices.includes(sideQuest) && (character.sideQuestPicksMissed ?? 0) >= TUNING.SIDE_QUEST_GUARANTEE_LEVELS) {
+    choices = [...choices.slice(0, Math.max(0, count - 1)), sideQuest];
+  }
+  return choices;
+}
+
+/**
+ * Tracks the side-quest guarantee across picks: a pick where the side-quest
+ * event was eligible but not among `offered` counts as a miss; one where it
+ * was offered resets the count. Picks where it wasn't eligible leave it alone.
+ */
+export function recordSideQuestOffer(character: Character, offered: readonly EventId[], sideQuestEligible: boolean): Character {
+  if (!sideQuestEligible) return character;
+  const missed = offered.includes('side-quest') ? 0 : (character.sideQuestPicksMissed ?? 0) + 1;
+  return { ...character, sideQuestPicksMissed: missed };
 }
 
 /** Records a pick: marks a one-time event as taken and spends one pending pick. */

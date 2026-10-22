@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { bossExpReward, dailyPeriodKey } from '../../game-engine';
-import type { Difficulty } from '../../game-engine';
-import { TUNING } from '../../game-engine/constants/tuning';
-import { useBossStore } from '../../store/bossStore';
+import { dailyPeriodKey, questRewardTier } from '../../game-engine';
+import type { Difficulty, QuestKind } from '../../game-engine';
 import { useDebugClockStore } from '../../store/debugClockStore';
 
+const props = withDefaults(defineProps<{ kind?: QuestKind }>(), { kind: 'regular' });
 const emit = defineEmits<{ submit: [description: string, difficulty: Difficulty, dueDateKey: string] }>();
 
 const debugClockStore = useDebugClockStore();
-const bossStore = useBossStore();
 
 const todayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
 
@@ -47,10 +45,6 @@ const dueLabel = computed(() =>
     : '',
 );
 
-function rewardFor(d: Difficulty): number {
-  return Math.round(bossExpReward(bossStore.boss.index) * TUNING.QUEST_EXP_DIFFICULTY_PCT[d]);
-}
-
 function onSubmit() {
   const trimmed = description.value.trim();
   if (!trimmed || !dueDate.value) return;
@@ -60,7 +54,7 @@ function onSubmit() {
 
 <template>
   <form class="quest-form" @submit.prevent="onSubmit">
-    <p class="intro">A single deed, sworn once. Finish it in time and be rewarded. Miss the day and the boss strikes.</p>
+    <p class="intro">{{ props.kind === 'side' ? 'A rare deed. Sworn once.' : 'A deed, sworn once.' }}</p>
 
     <label class="field">
       <span class="field-label">Deed</span>
@@ -76,7 +70,7 @@ function onSubmit() {
           <span class="pips" aria-hidden="true">
             <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= opt.pips }" />
           </span>
-          <span class="reward">+{{ rewardFor(opt.value) }} EXP</span>
+          <span v-if="props.kind === 'regular'" class="reward">{{ questRewardTier(opt.value) }}</span>
         </label>
       </div>
     </fieldset>
@@ -99,7 +93,7 @@ function onSubmit() {
       <p v-if="dueLabel" class="due-summary">Due {{ dueLabel }}</p>
     </fieldset>
 
-    <button type="submit" class="submit">Accept quest</button>
+    <button type="submit" class="submit">{{ props.kind === 'side' ? 'Accept quest' : 'Add quest' }}</button>
   </form>
 </template>
 

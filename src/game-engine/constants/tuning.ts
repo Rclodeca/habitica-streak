@@ -8,29 +8,29 @@ export const TUNING = {
   // one healing budget instead of a good-only one, so the per-habit share
   // would otherwise have gone up instead of staying flat.
   // trueDamage was originally sized at 30% of the combined
-  // physicalDamage+magicDamage pool (0.3 * 1600 = 480); expGain at 30% of
-  // boss 1's kill reward (0.3 * BASE_BOSS_EXP = 0.3 * 40 = 12) — see
-  // leveling.ts for why it scales with player level (not boss index) to
-  // avoid racing BOSS_EXP_GROWTH_RATE.
+  // physicalDamage+magicDamage pool (0.3 * 1600 = 480).
   // physicalDamage/magicDamage/healing cut ~30% (800/800/384 -> 560/560/269)
   // when daily/weekly pools were split (see habitStore.habitsOfType) —
   // splitting one shared pool into two lets a player with both a daily and
   // a weekly habit of the same type draw from the full stat on two
   // independent schedules instead of splitting one, a net damage/healing
-  // buff that needed offsetting at the source. trueDamage/expGain are
-  // deliberately exempted (kept at their original 480/12) — their ratio
-  // comment above no longer holds exactly as a result, by choice.
-  BASE_STATS: { physicalDamage: 560, magicDamage: 560, healing: 269, health: 1250, trueDamage: 480, expGain: 12 },
+  // buff that needed offsetting at the source. trueDamage is deliberately
+  // exempted (kept at its original 480) — its ratio comment above no longer
+  // holds exactly as a result, by choice.
+  // The expGain skill type was removed (a long streak on one scaled income to
+  // 3-7x the reference pace in simulation); EXP now comes from boss kills,
+  // streak milestones, and quests, plus the equipped-item EXP bonus.
+  BASE_STATS: { physicalDamage: 560, magicDamage: 560, healing: 269, health: 1250, trueDamage: 480 },
   // The same ~30% cut as the BASE_STATS change above, applied once to an
   // in-progress run's existing physicalDamage/magicDamage/healing via
   // character.ts's applyDamagePoolRebalance — a fresh character already
   // gets the reduced BASE_STATS value, but an existing save's starterStats
   // were rolled before this cut and need retroactively scaling down to
-  // match (health/trueDamage/expGain untouched, same exemption as above).
+  // match (health/trueDamage untouched, same exemption as above).
   ONE_TIME_DAMAGE_POOL_REBALANCE_PCT: 30,
   // Each additional medium-weight habit (easy/hard scale proportionally) in a
   // damage-type pool grows that pool by this fraction of its base size — see
-  // `poolSizeMultiplier`. expGain pools are exempt (runaway-EXP risk).
+  // `poolSizeMultiplier`.
   POOL_GROWTH_PER_MEDIUM_HABIT: 0.2,
   STAT_RANDOMIZATION_PCT: 0.05, // ±5% at character creation
   LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level
@@ -71,16 +71,12 @@ export const TUNING = {
   // Converts a damage reduction percent to the armor/magicResist stat shown
   // and fed through damageReductionPct: stat = K * r / (1 - r).
   RESIST_K: 1500,
-  // 40 -> 33 (40 / 1.2, rounded down): offsets the new quest-completion EXP
-  // income (see quests.ts/questExpReward) — assuming every offered quest is
-  // accepted and completed on time (the generous upper bound) and an
-  // average difficulty pick of "medium", expected extra EXP per boss kill is
-  // 0.4 (the quest drop chance at the time; quests are now an event pick) * 0.5 (medium) = 20% on
-  // top of this reward — dividing by 1.2 holds overall leveling pace roughly
-  // where it was. Real-world accept/completion rates will be below 100%, so
-  // this cut is deliberately conservative (a slight net buff once quests
-  // ship), not an exact wash — same "approximate by design" philosophy as
-  // every other pass in this file. BOSS_EXP_GROWTH_RATE is untouched.
+  // 40 -> 33 (40 / 1.2, rounded down) back when quests were a 40%-per-boss-kill
+  // EXP source. That income no longer exists (quests v2 pays a level-based
+  // weekly curve instead — see QUEST_* below), so this value is deliberately
+  // left as-is for play-testing; recalibrating it against the new quest
+  // slice is a follow-up (docs/superpowers/specs/2026-10-21-quests-v2-design.md,
+  // "Calibration"). BOSS_EXP_GROWTH_RATE is untouched.
   BASE_BOSS_EXP: 33,
   // Lowered 1.18 -> 1.12 as part of the same pacing pass as the old boss power
   // curve: this MUST stay below BOSS_HEALTH_GROWTH_RATE. If EXP income compounds
@@ -123,6 +119,27 @@ export const TUNING = {
   MISS_DAMAGE_CURVE_EARLY_PCT: 0.05,
   MISS_DAMAGE_CURVE_TARGET_INDEX: 50,
   MISS_DAMAGE_CURVE_TARGET_PCT: 0.7,
+  // [boss index, player level] control points for the level an average
+  // player has when that boss spawns (linear between points, extrapolated
+  // past the last). Boss attacks are sized against the health of this
+  // expected level, blended toward the player's real level by
+  // BOSS_ATTACK_LEVEL_FOLLOW (0 = ignore the player's level, 1 = always
+  // scale to it), so levels above expected shrink each hit as a % of max HP.
+  // Calibrated from a 52-week sim of an ~83%-completion player (1 quest/wk,
+  // normal milestones, no expGain skills): median level at each boss spawn.
+  // Recompute if BASE_BOSS_EXP, BOSS_EXP_GROWTH_RATE, milestone EXP or the
+  // quest curve change.
+  EXPECTED_LEVEL_BY_BOSS_INDEX: [
+    [1, 1],
+    [5, 4],
+    [10, 7],
+    [15, 12],
+    [20, 19],
+    [25, 30],
+    [30, 45],
+    [40, 82],
+  ] as [number, number][],
+  BOSS_ATTACK_LEVEL_FOLLOW: 0.5,
   // Unconditional per-level heal on top of any lifesteal-item bonus (see
   // addExpAndResolveLevelUps) — applied once per level gained in a grant.
   LEVEL_UP_HEAL_PCT: 20,
@@ -150,13 +167,28 @@ export const TUNING = {
   // line in the stats modal instead of hiding it inside the base number.
   WEEKLY_BONUS_MULTIPLIER: 2,
   WEEKLY_MISS_MULTIPLIER: 2, // a missed/failed weekly deals 2x damage to the player
-  // questExpReward scales a completed quest's bonus EXP by this percent of
-  // the EXP reward of the boss that offered it (quest.bossIndexAtOffer) —
-  // see quests.ts. Inherits BOSS_EXP_GROWTH_RATE's existing curve for free
-  // instead of needing a second independent growth rate to verify against
-  // the runaway-prevention margin (see BOSS_EXP_GROWTH_RATE's own comment).
-  QUEST_EXP_DIFFICULTY_PCT: { easy: 0.25, medium: 0.5, hard: 0.75 },
-  HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.35, magic: 0.35, healing: 0.15, trueDamage: 0.08, expGain: 0.07 },
+  // Quests v2 (see quests.ts): a regular quest pays a share of the EXP needed
+  // for the player's next level, decaying with each completion in the same
+  // calendar week.
+  // How many quests per week count as the baseline. Any positive number
+  // (fractions interpolate); slot rewards are rescaled so the first N slots
+  // sum to exactly the weekly target.
+  QUESTS_PER_WEEK_ON_CURVE: 1,
+  // A medium slot-1 quest pays this fraction of expToNextLevel at completion.
+  QUEST_TARGET_LEVEL_FRACTION: 0.15,
+  // Floor on the weekly target so early quests (where the fraction is tiny) still pay something.
+  QUEST_MIN_TARGET_EXP: 10,
+  // Percent of the weekly target paid by the 1st, 2nd, ... completion in a
+  // calendar week; slots past the end pay 0 (hard ceiling: sum is 232).
+  QUEST_SLOT_WEIGHTS: [100, 60, 35, 20, 10, 5, 2],
+  QUEST_DIFFICULTY_MULT: { easy: 0.7, medium: 1, hard: 1.3 },
+  // Rare/epic items flagged at character creation as obtainable only through
+  // side quests for that run.
+  SIDE_QUEST_ITEM_COUNT: 2,
+  // Level-up picks that can pass with the side-quest event eligible but not
+  // offered before it is forced into the next pick.
+  SIDE_QUEST_GUARANTEE_LEVELS: 5,
+  HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.38, magic: 0.38, healing: 0.16, trueDamage: 0.08 },
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates
   // 2x -> 3x -> 4x -> 5x, and each tier is 5x rarer than the one below it —
   // the same ratio ITEM_CATALOG's RARITY_WEIGHT uses for

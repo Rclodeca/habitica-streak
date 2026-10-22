@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDamageSplit, createHabit, poolSizeMultiplier, rerollDamageType } from './habits';
+import { computeDamageSplit, createHabit, migrateHabitDamageType, poolSizeMultiplier, rerollDamageType } from './habits';
 import { createRng } from './rng';
 import type { Habit } from './types';
 
@@ -46,19 +46,19 @@ describe('createHabit', () => {
     expect(a.id.length).toBeGreaterThan(0);
   });
 
-  it('picks damageType roughly 35/35/15/8/7 physical/magic/healing/trueDamage/expGain over many runs', () => {
+  it('picks damageType roughly 38/38/16/8 physical/magic/healing/trueDamage over many runs, never expGain', () => {
     const rng = createRng(123);
-    const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0, trueDamage: 0, expGain: 0 };
+    const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0, trueDamage: 0 };
     const iterations = 2000;
     for (let i = 0; i < iterations; i++) {
       const habit = createHabit('H', 'daily', 'easy', false, rng);
       counts[habit.damageType] += 1;
     }
-    expect(counts.physical / iterations).toBeCloseTo(0.35, 1);
-    expect(counts.magic / iterations).toBeCloseTo(0.35, 1);
-    expect(counts.healing / iterations).toBeCloseTo(0.15, 1);
+    expect(counts.physical / iterations).toBeCloseTo(0.38, 1);
+    expect(counts.magic / iterations).toBeCloseTo(0.38, 1);
+    expect(counts.healing / iterations).toBeCloseTo(0.16, 1);
     expect(counts.trueDamage / iterations).toBeCloseTo(0.08, 1);
-    expect(counts.expGain / iterations).toBeCloseTo(0.07, 1);
+    expect(Object.keys(counts)).not.toContain('expGain');
   });
 });
 
@@ -71,7 +71,7 @@ describe('rerollDamageType', () => {
     expect(rerolled.id).toBe(original.id);
     expect(rerolled.name).toBe(original.name);
     expect(rerolled.streakCount).toBe(original.streakCount);
-    expect(['physical', 'magic', 'healing', 'trueDamage', 'expGain']).toContain(rerolled.damageType);
+    expect(['physical', 'magic', 'healing', 'trueDamage']).toContain(rerolled.damageType);
   });
 
   it('with excludeCurrent, never returns the current damage type', () => {
@@ -95,7 +95,7 @@ describe('computeDamageSplit', () => {
       makeHabit({ id: `habit-${i}`, difficulty: 'easy', damageType: 'physical' }),
     );
     const split = computeDamageSplit(habits, 100);
-    const poolMultiplier = poolSizeMultiplier('physical', 5);
+    const poolMultiplier = poolSizeMultiplier(5);
     expect(split.size).toBe(5);
     for (const habit of habits) {
       expect(split.get(habit.id)).toBeCloseTo((100 * poolMultiplier) / 5, 10);
@@ -112,7 +112,7 @@ describe('computeDamageSplit', () => {
     const habits = [...easyHabits, ...hardHabits];
     const split = computeDamageSplit(habits, 100);
 
-    const pool = 100 * poolSizeMultiplier('physical', 3 * 1 + 2 * 2);
+    const pool = 100 * poolSizeMultiplier(3 * 1 + 2 * 2);
     for (const habit of easyHabits) {
       expect(split.get(habit.id)).toBeCloseTo(pool / 7, 4);
     }
@@ -139,23 +139,42 @@ describe('computeDamageSplit', () => {
 
 describe('poolSizeMultiplier', () => {
   it('is exactly 1 for a single medium habit', () => {
-    expect(poolSizeMultiplier('physical', 1.5)).toBe(1);
+    expect(poolSizeMultiplier(1.5)).toBe(1);
   });
 
   it('grows 20% of base per extra medium-equivalent habit', () => {
-    expect(poolSizeMultiplier('physical', 1.5 * 2)).toBeCloseTo(1.2, 10);
-    expect(poolSizeMultiplier('magic', 1.5 * 10)).toBeCloseTo(2.8, 10);
+    expect(poolSizeMultiplier(1.5 * 2)).toBeCloseTo(1.2, 10);
+    expect(poolSizeMultiplier(1.5 * 10)).toBeCloseTo(2.8, 10);
   });
 
   it('weights growth by difficulty — an easy habit adds less than a hard one', () => {
-    expect(poolSizeMultiplier('physical', 1.5 + 1)).toBeLessThan(poolSizeMultiplier('physical', 1.5 + 2));
+    expect(poolSizeMultiplier(1.5 + 1)).toBeLessThan(poolSizeMultiplier(1.5 + 2));
   });
 
   it('never drops below 1 (a lone easy habit is not penalized)', () => {
-    expect(poolSizeMultiplier('physical', 1)).toBe(1);
+    expect(poolSizeMultiplier(1)).toBe(1);
+  });
+});
+
+describe('removed expGain damage type', () => {
+  it('rerollDamageType never produces expGain, with or without excludeCurrent', () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const habit = makeHabit({ damageType: 'physical' });
+      expect(rerollDamageType(habit, createRng(seed)).damageType).not.toBe('expGain');
+      expect(rerollDamageType(habit, createRng(seed), true).damageType).not.toBe('expGain');
+    }
   });
 
-  it('never scales expGain pools', () => {
-    expect(poolSizeMultiplier('expGain', 1.5 * 10)).toBe(1);
+  it('migrateHabitDamageType re-rolls a saved expGain habit to a remaining type and keeps everything else', () => {
+    const legacy = makeHabit({ damageType: 'expGain' as never, streakCount: 7 });
+    const migrated = migrateHabitDamageType(legacy, createRng(1));
+    expect(['physical', 'magic', 'healing', 'trueDamage']).toContain(migrated.damageType);
+    expect(migrated.id).toBe(legacy.id);
+    expect(migrated.streakCount).toBe(7);
+  });
+
+  it('migrateHabitDamageType returns a habit with a valid type untouched (same object)', () => {
+    const habit = makeHabit({ damageType: 'magic' });
+    expect(migrateHabitDamageType(habit, createRng(1))).toBe(habit);
   });
 });

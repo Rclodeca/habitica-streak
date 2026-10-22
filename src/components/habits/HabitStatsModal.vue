@@ -40,7 +40,6 @@ const DAMAGE_TYPE_LABEL: Record<DamageType, string> = {
   magic: 'magic',
   healing: 'healing',
   trueDamage: 'true damage',
-  expGain: 'exp gain',
 };
 const damageTypeLabel = computed(() => DAMAGE_TYPE_LABEL[props.habit.damageType]);
 // Overdrive never gets the Special/Ult bonus, so its preview excludes

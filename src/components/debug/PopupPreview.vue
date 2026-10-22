@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import { createHabit, createQuest, createRng, questExpReward } from '../../game-engine';
+import { createHabit, createQuest, createRng } from '../../game-engine';
+import { useDeathScreen } from '../../composables/useDeathScreen';
 import { useMissedSkillsGate } from '../../composables/useMissedSkillsGate';
 import { useQuestCompleteQueue } from '../../composables/useQuestCompleteQueue';
 import { useQuestMissGate } from '../../composables/useQuestMissGate';
-import { useBossStore } from '../../store/bossStore';
 
-const bossStore = useBossStore();
 const { enqueue } = useQuestCompleteQueue();
 const { queueMiss } = useQuestMissGate();
 const missedSkills = useMissedSkillsGate();
+const { triggerDeath } = useDeathScreen();
 
 // Fake quests/habits never enter their stores, so acknowledging a preview is
 // a no-op (the resolvers all bail on an unknown id).
 function previewComplete() {
-  const quest = createQuest('Clean the garage', 'hard', '2099-01-01', bossStore.boss.index);
-  enqueue({ description: quest.description, difficulty: quest.difficulty, amount: questExpReward(quest) });
+  const quest = createQuest('Clean the garage', 'hard', '2099-01-01');
+  enqueue({ description: quest.description, difficulty: quest.difficulty, amount: 80 });
 }
 
 function previewMiss() {
-  queueMiss(createQuest('Clean the garage', 'hard', '2026-01-01', bossStore.boss.index));
-  queueMiss(createQuest('File the taxes', 'easy', '2026-01-02', bossStore.boss.index));
+  queueMiss(createQuest('Clean the garage', 'hard', '2026-01-01'));
+  queueMiss(createQuest('File the taxes', 'easy', '2026-01-02'));
 }
 
 function previewDaily() {
@@ -35,6 +35,7 @@ function previewDaily() {
     <button type="button" @click="previewComplete">Preview quest complete (testing)</button>
     <button type="button" @click="previewDaily">Preview daily update (testing)</button>
     <button type="button" @click="previewMiss">Preview quest failed (testing)</button>
+    <button type="button" @click="triggerDeath">Preview death screen (testing)</button>
   </div>
 </template>
 

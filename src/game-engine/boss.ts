@@ -1,4 +1,5 @@
 import { TUNING } from './constants/tuning';
+import { statAtLevel } from './leveling';
 import type { Rng } from './rng';
 import { pickRandom, pickWeighted } from './rng';
 import type { Boss, Personality, WoundsAbility } from './types';
@@ -190,6 +191,29 @@ export function missDamagePctForIndex(index: number): number {
   return TUNING.MISS_DAMAGE_CEILING_PCT_OF_MAX_HP / (1 + Math.exp(-steepness * (index - midpoint)));
 }
 
+/** The level an average player has when boss `index` spawns (TUNING.EXPECTED_LEVEL_BY_BOSS_INDEX, linear, extrapolated past both ends, floored at 1). */
+export function expectedLevelForBossIndex(index: number): number {
+  const points = TUNING.EXPECTED_LEVEL_BY_BOSS_INDEX;
+  let i = 0;
+  while (i < points.length - 2 && index > points[i + 1][0]) i++;
+  const [x1, y1] = points[i];
+  const [x2, y2] = points[i + 1];
+  return Math.max(1, y1 + ((index - x1) * (y2 - y1)) / (x2 - x1));
+}
+
+/**
+ * The base max health generateBoss sizes boss `index`'s attack against:
+ * the health of the expected level for that boss, blended toward the
+ * player's real level-scaled health by TUNING.BOSS_ATTACK_LEVEL_FOLLOW.
+ * Items don't count (base health only), and the character's own
+ * starterStats.health keeps per-run variation.
+ */
+export function bossAttackAnchorHealth(index: number, starterHealth: number, level: number): number {
+  const expected = statAtLevel(starterHealth, expectedLevelForBossIndex(index));
+  const actual = statAtLevel(starterHealth, level);
+  return expected * Math.pow(actual / expected, TUNING.BOSS_ATTACK_LEVEL_FOLLOW);
+}
+
 /** Rolls the ±3-point jitter on a resist's target reduction, clamped to the top tier's cap, and converts it to a stat. */
 function jitteredResistStat(index: number, tierMultiplier: number | undefined, rng: Rng): number {
   const maxPct = TUNING.BOSS_RESIST_TIER_CAP_PCT[5];
@@ -218,8 +242,8 @@ function jitteredResistStat(index: number, tierMultiplier: number | undefined, r
  * `health` at spawn — but a freshly spawned boss must always be at full
  * health, i.e. `maxHealth === health`.
  *
- * `baseMaxHealth` (the player's current level-scaled health BEFORE item
- * bonuses — e.g. `statAtLevel(character.starterStats.health, character.level)`)
+ * `baseMaxHealth` (pre-item health to size the attack against — callers pass
+ * `bossAttackAnchorHealth(index, character.starterStats.health, character.level)`)
  * anchors `missDamagePctForIndex`'s target below. Defaults to the
  * character-creation baseline for callers that don't have a character in
  * scope yet (e.g. this store's initial state), which is only ever wrong for

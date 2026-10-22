@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { ArrowLeft, Trophy } from 'lucide-vue-next';
 import BossPanel from '../boss/BossPanel.vue';
 import CharacterPanel from '../character/CharacterPanel.vue';
 import PopupPreview from '../debug/PopupPreview.vue';
@@ -36,7 +37,8 @@ const showHighScores = ref(false);
     <div class="progress-bar">
       <span>Boss #{{ bossIndex }}</span>
       <button type="button" class="nav-button" @click="showHighScores = !showHighScores">
-        {{ showHighScores ? '← Back' : '🏆 High Scores' }}
+        <template v-if="showHighScores"><ArrowLeft :size="14" />Back</template>
+        <template v-else><Trophy :size="14" />High Scores</template>
       </button>
     </div>
     <DeathScreen />
@@ -86,6 +88,9 @@ const showHighScores = ref(false);
 }
 
 .nav-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.3em 0.7em;
   font-size: 0.85rem;
   font-weight: 600;

@@ -20,9 +20,15 @@ describe('questStore', () => {
 
   it('initFromSave hydrates from a saved list', () => {
     const store = useQuestStore();
-    const saved: Quest[] = [{ id: 'q1', description: 'Test', difficulty: 'easy', dueDateKey: '2026-01-01', bossIndexAtOffer: 1 }];
+    const saved: Quest[] = [{ id: 'q1', kind: 'side', description: 'Test', difficulty: 'easy', dueDateKey: '2026-01-01', rewardItemId: 'dragons-heart' }];
     store.initFromSave(saved);
     expect(store.quests).toEqual(saved);
+  });
+
+  it('initFromSave migrates a pre-v2 quest to a regular quest without bossIndexAtOffer', () => {
+    const store = useQuestStore();
+    store.initFromSave([{ id: 'q1', description: 'Old', difficulty: 'easy', dueDateKey: '2026-01-01', bossIndexAtOffer: 3 } as unknown as Quest]);
+    expect(store.quests).toEqual([{ id: 'q1', kind: 'regular', description: 'Old', difficulty: 'easy', dueDateKey: '2026-01-01' }]);
   });
 
   it('initFromSave stays empty when given null (old save with no quests field)', () => {
@@ -33,18 +39,21 @@ describe('questStore', () => {
 
   it('addQuest creates and appends a quest via the engine', () => {
     const store = useQuestStore();
-    const quest = store.addQuest('Clean garage', 'hard', '2026-02-01', 7);
+    const quest = store.addQuest('Clean garage', 'hard', '2026-02-01');
     expect(store.quests).toEqual([quest]);
-    expect(quest.description).toBe('Clean garage');
-    expect(quest.difficulty).toBe('hard');
-    expect(quest.dueDateKey).toBe('2026-02-01');
-    expect(quest.bossIndexAtOffer).toBe(7);
+    expect(quest).toMatchObject({ kind: 'regular', description: 'Clean garage', difficulty: 'hard', dueDateKey: '2026-02-01' });
+  });
+
+  it('addQuest can create a side quest with a reward item', () => {
+    const store = useQuestStore();
+    const quest = store.addQuest('Slay it', 'medium', '2026-02-01', 'side', 'dragons-heart');
+    expect(quest).toMatchObject({ kind: 'side', rewardItemId: 'dragons-heart' });
   });
 
   it('removeQuest removes by id and leaves others untouched', () => {
     const store = useQuestStore();
-    const a = store.addQuest('A', 'easy', '2026-01-01', 1);
-    const b = store.addQuest('B', 'easy', '2026-01-01', 1);
+    const a = store.addQuest('A', 'easy', '2026-01-01');
+    const b = store.addQuest('B', 'easy', '2026-01-01');
     store.removeQuest(a.id);
     expect(store.quests).toEqual([b]);
   });

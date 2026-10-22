@@ -64,12 +64,12 @@ describe('completeHabitStreak', () => {
   );
 
   it.each([
-    [5, 20],
-    [10, 50],
-    [20, 120],
-    [30, 220],
-    [50, 450],
-    [100, 1200],
+    [5, 5],
+    [10, 12],
+    [20, 30],
+    [30, 55],
+    [50, 112],
+    [100, 300],
   ])('returns milestoneExp = %s at streak count %s', (streakCount, expectedExp) => {
     const habit = makeHabit({ streakCount: streakCount - 1 });
     const result = completeHabitStreak(habit);
@@ -83,7 +83,7 @@ describe('completeHabitStreak', () => {
     // Cross the 5-milestone the first time.
     let result = completeHabitStreak(habit);
     expect(result.habit.streakCount).toBe(5);
-    expect(result.milestoneExp).toBe(20);
+    expect(result.milestoneExp).toBe(5);
 
     // Reset and rebuild the streak back up past 5.
     habit = resetHabitStreak(result.habit);
@@ -99,7 +99,7 @@ describe('completeHabitStreak', () => {
     // Cross the 5-milestone the second time — should fire again.
     result = completeHabitStreak(habit);
     expect(result.habit.streakCount).toBe(5);
-    expect(result.milestoneExp).toBe(20);
+    expect(result.milestoneExp).toBe(5);
   });
 });
 

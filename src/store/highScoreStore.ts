@@ -39,7 +39,6 @@ export interface HighScoreRunStats {
   healing: number;
   health: number;
   trueDamage: number;
-  expGain: number;
   critChance: number;
 }
 

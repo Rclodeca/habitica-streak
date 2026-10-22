@@ -7,6 +7,8 @@ import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
+import StatIcon from '../ui/StatIcon.vue';
+import type { StatIconName } from '../ui/statIcons';
 import Sprite from '../ui/Sprite.vue';
 
 // Boss art from HabitRPG/habitica-images (CC-BY-NC-SA 3.0, see CREDITS.md),
@@ -61,7 +63,7 @@ const magicResistReduction = computed(
 );
 
 interface StatTile {
-  icon: string;
+  icon: StatIconName;
   label: string;
   value: string;
   note?: string;
@@ -72,17 +74,17 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const statTiles = computed<StatTile[]>(() => {
   const b = boss.value;
   return [
-    { icon: '⚔️', label: 'Physical attack', value: physicalAttack.value.toFixed(0), note: `Base ${b.physicalAttack.toFixed(0)}` },
-    { icon: '🔮', label: 'Magic attack', value: magicAttack.value.toFixed(0), note: `Base ${b.magicAttack.toFixed(0)}` },
-    { icon: '🛡️', label: 'Armor', value: b.armor.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` },
-    { icon: '🔰', label: 'Magic resist', value: b.magicResist.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` },
-    { icon: '💥', label: 'Crit chance', value: pct(b.critChance) },
-    ...(b.reflectPct > 0 ? [{ icon: '🪞', label: 'Reflect', value: pct(b.reflectPct) }] : []),
-    ...(b.lifestealPct > 0 ? [{ icon: '🩸', label: 'Lifesteal', value: pct(b.lifestealPct) }] : []),
+    { icon: 'physical', label: 'Physical attack', value: physicalAttack.value.toFixed(0), note: `Base ${b.physicalAttack.toFixed(0)}` },
+    { icon: 'magic', label: 'Magic attack', value: magicAttack.value.toFixed(0), note: `Base ${b.magicAttack.toFixed(0)}` },
+    { icon: 'armor', label: 'Armor', value: b.armor.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` },
+    { icon: 'magicResist', label: 'Magic resist', value: b.magicResist.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` },
+    { icon: 'crit', label: 'Crit chance', value: pct(b.critChance) },
+    ...(b.reflectPct > 0 ? [{ icon: 'reflect' as const, label: 'Reflect', value: pct(b.reflectPct) }] : []),
+    ...(b.lifestealPct > 0 ? [{ icon: 'lifesteal' as const, label: 'Lifesteal', value: pct(b.lifestealPct) }] : []),
     ...(b.woundsAbility
       ? [
           {
-            icon: '🩹',
+            icon: 'wounds' as const,
             label: 'Wounds chance',
             value: pct(b.woundsAbility.hitChance),
             note: `${pct(b.woundsAbility.effectRate)} healing for ${b.woundsAbility.durationDays}d`,
@@ -104,14 +106,14 @@ const statTiles = computed<StatTile[]>(() => {
         <h2>{{ PERSONALITY_NAME[boss.personality] }}</h2>
         <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
         <p class="stat-summary">
-          <span>⚔️ {{ physicalAttack.toFixed(0) }}</span>
-          <span>🔮 {{ magicAttack.toFixed(0) }}</span>
-          <span>🛡️ {{ boss.armor.toFixed(0) }}</span>
-          <span>🔰 {{ boss.magicResist.toFixed(0) }}</span>
-          <span>💥 {{ (boss.critChance * 100).toFixed(0) }}%</span>
-          <span v-if="boss.reflectPct > 0">🪞 {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
-          <span v-if="boss.lifestealPct > 0">🩸 {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
-          <span v-if="boss.woundsAbility">🩹 {{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</span>
+          <span><StatIcon name="physical" /> {{ physicalAttack.toFixed(0) }}</span>
+          <span><StatIcon name="magic" /> {{ magicAttack.toFixed(0) }}</span>
+          <span><StatIcon name="armor" /> {{ boss.armor.toFixed(0) }}</span>
+          <span><StatIcon name="magicResist" /> {{ boss.magicResist.toFixed(0) }}</span>
+          <span><StatIcon name="crit" /> {{ (boss.critChance * 100).toFixed(0) }}%</span>
+          <span v-if="boss.reflectPct > 0"><StatIcon name="reflect" /> {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
+          <span v-if="boss.lifestealPct > 0"><StatIcon name="lifesteal" /> {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
+          <span v-if="boss.woundsAbility"><StatIcon name="wounds" /> {{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</span>
         </p>
       </div>
     </button>
@@ -132,7 +134,7 @@ const statTiles = computed<StatTile[]>(() => {
         <h4 class="group-label">Stats</h4>
         <div class="tiles">
           <div v-for="stat in statTiles" :key="stat.label" class="stat-tile">
-            <span class="tile-label">{{ stat.icon }} {{ stat.label }}</span>
+            <span class="tile-label"><StatIcon :name="stat.icon" badge />{{ stat.label }}</span>
             <span class="tile-value">{{ stat.value }}</span>
             <span v-if="stat.note" class="tile-note">{{ stat.note }}</span>
           </div>
@@ -178,6 +180,12 @@ const statTiles = computed<StatTile[]>(() => {
 
 .summary-info h2 {
   margin: 0;
+}
+
+.stat-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .stat-summary {
@@ -263,6 +271,9 @@ const statTiles = computed<StatTile[]>(() => {
 }
 
 .tile-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--text);
   font-size: 0.75rem;
 }

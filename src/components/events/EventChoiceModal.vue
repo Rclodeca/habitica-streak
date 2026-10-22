@@ -8,8 +8,10 @@ import { useHabitStore } from '../../store/habitStore';
 import QuestForm from '../quests/QuestForm.vue';
 import ItemHero from '../ui/ItemHero.vue';
 import Modal from '../ui/Modal.vue';
+import StatIcon from '../ui/StatIcon.vue';
+import { EVENT_ICON } from '../ui/statIcons';
 
-const { pending, choices, revealed, ensureChoices, choose, chooseReroll, chooseQuest, dismissReveal } = useEventChoice();
+const { pending, choices, revealed, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal } = useEventChoice();
 const { eventChoiceVisible } = useModalPriority();
 const habitStore = useHabitStore();
 
@@ -25,12 +27,12 @@ const enchantFactor = TUNING.DOUBLED_ITEM_MULTIPLIER;
 const subtitle = computed(() => {
   if (revealed.value) return '';
   if (step.value === 'reroll') return 'Pick a skill to re-roll';
-  if (step.value === 'quest') return 'Describe your quest';
+  if (step.value === 'quest') return 'Name your deed';
   return pending.value > 1 ? `Choose 1 event · ${pending.value} picks waiting` : 'Choose 1 event';
 });
 
 function onPick(id: EventId) {
-  if (id === 'quest') step.value = 'quest';
+  if (id === 'side-quest') step.value = 'quest';
   else if (id === 'reroll-skill') step.value = 'reroll';
   else choose(id);
 }
@@ -40,7 +42,7 @@ function onPick(id: EventId) {
   <Modal :model-value="eventChoiceVisible" :dismissible="false" :title="revealed ? 'Enchanted!' : 'Level up!'" max-width="640px">
     <template v-if="revealed">
       <ItemHero :item="revealed" :factor="enchantFactor" />
-      <button type="button" class="ok" @click="dismissReveal">Nice!</button>
+      <button type="button" class="ok primary-button" @click="dismissReveal">Nice!</button>
     </template>
 
     <template v-else>
@@ -48,7 +50,7 @@ function onPick(id: EventId) {
 
     <div v-if="step === 'choose'" class="cards">
       <button v-for="event in choices" :key="event.id" type="button" class="card" @click="onPick(event.id)">
-        <span class="icon" aria-hidden="true">{{ event.icon }}</span>
+        <StatIcon :name="EVENT_ICON[event.id]" :size="34" class="icon" />
         <strong class="card-title">{{ event.title }}</strong>
         <span v-if="event.description" class="card-desc">{{ event.description }}</span>
         <span v-if="event.oneTime" class="badge">One-time</span>
@@ -66,7 +68,7 @@ function onPick(id: EventId) {
     </template>
 
     <template v-else>
-      <QuestForm @submit="chooseQuest" />
+      <QuestForm kind="side" @submit="chooseSideQuest" />
       <button type="button" class="back" @click="step = 'choose'">← Back</button>
     </template>
     </template>
@@ -107,8 +109,7 @@ function onPick(id: EventId) {
 }
 
 .icon {
-  font-size: 2.25rem;
-  line-height: 1;
+  margin-bottom: 0.15rem;
 }
 
 .card-title {

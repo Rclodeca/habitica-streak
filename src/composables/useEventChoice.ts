@@ -14,9 +14,12 @@ import {
   applyRerollSkillEvent,
   applySpecialEvent,
   applyUltEvent,
+  availableSideOnlyItems,
   consumeEventPick,
   createRng,
   dailyPeriodKey,
+  eligibleEvents,
+  recordSideQuestOffer,
   rollEventChoices,
 } from '../game-engine';
 import type { Difficulty, EventDef, EventId, ItemDef } from '../game-engine';
@@ -49,16 +52,22 @@ export function useEventChoice() {
   /** Rolls the options for the front pick if none are rolled yet; clears them once no picks remain. */
   function ensureChoices() {
     if (pending.value === 0) options.value = null;
-    else if (options.value === null) options.value = rollEventChoices(characterStore.character, habitStore.habits, rng);
+    else if (options.value === null) options.value = rollEventChoices(characterStore.character, habitStore.habits, rng, questStore.quests);
   }
 
   function finish(id: EventId) {
-    characterStore.setCharacter(consumeEventPick(characterStore.character, id));
+    const character = characterStore.character;
+    const offered = (options.value ?? []).map((e) => e.id);
+    // Being offered already proves it was eligible; checking again only matters when it wasn't offered, because
+    // the pick itself (e.g. promising the last side-only item) can make it ineligible by now.
+    const sideQuestEligible =
+      offered.includes('side-quest') || eligibleEvents(character, habitStore.habits, questStore.quests).some((e) => e.id === 'side-quest');
+    characterStore.setCharacter(recordSideQuestOffer(consumeEventPick(character, id), offered, sideQuestEligible));
     options.value = null;
   }
 
-  /** Picks an event that needs no further input (everything except quest and reroll-skill). */
-  function choose(id: Exclude<EventId, 'quest' | 'reroll-skill'>) {
+  /** Picks an event that needs no further input (everything except side-quest and reroll-skill). */
+  function choose(id: Exclude<EventId, 'side-quest' | 'reroll-skill'>) {
     const { level } = characterStore.character;
     if (id === 'special') {
       const before = habitStore.habits;
@@ -109,14 +118,17 @@ export function useEventChoice() {
     finish('reroll-skill');
   }
 
-  function chooseQuest(description: string, difficulty: Difficulty, dueDateKey: string) {
-    questStore.addQuest(description, difficulty, dueDateKey, bossStore.boss.index);
-    finish('quest');
+  /** Creates the side quest, promising it one of this run's still-unclaimed side-only items at random. */
+  function chooseSideQuest(description: string, difficulty: Difficulty, dueDateKey: string) {
+    const rewards = availableSideOnlyItems(characterStore.character, questStore.quests);
+    const reward = rewards[Math.floor(rng() * rewards.length)];
+    questStore.addQuest(description, difficulty, dueDateKey, 'side', reward?.id);
+    finish('side-quest');
   }
 
   function dismissReveal() {
     revealed.value = null;
   }
 
-  return { pending, choices, revealed, ensureChoices, choose, chooseReroll, chooseQuest, dismissReveal };
+  return { pending, choices, revealed, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal };
 }

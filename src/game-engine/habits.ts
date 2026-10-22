@@ -33,6 +33,13 @@ export function rerollDamageType(habit: Habit, rng: Rng, excludeCurrent = false)
   };
 }
 
+const VALID_DAMAGE_TYPES = new Set<string>(Object.keys(TUNING.HABIT_DAMAGE_TYPE_WEIGHTS));
+
+/** Re-rolls a saved habit whose damage type no longer exists (the removed expGain type); otherwise returns it untouched. */
+export function migrateHabitDamageType(habit: Habit, rng: Rng): Habit {
+  return VALID_DAMAGE_TYPES.has(habit.damageType) ? habit : rerollDamageType(habit, rng);
+}
+
 /** Strips the level-triggered Special/Ult/Overdrive bonuses on a run reset (see `resolvePlayerDeathIfDead`). */
 export function resetLevelRewards(habit: Habit): Habit {
   return {
@@ -49,10 +56,9 @@ export function resetLevelRewards(habit: Habit): Habit {
  * How much a damage-type pool grows with the total difficulty weight in it:
  * 1.0 for a single medium habit, +POOL_GROWTH_PER_MEDIUM_HABIT of base per
  * extra medium-equivalent habit (easy/hard scaled by weight, so spamming
- * easy habits isn't a shortcut). Never below 1, and always 1 for expGain.
+ * easy habits isn't a shortcut). Never below 1.
  */
-export function poolSizeMultiplier(damageType: DamageType, totalWeight: number): number {
-  if (damageType === 'expGain') return 1;
+export function poolSizeMultiplier(totalWeight: number): number {
   const growth = TUNING.POOL_GROWTH_PER_MEDIUM_HABIT;
   return Math.max(1, 1 - growth + (growth * totalWeight) / DIFFICULTY_WEIGHT.medium);
 }
@@ -73,7 +79,7 @@ export function computeDamageSplit(habitsOfType: Habit[], statValue: number): Ma
     return result;
   }
   const totalWeight = habitsOfType.reduce((sum, habit) => sum + DIFFICULTY_WEIGHT[habit.difficulty], 0);
-  const pool = statValue * poolSizeMultiplier(habitsOfType[0].damageType, totalWeight);
+  const pool = statValue * poolSizeMultiplier(totalWeight);
   for (const habit of habitsOfType) {
     const weight = DIFFICULTY_WEIGHT[habit.difficulty];
     result.set(habit.id, pool * (weight / totalWeight));

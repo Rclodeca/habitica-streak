@@ -11,6 +11,8 @@ export type {
   Period,
   Personality,
   Quest,
+  QuestKind,
+  QuestWeek,
   StatusEffect,
   WoundsAbility,
   CritBoostStatusEffect,
@@ -31,15 +33,17 @@ export {
   statAtLevel,
 } from './leveling';
 
-export { computeDamageSplit, createHabit, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
+export { computeDamageSplit, createHabit, migrateHabitDamageType, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
 
 export { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 
 export {
   applyResist,
+  bossAttackAnchorHealth,
   bossExpReward,
   bossBaseHealth,
   damageReductionPct,
+  expectedLevelForBossIndex,
   generateBoss,
   PERSONALITY_NAME,
   resistPctForIndex,
@@ -62,6 +66,7 @@ export {
   EVENTS_PER_CHOICE,
   getEventDef,
   migrateEventState,
+  recordSideQuestOffer,
   rollEventChoices,
 } from './events';
 export type { EventDef, EventId } from './events';
@@ -90,6 +95,8 @@ export {
 export type { BoostableStat, ItemBonus, ItemDef, ItemRarity } from './items';
 export {
   assignNewItemUnlockTiers,
+  assignSideOnlyItems,
+  availableSideOnlyItems,
   bodySpriteFor,
   describeItemBonus,
   describeItemBonusParts,
@@ -102,7 +109,17 @@ export {
   rollItemDrops,
 } from './items';
 
-export { createQuest, questExpReward, questMissDamage } from './quests';
+export {
+  createQuest,
+  cumulativeSlotWeight,
+  migrateQuest,
+  questMissDamage,
+  questRewardTier,
+  questSlotExp,
+  questWeekFor,
+  questWeeklyTargetExp,
+  recordQuestCompletion,
+} from './quests';
 
 export type { Rng } from './rng';
 export { createRng, pickRandom, pickWeighted, shuffle } from './rng';

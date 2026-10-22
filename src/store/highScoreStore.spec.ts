@@ -47,7 +47,7 @@ describe('highScoreStore', () => {
   const SAMPLE_RUN = {
     bossIndex: 5,
     level: 10,
-    stats: { physicalDamage: 1, magicDamage: 2, healing: 3, health: 4, trueDamage: 5, expGain: 6, critChance: 0.1 },
+    stats: { physicalDamage: 1, magicDamage: 2, healing: 3, health: 4, trueDamage: 5, critChance: 0.1 },
     habits: [{ name: 'Run', period: 'daily' as const, damageType: 'physical' as const, isBad: false, streakCount: 3 }],
     items: [{ id: 'rusty-blade', name: 'Rusty Blade', icon: 'items/rusty-blade', equipped: true }],
   };

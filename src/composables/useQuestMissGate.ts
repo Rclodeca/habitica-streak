@@ -10,8 +10,8 @@
 // list and clicked OK.
 
 import { computed, ref } from 'vue';
-import { questExpReward } from '../game-engine';
-import type { Difficulty, Quest } from '../game-engine';
+import { ITEM_CATALOG, questRewardTier } from '../game-engine';
+import type { Difficulty, Quest, QuestKind } from '../game-engine';
 import { useCombatActions } from './useCombatActions';
 
 interface PendingQuestMiss {
@@ -19,8 +19,9 @@ interface PendingQuestMiss {
   description: string;
   dueDateKey: string;
   difficulty: Difficulty;
-  /** EXP granted if the player flags this as "I actually did this". */
-  expReward: number;
+  kind: QuestKind;
+  /** What the player gets if they flag this as "I actually did this": a vague EXP tier, or the item's name for a side quest. */
+  rewardText: string;
 }
 
 const pending = ref<PendingQuestMiss[]>([]);
@@ -52,7 +53,11 @@ export function useQuestMissGate() {
       description: quest.description,
       dueDateKey: quest.dueDateKey,
       difficulty: quest.difficulty,
-      expReward: questExpReward(quest),
+      kind: quest.kind,
+      rewardText:
+        quest.kind === 'side'
+          ? (ITEM_CATALOG.find((item) => item.id === quest.rewardItemId)?.name ?? '')
+          : `${questRewardTier(quest.difficulty)} EXP`,
     });
   }
 

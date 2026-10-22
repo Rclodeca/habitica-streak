@@ -2,6 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import { describeItemBonus, describeItemBonusParts } from '../../game-engine';
 import type { ItemDef } from '../../game-engine';
+import StatIcon from './StatIcon.vue';
+import { BOOST_STAT_ICON } from './statIcons';
 
 const props = withDefaults(defineProps<{ item: ItemDef; factor?: number }>(), { factor: 1 });
 
@@ -33,14 +35,14 @@ function toggleChip(index: number) {
     <div v-if="chips.length" class="chips">
       <button
         v-for="(chip, i) in chips"
-        :key="chip.text"
+        :key="`${chip.stat}${chip.text}`"
         type="button"
         class="chip"
         :class="{ open: openChip === i, enchanted }"
         :aria-label="`${chip.text}: ${chip.label}`"
         @click="toggleChip(i)"
       >
-        {{ chip.text }}
+        <StatIcon :name="BOOST_STAT_ICON[chip.stat]" />{{ chip.text }}
         <span class="chip-tip" role="tooltip">{{ chip.label }}</span>
       </button>
     </div>
@@ -118,6 +120,9 @@ function toggleChip(index: number) {
 
 .chip {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.15rem 0.6rem;
   background: color-mix(in srgb, var(--rarity) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--rarity) 45%, transparent);

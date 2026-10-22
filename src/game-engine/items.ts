@@ -1,6 +1,6 @@
 import { TUNING } from './constants/tuning';
 import { shuffle, type Rng } from './rng';
-import type { Character } from './types';
+import type { Character, Quest } from './types';
 
 export type BoostableStat =
   | 'physicalDamage'
@@ -205,19 +205,19 @@ export function itemFlatBonus(character: Character, stat: BoostableStat): number
   return total;
 }
 
-const STAT_EMOJI: Record<BoostableStat, string> = {
-  physicalDamage: '⚔️',
-  magicDamage: '🔮',
-  healing: '💚',
-  health: '❤️',
-  trueDamage: '⚡',
-  expGain: '✨',
-  critChance: '💥',
-  lifesteal: '🩸',
-  armorPen: '🗡️',
-  magicPen: '🌀',
-  armor: '🛡️',
-  magicResist: '🔰',
+const STAT_SHORT_LABEL: Record<BoostableStat, string> = {
+  physicalDamage: 'Physical',
+  magicDamage: 'Magic',
+  healing: 'Healing',
+  health: 'Health',
+  trueDamage: 'True',
+  expGain: 'EXP',
+  critChance: 'Crit',
+  lifesteal: 'Lifesteal',
+  armorPen: 'Armor pen',
+  magicPen: 'Magic pen',
+  armor: 'Armor',
+  magicResist: 'Magic resist',
 };
 
 const STAT_LABEL: Record<BoostableStat, string> = {
@@ -235,34 +235,72 @@ const STAT_LABEL: Record<BoostableStat, string> = {
   magicResist: 'Magic resist',
 };
 
-/** One entry per stat bonus on `item`: the short display text (e.g. "⚔️ +25%") and a plain-English label for the stat. */
-export function describeItemBonusParts(item: ItemDef, factor = 1): { text: string; label: string }[] {
+/** One entry per stat bonus on `item`: the stat, its short amount text (e.g. "+25%"), and a plain-English label for the stat. */
+export function describeItemBonusParts(
+  item: ItemDef,
+  factor = 1,
+): { stat: BoostableStat; text: string; label: string }[] {
   if (item.type === 'consumable') return [];
-  const parts: { text: string; label: string }[] = [];
+  const parts: { stat: BoostableStat; text: string; label: string }[] = [];
   for (const bonus of item.bonuses) {
     const label = STAT_LABEL[bonus.stat];
-    if (bonus.percent) parts.push({ text: `${STAT_EMOJI[bonus.stat]} +${bonus.percent * factor}%`, label });
-    if (bonus.flat) parts.push({ text: `${STAT_EMOJI[bonus.stat]} +${bonus.flat * factor}`, label });
+    if (bonus.percent) parts.push({ stat: bonus.stat, text: `+${bonus.percent * factor}%`, label });
+    if (bonus.flat) parts.push({ stat: bonus.stat, text: `+${bonus.flat * factor}`, label });
   }
   return parts;
 }
 
-/** Condensed summary of what an item grants (e.g. "⚔️ +25%"), for popups/tooltips. */
+/** Condensed plain-text summary of what an item grants (e.g. "Physical +25%"), for popups/tooltips. */
 export function describeItemBonus(item: ItemDef, factor = 1): string {
   if (item.type === 'consumable') return 'Consumable — grants one free revive on death, while equipped';
   return describeItemBonusParts(item, factor)
-    .map((part) => part.text)
+    .map((part) => `${STAT_SHORT_LABEL[part.stat]} ${part.text}`)
     .join(', ');
 }
 
-/** Catalog items the character doesn't own yet and can currently drop (level-gated ones only once unlocked). */
+/**
+ * Catalog items the character doesn't own yet and can currently drop (level-gated ones only once unlocked).
+ * Items flagged side-only for this run (Character.sideOnlyItemIds) never drop — they are granted only by side quests.
+ */
 export function unownedDroppableItems(character: Character): ItemDef[] {
+  const sideOnly = character.sideOnlyItemIds ?? [];
   return ITEM_CATALOG.filter((item) => {
     if (character.ownedItemIds.includes(item.id)) return false;
+    if (sideOnly.includes(item.id)) return false;
     if (!item.levelGated) return true;
     const unlockLevel = character.newItemUnlockTiers?.[item.id];
     return unlockLevel !== undefined && character.level >= unlockLevel;
   });
+}
+
+/** Items eligible to be flagged side-only: rare/epic equipment that isn't level-gated. */
+function isSideOnlyCandidate(item: ItemDef): boolean {
+  return item.type === 'equipment' && !item.levelGated && (item.rarity === 'rare' || item.rarity === 'epic');
+}
+
+/**
+ * Picks this run's side-only items — TUNING.SIDE_QUEST_ITEM_COUNT random
+ * rare/epic items (never an `exclude`d id, e.g. one already owned). Called once
+ * per run from createCharacter.
+ */
+export function assignSideOnlyItems(rng: Rng, exclude: readonly string[] = []): string[] {
+  const candidates = ITEM_CATALOG.filter((item) => isSideOnlyCandidate(item) && !exclude.includes(item.id));
+  return shuffle(candidates, rng)
+    .slice(0, TUNING.SIDE_QUEST_ITEM_COUNT)
+    .map((item) => item.id);
+}
+
+/**
+ * Side-only items a new side quest could still offer: flagged for this run,
+ * not yet owned, and not already promised as the reward of a pending side quest.
+ * A missed side quest leaves the quest list, which returns its item here.
+ */
+export function availableSideOnlyItems(character: Character, quests: readonly Quest[]): ItemDef[] {
+  const promised = quests.filter((q) => q.kind === 'side' && q.rewardItemId).map((q) => q.rewardItemId);
+  return (character.sideOnlyItemIds ?? [])
+    .filter((id) => !character.ownedItemIds.includes(id) && !promised.includes(id))
+    .map((id) => ITEM_CATALOG.find((item) => item.id === id))
+    .filter((item): item is ItemDef => item !== undefined);
 }
 
 /**

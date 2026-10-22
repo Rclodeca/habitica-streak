@@ -109,16 +109,16 @@ describe('characterStore.initFromSave', () => {
     setActivePinia(createPinia());
   });
 
-  it('migrates a save from before trueDamage/expGain existed instead of leaving them undefined', () => {
+  it('migrates a save from before trueDamage existed instead of leaving it undefined', () => {
     const store = useCharacterStore();
     const original = createCharacter(createRng(1));
-    const { trueDamage, expGain, ...preMigrationStats } = original.starterStats;
+    const { trueDamage, ...preMigrationStats } = original.starterStats;
+    void trueDamage;
     const preMigrationSave = { ...original, starterStats: preMigrationStats } as typeof original;
 
     store.initFromSave(preMigrationSave, createRng(2));
 
     expect(store.character.starterStats.trueDamage).toBeGreaterThan(0);
-    expect(store.character.starterStats.expGain).toBeGreaterThan(0);
     expect(store.character.level).toBe(original.level);
   });
 

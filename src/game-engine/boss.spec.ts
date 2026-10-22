@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyResist,
+  bossAttackAnchorHealth,
   bossExpReward,
   bossBaseHealth,
   damageReductionPct,
+  expectedLevelForBossIndex,
   generateBoss,
   PERSONALITY_NAME,
   personalityWeightsForIndex,
   resistPctForIndex,
   rollRunDifficultyModifier,
 } from './boss';
+import { statAtLevel } from './leveling';
 import { createRng, type Rng } from './rng';
 import { TUNING } from './constants/tuning';
 import type { Personality } from './types';
@@ -488,5 +491,94 @@ describe('generateBoss — Wounds ability', () => {
     const bossA = generateBoss(5, createRng(42));
     const bossB = generateBoss(5, createRng(42));
     expect(bossA).toEqual(bossB);
+  });
+});
+
+describe('expectedLevelForBossIndex', () => {
+  const points = TUNING.EXPECTED_LEVEL_BY_BOSS_INDEX;
+
+  it('returns the control-point level exactly at each control point', () => {
+    for (const [index, level] of points) expect(expectedLevelForBossIndex(index)).toBeCloseTo(level, 10);
+  });
+
+  it('interpolates linearly between control points', () => {
+    const [[x1, y1], [x2, y2]] = [points[2], points[3]];
+    expect(expectedLevelForBossIndex((x1 + x2) / 2)).toBeCloseTo((y1 + y2) / 2, 10);
+  });
+
+  it('extrapolates past the last control point along the last segment, and never drops below level 1', () => {
+    const [[x1, y1], [x2, y2]] = [points[points.length - 2], points[points.length - 1]];
+    const slope = (y2 - y1) / (x2 - x1);
+    expect(expectedLevelForBossIndex(x2 + 10)).toBeCloseTo(y2 + slope * 10, 10);
+    expect(expectedLevelForBossIndex(-100)).toBe(1);
+  });
+
+  it('is non-decreasing in boss index', () => {
+    let prev = expectedLevelForBossIndex(1);
+    for (let i = 2; i <= 80; i++) {
+      const next = expectedLevelForBossIndex(i);
+      expect(next).toBeGreaterThanOrEqual(prev);
+      prev = next;
+    }
+  });
+});
+
+describe('bossAttackAnchorHealth / boss attack vs. player level', () => {
+  const starterHealth: number = TUNING.BASE_STATS.health;
+  const INDEX = 15;
+
+  function withFollow<T>(follow: number, fn: () => T): T {
+    const original = TUNING.BOSS_ATTACK_LEVEL_FOLLOW;
+    (TUNING as { BOSS_ATTACK_LEVEL_FOLLOW: number }).BOSS_ATTACK_LEVEL_FOLLOW = follow;
+    try {
+      return fn();
+    } finally {
+      (TUNING as { BOSS_ATTACK_LEVEL_FOLLOW: number }).BOSS_ATTACK_LEVEL_FOLLOW = original;
+    }
+  }
+
+  const attackFor = (level: number, health: number = starterHealth) =>
+    generateBoss(INDEX, createRng(7), 1, bossAttackAnchorHealth(INDEX, health, level)).physicalAttack;
+  const hitPctOfMaxHp = (level: number, health: number = starterHealth) =>
+    (attackFor(level, health) * TUNING.MISS_DAMAGE_FACTOR) / statAtLevel(health, level);
+
+  it('FOLLOW = 0: the attack ignores the player level entirely', () => {
+    withFollow(0, () => {
+      expect(attackFor(3)).toBeCloseTo(attackFor(40), 8);
+    });
+  });
+
+  it("FOLLOW = 1: reproduces the old behaviour (anchor is the player's real level-scaled health)", () => {
+    withFollow(1, () => {
+      for (const level of [1, 8, 25]) {
+        expect(bossAttackAnchorHealth(INDEX, starterHealth, level)).toBeCloseTo(statAtLevel(starterHealth, level), 8);
+      }
+    });
+  });
+
+  it('FOLLOW = 0.5: the hit as a % of max HP falls as level rises and rises when below expected', () => {
+    withFollow(0.5, () => {
+      const expected = Math.round(expectedLevelForBossIndex(INDEX));
+      const below = hitPctOfMaxHp(expected - 5);
+      const on = hitPctOfMaxHp(expected);
+      const above = hitPctOfMaxHp(expected + 5);
+      expect(below).toBeGreaterThan(on);
+      expect(on).toBeGreaterThan(above);
+      let prev = hitPctOfMaxHp(1);
+      for (let level = 2; level <= 60; level++) {
+        const next = hitPctOfMaxHp(level);
+        expect(next).toBeLessThan(prev);
+        prev = next;
+      }
+    });
+  });
+
+  it('at exactly the expected level the anchor equals the expected-level health', () => {
+    const level = expectedLevelForBossIndex(INDEX);
+    expect(bossAttackAnchorHealth(INDEX, starterHealth, level)).toBeCloseTo(statAtLevel(starterHealth, level), 8);
+  });
+
+  it("scales with the character's own starterStats.health (per-run variation)", () => {
+    expect(attackFor(10, starterHealth * 2)).toBeCloseTo(attackFor(10, starterHealth) * 2, 6);
   });
 });

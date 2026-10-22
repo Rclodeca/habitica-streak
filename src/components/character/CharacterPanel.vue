@@ -28,6 +28,9 @@ import { useHabitStore } from '../../store/habitStore';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
+import StatIcon from '../ui/StatIcon.vue';
+import { BOOST_STAT_ICON } from '../ui/statIcons';
+import type { StatIconName } from '../ui/statIcons';
 import PlayerSprite from './PlayerSprite.vue';
 
 // A condensed, always-visible emoji stat line (Buffed numbers) sits next to
@@ -49,7 +52,6 @@ const physicalDamage = computed(() => effectiveStat(character.value, 'physicalDa
 const magicDamage = computed(() => effectiveStat(character.value, 'magicDamage'));
 const healing = computed(() => effectiveStat(character.value, 'healing'));
 const trueDamage = computed(() => effectiveStat(character.value, 'trueDamage'));
-const expGain = computed(() => effectiveStat(character.value, 'expGain'));
 const critChance = computed(() => effectiveCritChance(character.value, currentDayKey.value));
 
 // Item-only stats: no base value exists, they come purely from equipped gear.
@@ -84,7 +86,6 @@ const basePhysicalDamage = computed(() => statAtLevel(character.value.starterSta
 const baseMagicDamage = computed(() => statAtLevel(character.value.starterStats.magicDamage, character.value.level));
 const baseHealing = computed(() => statAtLevel(character.value.starterStats.healing, character.value.level));
 const baseTrueDamage = computed(() => statAtLevel(character.value.starterStats.trueDamage, character.value.level));
-const baseExpGain = computed(() => statAtLevel(character.value.starterStats.expGain, character.value.level));
 const baseCritChance = computed(() => character.value.critChance);
 
 function gain(buffed: number, base: number, scale = 1) {
@@ -106,14 +107,6 @@ const expectedHealing = computed(() =>
 );
 const expectedTrueDamage = computed(() =>
   expectedMediumDailyDamage(character.value, 'trueDamage', habitStore.habitsOfType('trueDamage', 'daily')),
-);
-// expectedMediumDailyDamage leaves expGain's item percent out (it's applied
-// when EXP is granted, see addExpAndResolveLevelUps), so fold it in here to
-// show the EXP a completion actually pays out.
-const expectedExpGain = computed(
-  () =>
-    expectedMediumDailyDamage(character.value, 'expGain', habitStore.habitsOfType('expGain', 'daily')) *
-    (1 + itemBonusPercent(character.value, 'expGain') / 100),
 );
 
 // Sized to the character's current slot cap (4, or 6 after the item-slots
@@ -145,14 +138,14 @@ onMounted(() => document.addEventListener('click', unpinOnOutsideTap));
 onBeforeUnmount(() => document.removeEventListener('click', unpinOnOutsideTap));
 
 interface StatTile {
-  icon: string;
+  icon: StatIconName;
   label: string;
   value: string;
   gain?: string;
   note?: string;
 }
 
-function tile(icon: string, label: string, value: number, base?: number): StatTile {
+function tile(icon: StatIconName, label: string, value: number, base?: number): StatTile {
   const gained = base === undefined ? 0 : gain(value, base);
   return { icon, label, value: value.toFixed(0), gain: gained > 0 ? `+${gained}` : undefined };
 }
@@ -160,44 +153,42 @@ function tile(icon: string, label: string, value: number, base?: number): StatTi
 const statTiles = computed<StatTile[]>(() => {
   const crit = gain(critChance.value, baseCritChance.value, 100);
   return [
-    tile('❤️', 'Max health', maxHealth.value, baseHealth.value),
-    tile('⚔️', 'Physical', physicalDamage.value, basePhysicalDamage.value),
-    tile('🔮', 'Magic', magicDamage.value, baseMagicDamage.value),
-    tile('⚡', 'True', trueDamage.value, baseTrueDamage.value),
-    tile('💚', 'Healing', healing.value, baseHealing.value),
-    tile('✨', 'EXP gain', expGain.value, baseExpGain.value),
+    tile('health', 'Max health', maxHealth.value, baseHealth.value),
+    tile('physical', 'Physical', physicalDamage.value, basePhysicalDamage.value),
+    tile('magic', 'Magic', magicDamage.value, baseMagicDamage.value),
+    tile('true', 'True', trueDamage.value, baseTrueDamage.value),
+    tile('healing', 'Healing', healing.value, baseHealing.value),
     {
-      icon: '💥',
+      icon: 'crit' as const,
       label: 'Crit chance',
       value: `${(critChance.value * 100).toFixed(0)}%`,
       gain: crit > 0 ? `+${crit}%` : undefined,
     },
     ...(armor.value > 0
-      ? [{ icon: '🛡️', label: 'Armor', value: armor.value.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` }]
+      ? [{ icon: 'armor' as const, label: 'Armor', value: armor.value.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` }]
       : []),
     ...(magicResist.value > 0
-      ? [{ icon: '🔰', label: 'Magic resist', value: magicResist.value.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` }]
+      ? [{ icon: 'magicResist' as const, label: 'Magic resist', value: magicResist.value.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` }]
       : []),
-    ...(lifesteal.value > 0 ? [{ icon: '🩸', label: 'Lifesteal', value: `${lifesteal.value.toFixed(0)}%` }] : []),
-    ...(armorPen.value > 0 ? [{ icon: '🗡️', label: 'Armor pen', value: `${armorPen.value.toFixed(0)}%` }] : []),
-    ...(magicPen.value > 0 ? [{ icon: '🌀', label: 'Magic pen', value: `${magicPen.value.toFixed(0)}%` }] : []),
+    ...(lifesteal.value > 0 ? [{ icon: 'lifesteal' as const, label: 'Lifesteal', value: `${lifesteal.value.toFixed(0)}%` }] : []),
+    ...(armorPen.value > 0 ? [{ icon: 'armorPen' as const, label: 'Armor pen', value: `${armorPen.value.toFixed(0)}%` }] : []),
+    ...(magicPen.value > 0 ? [{ icon: 'magicPen' as const, label: 'Magic pen', value: `${magicPen.value.toFixed(0)}%` }] : []),
   ];
 });
 
 const activeEffects = computed(() => {
-  const effects: { icon: string; text: string; days: number; tone: 'boon' | 'bane' }[] = [];
-  if (critBoost.value) effects.push({ icon: '🎯', text: `+${(critBoost.value.bonus * 100).toFixed(0)}% crit`, days: critBoostDaysLeft.value, tone: 'boon' });
-  if (healBoost.value) effects.push({ icon: '🌿', text: `+${(healBoost.value.bonus * 100).toFixed(0)}% heal`, days: healBoostDaysLeft.value, tone: 'boon' });
-  if (woundsEffect.value) effects.push({ icon: '🩹', text: `Wounded · ${(woundsEffect.value.effectRate * 100).toFixed(0)}% heal`, days: woundsDaysLeft.value, tone: 'bane' });
+  const effects: { icon: StatIconName; text: string; days: number; tone: 'boon' | 'bane' }[] = [];
+  if (critBoost.value) effects.push({ icon: 'critBoost', text: `+${(critBoost.value.bonus * 100).toFixed(0)}% crit`, days: critBoostDaysLeft.value, tone: 'boon' });
+  if (healBoost.value) effects.push({ icon: 'healBoost', text: `+${(healBoost.value.bonus * 100).toFixed(0)}% heal`, days: healBoostDaysLeft.value, tone: 'boon' });
+  if (woundsEffect.value) effects.push({ icon: 'wounds', text: `Wounded · ${(woundsEffect.value.effectRate * 100).toFixed(0)}% heal`, days: woundsDaysLeft.value, tone: 'bane' });
   return effects;
 });
 
 const newHabitTiles = computed(() => [
-  { icon: '⚔️', label: 'Physical', value: expectedPhysicalDamage.value, color: '#ef4444' },
-  { icon: '🔮', label: 'Magic', value: expectedMagicDamage.value, color: '#a855f7' },
-  { icon: '💚', label: 'Healing', value: expectedHealing.value, color: '#22c55e' },
-  { icon: '⚡', label: 'True', value: expectedTrueDamage.value, color: '#f9fafb' },
-  { icon: '✨', label: 'EXP', value: expectedExpGain.value, color: '#60a5fa' },
+  { icon: 'physical' as const, label: 'Physical', value: expectedPhysicalDamage.value, color: '#f87171' },
+  { icon: 'magic' as const, label: 'Magic', value: expectedMagicDamage.value, color: '#b98cfb' },
+  { icon: 'healing' as const, label: 'Healing', value: expectedHealing.value, color: '#22c55e' },
+  { icon: 'true' as const, label: 'True', value: expectedTrueDamage.value, color: '#f9fafb' },
 ]);
 
 const equippedItems = computed(() => equippedSlots.value.flatMap((item) => (item ? [item] : [])));
@@ -234,19 +225,19 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
       <ExpBar :current="character.exp" :max="expNeeded" />
       <p class="stat-summary">
-        <span>⚔️ {{ physicalDamage.toFixed(0) }}</span>
-        <span>🔮 {{ magicDamage.toFixed(0) }}</span>
-        <span>💚 {{ healing.toFixed(0) }}</span>
-        <span>⚡ {{ trueDamage.toFixed(0) }}</span>
-        <span>💥 {{ (critChance * 100).toFixed(0) }}%</span>
-        <span v-if="armor > 0">🛡️ {{ armor.toFixed(0) }}</span>
-        <span v-if="magicResist > 0">🔰 {{ magicResist.toFixed(0) }}</span>
-        <span v-if="lifesteal > 0">🩸 {{ lifesteal.toFixed(0) }}%</span>
-        <span v-if="armorPen > 0">🗡️ {{ armorPen.toFixed(0) }}%</span>
-        <span v-if="magicPen > 0">🌀 {{ magicPen.toFixed(0) }}%</span>
-        <span v-if="critBoost">🎯 +{{ (critBoost.bonus * 100).toFixed(0) }}% crit · {{ critBoostDaysLeft }}d</span>
-        <span v-if="healBoost">🌿 +{{ (healBoost.bonus * 100).toFixed(0) }}% heal · {{ healBoostDaysLeft }}d</span>
-        <span v-if="woundsEffect">🩹 {{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
+        <span><StatIcon name="physical" />{{ physicalDamage.toFixed(0) }}</span>
+        <span><StatIcon name="magic" />{{ magicDamage.toFixed(0) }}</span>
+        <span><StatIcon name="healing" />{{ healing.toFixed(0) }}</span>
+        <span><StatIcon name="true" />{{ trueDamage.toFixed(0) }}</span>
+        <span><StatIcon name="crit" />{{ (critChance * 100).toFixed(0) }}%</span>
+        <span v-if="armor > 0"><StatIcon name="armor" />{{ armor.toFixed(0) }}</span>
+        <span v-if="magicResist > 0"><StatIcon name="magicResist" />{{ magicResist.toFixed(0) }}</span>
+        <span v-if="lifesteal > 0"><StatIcon name="lifesteal" />{{ lifesteal.toFixed(0) }}%</span>
+        <span v-if="armorPen > 0"><StatIcon name="armorPen" />{{ armorPen.toFixed(0) }}%</span>
+        <span v-if="magicPen > 0"><StatIcon name="magicPen" />{{ magicPen.toFixed(0) }}%</span>
+        <span v-if="critBoost"><StatIcon name="critBoost" />+{{ (critBoost.bonus * 100).toFixed(0) }}% crit · {{ critBoostDaysLeft }}d</span>
+        <span v-if="healBoost"><StatIcon name="healBoost" />+{{ (healBoost.bonus * 100).toFixed(0) }}% heal · {{ healBoostDaysLeft }}d</span>
+        <span v-if="woundsEffect"><StatIcon name="wounds" />{{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
       </p>
     </button>
 
@@ -264,7 +255,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
       <div v-if="activeEffects.length" class="effects">
         <span v-for="effect in activeEffects" :key="effect.text" class="effect" :class="effect.tone">
-          {{ effect.icon }} {{ effect.text }} · {{ effect.days }}d
+          <StatIcon :name="effect.icon" />{{ effect.text }} · {{ effect.days }}d
         </span>
       </div>
 
@@ -288,8 +279,8 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
               </span>
               <span v-if="item.type === 'consumable'" class="gear-bonus">{{ describeItemBonus(item) }}</span>
               <span v-else class="gear-bonuses">
-                <span v-for="part in describeItemBonusParts(item, itemDoubleFactor(character, item.id))" :key="part.text" class="gear-bonus">
-                  {{ part.text }} <span class="gear-bonus-label">{{ part.label }}</span>
+                <span v-for="part in describeItemBonusParts(item, itemDoubleFactor(character, item.id))" :key="`${part.stat}${part.text}`" class="gear-bonus">
+                  <StatIcon :name="BOOST_STAT_ICON[part.stat]" />{{ part.text }} <span class="gear-bonus-label">{{ part.label }}</span>
                 </span>
               </span>
             </div>
@@ -302,7 +293,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <h4 class="group-label">Stats</h4>
         <div class="tiles">
           <div v-for="stat in statTiles" :key="stat.label" class="stat-tile">
-            <span class="tile-label">{{ stat.icon }} {{ stat.label }}</span>
+            <span class="tile-label"><StatIcon :name="stat.icon" badge />{{ stat.label }}</span>
             <span class="tile-value">
               {{ stat.value }}
               <span v-if="stat.gain" class="tile-gain">{{ stat.gain }}</span>
@@ -316,7 +307,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
         <h4 class="group-label">A new medium daily would deal</h4>
         <div class="tiles five">
           <div v-for="entry in newHabitTiles" :key="entry.label" class="stat-tile" :style="{ '--tone': entry.color }">
-            <span class="tile-label">{{ entry.icon }} {{ entry.label }}</span>
+            <span class="tile-label"><StatIcon :name="entry.icon" badge />{{ entry.label }}</span>
             <span class="tile-value tinted">{{ entry.value.toFixed(0) }}</span>
           </div>
         </div>
@@ -356,6 +347,12 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.stat-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .stat-summary {
@@ -591,6 +588,9 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .gear-bonus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--text-h);
   font-size: 0.8rem;
 }
@@ -611,6 +611,9 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .effect {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.15rem 0.6rem;
   border: 1px solid;
   border-radius: 999px;
@@ -673,6 +676,9 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .tile-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--text);
   font-size: 0.75rem;
 }

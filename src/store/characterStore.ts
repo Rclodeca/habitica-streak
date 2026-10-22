@@ -5,6 +5,7 @@
 import { defineStore } from 'pinia';
 import {
   addExpAndResolveLevelUps,
+  ITEM_CATALOG,
   applyDamagePoolRebalance,
   discardUnequippedItems,
   completeHabit,
@@ -25,7 +26,9 @@ export const useCharacterStore = defineStore('character', {
   actions: {
     /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
     initFromSave(saved: Character | null, rng: Rng) {
-      this.character = saved ? discardUnequippedItems(applyDamagePoolRebalance(migrateCharacter(saved, rng))) : createCharacter(rng);
+      this.character = saved
+        ? discardUnequippedItems(applyDamagePoolRebalance(migrateCharacter(saved, rng)))
+        : createCharacter(rng);
     },
 
     /** Rolls one boss-kill's worth of item drops for `bossIndex`, adds them to owned items, and returns them. */
@@ -33,6 +36,14 @@ export const useCharacterStore = defineStore('character', {
       const dropped = rollItemDrops(this.character, bossIndex, rng, maxCount);
       this.character = { ...this.character, ownedItemIds: [...this.character.ownedItemIds, ...dropped.map((item) => item.id)] };
       return dropped;
+    },
+
+    /** Adds one specific catalog item to owned items (a side-quest reward) and returns it; null if unknown or already owned. */
+    grantItem(itemId: string): ItemDef | null {
+      const item = ITEM_CATALOG.find((i) => i.id === itemId);
+      if (!item || this.character.ownedItemIds.includes(itemId)) return null;
+      this.character = { ...this.character, ownedItemIds: [...this.character.ownedItemIds, itemId] };
+      return item;
     },
 
     /** Replaces the character wholesale, e.g. after combat resolution elsewhere. */

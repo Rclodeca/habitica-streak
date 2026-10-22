@@ -54,7 +54,7 @@ const isCurrentEquipped = computed(
 
       <template v-else>
         <p class="equipped-note">✓ Equipped</p>
-        <button type="button" class="dismiss-button" @click="dismiss">Nice!</button>
+        <button type="button" class="dismiss-button primary-button" @click="dismiss">Nice!</button>
       </template>
     </template>
   </Modal>

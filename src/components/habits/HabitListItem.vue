@@ -7,6 +7,8 @@ import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
+import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
+import StatIcon from '../ui/StatIcon.vue';
 import HabitStatsModal from './HabitStatsModal.vue';
 
 const props = defineProps<{ habit: Habit }>();
@@ -28,17 +30,23 @@ const breakdown = computed(() => {
 
 const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
 
-const damageTypeColor = computed(() => {
-  if (props.habit.damageType === 'healing') return '#22c55e'; // green
-  if (props.habit.damageType === 'magic') return '#a855f7'; // purple
-  if (props.habit.damageType === 'trueDamage') return '#f9fafb'; // white
-  if (props.habit.damageType === 'expGain') return '#60a5fa'; // blue
-  return '#ef4444'; // red for physical
-});
+const damageTypeColor = computed(() => DAMAGE_TYPE_COLORS[props.habit.damageType]);
 
-const damageTypeIcon = computed(
-  () => ({ healing: '💚', physical: '⚔️', magic: '🔮', trueDamage: '⚡', expGain: '✨' })[props.habit.damageType],
-);
+const STREAK_TIERS = [
+  { weight: 500, size: 0.75, bright: 0 },
+  { weight: 600, size: 0.82, bright: 35 },
+  { weight: 700, size: 0.92, bright: 70 },
+  { weight: 800, size: 1.05, bright: 100 },
+];
+const streakStyle = computed(() => {
+  const n = props.habit.streakCount;
+  const tier = STREAK_TIERS[n >= 20 ? 3 : n >= 10 ? 2 : n >= 5 ? 1 : 0];
+  return {
+    fontWeight: tier.weight,
+    fontSize: `${tier.size}rem`,
+    color: `color-mix(in srgb, var(--text-h) ${tier.bright}%, var(--text))`,
+  };
+});
 const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);
 
 const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
@@ -68,15 +76,14 @@ const showStatsModal = ref(false);
       <span v-if="rewardTag" class="tag">{{ rewardTag }}</span>
     </div>
     <span class="meta">
-      <span class="streak" :title="`${habit.streakCount} streak`">🔥 {{ habit.streakCount }}</span>
+      <span class="streak" :style="streakStyle" :title="habit.streakCount > 0 ? `${habit.streakCount} streak` : undefined">
+        <template v-if="habit.streakCount > 0"><StatIcon name="streak" :size="12" />{{ habit.streakCount }}</template>
+      </span>
       <span class="pips" :title="habit.difficulty">
         <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= difficultyPips }" />
       </span>
     </span>
-    <span class="damage">
-      <span class="damage-icon">{{ damageTypeIcon }}</span>
-      <span class="damage-amount">{{ effectiveDamage.toFixed(0) }}</span>
-    </span>
+    <span class="damage">{{ effectiveDamage.toFixed(0) }}</span>
   </li>
 
   <HabitStatsModal v-model="showStatsModal" :habit="habit" />
@@ -202,6 +209,14 @@ const showStatsModal = ref(false);
   font-variant-numeric: tabular-nums;
 }
 
+.streak {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  min-width: 3.5rem;
+}
+
 .pips {
   display: flex;
   gap: 0.2rem;
@@ -220,18 +235,11 @@ const showStatsModal = ref(false);
 
 .damage {
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  width: 5.5rem;
+  width: 3rem;
+  text-align: right;
   color: var(--c);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-
-.damage-icon {
-  width: 1.25rem;
-  text-align: center;
 }
 
 @media (max-width: 560px) {
@@ -244,7 +252,7 @@ const showStatsModal = ref(false);
   }
 
   .damage {
-    width: 4.75rem;
+    width: 2.5rem;
   }
 }
 </style>
