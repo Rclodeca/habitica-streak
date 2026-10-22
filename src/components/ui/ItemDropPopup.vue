@@ -128,7 +128,7 @@ const isCurrentEquipped = computed(
 }
 
 .row-bonus.enchanted {
-  color: var(--accent);
+  color: var(--accent-solid);
 }
 
 .equipped-note {

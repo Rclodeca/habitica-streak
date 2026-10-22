@@ -140,8 +140,8 @@ const showStatsModal = ref(false);
 }
 
 .check:checked {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
 }
 
 .check:checked::after {

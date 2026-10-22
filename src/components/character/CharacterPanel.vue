@@ -384,11 +384,11 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .item-slot.enchanted {
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-solid);
 }
 
 .item-slot.enchanted .item-stats {
-  color: var(--accent);
+  color: var(--accent-solid);
 }
 
 .item-icon {
@@ -517,7 +517,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .gear-row.enchanted {
-  box-shadow: 0 0 12px -6px var(--accent);
+  box-shadow: 0 0 12px -6px var(--accent-solid);
 }
 
 .gear-row.empty {
@@ -573,10 +573,10 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 .gear-enchanted {
   margin-left: 0.4rem;
   padding: 0 0.4rem;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: rgba(167, 139, 250, 0.14);
+  border: 1px solid rgba(167, 139, 250, 0.5);
   border-radius: 999px;
-  color: var(--accent);
+  color: var(--accent-solid);
   font-size: 0.65rem;
   font-weight: 600;
 }
@@ -596,7 +596,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .enchanted .gear-bonuses .gear-bonus {
-  color: var(--accent);
+  color: var(--accent-solid);
 }
 
 .gear-bonus-label {

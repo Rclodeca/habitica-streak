@@ -44,10 +44,6 @@ const percent = computed(() => {
   transition: width 0.3s ease;
 }
 
-.health-bar.boss .health-bar-fill {
-  background: #ea580c;
-}
-
 .health-bar-label {
   position: absolute;
   inset: 0;

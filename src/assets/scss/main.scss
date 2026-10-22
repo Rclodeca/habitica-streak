@@ -62,8 +62,8 @@ body {
     inset: -10px -18px -4px;
     background: radial-gradient(
       ellipse at 50% 55%,
-      color-mix(in srgb, var(--accent) 20%, transparent),
-      color-mix(in srgb, var(--accent) 5%, transparent) 55%,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.03) 55%,
       transparent 72%
     );
   }
@@ -84,9 +84,9 @@ body {
 // Solid call-to-action; the default button fill is a translucent tint that
 // reads muddy on a dark modal.
 .primary-button {
-  background: var(--accent);
+  background: var(--accent-solid);
   border-color: transparent;
-  color: #1a1408;
+  color: #140d2b;
   font-weight: 700;
 
   &:hover {

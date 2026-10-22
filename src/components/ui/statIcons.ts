@@ -45,7 +45,7 @@ export const STAT_ICONS = {
   critBoost: { icon: Target, color: '#f59e0b' },
   healBoost: { icon: Leaf, color: '#22c55e' },
   wounds: { icon: Bandage, color: '#f87171' },
-  streak: { icon: Flame, color: '#fb923c' },
+  streak: { icon: Flame, color: '#a8aebb' },
   reflect: { icon: Undo2, color: '#94a3b8' },
   skull: { icon: Skull, color: '#f87171' },
   exp: { icon: Sparkles, color: '#60a5fa' },

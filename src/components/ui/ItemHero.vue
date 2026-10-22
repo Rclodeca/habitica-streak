@@ -133,9 +133,9 @@ function toggleChip(index: number) {
 }
 
 .chip.enchanted {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--accent);
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.5);
+  color: var(--accent-solid);
 }
 
 .chip-tip {

@@ -187,7 +187,7 @@ const DAMAGE_TYPE_ICON: Record<DamageType, StatIconName> = {
 }
 
 .item-stats.enchanted {
-  color: var(--accent);
+  color: var(--accent-solid);
   opacity: 1;
 }
 
