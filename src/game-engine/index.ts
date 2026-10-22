@@ -20,7 +20,16 @@ export type {
   WoundsStatusEffect,
 } from './types';
 
-export { applyDamagePoolRebalance, createCharacter, discardUnequippedItems, migrateCharacter, randomizeStat } from './character';
+export {
+  applyDamagePoolRebalance,
+  createCharacter,
+  DEFAULT_HERO_NAME,
+  discardUnequippedItems,
+  MAX_HERO_NAME_LENGTH,
+  migrateCharacter,
+  nameCharacter,
+  randomizeStat,
+} from './character';
 
 export {
   addExpAndResolveLevelUps,
@@ -113,12 +122,17 @@ export {
   createQuest,
   cumulativeSlotWeight,
   migrateQuest,
+  migrateQuestUnlock,
   questMissDamage,
   questRewardTier,
+  questsOpen,
   questSlotExp,
+  questUnlockPending,
   questWeekFor,
   questWeeklyTargetExp,
+  QUESTS_UNLOCK_LEVEL,
   recordQuestCompletion,
+  unlockQuests,
 } from './quests';
 
 export type { Rng } from './rng';

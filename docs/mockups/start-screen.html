@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — start screen mockups (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Three options for the new-hero screen, in the Ashen theme. Shown on the
+   very first launch and after "Start new run". Pick with the switcher. */
+:root {
+  --bg: #0b0a09;
+  --text: #a1988a;
+  --text-h: #ece3cd;
+  --bone: #d4cab5;
+  --gold: #c8a96e;
+  --gold-hi: #e6cf9a;
+  --ember: #e0783a;
+  --blood: #c8402f;
+  --line: rgba(200, 169, 110, 0.2);
+  --line-mid: rgba(200, 169, 110, 0.4);
+  --line-faint: rgba(200, 169, 110, 0.07);
+  --dmg-physical: #d0604f;
+  --dmg-magic: #ab8dd8;
+  --dmg-healing: #92bf88;
+  --dmg-true: #f1e9d6;
+  --icon-health: #c33a2e;
+  --icon-crit: #d6a24f;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; color: var(--bone);
+  font: 500 19px/1.4 'Cormorant Garamond', Garamond, Georgia, serif;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(200, 169, 110, 0.13), transparent 70%),
+    radial-gradient(ellipse 60% 35% at 50% 108%, rgba(224, 120, 58, 0.1), transparent 70%),
+    var(--bg);
+}
+button, input { font: inherit; color: inherit; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul, ol { list-style: none; margin: 0; padding: 0; }
+img { display: block; }
+
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+
+.frame {
+  position: relative;
+  background: linear-gradient(180deg, rgba(24, 21, 18, 0.985), rgba(10, 9, 8, 0.985));
+  border: 1px solid var(--line-mid);
+  box-shadow: 0 40px 80px -30px #000, 0 0 0 4px rgba(0, 0, 0, 0.6), 0 0 0 5px rgba(200, 169, 110, 0.13);
+}
+.frame::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 12px 1px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 12px 1px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 12px 1px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 12px 1px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 1px 12px no-repeat;
+}
+.lined { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--gold-hi); }
+.lined::before, .lined::after { content: ''; flex: 1; min-width: 16px; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.lined::after { background: linear-gradient(270deg, transparent, var(--line-mid)); }
+
+.btn {
+  display: block; width: 100%; padding: 15px; cursor: pointer;
+  font-family: 'Cinzel', Georgia, serif; font-size: 12px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--text-h); background: linear-gradient(180deg, rgba(146, 124, 80, 0.25), rgba(60, 48, 28, 0.25));
+  border: 1px solid var(--line-mid); transition: border-color 0.25s, box-shadow 0.25s;
+}
+.btn:hover { border-color: var(--gold-hi); box-shadow: 0 0 22px -6px rgba(230, 199, 127, 0.5); }
+.btn.ghost { background: transparent; color: var(--gold-hi); }
+
+.field { display: block; }
+.label { display: block; margin-bottom: 8px; font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase; color: var(--text); }
+.name-input {
+  width: 100%; padding: 12px 14px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line-mid); border-radius: 0;
+  color: var(--text-h); font-size: 22px; font-weight: 600; outline: none;
+}
+.name-input::placeholder { color: #5c554a; font-style: italic; font-weight: 500; }
+.name-input:focus { border-color: var(--gold); box-shadow: 0 0 14px -4px rgba(230, 199, 127, 0.5); }
+
+.player { position: relative; width: 90px; height: 90px; }
+.player img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+
+.ico { display: inline-grid; place-items: center; flex-shrink: 0; color: var(--k, var(--gold)); line-height: 0; }
+.ico svg { display: block; }
+.k-keep { --k: var(--gold-hi); }
+.k-break { --k: var(--dmg-physical); }
+.k-rise { --k: var(--gold); }
+.k-fall { --k: var(--ember); }
+
+.subtle { font-style: italic; color: var(--text); }
+.after-only { display: none; }
+body.after-death .after-only { display: revert; }
+body.after-death .first-only { display: none; }
+
+/* Mockup chrome — not part of the design. */
+.mock-switcher {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 99;
+  display: flex; align-items: center; gap: 4px; padding: 5px;
+  background: rgba(17, 17, 21, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  font: 600 13px/1 system-ui, -apple-system, sans-serif; color: #e5e7eb; letter-spacing: 0;
+}
+.mock-switcher button { border: 0; background: transparent; color: #cbd0da; padding: 9px 13px; border-radius: 999px; font: inherit; white-space: nowrap; cursor: pointer; }
+.mock-switcher button[aria-pressed='true'] { background: #f3f4f6; color: #111; }
+.mock-switcher .sep { width: 1px; align-self: stretch; margin: 4px 4px; background: rgba(255, 255, 255, 0.15); }
+@media (max-width: 560px) {
+  .mock-switcher { left: 6px; right: 6px; transform: none; flex-wrap: wrap; justify-content: center; border-radius: 18px; }
+  .mock-switcher button { padding: 8px 9px; font-size: 12px; }
+  .mock-switcher .sep { display: none; }
+}
+
+.screen { display: none; min-height: 100vh; padding: 40px 20px 120px; }
+body[data-option='a'] .opt-a, body[data-option='b'] .opt-b, body[data-option='c'] .opt-c { display: block; }
+
+/* ---------- A · The Oath — one popup over the dimmed dashboard ---------- */
+.opt-a { display: none; place-items: center; }
+body[data-option='a'] .opt-a { display: grid; }
+.oath { width: 100%; max-width: 460px; padding: 26px 28px 28px; text-align: center; }
+.oath h1 { font-size: 13px; letter-spacing: 0.3em; margin-bottom: 18px; }
+.portrait {
+  width: 120px; height: 120px; margin: 4px auto 18px; display: grid; place-items: center; border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 199, 127, 0.18), transparent 68%);
+  border: 1px solid var(--line-mid); box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.5), inset 0 0 0 6px rgba(200, 169, 110, 0.16);
+}
+.oath .field { text-align: left; margin-bottom: 22px; }
+.rules { display: grid; gap: 0; margin: 0 0 24px; text-align: left; border-top: 1px solid var(--line-faint); }
+.rules li { display: grid; grid-template-columns: 22px 64px 1fr; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--line-faint); }
+.rules b { font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-h); }
+.rules span { font-style: italic; color: var(--bone); line-height: 1.3; }
+.fell { margin: -6px 0 18px; }
+
+/* ---------- B · Title screen — full-screen, bonfire-lit ---------- */
+.opt-b { text-align: center; overflow: hidden; position: relative; }
+.opt-b .inner { position: relative; max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+.eyebrow { font-style: italic; color: var(--text); margin-top: 3vh; }
+.game-title { margin: 8px 0 0; font-size: clamp(30px, 6vw, 58px); font-weight: 500; letter-spacing: 0.14em; color: var(--text-h); text-shadow: 0 0 30px rgba(224, 120, 58, 0.25); }
+.bonfire { position: relative; width: 320px; max-width: 100%; height: 210px; margin: 18px 0 6px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; isolation: isolate;
+  background: radial-gradient(ellipse 50% 55% at 50% 72%, rgba(224, 120, 58, 0.22), transparent 72%), radial-gradient(ellipse 45% 60% at 50% 55%, rgba(215, 205, 185, 0.12), transparent 70%); }
+.bonfire::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 200%; z-index: -1;
+  background-image:
+    radial-gradient(1.6px 1.6px at 20% 30%, #ffb06a 50%, transparent 55%), radial-gradient(1.2px 1.2px at 34% 68%, #ffd08f 50%, transparent 55%),
+    radial-gradient(1.8px 1.8px at 48% 40%, #ff9a52 50%, transparent 55%), radial-gradient(1.1px 1.1px at 60% 82%, #ffc27a 50%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 72% 26%, #ffad66 50%, transparent 55%), radial-gradient(1.2px 1.2px at 84% 60%, #ffd59a 50%, transparent 55%);
+  background-size: 100% 50%; animation: rise 12s linear infinite;
+}
+.bonfire::after { content: ''; position: absolute; left: 25%; right: 25%; bottom: 10px; height: 10px; z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, rgba(0, 0, 0, 0.7), transparent 70%); }
+.bonfire .player { width: 120px; height: 120px; margin-bottom: 14px; filter: drop-shadow(0 0 14px rgba(0, 0, 0, 0.9)); }
+.underline { width: 100%; max-width: 360px; margin: 6px 0 20px; }
+.underline .label { text-align: center; }
+.underline .name-input { text-align: center; background: transparent; border: 0; border-bottom: 1px solid var(--line-mid); font-size: 28px; padding: 6px 0 10px; }
+.underline .name-input:focus { box-shadow: none; border-bottom-color: var(--gold); }
+.opt-b .btn { max-width: 360px; }
+.columns { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 44px; border-top: 1px solid var(--line); }
+.columns li { padding: 22px 16px 4px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.columns li + li { border-left: 1px solid var(--line-faint); }
+.columns b { font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-h); }
+.columns span { font-style: italic; color: var(--text); font-size: 17px; line-height: 1.3; }
+.opt-b .fell { margin: 4px 0 14px; }
+@media (max-width: 680px) {
+  .columns { grid-template-columns: 1fr 1fr; }
+  .columns li:nth-child(3) { border-left: 0; }
+}
+
+/* ---------- C · Two steps — how it works, then your rolled hero ---------- */
+.opt-c .steps { max-width: 980px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+.step { padding: 24px 26px 26px; }
+.step-tag { margin-bottom: 10px; text-align: center; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text); }
+.dots { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.dots i { width: 7px; height: 7px; transform: rotate(45deg); border: 1px solid var(--gold); }
+.dots i.on { background: var(--gold-hi); box-shadow: 0 0 8px rgba(230, 199, 127, 0.6); }
+.step h2 { font-size: 13px; letter-spacing: 0.3em; margin-bottom: 18px; }
+.rule-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.rule-cards li { padding: 16px 12px 14px; text-align: center; background: linear-gradient(180deg, rgba(200, 169, 110, 0.05), rgba(0, 0, 0, 0.32)); border: 1px solid var(--line); }
+.rule-cards .ring {
+  width: 54px; height: 54px; margin: 0 auto 10px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-mid);
+  background: radial-gradient(circle, rgba(230, 199, 127, 0.14), transparent 70%); box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.5), inset 0 0 0 5px rgba(200, 169, 110, 0.16);
+}
+.rule-cards b { display: block; margin-bottom: 4px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-h); }
+.rule-cards span { font-style: italic; color: var(--text); font-size: 16.5px; line-height: 1.3; }
+.rolled { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; margin-bottom: 20px; }
+.rolled .stage { width: 112px; height: 132px; display: flex; align-items: flex-end; justify-content: center; background: radial-gradient(ellipse 60% 55% at 50% 62%, rgba(215, 205, 185, 0.15), transparent 72%), radial-gradient(ellipse 80% 30% at 50% 100%, rgba(224, 120, 58, 0.18), transparent 70%); }
+.rolled .player { margin-bottom: 10px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tile { padding: 7px 8px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); }
+.tile span { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text); }
+.tile b { display: block; font-family: 'Cinzel', serif; font-weight: 500; font-size: 18px; color: var(--text-h); }
+.rolled-note { margin: -8px 0 18px; text-align: center; }
+.step .field { margin-bottom: 20px; }
+@media (max-width: 820px) { .opt-c .steps { grid-template-columns: 1fr; max-width: 520px; } }
+@media (max-width: 420px) { .rule-cards { grid-template-columns: 1fr; } .rolled { grid-template-columns: 1fr; justify-items: center; } }
+
+/* ---------- Where the name lands ---------- */
+.where { max-width: 520px; margin: 0 auto; padding: 0 20px 140px; }
+.where h3 { font-size: 10px; letter-spacing: 0.3em; margin-bottom: 14px; }
+.mini {
+  display: flex; align-items: center; gap: 16px; padding: 16px 20px; position: relative;
+  background: linear-gradient(180deg, rgba(27, 24, 21, 0.93), rgba(14, 13, 11, 0.95)); border: 1px solid var(--line);
+}
+.mini .who { flex: 1; min-width: 0; }
+.mini h2 { font-size: 14px; letter-spacing: 0.22em; color: var(--gold-hi); margin-bottom: 10px; overflow-wrap: anywhere; }
+.bar { height: 8px; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(200, 169, 110, 0.32); }
+.bar i { display: block; height: 100%; width: 100%; background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); }
+.bar.exp { height: 5px; margin-top: 8px; border-color: rgba(200, 169, 110, 0.24); }
+.bar.exp i { width: 0; }
+
+@keyframes rise { to { transform: translateY(-50%); } }
+@media (prefers-reduced-motion: reduce) { .bonfire::before { animation: none; } }
+</style>
+</head>
+<body data-option="a">
+
+<nav class="mock-switcher" aria-label="Mockup options">
+  <button type="button" data-option="a">A · The Oath</button>
+  <button type="button" data-option="b">B · Title screen</button>
+  <button type="button" data-option="c">C · Two steps</button>
+  <span class="sep"></span>
+  <button type="button" data-state="first">First run</button>
+  <button type="button" data-state="after">After death</button>
+</nav>
+
+<!-- A · The Oath -->
+<section class="screen opt-a">
+  <div class="frame oath">
+    <h1 class="engraved lined">
+      <span class="first-only">A new hero</span><span class="after-only">A new hero rises</span>
+    </h1>
+    <div class="portrait"><div class="player" data-player></div></div>
+    <p class="subtle fell after-only"><span data-prev>Aria</span> fell to Boss 7. Your habits remain.</p>
+    <label class="field">
+      <span class="label">Name</span>
+      <input class="name-input" maxlength="16" placeholder="Nameless" autocomplete="off" />
+    </label>
+    <ul class="rules">
+      <li><i class="ico k-keep" data-i="sword"></i><b>Keep</b><span>A habit kept strikes the boss.</span></li>
+      <li><i class="ico k-break" data-i="swords"></i><b>Break</b><span>A habit broken, the boss strikes back.</span></li>
+      <li><i class="ico k-rise" data-i="chevrons-up"></i><b>Rise</b><span>Each boss slain makes you stronger.</span></li>
+      <li><i class="ico k-fall" data-i="flame"></i><b>Fall</b><span>Fall, and another takes your place.</span></li>
+    </ul>
+    <button type="button" class="btn"><span class="first-only">Begin</span><span class="after-only">Rise</span></button>
+  </div>
+</section>
+
+<!-- B · Title screen -->
+<section class="screen opt-b">
+  <div class="inner">
+    <p class="eyebrow first-only">Every habit is a weapon.</p>
+    <p class="eyebrow after-only">The fire still burns.</p>
+    <h1 class="game-title engraved">Habitica Streak</h1>
+    <div class="bonfire"><div class="player" data-player></div></div>
+    <p class="subtle fell after-only"><span data-prev>Aria</span> fell to Boss 7. Your habits remain.</p>
+    <label class="field underline">
+      <span class="label">Your name</span>
+      <input class="name-input" maxlength="16" placeholder="Nameless" autocomplete="off" />
+    </label>
+    <button type="button" class="btn"><span class="first-only">Begin</span><span class="after-only">Rise again</span></button>
+    <ol class="columns">
+      <li><i class="ico k-keep" data-i="sword" data-size="22"></i><b>Keep</b><span>A habit kept strikes the boss.</span></li>
+      <li><i class="ico k-break" data-i="swords" data-size="22"></i><b>Break</b><span>A habit broken, the boss strikes back.</span></li>
+      <li><i class="ico k-rise" data-i="chevrons-up" data-size="22"></i><b>Rise</b><span>Each boss slain makes you stronger.</span></li>
+      <li><i class="ico k-fall" data-i="flame" data-size="22"></i><b>Fall</b><span>Fall, and another takes your place.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- C · Two steps -->
+<section class="screen opt-c">
+  <div class="steps">
+    <div>
+      <p class="step-tag">Step 1</p>
+      <div class="frame step">
+        <div class="dots"><i class="on"></i><i></i></div>
+        <h2 class="engraved lined">How it works</h2>
+        <ol class="rule-cards">
+          <li><span class="ring"><i class="ico k-keep" data-i="sword" data-size="24"></i></span><b>Keep</b><span>A habit kept strikes the boss.</span></li>
+          <li><span class="ring"><i class="ico k-break" data-i="swords" data-size="24"></i></span><b>Break</b><span>A habit broken, the boss strikes back.</span></li>
+          <li><span class="ring"><i class="ico k-rise" data-i="chevrons-up" data-size="24"></i></span><b>Rise</b><span>Each boss slain makes you stronger.</span></li>
+          <li><span class="ring"><i class="ico k-fall" data-i="flame" data-size="24"></i></span><b>Fall</b><span>Fall, and another takes your place.</span></li>
+        </ol>
+        <button type="button" class="btn ghost">Continue</button>
+      </div>
+    </div>
+    <div>
+      <p class="step-tag">Step 2</p>
+      <div class="frame step">
+        <div class="dots"><i></i><i class="on"></i></div>
+        <h2 class="engraved lined"><span class="first-only">Your hero</span><span class="after-only">A new hero</span></h2>
+        <div class="rolled">
+          <div class="stage"><div class="player" data-player></div></div>
+          <div class="tiles">
+            <div class="tile"><span><i class="ico" data-i="heart" style="--k: var(--icon-health)"></i>Health</span><b>1220</b></div>
+            <div class="tile"><span><i class="ico" data-i="sword" style="--k: var(--dmg-physical)"></i>Physical</span><b>690</b></div>
+            <div class="tile"><span><i class="ico" data-i="wand-sparkles" style="--k: var(--dmg-magic)"></i>Magic</span><b>433</b></div>
+            <div class="tile"><span><i class="ico" data-i="heart-pulse" style="--k: var(--dmg-healing)"></i>Healing</span><b>275</b></div>
+            <div class="tile"><span><i class="ico" data-i="zap" style="--k: var(--dmg-true)"></i>True</span><b>497</b></div>
+            <div class="tile"><span><i class="ico" data-i="crosshair" style="--k: var(--icon-crit)"></i>Crit</span><b>1%</b></div>
+          </div>
+        </div>
+        <p class="subtle rolled-note first-only">Born with these. The rest is earned.</p>
+        <p class="subtle rolled-note after-only"><span data-prev>Aria</span> fell to Boss 7. Your habits remain.</p>
+        <label class="field">
+          <span class="label">Name</span>
+          <input class="name-input" maxlength="16" placeholder="Nameless" autocomplete="off" />
+        </label>
+        <button type="button" class="btn"><span class="first-only">Begin</span><span class="after-only">Rise</span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="where">
+  <h3 class="engraved lined">On the dashboard</h3>
+  <div class="mini frame">
+    <div class="player" data-player></div>
+    <div class="who">
+      <h2 class="engraved"><span data-name>Nameless</span> — Lv. 1</h2>
+      <div class="bar"><i></i></div>
+      <div class="bar exp"><i></i></div>
+    </div>
+  </div>
+</section>
+
+<script>
+const LUCIDE = {
+  sword: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  swords: '<polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/>',
+  'chevrons-up': '<path d="m17 11-5-5-5 5"/><path d="m17 18-5-5-5 5"/>',
+  flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
+  heart: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>',
+  'wand-sparkles': '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  'heart-pulse': '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  zap: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  crosshair: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+};
+document.querySelectorAll('.ico[data-i]').forEach((el) => {
+  const size = Number(el.dataset.size || 14);
+  el.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${size > 18 ? 1.25 : 1.5}" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[el.dataset.i]}</svg>`;
+});
+
+// A freshly rolled hero: base body, no gear yet.
+const LAYERS = ['base-skin', 'base-shirt', 'base-hair'];
+document.querySelectorAll('[data-player]').forEach((el) => {
+  el.innerHTML = LAYERS.map((l) => `<img src="../../public/sprites/player/${l}.png" alt="" />`).join('');
+});
+
+// Every name field mirrors into the others and into the dashboard preview.
+const inputs = [...document.querySelectorAll('.name-input')];
+inputs.forEach((input) => input.addEventListener('input', () => {
+  inputs.forEach((other) => { if (other !== input) other.value = input.value; });
+  document.querySelectorAll('[data-name]').forEach((n) => { n.textContent = input.value.trim() || 'Nameless'; });
+}));
+
+function setOption(option) {
+  document.body.dataset.option = option;
+  document.querySelectorAll('[data-option]').forEach((b) => b.tagName === 'BUTTON' && b.setAttribute('aria-pressed', String(b.dataset.option === option)));
+}
+function setState(state) {
+  document.body.classList.toggle('after-death', state === 'after');
+  document.querySelectorAll('[data-state]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === state)));
+}
+document.querySelectorAll('button[data-option]').forEach((b) => b.addEventListener('click', () => setOption(b.dataset.option)));
+document.querySelectorAll('button[data-state]').forEach((b) => b.addEventListener('click', () => setState(b.dataset.state)));
+setOption('a');
+setState('first');
+</script>
+</body>
+</html>

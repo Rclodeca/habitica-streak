@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamagePoolRebalance, createCharacter, discardUnequippedItems, migrateCharacter, randomizeStat } from './character';
+import {
+  applyDamagePoolRebalance,
+  createCharacter,
+  DEFAULT_HERO_NAME,
+  discardUnequippedItems,
+  MAX_HERO_NAME_LENGTH,
+  migrateCharacter,
+  nameCharacter,
+  randomizeStat,
+} from './character';
 import { ITEM_CATALOG } from './items';
 import type { Character } from './types';
 import { createRng } from './rng';
@@ -241,5 +250,32 @@ describe('discardUnequippedItems', () => {
   it('returns the same object when everything owned is equipped', () => {
     const character = { ...createCharacter(createRng(1)), ownedItemIds: ['a'], equippedItemIds: ['a'] };
     expect(discardUnequippedItems(character)).toBe(character);
+  });
+});
+
+describe('nameCharacter', () => {
+  it('a fresh character starts unnamed (the new-hero screen names it)', () => {
+    expect(createCharacter(createRng(1)).name).toBeUndefined();
+  });
+
+  it('a fresh character starts with quests sealed', () => {
+    expect(createCharacter(createRng(1)).questsUnlocked).toBe(false);
+  });
+
+  it('trims the name and caps it at MAX_HERO_NAME_LENGTH', () => {
+    const character = createCharacter(createRng(1));
+    expect(nameCharacter(character, '  Aria  ').name).toBe('Aria');
+    expect(nameCharacter(character, 'x'.repeat(MAX_HERO_NAME_LENGTH + 5)).name).toHaveLength(MAX_HERO_NAME_LENGTH);
+  });
+
+  it('falls back to the default name when left blank', () => {
+    expect(nameCharacter(createCharacter(createRng(1)), '   ').name).toBe(DEFAULT_HERO_NAME);
+  });
+
+  it('touches nothing but the name', () => {
+    const character = createCharacter(createRng(1));
+    const { name, ...rest } = nameCharacter(character, 'Aria');
+    expect(name).toBe('Aria');
+    expect(rest).toEqual(character);
   });
 });

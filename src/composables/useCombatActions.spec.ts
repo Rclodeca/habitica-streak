@@ -17,6 +17,7 @@ import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
 import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
+import { useFallenHero } from './useFallenHero';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
 
@@ -221,6 +222,50 @@ describe('useCombatActions', () => {
 
     expect(characterStore.character.level).toBeGreaterThan(1);
     expect(characterStore.character.pendingEventPicks).toBe(characterStore.character.level - 1);
+  });
+
+  it('restart remembers who fell and where, and the new hero starts unnamed', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const { checkMissedHabit, restart } = useCombatActions();
+    const { fallen, clearFallen } = useFallenHero();
+    clearFallen();
+
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
+    characterStore.character = { ...characterStore.character, name: 'Aria', currentHealth: 1 };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 7 });
+    checkMissedHabit(habit.id);
+
+    restart();
+
+    expect(fallen.value).toEqual({ name: 'Aria', bossIndex: 7 });
+    expect(characterStore.character.name).toBeUndefined();
+    clearFallen();
+  });
+
+  it('restart opens quests for the new run only when quests carried over', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const questStore = useQuestStore();
+    const { checkMissedHabit, restart } = useCombatActions();
+    const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
+
+    const dieAndRestart = () => {
+      characterStore.character = { ...characterStore.character, currentHealth: 1 };
+      bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000 });
+      checkMissedHabit(habit.id);
+      restart();
+    };
+
+    dieAndRestart();
+    expect(characterStore.character.questsUnlocked).toBe(false);
+
+    questStore.addQuest('Clean the garage', 'hard', '2099-01-01');
+    dieAndRestart();
+    expect(characterStore.character.questsUnlocked).toBe(true);
+    useFallenHero().clearFallen();
   });
 
   it('restart records the just-ended run into the high-score leaderboard before resetting', () => {

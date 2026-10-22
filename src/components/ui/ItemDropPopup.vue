@@ -62,19 +62,19 @@ const isCurrentEquipped = computed(
 
 <style scoped>
 .rarity-common {
-  --rarity: #9ca3af;
+  --rarity: var(--rarity-common);
 }
 
 .rarity-uncommon {
-  --rarity: #34d399;
+  --rarity: var(--rarity-uncommon);
 }
 
 .rarity-rare {
-  --rarity: #60a5fa;
+  --rarity: var(--rarity-rare);
 }
 
 .rarity-epic {
-  --rarity: #c084fc;
+  --rarity: var(--rarity-epic);
 }
 
 .replace-list {

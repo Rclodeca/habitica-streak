@@ -14,8 +14,10 @@ import {
   maxEquipSlots,
   migrateCharacter,
   missHabit,
+  nameCharacter,
   resolvePlayerDeathIfDead,
   rollItemDrops,
+  unlockQuests,
 } from '../game-engine';
 import type { Boss, Character, Habit, ItemDef, Rng } from '../game-engine';
 
@@ -49,6 +51,16 @@ export const useCharacterStore = defineStore('character', {
     /** Replaces the character wholesale, e.g. after combat resolution elsewhere. */
     setCharacter(character: Character) {
       this.character = character;
+    },
+
+    /** Names the hero from the new-hero screen (see nameCharacter for trimming and the blank default). */
+    setName(name: string) {
+      this.character = nameCharacter(this.character, name);
+    },
+
+    /** Opens the quests section for the rest of the run (the "Quests unlocked" popup's Onward). */
+    unlockQuests() {
+      this.character = unlockQuests(this.character);
     },
 
     /** Equips an owned item into an empty slot. No-op if not owned, already equipped, or all slots are full (see maxEquipSlots). */

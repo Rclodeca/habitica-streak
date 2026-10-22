@@ -40,7 +40,7 @@ const percent = computed(() => {
 
 .health-bar-fill {
   height: 100%;
-  background: #e5484d;
+  background: var(--hp-color);
   transition: width 0.3s ease;
 }
 

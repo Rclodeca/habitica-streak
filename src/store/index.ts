@@ -3,7 +3,7 @@
 // fresh) and wire up debounced localStorage persistence.
 
 import { createPinia, getActivePinia, setActivePinia, type Pinia } from 'pinia';
-import { createRng, dailyPeriodKey, migrateEventState } from '../game-engine';
+import { createRng, dailyPeriodKey, migrateEventState, migrateQuestUnlock } from '../game-engine';
 import { useActivityLogStore } from './activityLogStore';
 import { useBossStore } from './bossStore';
 import { useCharacterStore } from './characterStore';
@@ -64,6 +64,7 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   activityLogStore.initFromSave(saved?.activityLog ?? null);
   questStore.initFromSave(saved?.quests ?? null);
   characterStore.setCharacter(migrateEventState(characterStore.character, habitStore.habits));
+  characterStore.setCharacter(migrateQuestUnlock(characterStore.character, questStore.quests.length > 0));
 
   const backfilledDrops = missedGatedItems && bossStore.boss.index > 1 ? characterStore.grantItemDrops(bossStore.boss.index - 1, rng) : [];
 

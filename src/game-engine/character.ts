@@ -32,6 +32,7 @@ export function createCharacter(rng: Rng): Character {
     newItemUnlockTiers: assignNewItemUnlockTiers(rng),
     takenEventIds: [],
     pendingEventPicks: 0,
+    questsUnlocked: false,
     // Rolled after everything above so adding it never perturbs the rng()
     // sequence an existing seeded test depends on.
     sideOnlyItemIds: assignSideOnlyItems(rng),
@@ -41,6 +42,15 @@ export function createCharacter(rng: Rng): Character {
     // time it's saved and reloaded.
     damagePoolRebalanceApplied: true,
   };
+}
+
+export const MAX_HERO_NAME_LENGTH = 16;
+export const DEFAULT_HERO_NAME = 'Nameless';
+
+/** Names the hero: trimmed and capped at MAX_HERO_NAME_LENGTH, with a blank name becoming DEFAULT_HERO_NAME. */
+export function nameCharacter(character: Character, rawName: string): Character {
+  const name = rawName.trim().slice(0, MAX_HERO_NAME_LENGTH).trim() || DEFAULT_HERO_NAME;
+  return { ...character, name };
 }
 
 /**

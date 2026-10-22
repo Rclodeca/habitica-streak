@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
 import type { Personality } from '../../game-engine';
+import { useCondensingBoss } from '../../composables/useCondensingBoss';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
@@ -43,6 +44,10 @@ const characterStore = useCharacterStore();
 const boss = computed(() => bossStore.boss);
 
 const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
+
+// On phones the panel condenses into a pinned bar as the page scrolls.
+const panel = ref<HTMLElement | null>(null);
+useCondensingBoss(panel);
 
 // A condensed, always-visible emoji stat line (effective numbers only) sits
 // under the HP bar; the full base-vs-effective breakdown lives in a modal
@@ -96,14 +101,21 @@ const statTiles = computed<StatTile[]>(() => {
 </script>
 
 <template>
-  <section class="panel boss-panel">
+  <section ref="panel" class="panel boss-panel">
+    <!-- Phones only: frames just the part of the condensing panel still on screen. -->
+    <div class="panel boss-frame" aria-hidden="true" />
     <button type="button" class="summary-row" @click="showDetails = true">
-      <div class="sprite-wrapper" :class="{ hit: isHit }">
-        <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
-        <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
+      <div class="stage-wrap">
+        <div class="sprite-wrapper" :class="{ hit: isHit }">
+          <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
+        </div>
+        <!-- Outside the stage so its clipping never cuts off a hit. -->
+        <div class="hit-layer" aria-hidden="true">
+          <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
+        </div>
       </div>
       <div class="summary-info">
-        <h2>{{ PERSONALITY_NAME[boss.personality] }}</h2>
+        <h2 class="boss-name">{{ PERSONALITY_NAME[boss.personality] }}</h2>
         <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
         <p class="stat-summary">
           <span><StatIcon name="physical" /> {{ physicalAttack.toFixed(0) }}</span>
@@ -295,6 +307,10 @@ const statTiles = computed<StatTile[]>(() => {
   color: var(--text);
 }
 
+.stage-wrap {
+  position: relative;
+}
+
 .sprite-wrapper {
   position: relative;
   display: inline-block;
@@ -304,16 +320,90 @@ const statTiles = computed<StatTile[]>(() => {
   animation: sprite-shake 0.3s ease;
 }
 
+.hit-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.boss-frame {
+  display: none;
+}
+
 .damage-popup {
   position: absolute;
-  top: 0;
+  top: 35%;
   left: 50%;
-  color: #e5484d;
+  color: var(--hp-color);
   font-weight: 700;
   font-size: 0.9rem;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   animation: damage-float-fade 0.9s ease-out forwards;
+}
+
+/* Phones: the panel condenses into a bar pinned to the top as the page
+   scrolls (useCondensingBoss sets the height, sticky top and each piece's
+   position). It keeps a fixed height and only its visible part is framed,
+   by .boss-frame, so the section itself draws nothing. */
+@media (max-width: 820px) {
+  .boss-panel {
+    position: sticky;
+    z-index: 5;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    /* Nothing may spill past the bottom edge mid-collapse. */
+    clip-path: inset(-10px -10px 0 -10px);
+  }
+
+  .boss-frame {
+    display: block;
+    position: absolute;
+    inset: var(--frame-top, 0px) 0 0;
+    padding: 0;
+  }
+
+  .summary-row {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  .stage-wrap,
+  .summary-info > * {
+    position: absolute;
+    margin: 0;
+  }
+
+  .sprite-wrapper {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Grows into the hero portrait's border as it condenses. */
+    border: 1px solid color-mix(in srgb, var(--portrait-border) calc(var(--p, 0) * 100%), transparent);
+    border-radius: calc(13px - var(--p, 0) * 5px);
+  }
+
+  .sprite-wrapper :deep(.sprite) {
+    margin-bottom: 3px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  .summary-info h2 {
+    white-space: nowrap;
+    transform-origin: left top;
+  }
+
+  .stat-summary {
+    left: 14px;
+    right: 14px;
+  }
 }
 
 @keyframes sprite-shake {

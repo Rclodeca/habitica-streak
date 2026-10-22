@@ -10,9 +10,10 @@
 // buttons (confirmed via manual testing — see the quests design spec's
 // review notes). This centralizes the precedence order so it's declared
 // once instead of re-derived pairwise per modal:
-// death > item drop > habit miss > quest miss > quest complete > event choice.
+// death > item drop > habit miss > quest miss > quest complete > quest unlock > event choice.
 
 import { computed } from 'vue';
+import { questUnlockPending } from '../game-engine';
 import { useDeathScreen } from './useDeathScreen';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
@@ -33,10 +34,10 @@ export function useModalPriority() {
   /** True only when a quest miss is pending and nothing higher-priority (death, habit miss) is. */
   const questMissVisible = computed(() => questMissPending.value && !isDead.value && !habitMissPending.value);
 
-  /** True only when an event pick (or an enchant reveal) is pending and nothing higher-priority (death, item drop, habit miss, quest miss) is. */
-  const eventChoiceVisible = computed(
+  /** True when the "Quests unlocked" popup is due and nothing higher-priority is up — it comes before the level-up pick, which may offer a side quest. */
+  const questUnlockVisible = computed(
     () =>
-      ((characterStore.character.pendingEventPicks ?? 0) > 0 || revealed.value !== null) &&
+      questUnlockPending(characterStore.character) &&
       !isDead.value &&
       itemDropCurrent.value === null &&
       !habitMissPending.value &&
@@ -44,10 +45,22 @@ export function useModalPriority() {
       questCompleteCurrent.value === null,
   );
 
+  /** True only when an event pick (or an enchant reveal) is pending and nothing higher-priority (death, item drop, habit miss, quest miss, quest unlock) is. */
+  const eventChoiceVisible = computed(
+    () =>
+      ((characterStore.character.pendingEventPicks ?? 0) > 0 || revealed.value !== null) &&
+      !isDead.value &&
+      itemDropCurrent.value === null &&
+      !habitMissPending.value &&
+      !questMissPending.value &&
+      questCompleteCurrent.value === null &&
+      !questUnlockPending(characterStore.character),
+  );
+
   /** True while a quest-completion celebration is queued — it shows before any level-up pick its EXP triggered. */
   const questCompleteVisible = computed(
     () => questCompleteCurrent.value !== null && !isDead.value && !habitMissPending.value && !questMissPending.value,
   );
 
-  return { questMissVisible, eventChoiceVisible, questCompleteVisible };
+  return { questMissVisible, questUnlockVisible, eventChoiceVisible, questCompleteVisible };
 }

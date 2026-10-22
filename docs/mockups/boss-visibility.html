@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — keeping the boss in view (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Six phone-sized takes on keeping the boss visible while ticking skills.
+   Each phone scrolls on its own; tick a skill to land a hit. */
+:root {
+  --bg: #0b0a09;
+  --text: #a1988a;
+  --text-h: #ece3cd;
+  --bone: #d8cdb5;
+  --gold: #c8a96e;
+  --gold-hi: #e6cf9a;
+  --ember: #e0783a;
+  --blood: #c8402f;
+  --dmg-physical: #d0604f;
+  --dmg-magic: #ab8dd8;
+  --dmg-healing: #92bf88;
+  --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2);
+  --line-mid: rgba(200, 169, 110, 0.4);
+  --line-faint: rgba(200, 169, 110, 0.07);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200, 169, 110, 0.1), transparent 70%), #070606;
+  font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif;
+}
+button, input { font: inherit; color: inherit; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+img { display: block; image-rendering: pixelated; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+
+.page { max-width: 1260px; margin: 0 auto; padding: 30px 20px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: 0.32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); gap: 34px 26px; }
+.opt { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.opt-head { width: 360px; max-width: 100%; }
+.opt-head h2 { display: flex; align-items: baseline; gap: 10px; font-size: 12px; letter-spacing: 0.2em; color: var(--text-h); }
+.opt-head h2 b { color: var(--gold); font-weight: 600; }
+.opt-head p { margin-top: 4px; font-style: italic; color: var(--text); font-size: 16px; line-height: 1.3; }
+
+.phone {
+  position: relative; width: 360px; max-width: 100%; height: 700px; overflow: hidden; border-radius: 30px;
+  background: radial-gradient(ellipse 80% 40% at 50% -6%, rgba(200, 169, 110, 0.12), transparent 70%), var(--bg);
+  border: 1px solid rgba(200, 169, 110, 0.3); box-shadow: 0 30px 60px -20px #000, 0 0 0 6px #141210, 0 0 0 7px rgba(200, 169, 110, 0.15);
+}
+.screen { position: absolute; inset: 0; overflow-y: auto; padding: 14px 12px 40px; scrollbar-width: none; }
+.screen::-webkit-scrollbar { display: none; }
+.screen > * + * { margin-top: 12px; }
+
+/* ---------- Shared Ashen pieces ---------- */
+.panel {
+  position: relative; padding: 13px 14px;
+  background: linear-gradient(180deg, rgba(27, 24, 21, 0.96), rgba(14, 13, 11, 0.98)); border: 1px solid var(--line);
+  box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.95);
+}
+.panel::before {
+  content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: 0.75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat;
+}
+.panel h3 { font-size: 11.5px; letter-spacing: 0.22em; color: var(--gold-hi); }
+.bar { position: relative; height: 7px; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(200, 169, 110, 0.32); }
+.bar > i { display: block; height: 100%; width: var(--pct, 100%); transition: width 0.45s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.bar.hp > i { background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 8px rgba(195, 58, 46, 0.35); }
+.bar.exp { height: 4px; } .bar.exp > i { background: linear-gradient(90deg, #8a6a2c, #e6c77f); }
+.num { font: 600 9.5px/1 'Cinzel', serif; letter-spacing: 0.1em; color: var(--text); text-align: right; margin-top: 4px; }
+.stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 11px; font-weight: 700; font-size: 14.5px; color: var(--text-h); }
+.stats span { display: inline-flex; align-items: center; gap: 3px; }
+.ico { display: inline-grid; place-items: center; line-height: 0; color: var(--k, var(--gold)); }
+.ico svg { display: block; }
+.player { position: relative; }
+.player img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.slots { display: grid; grid-template-columns: repeat(2, 34px); gap: 3px; }
+.slots i { position: relative; width: 34px; height: 34px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(200, 169, 110, 0.22); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.85); }
+.slots img { position: absolute; inset: 0; width: 100%; height: 100%; transform: scale(1.4); }
+
+/* Boss stage — fog and embers. */
+.stage { position: relative; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; isolation: isolate;
+  background: radial-gradient(ellipse 55% 58% at 50% 60%, rgba(215, 205, 185, 0.16), transparent 72%), radial-gradient(ellipse 85% 32% at 50% 100%, rgba(224, 120, 58, 0.2), transparent 70%); }
+.stage::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 200%; z-index: -1;
+  background-image: radial-gradient(1.5px 1.5px at 20% 30%, #ffb06a 50%, transparent 55%), radial-gradient(1.2px 1.2px at 40% 70%, #ffd08f 50%, transparent 55%), radial-gradient(1.6px 1.6px at 66% 40%, #ff9a52 50%, transparent 55%), radial-gradient(1.2px 1.2px at 84% 64%, #ffd59a 50%, transparent 55%);
+  background-size: 100% 50%; animation: rise 13s linear infinite; }
+.stage img { filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.9)); }
+
+/* Full boss / hero panels (today's layout). */
+.boss-full { text-align: center; }
+.boss-full .stage { height: 150px; margin: -2px -4px 8px; }
+.boss-full .stage img { width: 120px; height: 120px; margin-bottom: 6px; }
+.boss-full h3 { color: var(--text-h); font-size: 13px; letter-spacing: 0.16em; margin-bottom: 8px; }
+.boss-full .stats { margin-top: 6px; }
+.hero-full .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.hero-full .player { width: 76px; height: 76px; }
+.hero-full h3 { text-align: center; margin-bottom: 8px; }
+.hero-full .bar.exp { margin-top: 10px; }
+.hero-full .stats { margin-top: 6px; }
+
+/* Compact cards. */
+.card-row { display: flex; align-items: center; gap: 11px; }
+.mini { flex-shrink: 0; display: grid; place-items: end center; overflow: hidden; background: radial-gradient(ellipse 60% 60% at 50% 62%, rgba(215, 205, 185, 0.14), transparent 72%), radial-gradient(ellipse 90% 34% at 50% 100%, rgba(224, 120, 58, 0.18), transparent 70%); border: 1px solid var(--line); }
+.mini img { filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.9)); }
+.card-row .who { flex: 1; min-width: 0; }
+.card-row h3 { color: var(--text-h); font-size: 11px; letter-spacing: 0.16em; margin-bottom: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-row .stats { justify-content: flex-start; font-size: 13.5px; gap: 2px 9px; margin-top: 6px; }
+.boss-compact .mini { width: 64px; height: 64px; } .boss-compact .mini img { width: 60px; height: 60px; }
+.hero-compact .mini { width: 52px; height: 52px; background: radial-gradient(circle at 50% 55%, rgba(230, 199, 127, 0.1), transparent 70%); } .hero-compact .mini .player { width: 50px; height: 50px; }
+.hero-compact .bar.exp { margin-top: 5px; }
+
+/* Skills, quests, log. */
+.group { display: flex; align-items: center; gap: 10px; margin: 10px 0 2px; font: 600 9px/1 'Cinzel', serif; letter-spacing: 0.32em; text-transform: uppercase; color: var(--text); }
+.group::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-mid), transparent); }
+.skill { display: flex; align-items: center; gap: 11px; padding: 10px 6px 10px 8px; border-bottom: 1px solid var(--line-faint); }
+.skill .dia { appearance: none; flex-shrink: 0; width: 13px; height: 13px; margin: 0 3px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0, 0, 0, 0.45); cursor: pointer; transition: background 0.3s, box-shadow 0.3s; }
+.skill .dia:checked { background: radial-gradient(circle, #fff3d0 0, #e6c77f 38%, #a8832f 82%); border-color: #f3dda6; box-shadow: 0 0 12px 1px rgba(230, 180, 90, 0.55); cursor: default; }
+.skill .name { flex: 1; font-weight: 600; color: var(--text-h); }
+.skill:has(.dia:checked) .name { color: #5c554a; text-decoration: line-through 1px rgba(200, 169, 110, 0.45); }
+.skill .pips { display: flex; gap: 4px; }
+.skill .pips i { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid #5c554a; }
+.skill .pips i.on { background: var(--gold); border-color: var(--gold); }
+.skill .dmg { width: 44px; text-align: right; font: 600 14.5px/1 'Cinzel', serif; color: var(--c); }
+.quest { display: flex; align-items: center; gap: 11px; padding: 10px 12px; margin-top: 8px; background: linear-gradient(90deg, rgba(200, 64, 47, 0.12), rgba(0, 0, 0, 0.22) 55%); border: 1px solid rgba(200, 169, 110, 0.12); border-left: 2px solid var(--blood); }
+.quest.soon { border-left-color: #d49a46; background: linear-gradient(90deg, rgba(212, 154, 70, 0.12), rgba(0, 0, 0, 0.22) 55%); }
+.quest .dia { width: 13px; height: 13px; margin: 0 3px; transform: rotate(45deg); border: 1px solid var(--gold); }
+.quest b { display: block; font-weight: 600; color: var(--text-h); }
+.quest small { font: 600 8.5px/1 'Cinzel', serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--blood); }
+.quest.soon small { color: #d49a46; }
+.log li { padding: 5px 0; border-bottom: 1px solid var(--line-faint); font-style: italic; color: var(--text); font-size: 15px; }
+.log li:first-child { color: var(--bone); }
+.log li:last-child { border-bottom: 0; }
+
+/* Hit feedback. */
+.float { position: absolute; z-index: 30; pointer-events: none; font: 600 17px/1 'Cinzel', serif; letter-spacing: 0.04em; text-shadow: 0 0 10px #000, 0 0 2px #000; animation: float 1s ease-out forwards; }
+.shake { animation: shake 0.32s ease; }
+
+/* ---------- A · Pinned boss ---------- */
+.opt-a .boss-full { position: sticky; top: -14px; z-index: 5; margin-top: -14px; margin-left: -12px; margin-right: -12px; padding: 12px 14px 10px; border-left: 0; border-right: 0; background: linear-gradient(180deg, rgba(22, 19, 16, 0.98), rgba(11, 10, 9, 0.98)); }
+.opt-a .boss-full .stage { height: 108px; }
+.opt-a .boss-full .stage img { width: 88px; height: 88px; }
+
+/* ---------- D · Full, then a battle bar once you scroll ---------- */
+.hud {
+  position: sticky; top: -14px; z-index: 6; margin: -14px -12px 0; padding: 9px 12px 10px; display: none;
+  background: linear-gradient(180deg, rgba(20, 18, 15, 0.97), rgba(11, 10, 9, 0.97)); border-bottom: 1px solid var(--line-mid);
+  box-shadow: 0 14px 24px -14px #000; animation: drop 0.3s ease;
+}
+.hud.on { display: block; }
+.hud + * { margin-top: 0 !important; }
+.hud-row { display: flex; align-items: center; gap: 10px; }
+.hud-row + .hud-row { margin-top: 7px; }
+.hud .mini { width: 38px; height: 38px; border: 1px solid var(--line); }
+.hud .mini img { width: 36px; height: 36px; }
+.hud .mini .player { width: 34px; height: 34px; }
+.hud .who { flex: 1; min-width: 0; }
+.hud .label { display: flex; justify-content: space-between; margin-bottom: 4px; font: 600 9.5px/1 'Cinzel', serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-h); }
+.hud .label span { color: var(--text); letter-spacing: 0.08em; }
+.hud .bar.exp { margin-top: 4px; }
+
+/* ---------- E · Versus bar ---------- */
+.versus {
+  position: sticky; top: -14px; z-index: 6; margin: -14px -12px 0; padding: 11px 12px 12px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, rgba(22, 19, 16, 0.98), rgba(11, 10, 9, 0.98)); border-bottom: 1px solid var(--line-mid); box-shadow: 0 14px 24px -14px #000;
+}
+.versus .side { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.versus .side.hero { flex-direction: row-reverse; text-align: right; }
+.versus .mini { width: 46px; height: 46px; }
+.versus .mini img { width: 44px; height: 44px; }
+.versus .mini .player { width: 42px; height: 42px; }
+.versus .who { flex: 1; min-width: 0; }
+.versus h3 { font-size: 9.5px; letter-spacing: 0.14em; color: var(--text-h); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.versus .bar.hp.flip > i { margin-left: auto; }
+.versus .num { margin-top: 3px; text-align: left; }
+.versus .hero .num { text-align: right; }
+.versus .vs { width: 9px; height: 9px; transform: rotate(45deg); border: 1px solid var(--gold); background: var(--bg); box-shadow: 0 0 10px rgba(230, 199, 127, 0.4); }
+.versus-note { text-align: center; font-style: italic; color: var(--text); font-size: 14.5px; }
+
+/* ---------- F · Bottom battle bar ---------- */
+.dock {
+  position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 8; display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  background: linear-gradient(180deg, rgba(24, 21, 18, 0.97), rgba(10, 9, 8, 0.97)); border: 1px solid var(--line-mid);
+  box-shadow: 0 -10px 30px -10px #000, 0 0 0 4px rgba(0, 0, 0, 0.5); transform: translateY(140%); transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.dock.on { transform: none; }
+.dock .mini { width: 42px; height: 42px; } .dock .mini img { width: 40px; height: 40px; }
+.dock .who { flex: 1; min-width: 0; }
+.dock .label { display: flex; justify-content: space-between; margin-bottom: 5px; font: 600 9.5px/1 'Cinzel', serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-h); }
+.dock .label span { color: var(--text); letter-spacing: 0.08em; }
+.dock .you { display: flex; align-items: center; gap: 6px; margin-top: 6px; font: 600 8.5px/1 'Cinzel', serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text); }
+.dock .you .bar { flex: 1; height: 4px; }
+
+@keyframes rise { to { transform: translateY(-50%); } }
+@keyframes float { 0% { opacity: 0; transform: translate(-50%, 6px) scale(0.9); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.08); } 100% { opacity: 0; transform: translate(-50%, -34px) scale(1); } }
+@keyframes shake { 20% { transform: translateX(-3px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); } }
+@keyframes drop { from { transform: translateY(-100%); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .stage::before, .float, .shake, .hud { animation: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Keeping the boss in view</h1>
+  <p>Six phones, each scrolls on its own. Tick a skill to land a hit and watch where it shows.</p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const S = '../../public/sprites/';
+const BOSS = `${S}bosses/armored.png`;
+const HERO_LAYERS = ['base-skin', 'base-shirt', 'armor-3', 'base-hair', 'shield-3', 'weapon-physical-3'];
+const ITEMS = ['executioners-axe', 'sacred-chalice', 'plate-armor', 'lucky-coin'];
+const LUCIDE = {
+  sword: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  crosshair: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+  heart: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  zap: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+};
+const ico = (name, k, size = 13) => `<i class="ico" style="--k:${k}"><svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[name]}</svg></i>`;
+const hero = (size) => `<div class="player" style="width:${size}px;height:${size}px">${HERO_LAYERS.map((l) => `<img src="${S}player/${l}.png" alt="" />`).join('')}</div>`;
+
+const bossStats = `<p class="stats"><span>${ico('sword', 'var(--dmg-physical)')}75</span><span>${ico('wand', 'var(--dmg-magic)')}72</span><span>${ico('shield', '#a8a092')}258</span><span>${ico('crosshair', '#d6a24f')}2%</span></p>`;
+const heroStats = `<p class="stats"><span>${ico('sword', 'var(--dmg-physical)')}812</span><span>${ico('wand', 'var(--dmg-magic)')}511</span><span>${ico('heart', 'var(--dmg-healing)')}402</span><span>${ico('zap', 'var(--dmg-true)')}562</span></p>`;
+const bossBar = '<div class="bar hp" data-boss-bar><i></i></div><p class="num" data-boss-num></p>';
+const heroBars = '<div class="bar hp" data-hero-bar><i></i></div><p class="num" data-hero-num></p><div class="bar exp" style="--pct:59%"><i></i></div>';
+
+const bossFull = () => `<section class="panel boss-full" data-boss-target><div class="stage"><img src="${BOSS}" alt="" /></div><h3 class="engraved">Iron Guardian</h3>${bossBar}${bossStats}</section>`;
+const heroFull = () => `<section class="panel hero-full" data-hero-target><div class="top">${hero(76)}<div class="slots">${ITEMS.map((i) => `<i><img src="${S}items/${i}.png" alt="" /></i>`).join('')}</div></div><h3 class="engraved">Rjcca — Lv. 6</h3>${heroBars}${heroStats}</section>`;
+const bossCompact = () => `<section class="panel boss-compact" data-boss-target><div class="card-row"><div class="mini"><img src="${BOSS}" alt="" /></div><div class="who"><h3 class="engraved">Iron Guardian</h3>${bossBar}${bossStats}</div></div></section>`;
+const heroCompact = () => `<section class="panel hero-compact" data-hero-target><div class="card-row"><div class="mini">${hero(50)}</div><div class="who"><h3 class="engraved">Rjcca — Lv. 6</h3>${heroBars}</div></div></section>`;
+
+const SKILLS = [
+  ['Meditate', 'healing', 1, 318], ['Morning run', 'physical', 2, 486], ['Doomscrolling', 'physical', 2, 412],
+  ['Read 20 pages', 'magic', 1, 274], ['Deep work block', 'magic', 3, 548], ['Cold shower', 'true', 1, 201],
+];
+const WEEKLY = [['Call family', 'healing', 1, 640], ['Meal prep', 'physical', 3, 1380]];
+const row = ([name, type, pips, dmg]) => `<li class="skill"><input type="checkbox" class="dia" data-type="${type}" data-dmg="${dmg}" aria-label="Complete ${name}" /><span class="name">${name}</span><span class="pips">${[1, 2, 3].map((n) => `<i class="${n <= pips ? 'on' : ''}"></i>`).join('')}</span><span class="dmg" style="--c:var(--dmg-${type})">${dmg}</span></li>`;
+const skills = () => `<section class="panel"><h3 class="engraved">Skills</h3><p class="group">Daily</p><ul>${SKILLS.map(row).join('')}</ul><p class="group">Weekly</p><ul>${WEEKLY.map(row).join('')}</ul></section>`;
+const quests = () => `<section class="panel"><h3 class="engraved">Quests</h3><div class="quest"><span class="dia"></span><div><b>Finish the tax return</b><small>Due today</small></div></div><div class="quest soon"><span class="dia"></span><div><b>Fix the bike brakes</b><small>Due tomorrow</small></div></div></section>`;
+const log = () => `<section class="panel"><h3 class="engraved">Log</h3><ul class="log" style="margin-top:8px"><li>Used "Morning run" — dealt 486 damage</li><li>Healed +318 HP using "Meditate"</li><li>Boss #6 defeated! +212 EXP</li></ul></section>`;
+const rest = () => skills() + quests() + log();
+
+const hud = () => `<div class="hud" data-hud><div class="hud-row" data-boss-target><div class="mini"><img src="${BOSS}" alt="" /></div><div class="who"><p class="label">Iron Guardian <span data-boss-num></span></p><div class="bar hp" data-boss-bar><i></i></div></div></div><div class="hud-row" data-hero-target><div class="mini">${hero(34)}</div><div class="who"><p class="label">Rjcca · Lv. 6 <span data-hero-num></span></p><div class="bar hp" data-hero-bar><i></i></div><div class="bar exp" style="--pct:59%"><i></i></div></div></div></div>`;
+const versus = () => `<div class="versus"><div class="side boss" data-boss-target><div class="mini"><img src="${BOSS}" alt="" /></div><div class="who"><h3 class="engraved">Iron Guardian</h3><div class="bar hp flip" data-boss-bar><i></i></div><p class="num" data-boss-num></p></div></div><span class="vs" aria-hidden="true"></span><div class="side hero" data-hero-target><div class="mini">${hero(42)}</div><div class="who"><h3 class="engraved">Rjcca · 6</h3><div class="bar hp" data-hero-bar><i></i></div><p class="num" data-hero-num></p></div></div></div>`;
+const dock = () => `<div class="dock" data-dock data-boss-target><div class="mini"><img src="${BOSS}" alt="" /></div><div class="who"><p class="label">Iron Guardian <span data-boss-num></span></p><div class="bar hp" data-boss-bar><i></i></div><p class="you" data-hero-target>You <span class="bar hp" data-hero-bar><i></i></span></p></div></div>`;
+
+const OPTIONS = [
+  { id: 'a', title: 'Pinned boss', note: 'The boss sticks to the top, a little shorter. Always in view, but it costs about a third of the screen.', body: () => bossFull() + heroFull() + rest() },
+  { id: 'b', title: 'Both condensed', note: 'Boss and hero become short cards. Skills start on the first screen, but scroll far enough and the boss still leaves.', body: () => bossCompact() + heroCompact() + rest() },
+  { id: 'c', title: 'Hero condensed', note: 'The boss keeps its full stage; the hero shrinks to a strip. The first few skills share the screen with the boss.', body: () => bossFull() + heroCompact() + rest() },
+  { id: 'd', title: 'Condense on scroll', note: 'Full panels up top. Scroll past them and a compact battle bar drops in, with both HP bars.', body: () => hud() + bossFull() + heroFull() + rest() },
+  { id: 'e', title: 'Versus bar', note: 'A fighting-game bar, boss vs hero, always pinned. Full stats and gear move behind a tap on either side.', body: () => versus() + `<p class="versus-note">Tap either side for stats & gear</p>` + rest() },
+  { id: 'f', title: 'Bottom battle bar', note: 'Full panels up top. Once the boss scrolls off, a bar rises under your thumb — hits land right where you tap.', body: () => bossFull() + heroFull() + rest(), extra: dock },
+];
+
+const grid = document.getElementById('grid');
+const BOSS_MAX = 2210, HERO_MAX = 1980;
+
+OPTIONS.forEach((opt) => {
+  const el = document.createElement('div');
+  el.className = `opt opt-${opt.id}`;
+  el.innerHTML = `<div class="opt-head"><h2 class="engraved"><b>${opt.id.toUpperCase()}</b>${opt.title}</h2><p>${opt.note}</p></div><div class="phone"><div class="screen">${opt.body()}</div>${opt.extra ? opt.extra() : ''}</div>`;
+  grid.append(el);
+
+  const phone = el.querySelector('.phone');
+  const screen = el.querySelector('.screen');
+  const state = { boss: 1426, hero: 1642 };
+
+  function paint() {
+    phone.querySelectorAll('[data-boss-bar] > i').forEach((i) => i.style.setProperty('--pct', `${(state.boss / BOSS_MAX) * 100}%`));
+    phone.querySelectorAll('[data-hero-bar] > i').forEach((i) => i.style.setProperty('--pct', `${(state.hero / HERO_MAX) * 100}%`));
+    phone.querySelectorAll('[data-boss-num]').forEach((n) => { n.textContent = `${state.boss} / ${BOSS_MAX}`; });
+    phone.querySelectorAll('[data-hero-num]').forEach((n) => { n.textContent = `${state.hero} / ${HERO_MAX}`; });
+  }
+
+  // The first boss/hero view actually on screen gets the hit (a hidden bar
+  // has no size, and the docked bar sits below the frame until it rises).
+  function visibleTarget(selector) {
+    const frame = phone.getBoundingClientRect();
+    return [...phone.querySelectorAll(selector)].find((t) => {
+      const r = t.getBoundingClientRect();
+      return r.height > 0 && r.bottom > frame.top + 20 && r.top < frame.bottom - 20;
+    });
+  }
+
+  function hit(dmg, type) {
+    const healing = type === 'healing';
+    if (healing) state.hero = Math.min(HERO_MAX, state.hero + dmg);
+    else state.boss = Math.max(0, state.boss - Math.round(dmg / 3));
+    paint();
+    const target = visibleTarget(healing ? '[data-hero-target]' : '[data-boss-target]');
+    if (!target) return;
+    const frame = phone.getBoundingClientRect();
+    const r = target.getBoundingClientRect();
+    const f = document.createElement('span');
+    f.className = 'float';
+    f.style.color = `var(--dmg-${type})`;
+    f.textContent = healing ? `+${dmg}` : `-${dmg}`;
+    f.style.left = `${r.left - frame.left + r.width / 2}px`;
+    f.style.top = `${Math.max(8, r.top - frame.top + Math.min(r.height / 2, 40) - 10)}px`;
+    phone.append(f);
+    setTimeout(() => f.remove(), 1000);
+    const shaker = target.querySelector('.stage img, .mini') || target;
+    shaker.classList.remove('shake');
+    void shaker.offsetWidth;
+    shaker.classList.add('shake');
+  }
+
+  phone.querySelectorAll('.skill .dia').forEach((box) => box.addEventListener('change', () => {
+    if (!box.checked) return;
+    box.disabled = true;
+    hit(Number(box.dataset.dmg), box.dataset.type);
+  }));
+
+  // D and F: show their bar once the full boss panel has scrolled away.
+  const bossPanel = screen.querySelector('.boss-full');
+  const hudEl = phone.querySelector('[data-hud]');
+  const dockEl = phone.querySelector('[data-dock]');
+  if (bossPanel && (hudEl || dockEl)) {
+    const watch = hudEl ? screen.querySelector('.hero-full') : bossPanel;
+    new IntersectionObserver(([entry]) => {
+      const gone = !entry.isIntersecting && entry.boundingClientRect.top < entry.rootBounds.top;
+      hudEl?.classList.toggle('on', gone);
+      dockEl?.classList.toggle('on', gone);
+    }, { root: screen, threshold: 0 }).observe(watch);
+  }
+  paint();
+});
+</script>
+</body>
+</html>

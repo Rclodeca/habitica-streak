@@ -2,7 +2,35 @@ import { TUNING } from './constants/tuning';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { expToNextLevel } from './leveling';
 import type { Rng } from './rng';
-import type { Boss, Difficulty, Quest, QuestKind, QuestWeek } from './types';
+import type { Boss, Character, Difficulty, Quest, QuestKind, QuestWeek } from './types';
+
+/** The player level at which the quests section opens, each run. */
+export const QUESTS_UNLOCK_LEVEL = 2;
+
+/** Whether the quests section is open: unlocked this run, or at the unlock level with its popup up. */
+export function questsOpen(character: Character): boolean {
+  return character.questsUnlocked === true || character.level >= QUESTS_UNLOCK_LEVEL;
+}
+
+/** Whether the "Quests unlocked" popup is due: the unlock level reached this run, with nothing carried over to open quests sooner. */
+export function questUnlockPending(character: Character): boolean {
+  return !character.questsUnlocked && character.level >= QUESTS_UNLOCK_LEVEL;
+}
+
+/** Opens the quests section for the rest of the run. */
+export function unlockQuests(character: Character): Character {
+  return character.questsUnlocked ? character : { ...character, questsUnlocked: true };
+}
+
+/**
+ * Settles `questsUnlocked` on a save from before the level-2 lock: a hero
+ * already past level 1, or holding quests, was already using them, so they
+ * stay open with no popup. Anyone else is sealed like any new run.
+ */
+export function migrateQuestUnlock(character: Character, hasQuests: boolean): Character {
+  if (character.questsUnlocked !== undefined) return character;
+  return { ...character, questsUnlocked: character.level >= QUESTS_UNLOCK_LEVEL || hasQuests };
+}
 
 export interface QuestCurveOptions {
   /** How many quests per week count as the baseline (TUNING.QUESTS_PER_WEEK_ON_CURVE). */

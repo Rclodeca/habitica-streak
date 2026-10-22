@@ -28,6 +28,11 @@ export type Personality =
   | 'arcane5x';
 
 export interface Character {
+  // Chosen on the new-hero screen (NewHeroScreen.vue). Undefined means not
+  // named yet: createCharacter never sets it, so the first launch and every
+  // new run after a death show that screen until the hero is named. A save
+  // from before names existed loads unnamed too, so it gets asked once.
+  name?: string;
   level: number;
   exp: number;
   starterStats: {
@@ -82,6 +87,12 @@ export interface Character {
   // Consecutive level-up picks where the side-quest event was eligible but
   // not offered — drives the guarantee in rollEventChoices.
   sideQuestPicksMissed?: number;
+  // Whether the quests section is open this run (see questsOpen in
+  // quests.ts). A new run starts sealed (false) until QUESTS_UNLOCK_LEVEL,
+  // when dismissing the "Quests unlocked" popup sets it — or it opens at
+  // once if quests carried over from the last run (useCombatActions.restart).
+  // Undefined only on a save from before the lock; migrateQuestUnlock settles it.
+  questsUnlocked?: boolean;
 }
 
 // Discriminated on `type`. Intentionally a plain union rather than a

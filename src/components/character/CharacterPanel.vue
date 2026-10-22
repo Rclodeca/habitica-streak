@@ -21,6 +21,7 @@ import {
   statAtLevel,
 } from '../../game-engine';
 import { TUNING } from '../../game-engine/constants/tuning';
+import { useHeroStrip } from '../../composables/useCondensingBoss';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
@@ -46,6 +47,8 @@ const habitStore = useHabitStore();
 const baseUrl = import.meta.env.BASE_URL;
 
 const character = computed(() => characterStore.character);
+// Named on NewHeroScreen; only a hero still waiting on that screen is unnamed.
+const heroName = computed(() => character.value.name ?? 'Character');
 const maxHealth = computed(() => effectiveStat(character.value, 'health'));
 const expNeeded = computed(() => expToNextLevel(character.value.level));
 const physicalDamage = computed(() => effectiveStat(character.value, 'physicalDamage'));
@@ -185,20 +188,27 @@ const activeEffects = computed(() => {
 });
 
 const newHabitTiles = computed(() => [
-  { icon: 'physical' as const, label: 'Physical', value: expectedPhysicalDamage.value, color: '#f87171' },
-  { icon: 'magic' as const, label: 'Magic', value: expectedMagicDamage.value, color: '#b98cfb' },
-  { icon: 'healing' as const, label: 'Healing', value: expectedHealing.value, color: '#22c55e' },
-  { icon: 'true' as const, label: 'True', value: expectedTrueDamage.value, color: '#f9fafb' },
+  { icon: 'physical' as const, label: 'Physical', value: expectedPhysicalDamage.value, color: 'var(--dmg-physical)' },
+  { icon: 'magic' as const, label: 'Magic', value: expectedMagicDamage.value, color: 'var(--dmg-magic)' },
+  { icon: 'healing' as const, label: 'Healing', value: expectedHealing.value, color: 'var(--dmg-healing)' },
+  { icon: 'true' as const, label: 'True', value: expectedTrueDamage.value, color: 'var(--dmg-true)' },
 ]);
 
 const equippedItems = computed(() => equippedSlots.value.flatMap((item) => (item ? [item] : [])));
 const emptySlotCount = computed(() => slotCount.value - equippedItems.value.length);
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
+
+// On phones this panel is the condensed hero strip pinned under the boss bar,
+// whose geometry the boss copies (see useCondensingBoss).
+const heroStrip = useHeroStrip();
+function registerHeroStrip(el: unknown) {
+  heroStrip.value = el instanceof HTMLElement ? el : null;
+}
 </script>
 
 <template>
-  <section class="panel character-panel">
+  <section :ref="registerHeroStrip" class="panel character-panel">
     <div class="top-row">
       <div class="sprite-wrapper" :class="{ hit: isHit }">
         <PlayerSprite :character="character" />
@@ -221,7 +231,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
     </div>
 
     <button type="button" class="title-button" @click="showDetails = true">
-      <h2>Character — Lv. {{ character.level }}</h2>
+      <h2>{{ heroName }} — Lv. {{ character.level }}</h2>
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
       <ExpBar :current="character.exp" :max="expNeeded" />
       <p class="stat-summary">
@@ -241,7 +251,7 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
       </p>
     </button>
 
-    <Modal v-model="showDetails" title="Character" max-width="520px">
+    <Modal v-model="showDetails" :title="heroName" max-width="520px">
       <div class="hero">
         <div class="hero-sprite">
           <PlayerSprite :character="character" />
@@ -447,19 +457,19 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 }
 
 .rarity-common {
-  --rarity: #9ca3af;
+  --rarity: var(--rarity-common);
 }
 
 .rarity-uncommon {
-  --rarity: #34d399;
+  --rarity: var(--rarity-uncommon);
 }
 
 .rarity-rare {
-  --rarity: #60a5fa;
+  --rarity: var(--rarity-rare);
 }
 
 .rarity-epic {
-  --rarity: #c084fc;
+  --rarity: var(--rarity-epic);
 }
 
 .hero {
@@ -730,14 +740,60 @@ const { popups, isHit } = useDamagePopup(() => characterStore.character.currentH
 
 .damage-popup {
   position: absolute;
-  top: 0;
+  top: 35%;
   left: 50%;
-  color: #e5484d;
+  color: var(--hp-color);
   font-weight: 700;
   font-size: 0.9rem;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   animation: damage-float-fade 0.9s ease-out forwards;
+}
+
+/* Phones: a condensed strip (portrait, name, HP and EXP) pinned under the
+   condensing boss bar; useCondensingBoss sets its sticky top. Gear and stats
+   live behind the tap, in the details popup. */
+@media (max-width: 820px) {
+  .character-panel {
+    position: sticky;
+    z-index: 4;
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 11px;
+  }
+
+  .top-row {
+    display: contents;
+  }
+
+  .item-grid,
+  .title-button .stat-summary {
+    display: none;
+  }
+
+  .character-panel .sprite-wrapper {
+    display: grid;
+    place-items: end center;
+    width: 52px;
+    height: 52px;
+    border: 1px solid var(--portrait-border);
+    border-radius: 8px;
+  }
+
+  .sprite-wrapper .player-sprite {
+    width: 50px;
+    height: 50px;
+  }
+
+  .title-button {
+    gap: 0.35rem;
+    text-align: left;
+  }
+
+  .character-panel h2 {
+    font-size: 0.95rem;
+  }
 }
 
 @keyframes sprite-shake {

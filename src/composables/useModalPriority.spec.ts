@@ -10,7 +10,7 @@ import { useQuestMissGate } from './useQuestMissGate';
 import { useQuestStore } from '../store/questStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
-import { createRng } from '../game-engine';
+import { createRng, ITEM_CATALOG } from '../game-engine';
 
 describe('useModalPriority', () => {
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('useModalPriority', () => {
 
     it('stays visible for an enchant reveal even with no picks left', () => {
       const characterStore = useCharacterStore();
-      characterStore.setCharacter({ ...characterStore.character, level: 10, ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'], pendingEventPicks: 1 });
+      characterStore.setCharacter({ ...characterStore.character, level: 10, questsUnlocked: true, ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'], pendingEventPicks: 1 });
       const events = useEventChoice();
       events.choose('double-item');
       expect(characterStore.character.pendingEventPicks).toBe(0);
@@ -124,6 +124,34 @@ describe('useModalPriority', () => {
 
       const { questMissVisible } = useModalPriority();
       expect(questMissVisible.value).toBe(false);
+    });
+  });
+
+  describe('questUnlockVisible', () => {
+    function reachUnlockLevel() {
+      const characterStore = useCharacterStore();
+      characterStore.setCharacter({ ...characterStore.character, level: 2, questsUnlocked: false, pendingEventPicks: 1 });
+    }
+
+    it('shows on reaching level 2, ahead of the level-up pick', () => {
+      reachUnlockLevel();
+      const { questUnlockVisible, eventChoiceVisible } = useModalPriority();
+      expect(questUnlockVisible.value).toBe(true);
+      expect(eventChoiceVisible.value).toBe(false);
+    });
+
+    it('hands over to the level-up pick once quests are unlocked', () => {
+      reachUnlockLevel();
+      useCharacterStore().unlockQuests();
+      const { questUnlockVisible, eventChoiceVisible } = useModalPriority();
+      expect(questUnlockVisible.value).toBe(false);
+      expect(eventChoiceVisible.value).toBe(true);
+    });
+
+    it('waits for an item drop', () => {
+      reachUnlockLevel();
+      useItemDropQueue().enqueueDrops([ITEM_CATALOG[0]]);
+      expect(useModalPriority().questUnlockVisible.value).toBe(false);
     });
   });
 });

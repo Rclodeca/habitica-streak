@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — start screen (merged, Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Option B's full-screen, fire-lit opening with option A's layout:
+   header, boxed name field, the four rule rows, one button. */
+:root {
+  --bg: #0b0a09;
+  --text: #a1988a;
+  --text-h: #ece3cd;
+  --bone: #d4cab5;
+  --gold: #c8a96e;
+  --gold-hi: #e6cf9a;
+  --ember: #e0783a;
+  --dmg-physical: #d0604f;
+  --line: rgba(200, 169, 110, 0.2);
+  --line-mid: rgba(200, 169, 110, 0.4);
+  --line-faint: rgba(200, 169, 110, 0.08);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; color: var(--bone);
+  font: 500 19px/1.4 'Cormorant Garamond', Garamond, Georgia, serif;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 34%, rgba(224, 120, 58, 0.1), transparent 70%),
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(200, 169, 110, 0.12), transparent 70%),
+    radial-gradient(ellipse 60% 35% at 50% 108%, rgba(224, 120, 58, 0.08), transparent 70%),
+    var(--bg);
+}
+button, input { font: inherit; color: inherit; }
+h1, h2, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+img { display: block; }
+
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+.lined { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--gold-hi); }
+.lined::before, .lined::after { content: ''; flex: 1; min-width: 16px; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.lined::after { background: linear-gradient(270deg, transparent, var(--line-mid)); }
+.subtle { font-style: italic; color: var(--text); }
+
+.screen { min-height: 100vh; padding: 5vh 20px 120px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.eyebrow { font-style: italic; color: var(--text); }
+.game-title { margin-top: 8px; font-size: clamp(30px, 6vw, 56px); font-weight: 500; letter-spacing: 0.14em; color: var(--text-h); text-shadow: 0 0 30px rgba(224, 120, 58, 0.25); }
+
+/* The hero by the fire, embers drifting up. */
+.bonfire {
+  position: relative; isolation: isolate; overflow: hidden;
+  width: 340px; max-width: 100%; height: 220px; margin: 14px 0 4px;
+  display: flex; align-items: flex-end; justify-content: center;
+  background:
+    radial-gradient(ellipse 50% 55% at 50% 74%, rgba(224, 120, 58, 0.24), transparent 72%),
+    radial-gradient(ellipse 45% 60% at 50% 55%, rgba(215, 205, 185, 0.12), transparent 70%);
+  -webkit-mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 70%, transparent 100%);
+  mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 70%, transparent 100%);
+}
+.bonfire::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 200%; z-index: -1;
+  background-image:
+    radial-gradient(1.6px 1.6px at 20% 30%, #ffb06a 50%, transparent 55%), radial-gradient(1.2px 1.2px at 34% 68%, #ffd08f 50%, transparent 55%),
+    radial-gradient(1.8px 1.8px at 48% 40%, #ff9a52 50%, transparent 55%), radial-gradient(1.1px 1.1px at 60% 82%, #ffc27a 50%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 72% 26%, #ffad66 50%, transparent 55%), radial-gradient(1.2px 1.2px at 84% 60%, #ffd59a 50%, transparent 55%),
+    radial-gradient(1.3px 1.3px at 10% 56%, #ffc27a 50%, transparent 55%), radial-gradient(1.4px 1.4px at 90% 14%, #ffb06a 50%, transparent 55%);
+  background-size: 100% 50%; animation: rise 12s linear infinite;
+}
+.bonfire::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 12px; height: 10px; z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, rgba(0, 0, 0, 0.75), transparent 70%); }
+.player { position: relative; width: 120px; height: 120px; margin-bottom: 16px; filter: drop-shadow(0 0 14px rgba(0, 0, 0, 0.9)); }
+.player img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+
+/* Option A's column. */
+.oath { width: 100%; max-width: 460px; }
+.oath h2 { font-size: 13px; letter-spacing: 0.3em; margin-bottom: 18px; }
+.fell { margin: -6px 0 16px; }
+.field { display: block; margin-bottom: 22px; text-align: left; }
+.label { display: block; margin-bottom: 8px; font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase; color: var(--text); }
+.name-input {
+  width: 100%; padding: 12px 14px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--line-mid); border-radius: 0;
+  color: var(--text-h); font-size: 22px; font-weight: 600; outline: none;
+}
+.name-input::placeholder { color: #5c554a; font-style: italic; font-weight: 500; }
+.name-input:focus { border-color: var(--gold); box-shadow: 0 0 14px -4px rgba(230, 199, 127, 0.5); }
+.rules { margin: 0 0 24px; text-align: left; border-top: 1px solid var(--line-faint); }
+.rules li { display: grid; grid-template-columns: 22px 64px 1fr; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--line-faint); }
+.rules b { font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-h); }
+.rules span { font-style: italic; color: var(--bone); line-height: 1.3; }
+.ico { display: inline-grid; place-items: center; color: var(--k, var(--gold)); line-height: 0; }
+.ico svg { display: block; }
+.k-keep { --k: var(--gold-hi); }
+.k-break { --k: var(--dmg-physical); }
+.k-rise { --k: var(--gold); }
+.k-fall { --k: var(--ember); }
+.btn {
+  display: block; width: 100%; padding: 15px; cursor: pointer;
+  font-family: 'Cinzel', Georgia, serif; font-size: 12px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--text-h); background: linear-gradient(180deg, rgba(146, 124, 80, 0.25), rgba(60, 48, 28, 0.25));
+  border: 1px solid var(--line-mid); transition: border-color 0.25s, box-shadow 0.25s;
+}
+.btn:hover { border-color: var(--gold-hi); box-shadow: 0 0 22px -6px rgba(230, 199, 127, 0.5); }
+
+.after-only { display: none; }
+body.after-death .after-only { display: revert; }
+body.after-death .first-only { display: none; }
+
+/* Mockup chrome — not part of the design. */
+.mock-switcher {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 99;
+  display: flex; gap: 4px; padding: 5px; background: rgba(17, 17, 21, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  font: 600 13px/1 system-ui, -apple-system, sans-serif; letter-spacing: 0;
+}
+.mock-switcher button { border: 0; background: transparent; color: #cbd0da; padding: 9px 14px; border-radius: 999px; font: inherit; cursor: pointer; }
+.mock-switcher button[aria-pressed='true'] { background: #f3f4f6; color: #111; }
+
+@keyframes rise { to { transform: translateY(-50%); } }
+@media (prefers-reduced-motion: reduce) { .bonfire::before { animation: none; } }
+</style>
+</head>
+<body>
+
+<nav class="mock-switcher" aria-label="Mockup state">
+  <button type="button" data-state="first">First run</button>
+  <button type="button" data-state="after">After death</button>
+</nav>
+
+<main class="screen">
+  <p class="eyebrow first-only">Every habit is a weapon.</p>
+  <p class="eyebrow after-only">The fire still burns.</p>
+  <h1 class="game-title engraved">Habitica Streak</h1>
+
+  <div class="bonfire"><div class="player" data-player></div></div>
+
+  <div class="oath">
+    <h2 class="engraved lined"><span class="first-only">A new hero</span><span class="after-only">A new hero rises</span></h2>
+    <p class="subtle fell after-only">Aria fell to Boss 7. Your habits remain.</p>
+    <label class="field">
+      <span class="label">Name</span>
+      <input class="name-input" maxlength="16" placeholder="Nameless" autocomplete="off" />
+    </label>
+    <ul class="rules">
+      <li><i class="ico k-keep" data-i="sword"></i><b>Keep</b><span>A habit kept strikes the boss.</span></li>
+      <li><i class="ico k-break" data-i="swords"></i><b>Break</b><span>A habit broken, the boss strikes back.</span></li>
+      <li><i class="ico k-rise" data-i="chevrons-up"></i><b>Rise</b><span>Each boss slain makes you stronger.</span></li>
+      <li><i class="ico k-fall" data-i="flame"></i><b>Fall</b><span>Fall, and another takes your place.</span></li>
+    </ul>
+    <button type="button" class="btn"><span class="first-only">Begin</span><span class="after-only">Rise</span></button>
+  </div>
+</main>
+
+<script>
+const LUCIDE = {
+  sword: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  swords: '<polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/>',
+  'chevrons-up': '<path d="m17 11-5-5-5 5"/><path d="m17 18-5-5-5 5"/>',
+  flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
+};
+document.querySelectorAll('.ico[data-i]').forEach((el) => {
+  el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[el.dataset.i]}</svg>`;
+});
+document.querySelector('[data-player]').innerHTML = ['base-skin', 'base-shirt', 'base-hair']
+  .map((layer) => `<img src="../../public/sprites/player/${layer}.png" alt="" />`).join('');
+
+function setState(state) {
+  document.body.classList.toggle('after-death', state === 'after');
+  document.querySelectorAll('[data-state]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.state === state)));
+}
+document.querySelectorAll('[data-state]').forEach((b) => b.addEventListener('click', () => setState(b.dataset.state)));
+setState('first');
+</script>
+</body>
+</html>

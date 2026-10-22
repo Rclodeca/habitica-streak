@@ -3,16 +3,22 @@ import { bossMissDamage } from './combat';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { expToNextLevel } from './leveling';
+import { createCharacter } from './character';
 import {
   createQuest,
   cumulativeSlotWeight,
   migrateQuest,
+  migrateQuestUnlock,
   questMissDamage,
   questRewardTier,
+  questsOpen,
   questSlotExp,
+  questUnlockPending,
   questWeekFor,
   questWeeklyTargetExp,
+  QUESTS_UNLOCK_LEVEL,
   recordQuestCompletion,
+  unlockQuests,
 } from './quests';
 import { createRng } from './rng';
 import type { Boss, Quest } from './types';
@@ -207,5 +213,41 @@ describe('migrateQuest', () => {
     const side = createQuest('Slay it', 'medium', '2026-02-01', 'side', 'dragons-heart');
     expect(migrateQuest(side)).toEqual(side);
     expect(migrateQuest(migrateQuest(side))).toEqual(side);
+  });
+});
+
+describe('quests unlock', () => {
+  const fresh = () => createCharacter(createRng(1));
+
+  it('a new run starts sealed', () => {
+    expect(fresh().questsUnlocked).toBe(false);
+    expect(questsOpen(fresh())).toBe(false);
+    expect(questUnlockPending(fresh())).toBe(false);
+  });
+
+  it('reaching the unlock level opens the section and queues the popup', () => {
+    const character = { ...fresh(), level: QUESTS_UNLOCK_LEVEL };
+    expect(questsOpen(character)).toBe(true);
+    expect(questUnlockPending(character)).toBe(true);
+  });
+
+  it('unlockQuests opens it for good and clears the popup', () => {
+    const unlocked = unlockQuests({ ...fresh(), level: QUESTS_UNLOCK_LEVEL });
+    expect(unlocked.questsUnlocked).toBe(true);
+    expect(questUnlockPending(unlocked)).toBe(false);
+    expect(questsOpen({ ...unlocked, level: 1 })).toBe(true);
+    expect(unlockQuests(unlocked)).toBe(unlocked);
+  });
+
+  it('migrateQuestUnlock opens a pre-lock save that was already using quests, without the popup', () => {
+    const { questsUnlocked: _, ...legacy } = fresh();
+    expect(migrateQuestUnlock({ ...legacy, level: 3 }, false).questsUnlocked).toBe(true);
+    expect(migrateQuestUnlock({ ...legacy, level: 1 }, true).questsUnlocked).toBe(true);
+    expect(migrateQuestUnlock({ ...legacy, level: 1 }, false).questsUnlocked).toBe(false);
+  });
+
+  it('migrateQuestUnlock leaves a settled flag alone', () => {
+    const character = { ...fresh(), level: 5 };
+    expect(migrateQuestUnlock(character, true)).toBe(character);
   });
 });

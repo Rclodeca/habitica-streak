@@ -33,6 +33,7 @@ import {
   completeHabit,
   createRng,
   dailyPeriodKey,
+  DEFAULT_HERO_NAME,
   effectiveCritChance,
   effectiveStat,
   describeItemBonus,
@@ -49,6 +50,7 @@ import {
   resolveBossDefeatIfDead,
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
+  unlockQuests,
   weeklyPeriodKey,
 } from '../game-engine';
 import type { Character, Difficulty, Habit, ItemDef, Period } from '../game-engine';
@@ -60,6 +62,7 @@ import { useHabitStore } from '../store/habitStore';
 import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
 import { useDeathScreen } from './useDeathScreen';
+import { useFallenHero } from './useFallenHero';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
 
@@ -77,6 +80,7 @@ export function useCombatActions() {
   const debugClockStore = useDebugClockStore();
   const highScoreStore = useHighScoreStore();
   const { triggerDeath, dismiss: dismissDeathScreen } = useDeathScreen();
+  const { recordFallen } = useFallenHero();
   const { showReviveNotice } = useReviveNotice();
   const { enqueueDrops } = useItemDropQueue();
 
@@ -391,7 +395,12 @@ export function useCombatActions() {
         }),
       });
 
-      characterStore.setCharacter(deathResult.character);
+      // The fresh character is unnamed, so the new-hero screen shows next and
+      // reads this to say who fell where.
+      recordFallen({ name: character.name ?? DEFAULT_HERO_NAME, bossIndex: bossIndexAtDeath });
+      // Quests survive a death; if any carried over, the new run starts with
+      // them open (and never shows the level-2 "Quests unlocked" popup).
+      characterStore.setCharacter(questStore.quests.length > 0 ? unlockQuests(deathResult.character) : deathResult.character);
       bossStore.setBoss(deathResult.boss);
       habitStore.setHabits(deathResult.habits);
     }

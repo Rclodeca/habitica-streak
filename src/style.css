@@ -21,6 +21,34 @@
   --shadow:
     rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 
+  /* Colours that used to be hard-coded in components, pulled out so a theme
+     (see assets/scss/themes/) can restyle them. These are the Minimalist
+     values. */
+  --dmg-physical: #f87171;
+  --dmg-magic: #b98cfb;
+  --dmg-healing: #22c55e;
+  --dmg-true: #f9fafb;
+  --icon-health: #f43f5e;
+  --icon-lifesteal: #e11d48;
+  --icon-crit: #f59e0b;
+  --icon-steel: #94a3b8;
+  --icon-arcane: #818cf8;
+  --icon-violet: #c084fc;
+  --icon-streak: #a8aebb;
+  --icon-exp: #60a5fa;
+  --icon-gold: #fbbf24;
+  --icon-gift: #f5c451;
+  --hp-color: #e5484d;
+  --exp-color: #3b82f6;
+  --rarity-common: #9ca3af;
+  --rarity-uncommon: #34d399;
+  --rarity-rare: #60a5fa;
+  --rarity-epic: #c084fc;
+  --soon-color: #f59e0b;
+  --side-quest-color: #fbbf24;
+  /* The small framed portraits in the pinned phone header. */
+  --portrait-border: var(--border);
+
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { ArrowLeft, Trophy } from 'lucide-vue-next';
+import { ArrowLeft } from 'lucide-vue-next';
+import AppMenu from './AppMenu.vue';
+import NewHeroScreen from './NewHeroScreen.vue';
 import BossPanel from '../boss/BossPanel.vue';
 import CharacterPanel from '../character/CharacterPanel.vue';
 import PopupPreview from '../debug/PopupPreview.vue';
@@ -15,31 +17,41 @@ import ItemDropPopup from '../ui/ItemDropPopup.vue';
 import MissedSkillsPopup from '../ui/MissedSkillsPopup.vue';
 import QuestCompletePopup from '../quests/QuestCompletePopup.vue';
 import QuestMissPopup from '../quests/QuestMissPopup.vue';
+import QuestUnlockPopup from '../quests/QuestUnlockPopup.vue';
 import EventChoiceModal from '../events/EventChoiceModal.vue';
 import ReviveNotice from '../ui/ReviveNotice.vue';
 import { useBossStore } from '../../store/bossStore';
+import { useCharacterStore } from '../../store/characterStore';
 
 const bossStore = useBossStore();
+const characterStore = useCharacterStore();
 
 const isDev = import.meta.env.DEV;
 
 const bossIndex = computed(() => bossStore.boss.index);
 
+// An unnamed hero (first launch, or a new run after a death) gets the
+// full-screen NewHeroScreen instead of the whole shell. The popups live inside
+// the shell, so anything queued meanwhile simply waits until the hero is named.
+const needsName = computed(() => characterStore.character.name === undefined);
+
 // No router in this app — swaps the main content for HighScorePage in place
-// rather than navigating. The popup overlays below stay mounted regardless
-// (they're independently gated Teleports, see useModalPriority), so a
-// queued death/item/quest popup isn't hidden by this toggle.
+// rather than navigating. It's opened from AppMenu and closed with the Back
+// button. The popup overlays below stay mounted regardless (they're
+// independently gated Teleports, see useModalPriority), so a queued
+// death/item/quest popup isn't hidden by this toggle.
 const showHighScores = ref(false);
 </script>
 
 <template>
-  <div class="app-shell">
+  <NewHeroScreen v-if="needsName" />
+  <div v-else class="app-shell">
     <div class="progress-bar">
       <span>Boss #{{ bossIndex }}</span>
-      <button type="button" class="nav-button" @click="showHighScores = !showHighScores">
-        <template v-if="showHighScores"><ArrowLeft :size="14" />Back</template>
-        <template v-else><Trophy :size="14" />High Scores</template>
-      </button>
+      <div class="top-actions">
+        <button v-if="showHighScores" type="button" class="nav-button" @click="showHighScores = false"><ArrowLeft :size="14" />Back</button>
+        <AppMenu @high-scores="showHighScores = true" />
+      </div>
     </div>
     <DeathScreen />
     <ItemDropPopup />
@@ -47,6 +59,7 @@ const showHighScores = ref(false);
     <EventChoiceModal />
     <QuestMissPopup />
     <QuestCompletePopup />
+    <QuestUnlockPopup />
     <ReviveNotice />
 
     <HighScorePage v-if="showHighScores" />
@@ -87,6 +100,12 @@ const showHighScores = ref(false);
   color: var(--text-h);
 }
 
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .nav-button {
   display: inline-flex;
   align-items: center;
@@ -124,10 +143,11 @@ const showHighScores = ref(false);
     grid-template-columns: 1fr;
   }
 
+  /* The boss and hero panels pin to the top on phones (see
+     useCondensingBoss). A sticky element only sticks within its parent, so
+     they become rows of the page-long grid instead of living in this column. */
   .side {
-    position: static;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    display: contents;
   }
 }
 </style>

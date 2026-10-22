@@ -1,17 +1,24 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { dailyPeriodKey, ITEM_CATALOG } from '../../game-engine';
+import { Lock } from 'lucide-vue-next';
+import { dailyPeriodKey, ITEM_CATALOG, questRewardTier, questsOpen, QUESTS_UNLOCK_LEVEL } from '../../game-engine';
 import type { Difficulty, ItemDef, Quest } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useQuestCompleteQueue } from '../../composables/useQuestCompleteQueue';
+import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useQuestStore } from '../../store/questStore';
 import Modal from '../ui/Modal.vue';
+import StatIcon from '../ui/StatIcon.vue';
 import QuestDetailModal from './QuestDetailModal.vue';
 import QuestForm from './QuestForm.vue';
 
 const questStore = useQuestStore();
+const characterStore = useCharacterStore();
 const debugClockStore = useDebugClockStore();
+
+// Sealed until QUESTS_UNLOCK_LEVEL each run, unless quests carried over (see questsOpen).
+const open = computed(() => questsOpen(characterStore.character));
 const { completeQuest } = useCombatActions();
 const { enqueue: enqueueCompletion } = useQuestCompleteQueue();
 
@@ -60,12 +67,19 @@ function onCheckOff(quest: Quest) {
 </script>
 
 <template>
-  <section class="panel quest-section">
+  <section class="panel quest-section" :class="{ locked: !open }">
     <div class="quest-header">
-      <h2>Quests</h2>
-      <button type="button" class="add-button" aria-label="Add quest" @click="showAdd = true">+ New quest</button>
+      <h2><Lock v-if="!open" :size="14" class="lock-icon" />Quests</h2>
+      <button v-if="open" type="button" class="add-button" aria-label="Add quest" @click="showAdd = true">+ New quest</button>
     </div>
-    <ul v-if="questStore.quests.length">
+    <div v-if="!open" class="lock-area">
+      <div class="lock-ghost" aria-hidden="true"><i /><i /></div>
+      <div class="lock-seal">
+        <span class="lock-mark"><Lock :size="18" /></span>
+        <p class="lock-text">Sealed until level {{ QUESTS_UNLOCK_LEVEL }}</p>
+      </div>
+    </div>
+    <ul v-else-if="questStore.quests.length">
       <li v-for="quest in questStore.quests" :key="quest.id" class="quest-item" :class="[urgency(quest), { side: quest.kind === 'side' }]">
         <input type="checkbox" class="check" :aria-label="`Complete ${quest.description}`" @change="onCheckOff(quest)" />
         <button type="button" class="body" @click="detailId = quest.id">
@@ -78,6 +92,10 @@ function onCheckOff(quest: Quest) {
           </span>
         </button>
         <img v-if="quest.kind === 'side' && rewardItem(quest)" class="reward-icon" :src="`${baseUrl}sprites/${rewardItem(quest)!.icon}.png`" alt="" />
+        <!-- The exact EXP depends on the week's slot, so only the vague tier is offered, on hover. -->
+        <span v-else-if="quest.kind === 'regular'" class="reward-exp" :title="`${questRewardTier(quest.difficulty)} EXP`">
+          <StatIcon name="exp" :size="20" /><span class="exp-label">+EXP</span>
+        </span>
       </li>
     </ul>
     <p v-else>No active quests.</p>
@@ -113,7 +131,7 @@ function onCheckOff(quest: Quest) {
 }
 
 .quest-item.soon {
-  --tone: #f59e0b;
+  --tone: var(--soon-color);
 }
 
 .quest-item.urgent {
@@ -167,7 +185,64 @@ function onCheckOff(quest: Quest) {
 }
 
 .quest-header h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0;
+}
+
+/* Sealed until QUESTS_UNLOCK_LEVEL: two blurred placeholder rows under a lock. */
+.locked h2 {
+  color: var(--text);
+}
+
+.lock-area {
+  position: relative;
+  margin-top: 0.75rem;
+}
+
+.lock-ghost {
+  display: grid;
+  gap: 0.5rem;
+  opacity: 0.35;
+  filter: blur(2px);
+}
+
+.lock-ghost i {
+  display: block;
+  height: 3rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.lock-seal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.lock-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+}
+
+.lock-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .add-button {
@@ -184,9 +259,9 @@ function onCheckOff(quest: Quest) {
 }
 
 .quest-item.side {
-  --tone: #fbbf24;
-  background: linear-gradient(90deg, rgba(251, 191, 36, 0.1), var(--code-bg) 60%);
-  box-shadow: 0 0 14px -8px #fbbf24;
+  --tone: var(--side-quest-color);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--side-quest-color) 10%, transparent), var(--code-bg) 60%);
+  box-shadow: 0 0 14px -8px var(--side-quest-color);
 }
 
 .quest-item.side.urgent {
@@ -241,7 +316,7 @@ function onCheckOff(quest: Quest) {
 }
 
 .soon .due {
-  color: #f59e0b;
+  color: var(--soon-color);
 }
 
 .urgent .due {
@@ -254,5 +329,23 @@ function onCheckOff(quest: Quest) {
   height: 44px;
   margin: -0.4rem 0;
   image-rendering: pixelated;
+}
+
+/* Same width as .reward-icon. Icon and label are centred in the row as one
+   tight unit — line-height 1 matters: the inherited one is a fixed ~26px
+   (see style.css) and would make the label far taller than its text. */
+.reward-exp {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 44px;
+  color: var(--icon-exp);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  cursor: default;
 }
 </style>

@@ -1,10 +1,11 @@
 import type { DamageType } from '../../game-engine';
 
+// CSS variables (defined in style.css, restyled per theme).
 export const DAMAGE_TYPE_COLORS: Record<DamageType, string> = {
-  healing: '#22c55e',
-  physical: '#f87171',
-  magic: '#b98cfb',
-  trueDamage: '#f9fafb',
+  healing: 'var(--dmg-healing)',
+  physical: 'var(--dmg-physical)',
+  magic: 'var(--dmg-magic)',
+  trueDamage: 'var(--dmg-true)',
 };
 
 export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
