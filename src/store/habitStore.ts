@@ -2,7 +2,7 @@
 // randomization live here — everything delegates into `game-engine`.
 
 import { defineStore } from 'pinia';
-import { createHabit, migrateHabitDamageType } from '../game-engine';
+import { createHabit, migrateHabitDamageType, normalizeDays } from '../game-engine';
 import type { DamageType, Difficulty, Habit, Period, Rng } from '../game-engine';
 
 export const useHabitStore = defineStore('habit', {
@@ -34,9 +34,9 @@ export const useHabitStore = defineStore('habit', {
       this.habits = (saved ?? []).map((habit) => migrateHabitDamageType(habit, rng));
     },
 
-    /** Creates a new habit via the engine and adds it to the list. */
-    addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, rng: Rng): Habit {
-      const habit = createHabit(name, period, difficulty, isBad, rng);
+    /** Creates a new habit via the engine and adds it to the list. `days` only applies to a daily. */
+    addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, rng: Rng, days?: number[]): Habit {
+      const habit = createHabit(name, period, difficulty, isBad, rng, days);
       this.habits.push(habit);
       return habit;
     },
@@ -49,6 +49,18 @@ export const useHabitStore = defineStore('habit', {
     updateHabit(updatedHabit: Habit) {
       const index = this.habits.findIndex((habit) => habit.id === updatedHabit.id);
       if (index !== -1) this.habits.splice(index, 1, updatedHabit);
+    },
+
+    /**
+     * Sets a daily's due days (normalized — all seven makes it a plain daily
+     * again), keeping everything else. No-op for a weekly or an unknown id.
+     */
+    setHabitDays(id: string, days: number[] | undefined) {
+      const habit = this.habits.find((h) => h.id === id);
+      if (!habit || habit.period !== 'daily') return;
+      const updated: Habit = { ...habit, days: normalizeDays(days) };
+      if (!updated.days) delete updated.days;
+      this.updateHabit(updated);
     },
 
     /** Replaces the whole habit list wholesale, e.g. after player-death resolution. */

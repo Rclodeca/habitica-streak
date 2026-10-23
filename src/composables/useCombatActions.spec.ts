@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { availableSideOnlyItems, createRng, effectiveStat, expToNextLevel, periodKeyFor, questSlotExp, weeklyPeriodKey } from '../game-engine';
+import { availableSideOnlyItems, createRng, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, questSlotExp, weeklyPeriodKey } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
@@ -588,5 +588,37 @@ describe('useCombatActions', () => {
     const now = new Date();
     expect(habitStore.habits.find((h) => h.id === daily.id)?.lastCheckedPeriodKey).toBe(periodKeyFor('daily', now));
     expect(habitStore.habits.find((h) => h.id === weekly.id)?.lastCheckedPeriodKey).toBe(periodKeyFor('weekly', now));
+  });
+
+  describe('set days', () => {
+    const today = dayOfWeekIndex(new Date());
+    const notToday = (today + 1) % 7;
+
+    it('checkOffHabit does nothing on a rest day', () => {
+      const habitStore = useHabitStore();
+      const bossStore = useBossStore();
+      const { addHabit, checkOffHabit } = useCombatActions();
+      const habit = addHabit('Gym', 'daily', 'medium', false, [notToday]);
+      const bossHealth = bossStore.boss.health;
+      checkOffHabit(habit.id);
+      expect(habitStore.habits[0].lastCompletedPeriodKey).toBeNull();
+      expect(bossStore.boss.health).toBe(bossHealth);
+    });
+
+    it('activateOverdrive is refused once today is taken out of a checked-off habit', () => {
+      const habitStore = useHabitStore();
+      const { addHabit, checkOffHabit, activateOverdrive } = useCombatActions();
+      const habit = addHabit('Gym', 'daily', 'medium', false);
+      habitStore.updateHabit({ ...habitStore.habits[0], isOverdrive: true });
+      checkOffHabit(habit.id);
+      habitStore.setHabitDays(habit.id, [notToday]);
+      activateOverdrive(habit.id);
+      expect(habitStore.habits[0].overdriveUsesThisPeriod ?? 0).toBe(0);
+    });
+
+    it('addHabit stores days on a daily', () => {
+      const { addHabit } = useCombatActions();
+      expect(addHabit('Gym', 'daily', 'hard', false, [0, 2, 5]).days).toEqual([0, 2, 5]);
+    });
   });
 });

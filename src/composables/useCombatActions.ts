@@ -38,6 +38,7 @@ import {
   effectiveStat,
   describeItemBonus,
   ITEM_CATALOG,
+  isDueOn,
   itemDoubleFactor,
   missHabit,
   overdriveHabit,
@@ -276,11 +277,13 @@ export function useCombatActions() {
    * habit cannot be resolved twice in the same period (double streak
    * change, double damage, double milestone EXP), independent of any
    * UI-layer `:disabled` binding. Mirrors the `isCompletedThisPeriod`
-   * predicate used in `HabitListItem.vue`.
+   * predicate used in `HabitListItem.vue`. A set-day habit can't be
+   * checked off on a rest day either (`isDueOn`).
    */
   function checkOffHabit(habitId: string): { itemsDropped: ItemDef[] } {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return { itemsDropped: [] };
+    if (!isDueOn(habit, debugClockStore.now())) return { itemsDropped: [] };
 
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
     if (habit.lastCompletedPeriodKey === currentPeriodKey) return { itemsDropped: [] };
@@ -317,11 +320,13 @@ export function useCombatActions() {
    * at reduced damage. Good-habit-only, gated on the habit already being
    * checked off this period and having uses remaining — the authoritative
    * guard, independent of the UI button's `:disabled` binding, mirroring
-   * `checkOffHabit`'s own period-key guard above.
+   * `checkOffHabit`'s own period-key guard above. Refused on a rest day even
+   * if the habit was checked off before today was taken out of its days.
    */
   function activateOverdrive(habitId: string): { itemsDropped: ItemDef[] } {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit || habit.isBad || !habit.isOverdrive) return { itemsDropped: [] };
+    if (!isDueOn(habit, debugClockStore.now())) return { itemsDropped: [] };
 
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
     if (habit.lastCompletedPeriodKey !== currentPeriodKey) return { itemsDropped: [] };
@@ -333,8 +338,8 @@ export function useCombatActions() {
   /**
    * Thin wrapper around `habitStore.addHabit`, sharing this module's Rng.
    */
-  function addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean): Habit {
-    const created = habitStore.addHabit(name, period, difficulty, isBad, rng);
+  function addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, days?: number[]): Habit {
+    const created = habitStore.addHabit(name, period, difficulty, isBad, rng, days);
     // Stamped so the next rollover doesn't count the period before this
     // habit existed as a miss.
     const habit = { ...created, lastCheckedPeriodKey: periodKeyFor(period, debugClockStore.now()) };
