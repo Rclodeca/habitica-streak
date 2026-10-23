@@ -2,12 +2,14 @@
 // Add-habit popup. No damage-type field: damage type is randomly assigned
 // by `createHabit` (see `game-engine/habits.ts`), never user-chosen.
 
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Difficulty, Period } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import Modal from '../ui/Modal.vue';
+import DayPicker from './DayPicker.vue';
+import { ALL_DAYS, dayCountLabel } from './weekdays';
 
-defineProps<{ modelValue: boolean }>();
+const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
 const { addHabit } = useCombatActions();
@@ -16,11 +18,19 @@ const name = ref('');
 const period = ref<Period>('daily');
 const difficulty = ref<Difficulty>('easy');
 const habitType = ref<'good' | 'bad'>('good');
+// A daily's due days; every day each time the form opens.
+const days = ref<number[]>([...ALL_DAYS]);
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) days.value = [...ALL_DAYS];
+  },
+);
 
-const periodOptions: { value: Period; label: string; hint: string }[] = [
-  { value: 'daily', label: 'Daily', hint: 'Every day' },
+const periodOptions = computed<{ value: Period; label: string; hint: string }[]>(() => [
+  { value: 'daily', label: 'Daily', hint: dayCountLabel(days.value) },
   { value: 'weekly', label: 'Weekly', hint: 'Every week' },
-];
+]);
 
 const difficultyOptions: { value: Difficulty; label: string; pips: number }[] = [
   { value: 'easy', label: 'Easy', pips: 1 },
@@ -42,7 +52,7 @@ const pledge = computed(() =>
 function onSubmit() {
   const trimmedName = name.value.trim();
   if (!trimmedName) return;
-  addHabit(trimmedName, period.value, difficulty.value, habitType.value === 'bad');
+  addHabit(trimmedName, period.value, difficulty.value, habitType.value === 'bad', period.value === 'daily' ? days.value : undefined);
   name.value = '';
   emit('update:modelValue', false);
 }
@@ -89,6 +99,7 @@ function onSubmit() {
             <span class="card-hint">{{ opt.hint }}</span>
           </label>
         </div>
+        <DayPicker v-if="period === 'daily'" v-model="days" class="cadence-days" />
       </fieldset>
 
       <fieldset class="field">
@@ -115,6 +126,10 @@ function onSubmit() {
 </template>
 
 <style scoped>
+.cadence-days {
+  margin-top: 0.5rem;
+}
+
 .add-habit-form {
   display: flex;
   flex-direction: column;

@@ -591,6 +591,45 @@ $caps-lg: 0.85rem; // panel and popup titles
     color: var(--accent-solid);
   }
 
+  // Day picker: a diamond behind each letter, lit gold when the day is due.
+  .days {
+    gap: 2px;
+  }
+
+  .days .day {
+    background: none;
+    border: 0;
+    @include engraved($caps-xs, 0);
+    color: var(--text);
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      transform: rotate(45deg);
+      border: 1px solid $ash-deep;
+      background: rgba(0, 0, 0, 0.35);
+      transition:
+        background 0.25s,
+        box-shadow 0.25s;
+    }
+
+    span {
+      position: relative;
+    }
+  }
+
+  .days .day.on {
+    color: var(--accent);
+
+    &::before {
+      border-color: var(--accent-solid);
+      background: radial-gradient(circle, rgba(230, 207, 154, 0.35), rgba(138, 106, 44, 0.2) 70%);
+      box-shadow: 0 0 10px -2px rgba(230, 199, 127, 0.5);
+    }
+  }
+
   .pip {
     width: 5px;
     height: 5px;
