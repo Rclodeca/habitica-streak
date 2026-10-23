@@ -78,4 +78,14 @@ describe('HabitList', () => {
     expect(charges('used')).toBe(1);
     expect(charges('ready')).toBe(TUNING.OVERDRIVE_MAX_EXTRA_USES - 1);
   });
+
+  it('the popup stays open when tapping today moves its row into Resting', async () => {
+    addDaily();
+    const wrapper = mountList();
+    await wrapper.find('li').trigger('click'); // opens the popup
+    document.body.querySelectorAll<HTMLButtonElement>('.skill-days button.day')[today].click();
+    await nextTick();
+    expect(wrapper.find('details.rest-fold').exists()).toBe(true);
+    expect(document.body.querySelector('.skill-days')).not.toBeNull();
+  });
 });

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import {
   habitDamageBreakdown,
+  isDueOn,
   overdriveDamagePreview,
   overdriveUsesRemaining,
   periodKeyFor,
@@ -17,7 +18,9 @@ import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
 import type { StatIconName } from '../ui/statIcons';
 import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
+import DayPicker from './DayPicker.vue';
 import SkillSigil from './SkillSigil.vue';
+import { ALL_DAYS, dayCountLabel } from './weekdays';
 
 const props = defineProps<{ modelValue: boolean; habit: Habit }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
@@ -76,8 +79,15 @@ const overdriveDamage = computed(() =>
 
 const currentPeriodKey = computed(() => periodKeyFor(props.habit.period, debugClockStore.now()));
 const isCompletedThisPeriod = computed(() => props.habit.lastCompletedPeriodKey === currentPeriodKey.value);
+// A set-day skill on a rest day: the hit dims and Overdrive can't be used.
+const isResting = computed(() => !isDueOn(props.habit, debugClockStore.now()));
 const overdriveRemaining = computed(() => overdriveUsesRemaining(props.habit, currentPeriodKey.value));
-const canOverdrive = computed(() => isCompletedThisPeriod.value && overdriveRemaining.value > 0);
+const canOverdrive = computed(() => !isResting.value && isCompletedThisPeriod.value && overdriveRemaining.value > 0);
+
+// A daily's days are changed right here; each tap saves.
+function onDaysChange(days: number[]) {
+  habitStore.setHabitDays(props.habit.id, days);
+}
 // Each charge is dim until the skill lands, lit while it can be used, and
 // greyed once spent.
 function chargeState(n: number): 'used' | 'ready' | undefined {
@@ -115,14 +125,24 @@ function removeHabit() {
     <p class="skill-meta">
       <StatIcon :name="damageType.icon" />
       <span>{{ damageType.label }}</span>
-      <span aria-hidden="true">·</span>
-      <span>{{ periodLabel }}</span>
+      <template v-if="habit.period === 'weekly'">
+        <span aria-hidden="true">·</span>
+        <span>{{ periodLabel }}</span>
+      </template>
       <span class="pips" :title="habit.difficulty">
         <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= difficultyPips }" />
       </span>
     </p>
 
-    <dl class="skill-sum">
+    <div v-if="habit.period === 'daily'" class="skill-days">
+      <div class="skill-days-label">
+        <span>Days</span>
+        <span>{{ dayCountLabel(habit.days) }}</span>
+      </div>
+      <DayPicker :model-value="habit.days ?? ALL_DAYS" @update:model-value="onDaysChange" />
+    </div>
+
+    <dl class="skill-sum" :class="{ resting: isResting }">
       <div class="sum-row base">
         <dt>Base</dt>
         <dd>{{ baseDamage.toFixed(0) }}</dd>
@@ -254,6 +274,24 @@ function removeHabit() {
   color: var(--c);
   font-size: 1.6rem;
   font-weight: 700;
+}
+
+.skill-sum.resting .sum-total dd {
+  opacity: 0.45;
+  text-shadow: none;
+}
+
+.skill-days {
+  margin: 0 0 1rem;
+}
+
+.skill-days-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+  color: var(--text);
+  font-size: 0.8rem;
 }
 
 .overdrive-button {

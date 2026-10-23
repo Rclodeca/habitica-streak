@@ -1146,6 +1146,14 @@ $caps-lg: 0.85rem; // panel and popup titles
     gap: 10px;
   }
 
+  .skill-days-label span:first-child {
+    @include engraved($caps-xs, 0.24em);
+  }
+
+  .skill-days-label span:last-child {
+    font-style: italic;
+  }
+
   .skill-meta .pips {
     gap: 4px;
   }
