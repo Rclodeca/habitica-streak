@@ -2,7 +2,7 @@ import { applyResist, bossAttackAnchorHealth, bossExpReward, generateBoss } from
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
-import { computeDamageSplit, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
+import { computeDamageSplit, dueFraction, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
 import { activeHealBoost, addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
@@ -130,6 +130,7 @@ export function habitDamageBreakdown(character: Character, habit: Habit, allHabi
  * — no crit, no streak bonus, no Special/Ult. The new habit joins
  * `habitsOfType`, so the pool grows by its weight and it takes a medium
  * weight's share of the new total (a lone habit gets the whole pool).
+ * Existing set-day habits count by their dueFraction, as in computeDamageSplit.
  *
  * Callers must pass `habitsOfType` already scoped to the daily period
  * (e.g. `habitStore.habitsOfType(damageType, 'daily')`) — daily and weekly
@@ -140,7 +141,8 @@ export function expectedMediumDailyDamage(character: Character, damageType: Dama
   const statField = DAMAGE_TYPE_STARTER_STAT[damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const itemMultiplier = itemStatMultiplier(character, statField);
-  const totalWeight = habitsOfType.reduce((sum, h) => sum + DIFFICULTY_WEIGHT[h.difficulty], 0) + DIFFICULTY_WEIGHT.medium;
+  const totalWeight =
+    habitsOfType.reduce((sum, h) => sum + DIFFICULTY_WEIGHT[h.difficulty] * dueFraction(h), 0) + DIFFICULTY_WEIGHT.medium;
   const mediumShareRatio = DIFFICULTY_WEIGHT.medium / totalWeight;
   const poolMultiplier = poolSizeMultiplier(totalWeight);
   return rawStat * itemMultiplier * poolMultiplier * mediumShareRatio;

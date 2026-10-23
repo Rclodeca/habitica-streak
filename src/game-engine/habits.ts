@@ -96,9 +96,12 @@ export function poolSizeMultiplier(totalWeight: number): number {
 /**
  * Damage-split formula (the core balancing formula): given a base stat value
  * `S` for a damage type and the list of habits of that type, the pool is
- * `S * poolSizeMultiplier(...)` and each habit's share of it is proportional
- * to its difficulty weight:
- *   d_i = S * poolMultiplier * (w_i / Σ w_j)
+ * `S * poolSizeMultiplier(W)` and each hit is proportional to the habit's
+ * difficulty weight, with set-day habits counted in W by their dueFraction:
+ *   W = Σ w_j * f_j,   d_i = S * poolMultiplier * (w_i / max(W, w_i))
+ * A set-day habit hits like a daily of its difficulty on its due days; the
+ * max() caps a hit at the whole pool, so a pool of sparse habits can't pack
+ * a week's damage into one check.
  *
  * This is a pure computation over the current habit list every time — a
  * habit's damage value is never stored/cached on the Habit object itself.
@@ -108,11 +111,11 @@ export function computeDamageSplit(habitsOfType: Habit[], statValue: number): Ma
   if (habitsOfType.length === 0) {
     return result;
   }
-  const totalWeight = habitsOfType.reduce((sum, habit) => sum + DIFFICULTY_WEIGHT[habit.difficulty], 0);
+  const totalWeight = habitsOfType.reduce((sum, habit) => sum + DIFFICULTY_WEIGHT[habit.difficulty] * dueFraction(habit), 0);
   const pool = statValue * poolSizeMultiplier(totalWeight);
   for (const habit of habitsOfType) {
     const weight = DIFFICULTY_WEIGHT[habit.difficulty];
-    result.set(habit.id, pool * (weight / totalWeight));
+    result.set(habit.id, pool * (weight / Math.max(totalWeight, weight)));
   }
   return result;
 }

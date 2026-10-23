@@ -140,6 +140,20 @@ describe('computeDamageSplit', () => {
     expect(split.get('solo')).toBe(42);
   });
 
+  it('the approved example: a lone medium daily at 100 and a Mon-Wed-Sat medium both hit ~76', () => {
+    const reading = makeHabit({ id: 'reading', difficulty: 'medium' });
+    const gym = makeHabit({ id: 'gym', difficulty: 'medium', days: [0, 2, 5] });
+    expect(computeDamageSplit([reading], 100).get('reading')).toBe(100);
+    const split = computeDamageSplit([reading, gym], 100);
+    expect(split.get('reading')).toBeCloseTo(76, 6);
+    expect(split.get('gym')).toBeCloseTo(76, 6);
+  });
+
+  it('caps a hit at the whole pool, so a lone one-day habit hits like a lone daily', () => {
+    const split = computeDamageSplit([makeHabit({ id: 'once', difficulty: 'medium', days: [3] })], 100);
+    expect(split.get('once')).toBeCloseTo(100, 6);
+  });
+
   it('returns an empty map without dividing by zero when there are no habits of that type', () => {
     const split = computeDamageSplit([], 100);
     expect(split.size).toBe(0);

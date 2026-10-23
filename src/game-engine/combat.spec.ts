@@ -1124,6 +1124,16 @@ describe('habitDamageBreakdown — weekly bonus', () => {
 });
 
 describe('expectedMediumDailyDamage', () => {
+  it('counts a set-day habit in the pool by its due fraction', () => {
+    const character = makeCharacter();
+    const gym = makeHabit({ id: 'gym', difficulty: 'medium', damageType: 'physical', days: [0, 2, 5] });
+    const asDaily = expectedMediumDailyDamage(character, 'physical', [{ ...gym, days: undefined }]);
+    const asSetDays = expectedMediumDailyDamage(character, 'physical', [gym]);
+    // W = 1.5*3/7 + 1.5 vs 3: the set-day habit dilutes the new medium daily less.
+    expect(asSetDays).toBeGreaterThan(asDaily);
+    expect(asSetDays / asDaily).toBeCloseTo(76 / 60, 6);
+  });
+
   it('awards the entire stat pool when no habits of that type exist yet', () => {
     const character = makeCharacter();
     const statValue = statAtLevel(character.starterStats.physicalDamage, character.level);
