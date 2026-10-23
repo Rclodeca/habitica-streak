@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { habitDamageBreakdown, periodKeyFor } from '../../game-engine';
+import { habitDamageBreakdown, overdriveUsesRemaining, periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
@@ -14,14 +14,17 @@ import SkillSigil from './SkillSigil.vue';
 
 const props = defineProps<{ habit: Habit }>();
 
-const { checkOffHabit } = useCombatActions();
+const { checkOffHabit, activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
 const debugClockStore = useDebugClockStore();
 const characterStore = useCharacterStore();
 const habitStore = useHabitStore();
 
-const isCompletedThisPeriod = computed(
-  () => props.habit.lastCompletedPeriodKey === periodKeyFor(props.habit.period, debugClockStore.now()),
+const currentPeriodKey = computed(() => periodKeyFor(props.habit.period, debugClockStore.now()));
+const isCompletedThisPeriod = computed(() => props.habit.lastCompletedPeriodKey === currentPeriodKey.value);
+// A done Overdrive skill's check stays live, haloed, until its charges are spent.
+const canOverdrive = computed(
+  () => isCompletedThisPeriod.value && overdriveUsesRemaining(props.habit, currentPeriodKey.value) > 0,
 );
 
 const breakdown = computed(() => {
@@ -32,6 +35,10 @@ const breakdown = computed(() => {
 const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
 
 const damageTypeColor = computed(() => DAMAGE_TYPE_COLORS[props.habit.damageType]);
+
+// Streaks stay hidden until they reach this many.
+const MIN_STREAK_SHOWN = 3;
+const showStreak = computed(() => props.habit.streakCount >= MIN_STREAK_SHOWN);
 
 const STREAK_TIERS = [
   { weight: 500, size: 0.75, bright: 0 },
@@ -61,6 +68,15 @@ function onCheckOff() {
   if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
 }
 
+// Tapping a haloed check overdrives the skill. Cancelling the click keeps
+// the box checked, and no change event fires.
+function onCheckClick(event: MouseEvent) {
+  if (!canOverdrive.value) return;
+  event.preventDefault();
+  const result = activateOverdrive(props.habit.id);
+  if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
+}
+
 const showStatsModal = ref(false);
 </script>
 
@@ -69,17 +85,18 @@ const showStatsModal = ref(false);
     <input
       type="checkbox"
       class="check"
-      :aria-label="`Complete ${habit.name}`"
+      :class="{ 'overdrive-ready': canOverdrive }"
+      :aria-label="canOverdrive ? `Overdrive ${habit.name}` : `Complete ${habit.name}`"
       :checked="isCompletedThisPeriod"
-      :disabled="isCompletedThisPeriod"
-      @click.stop
+      :disabled="isCompletedThisPeriod && !canOverdrive"
+      @click.stop="onCheckClick"
       @change="onCheckOff"
     />
     <span v-if="hasSigil" class="name" :class="{ done: isCompletedThisPeriod }">{{ nameHead }}<span class="name-end">{{ nameTail }}<SkillSigil :habit="habit" /></span></span>
     <span v-else class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
     <span class="meta">
-      <span class="streak" :style="streakStyle" :title="habit.streakCount > 0 ? `${habit.streakCount} streak` : undefined">
-        <template v-if="habit.streakCount > 0"><StatIcon name="streak" :size="12" />{{ habit.streakCount }}</template>
+      <span class="streak" :style="streakStyle" :title="showStreak ? `${habit.streakCount} streak` : undefined">
+        <template v-if="showStreak"><StatIcon name="streak" :size="12" />{{ habit.streakCount }}</template>
       </span>
       <span class="pips" :title="habit.difficulty">
         <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= difficultyPips }" />
@@ -169,6 +186,35 @@ const showStatsModal = ref(false);
 
 .check:disabled {
   cursor: default;
+}
+
+/* A done Overdrive skill's check keeps a pulsing ember halo while it has
+   charges left. Only the ring's opacity animates, which stays cheap. */
+.check.overdrive-ready {
+  position: relative;
+}
+
+.check.overdrive-ready::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 1.5px solid var(--overdrive-color);
+  border-radius: 10px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--overdrive-color) 55%, transparent);
+  pointer-events: none;
+  animation: overdrive-halo 2.4s ease-in-out infinite;
+}
+
+@keyframes overdrive-halo {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .check.overdrive-ready::before {
+    animation: none;
+  }
 }
 
 .check:focus-visible {

@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — overdrive (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Four takes on making Overdrive visible without crowding the skill list.
+   Each card is a live phone skills panel: tap the checks to play a day. */
+:root {
+  --bg: #0b0a09;
+  --text: #a1988a;
+  --text-h: #ece3cd;
+  --bone: #d8cdb5;
+  --gold: #c8a96e;
+  --gold-hi: #e6cf9a;
+  --ember: #e0783a;
+  --blood: #c8402f;
+  --ash: #5c554a;
+  --dmg-physical: #d0604f;
+  --dmg-magic: #ab8dd8;
+  --dmg-healing: #92bf88;
+  --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2);
+  --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200, 169, 110, 0.1), transparent 70%), #070606;
+  font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif;
+}
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+
+.page { max-width: 1560px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: 0.32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 34px 26px; justify-items: center; }
+.opt { display: flex; flex-direction: column; gap: 12px; width: 360px; max-width: 100%; }
+.opt h2 { display: flex; align-items: baseline; gap: 10px; font-size: 12px; letter-spacing: 0.2em; color: var(--text-h); }
+.opt h2 b { color: var(--gold); font-weight: 600; }
+.opt > p { font-style: italic; color: var(--text); font-size: 16px; line-height: 1.3; }
+.opt .new-day { align-self: center; padding: 10px 16px; font: 600 10px/1 'Cinzel', serif; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--line-mid); }
+
+.screen { padding: 14px 12px; background: radial-gradient(ellipse 80% 40% at 50% -6%, rgba(200, 169, 110, 0.12), transparent 70%), var(--bg); border: 1px solid rgba(200, 169, 110, 0.18); border-radius: 22px; }
+
+.panel {
+  position: relative; padding: 13px 14px;
+  background: linear-gradient(180deg, rgba(27, 24, 21, 0.96), rgba(14, 13, 11, 0.98)); border: 1px solid var(--line);
+  box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.95);
+}
+.panel::before {
+  content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: 0.75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat;
+}
+.panel .head { display: flex; align-items: center; justify-content: space-between; min-height: 22px; }
+.panel h3 { font-size: 11.5px; letter-spacing: 0.22em; color: var(--gold-hi); }
+.ico { display: inline-grid; place-items: center; line-height: 0; color: var(--k, var(--gold)); }
+.ico svg { display: block; }
+
+.group { display: flex; align-items: center; gap: 10px; margin: 12px 0 2px; font: 600 9px/1 'Cinzel', serif; letter-spacing: 0.32em; text-transform: uppercase; color: var(--text); }
+.group::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-mid), transparent); }
+
+.skill { position: relative; display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 2px; transition: background 0.3s; }
+.skill.bad::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: var(--blood); box-shadow: 0 0 8px var(--blood); }
+.skill .name { flex: 1; min-width: 0; font-weight: 600; color: var(--text-h); }
+.skill .name.done { color: var(--text); text-decoration: line-through; text-decoration-color: rgba(200, 169, 110, 0.45); }
+.skill .meta { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.skill .streak { display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; min-width: 2.2rem; font: 600 11px/1 'Cinzel', serif; color: var(--text); }
+.skill .pips { display: flex; gap: 4px; }
+.skill .pips i { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid var(--ash); }
+.skill .pips i.on { background: var(--gold); border-color: var(--gold); }
+.skill .dmg { width: 48px; text-align: right; font: 600 14.5px/1 'Cinzel', serif; color: var(--c); }
+.skill .dmg.spent { opacity: 0.55; }
+
+/* The check: a diamond inside a full-height tap target. */
+.checks { flex-shrink: 0; display: inline-flex; align-items: center; min-width: 30px; height: 40px; padding-left: 6px; }
+.v-stack .checks { width: 52px; }
+.dia { flex-shrink: 0; width: 13px; height: 13px; margin: 0 4px 0 0; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0, 0, 0, 0.45); transition: background 0.3s, box-shadow 0.3s, border-color 0.3s; }
+.bad .dia { border-color: var(--blood); }
+.dia.on { background: radial-gradient(circle, #fff3d0 0, #e6c77f 38%, #a8832f 82%); border-color: #f3dda6; box-shadow: 0 0 12px 1px rgba(230, 180, 90, 0.55); }
+.bad .dia.on { background: radial-gradient(circle, #ffd6c8 0, #d0604f 38%, #7c1d15 82%); border-color: #eba08f; box-shadow: 0 0 12px 1px rgba(200, 64, 47, 0.55); }
+
+/* Overdrive charges: smaller ember diamonds trailing the check. Faint until
+   the skill lands once, then they wake and breathe until spent. */
+.dia.od { width: 9px; height: 9px; margin-right: 5px; border-color: rgba(224, 120, 58, 0.4); }
+.awake .dia.od:not(.on) { border-color: var(--ember); animation: breathe 2.4s ease-in-out infinite; }
+.dia.od.on { background: radial-gradient(circle, #ffe2c4 0, #e0783a 45%, #7a2e10 85%); border-color: #f2b48a; box-shadow: 0 0 10px 1px rgba(224, 120, 58, 0.6); }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 9px 1px rgba(224, 120, 58, 0.7); } 50% { box-shadow: 0 0 2px 0 rgba(224, 120, 58, 0.15); } }
+
+/* B · the hit stays open: an ember strike button where the number was. */
+.again { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 52px; height: 40px; margin-left: -4px; border: 1px solid rgba(224, 120, 58, 0.6); background: rgba(224, 120, 58, 0.08); color: var(--ember); font: 600 13px/1 'Cinzel', serif; animation: breathe 2.4s ease-in-out infinite; }
+.charges { display: flex; gap: 4px; }
+.charges i { width: 4px; height: 4px; transform: rotate(45deg); background: var(--ember); }
+.charges i.used { background: transparent; box-shadow: inset 0 0 0 1px rgba(224, 120, 58, 0.45); }
+
+/* C · a halo on the landed check, and a tally on the panel. */
+.dia.halo { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--ember), 0 0 14px 3px rgba(224, 120, 58, 0.5); animation: halo 2.4s ease-in-out infinite; }
+@keyframes halo { 50% { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px rgba(224, 120, 58, 0.45), 0 0 4px 0 rgba(224, 120, 58, 0.2); } }
+.tally { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px 0 10px; font: 600 12px/1 'Cinzel', serif; color: var(--ember); }
+.tally i { width: 7px; height: 7px; transform: rotate(45deg); background: var(--ember); box-shadow: 0 0 8px rgba(224, 120, 58, 0.8); }
+.skill.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 25% { background: rgba(224, 120, 58, 0.16); } }
+
+/* D · today's mark: an ember flame after the name for the day's skill. */
+.mark { display: inline-block; margin-left: 0.35em; line-height: 0; vertical-align: 0.05em; color: var(--ember); filter: drop-shadow(0 0 4px rgba(224, 120, 58, 0.55)); }
+
+.float { position: absolute; right: 10px; top: 0; font: 600 15px/1 'Cinzel', serif; color: var(--fc); pointer-events: none; animation: rise 0.9s ease-out forwards; }
+@keyframes rise { from { opacity: 1; transform: translateY(4px); } to { opacity: 0; transform: translateY(-20px); } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Overdrive</h1>
+  <p>Tap the checks to play out a day. New day resets it.</p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const LUCIDE = {
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+};
+const svg = (name, size, fill = 'none') => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[name]}</svg>`;
+
+const EXTRA_USES = 2;
+// [name, type, pips, streak, dmg, bad, overdrive]
+const DAILY = [
+  ['Meditate', 'healing', 1, 3, 338, false, false],
+  ['Morning run', 'physical', 2, 12, 1587, false, true],
+  ['Doomscrolling after midnight', 'physical', 2, 0, 412, true, false],
+  ['Read 20 pages', 'magic', 1, 5, 274, false, true],
+  ['Cold shower', 'true', 1, 2, 201, false, false],
+];
+const WEEKLY = [
+  ['Long hike', 'physical', 3, 4, 1380, false, false],
+  ['Call family', 'healing', 1, 6, 640, false, true],
+];
+
+const OPTIONS = [
+  {
+    id: 'a', variant: 'stack', title: 'Charges on the check',
+    note: 'An Overdrive skill’s diamond trails small ember diamonds, one per extra use. Same tap, same place. The extras wake once the skill lands, and stay lit until spent.',
+  },
+  {
+    id: 'b', variant: 'again', title: 'The hit stays open',
+    note: 'Nothing shows until the skill lands. Then its damage number turns into an ember strike button with its charges under it. Only marks a row while it can act.',
+  },
+  {
+    id: 'c', variant: 'tally', title: 'Halo and tally',
+    note: 'A landed Overdrive skill keeps an ember halo; tap the diamond again. The panel header counts charges ready now — tap it to light those rows. Gone when nothing’s left.',
+  },
+  {
+    id: 'd', variant: 'stack', wander: true, title: 'Wandering',
+    note: 'A mechanic change, shown with A’s charges. Overdrive moves to a random skill each day instead of sticking forever, so only one row is ever lit. Taking the event again adds a second.',
+  },
+];
+
+const cards = OPTIONS.map((opt) => ({ ...opt, skills: [] }));
+
+function newDay(card) {
+  const toSkill = (period) => ([name, type, pips, streak, dmg, bad, od]) => ({ name, type, pips, streak, dmg, bad, od, period, hits: 0 });
+  card.skills = [...DAILY.map(toSkill('daily')), ...WEEKLY.map(toSkill('weekly'))];
+  if (card.wander) {
+    const good = card.skills.filter((s) => !s.bad);
+    const pick = good[Math.floor(Math.random() * good.length)];
+    card.skills.forEach((s) => { s.od = s === pick; });
+  }
+}
+
+const maxHits = (s) => (s.od ? 1 + EXTRA_USES : 1);
+const isAwake = (s) => s.od && s.hits > 0 && s.hits < maxHits(s);
+
+function checksHtml(card, s, i) {
+  const halo = card.variant === 'tally' && isAwake(s) ? 'halo' : '';
+  const extras = card.variant === 'stack' && s.od
+    ? Array.from({ length: EXTRA_USES }, (_, n) => `<span class="dia od ${s.hits > n + 1 ? 'on' : ''}"></span>`).join('')
+    : '';
+  return `<button class="checks ${isAwake(s) ? 'awake' : ''}" data-hit="${i}" data-src="check" aria-label="${s.name}"><span class="dia ${s.hits ? 'on' : ''} ${halo}"></span>${extras}</button>`;
+}
+
+function dmgHtml(card, s, i) {
+  if (card.variant === 'again' && isAwake(s)) {
+    const pips = Array.from({ length: EXTRA_USES }, (_, n) => `<i class="${s.hits > n + 1 ? 'used' : ''}"></i>`).join('');
+    return `<button class="again" data-hit="${i}" data-src="again">${Math.round(s.dmg / 2)}<span class="charges">${pips}</span></button>`;
+  }
+  const spent = s.od && s.hits === maxHits(s) ? 'spent' : '';
+  return `<span class="dmg ${spent}" style="--c:var(--dmg-${s.type})">${s.dmg}</span>`;
+}
+
+function rowHtml(card, s, i) {
+  const mark = card.wander && s.od ? `<span class="mark">${svg('flame', 12, 'currentColor')}</span>` : '';
+  return `
+    <li class="skill ${s.bad ? 'bad' : ''}" data-row="${i}">
+      ${checksHtml(card, s, i)}
+      <span class="name ${s.hits ? 'done' : ''}">${s.name}${mark}</span>
+      <span class="meta">
+        <span class="streak">${s.streak >= 3 ? `<i class="ico" style="--k:#8d8475">${svg('flame', 11)}</i>${s.streak}` : ''}</span>
+        <span class="pips">${[1, 2, 3].map((n) => `<i class="${n <= s.pips ? 'on' : ''}"></i>`).join('')}</span>
+      </span>
+      ${dmgHtml(card, s, i)}
+    </li>`;
+}
+
+function render(card) {
+  const ready = card.skills.filter(isAwake).reduce((sum, s) => sum + maxHits(s) - s.hits, 0);
+  const tally = card.variant === 'tally' && ready > 0 ? `<button class="tally" data-tally aria-label="Overdrive ready"><i></i>${ready}</button>` : '';
+  const rows = (period) => card.skills.map((s, i) => (s.period === period ? rowHtml(card, s, i) : '')).join('');
+  card.el.querySelector('.screen').innerHTML = `
+    <section class="panel">
+      <div class="head"><h3 class="engraved">Skills</h3>${tally}</div>
+      <p class="group">Daily</p><ul>${rows('daily')}</ul>
+      <p class="group">Weekly</p><ul>${rows('weekly')}</ul>
+    </section>`;
+}
+
+function hit(card, i, src) {
+  const s = card.skills[i];
+  if (s.hits >= maxHits(s)) return;
+  // B only overdrives from its strike button, never the landed diamond.
+  if (card.variant === 'again' && s.hits > 0 && src === 'check') return;
+  s.hits += 1;
+  const overdrive = s.hits > 1;
+  render(card);
+  const row = card.el.querySelector(`[data-row="${i}"]`);
+  const f = document.createElement('span');
+  f.className = 'float';
+  f.style.setProperty('--fc', overdrive ? 'var(--ember)' : `var(--dmg-${s.type})`);
+  f.textContent = `${s.bad ? '−' : '+'}${overdrive ? Math.round(s.dmg / 2) : s.dmg}`;
+  row.appendChild(f);
+}
+
+const grid = document.getElementById('grid');
+grid.innerHTML = cards.map((c) => `
+  <div class="opt v-${c.variant}" id="opt-${c.id}">
+    <h2 class="engraved"><b>${c.id.toUpperCase()}</b>${c.title}</h2>
+    <p>${c.note}</p>
+    <div class="screen"></div>
+    <button class="new-day" data-new-day>New day</button>
+  </div>`).join('');
+
+cards.forEach((card) => {
+  card.el = document.getElementById(`opt-${card.id}`);
+  newDay(card);
+  render(card);
+  card.el.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-hit], [data-tally], [data-new-day]');
+    if (!t) return;
+    if (t.hasAttribute('data-new-day')) { newDay(card); render(card); return; }
+    if (t.hasAttribute('data-tally')) {
+      card.skills.forEach((s, i) => {
+        if (!isAwake(s)) return;
+        const row = card.el.querySelector(`[data-row="${i}"]`);
+        row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
+      });
+      return;
+    }
+    hit(card, Number(t.dataset.hit), t.dataset.src);
+  });
+});
+</script>
+</body>
+</html>

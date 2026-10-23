@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — overdrive in the skill popup (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Three takes on Overdrive in the skill popup, to go with the list's halo.
+   The switches swap the sample skill and how far into the day it is. */
+:root {
+  --bg: #0b0a09;
+  --text: #a1988a;
+  --text-h: #ece3cd;
+  --bone: #d8cdb5;
+  --gold: #c8a96e;
+  --gold-hi: #e6cf9a;
+  --ember: #e0783a;
+  --blood: #c8402f;
+  --ash: #5c554a;
+  --dmg-physical: #d0604f;
+  --dmg-magic: #ab8dd8;
+  --line: rgba(200, 169, 110, 0.2);
+  --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200, 169, 110, 0.1), transparent 70%), #070606;
+  font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:disabled { cursor: default; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+.caps { font: 600 11px/1 'Cinzel', serif; letter-spacing: 0.2em; text-transform: uppercase; }
+
+.page { max-width: 1200px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: 0.32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 18px; }
+.switch { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.switch:last-of-type { margin-bottom: 30px; }
+.switch button { padding: 9px 12px; border: 1px solid var(--line); color: var(--text); font: 600 10.5px/1 'Cinzel', serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.switch button.on { border-color: var(--gold); color: var(--gold-hi); background: rgba(200, 169, 110, 0.07); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 34px 26px; justify-items: center; }
+.opt { display: flex; flex-direction: column; gap: 12px; width: 360px; max-width: 100%; }
+.opt > h2 { display: flex; align-items: baseline; gap: 10px; font-size: 12px; letter-spacing: 0.2em; color: var(--text-h); }
+.opt > h2 b { color: var(--gold); font-weight: 600; }
+.opt > p { font-style: italic; color: var(--text); font-size: 16px; line-height: 1.3; }
+
+/* The dimmed page behind each popup. */
+.screen { position: relative; display: flex; align-items: center; min-height: 560px; padding: 20px 14px; border: 1px solid rgba(200, 169, 110, 0.18); border-radius: 22px; overflow: hidden;
+  background: repeating-linear-gradient(180deg, transparent 0 44px, rgba(200, 169, 110, 0.05) 44px 45px), radial-gradient(ellipse 80% 40% at 50% -6%, rgba(200, 169, 110, 0.12), transparent 70%), var(--bg); }
+.screen::before { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.62); }
+
+/* Ashen popup frame. */
+.modal { position: relative; width: 100%; padding: 18px 18px 16px;
+  background: linear-gradient(180deg, rgba(24, 21, 18, 0.985), rgba(10, 9, 8, 0.985)); border: 1px solid var(--line-mid);
+  box-shadow: 0 40px 80px -30px #000, 0 0 0 4px rgba(0, 0, 0, 0.6), 0 0 0 5px rgba(200, 169, 110, 0.13); }
+.modal::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 12px no-repeat;
+}
+.close { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; display: grid; place-items: center; color: var(--text); font-size: 18px; line-height: 1; }
+.title { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 28px; margin-bottom: 14px; font: 600 13.5px/1.3 'Cinzel', serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); text-align: center; }
+.title::before, .title::after { content: ''; flex: 1; max-width: 50px; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.title::after { background: linear-gradient(270deg, transparent, var(--line-mid)); }
+.ico { display: inline-grid; place-items: center; line-height: 0; color: var(--k, var(--gold)); vertical-align: -2px; }
+.ico svg { display: block; }
+.pips { display: inline-flex; gap: 4px; vertical-align: 1px; }
+.pips i { width: 6px; height: 6px; transform: rotate(45deg); border: 1px solid var(--ash); }
+.pips i.on { background: var(--gold); border-color: var(--gold); }
+.big { font: 600 30px/1 'Cinzel', serif; letter-spacing: 0.02em; color: var(--c); text-shadow: 0 0 22px color-mix(in srgb, var(--c) 35%, transparent); }
+
+/* Today's popup: a meta line, then the hit worked out like a sum. */
+.meta-line { display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 14px; color: var(--text); }
+.meta-line .caps { font-size: 10px; letter-spacing: 0.2em; }
+.sum { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: baseline; }
+.sum .k { display: flex; align-items: center; gap: 7px; color: var(--text-h); font-weight: 600; }
+.sum .k small { color: var(--text); font-weight: 500; font-style: italic; font-size: 15px; }
+.sum .v { font: 600 14px/1 'Cinzel', serif; color: var(--gold-hi); text-align: right; }
+.sum .v.base { color: var(--text-h); }
+.sum .total { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; margin-top: 2px; border-top: 1px solid var(--line-mid); }
+.sum .total .caps { color: var(--text); }
+.actions { margin-top: 16px; display: grid; gap: 10px; }
+.remove { justify-self: center; padding: 10px; color: rgba(200, 64, 47, 0.75); font: 600 10px/1 'Cinzel', serif; letter-spacing: 0.2em; text-transform: uppercase; }
+
+/* Overdrive charges: dim ember before the skill lands, lit and breathing
+   once it has, ash once spent. */
+.charges { display: inline-flex; gap: 5px; align-items: center; }
+.charges i { width: 7px; height: 7px; transform: rotate(45deg); border: 1px solid rgba(224, 120, 58, 0.45); }
+.charges i.ready { background: radial-gradient(circle, #ffe2c4 0, #e0783a 45%, #7a2e10 85%); border-color: #f2b48a; box-shadow: 0 0 8px 1px rgba(224, 120, 58, 0.6); }
+.charges i.used { border-color: var(--ash); }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 9px 1px rgba(224, 120, 58, 0.7); } 50% { box-shadow: 0 0 2px 0 rgba(224, 120, 58, 0.15); } }
+
+/* The list's halo, as a small glyph: the mark of Overdrive. */
+.halo-glyph { display: inline-block; width: 8px; height: 8px; margin: 0 4px; transform: rotate(45deg); border: 1px solid var(--gold); box-shadow: 0 0 0 2px #120f0d, 0 0 0 3px var(--ember), 0 0 8px 1px rgba(224, 120, 58, 0.45); }
+
+/* A · one more line under the sum. */
+.od-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(224, 120, 58, 0.22); background: rgba(224, 120, 58, 0.04); }
+.od-line .k { display: flex; align-items: center; gap: 9px; color: var(--text-h); font-weight: 600; }
+.od-line .v { font: 600 17px/1 'Cinzel', serif; color: var(--ember); }
+.od-line.spent { opacity: 0.5; }
+
+/* B · today's button, carrying its charges. */
+.od-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 44px; padding: 11px; border: 1px solid rgba(224, 120, 58, 0.7); color: var(--text-h); background: linear-gradient(180deg, rgba(160, 60, 20, 0.35), rgba(90, 30, 10, 0.35)); font: 600 11.5px/1 'Cinzel', serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.od-btn small { color: var(--gold-hi); letter-spacing: 0.1em; font-size: 12px; }
+.od-btn.awake { animation: breathe 2.4s ease-in-out infinite; }
+.od-btn:disabled { opacity: 0.45; }
+
+/* C · the list's diamond, up close: tap it to land, then to overdrive. */
+.emblem { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 4px 0 16px; }
+.emblem button { display: grid; place-items: center; width: 64px; height: 64px; }
+.emblem .dia { width: 26px; height: 26px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0, 0, 0, 0.45); transition: background 0.3s, box-shadow 0.3s; }
+.emblem .dia.on { background: radial-gradient(circle, #fff3d0 0, #e6c77f 38%, #a8832f 82%); border-color: #f3dda6; box-shadow: 0 0 16px 2px rgba(230, 180, 90, 0.5); }
+.emblem .dia.halo { box-shadow: 0 0 0 5px #141210, 0 0 0 6px var(--ember), 0 0 22px 4px rgba(224, 120, 58, 0.5); animation: halo 2.4s ease-in-out infinite; }
+@keyframes halo { 50% { box-shadow: 0 0 0 5px #141210, 0 0 0 6px rgba(224, 120, 58, 0.45), 0 0 6px 0 rgba(224, 120, 58, 0.2); } }
+.emblem .od { display: flex; align-items: center; gap: 10px; }
+.emblem .od .v { font: 600 14px/1 'Cinzel', serif; color: var(--ember); }
+.emblem .od.spent { opacity: 0.5; }
+
+.float { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); font: 600 22px/1 'Cinzel', serif; color: var(--fc); pointer-events: none; animation: rise 0.9s ease-out forwards; z-index: 2; }
+@keyframes rise { from { opacity: 1; translate: 0 6px; } to { opacity: 0; translate: 0 -26px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Overdrive in the skill popup</h1>
+  <p>Pick a skill and how far into the day it is. B’s button and C’s diamond can be tapped.</p>
+  <div class="switch" id="samples"></div>
+  <div class="switch" id="states"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const LUCIDE = {
+  sword: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  crown: '<path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>',
+  gear: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  week: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
+};
+const ico = (name, k, size = 14, fill = 'none') => `<i class="ico" style="--k:${k}"><svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[name]}</svg></i>`;
+const pips = (n) => `<span class="pips">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
+const fmt = (n) => n.toLocaleString('en-US');
+const x = (v) => `×${v.toFixed(2).replace(/0$/, '')}`;
+
+const EXTRA_USES = 2;
+const SAMPLES = {
+  plain: {
+    label: 'Read 20 pages', name: 'Read 20 pages', type: 'Magic', icon: 'wand', c: 'var(--dmg-magic)', period: 'Daily', pips: 1,
+    streak: 5, base: 219, mult: [['Streak', 'flame', '#8d8475', 1.25]], bonus: null, hit: 274, od: 137,
+  },
+  ult: {
+    label: 'Long hike · Ult', name: 'Long hike', type: 'Physical', icon: 'sword', c: 'var(--dmg-physical)', period: 'Weekly', pips: 3,
+    streak: 4, base: 500, mult: [['Streak', 'flame', '#8d8475', 2.2], ['Gear', 'gear', '#a8a092', 1.15], ['Weekly', 'week', 'var(--gold)', 2]],
+    bonus: { kind: 'Ult', icon: 'crown', k: 'var(--ember)', x: 2.5 }, hit: 6325, od: 1265,
+  },
+};
+const STATES = [['Not done', 0], ['Done', 1], ['One left', 2], ['Spent', 3]];
+
+let sample = 'plain';
+let hits = 0;
+const awake = () => hits >= 1 && hits <= EXTRA_USES;
+const spent = () => hits > EXTRA_USES;
+
+const charges = () => `<span class="charges">${Array.from({ length: EXTRA_USES }, (_, n) => {
+  const used = hits > n + 1;
+  return `<i class="${used ? 'used' : hits >= 1 ? 'ready' : ''}"></i>`;
+}).join('')}</span>`;
+
+const title = (s) => `<span class="close" aria-hidden="true">×</span><h3 class="title">${s.name}</h3>`;
+const meta = (s) => `<div class="meta-line">${ico(s.icon, s.c)}<span class="caps">${s.type}</span><span class="caps">·</span><span class="caps">${s.period}</span>${pips(s.pips)}</div>`;
+const sum = (s) => `<div class="sum">
+  <span class="k">Base</span><span class="v base">${fmt(s.base)}</span>
+  ${s.mult.map(([k, icon, color, v]) => `<span class="k">${ico(icon, color)}${k}${k === 'Streak' ? ` <small>${s.streak}</small>` : ''}</span><span class="v">${x(v)}</span>`).join('')}
+  ${s.bonus ? `<span class="k">${ico(s.bonus.icon, s.bonus.k, 13, 'currentColor')}${s.bonus.kind} <small>first hit</small></span><span class="v">${x(s.bonus.x)}</span>` : ''}
+  <div class="total"><span class="caps">Strikes for</span><span class="big" style="--c:${s.c}">${fmt(s.hit)}</span></div>
+</div>`;
+const remove = '<div class="actions"><button class="remove">Remove skill</button></div>';
+
+const OPTIONS = [
+  {
+    id: 'a', title: 'A line in the sum',
+    note: 'Overdrive gets one line under the total: the halo mark, its charges, and what each one hits for. No button — the halo on the list is the only way to use it.',
+    body: (s) => `${title(s)}${meta(s)}${sum(s)}
+      <div class="od-line ${spent() ? 'spent' : ''}">
+        <span class="k"><span class="halo-glyph"></span>Overdrive ${charges()}</span>
+        <span class="v">${fmt(s.od)}</span>
+      </div>${remove}`,
+  },
+  {
+    id: 'b', title: 'Keep the button',
+    note: 'Today’s button, now holding its charges. Dim until the skill lands, breathing while it can strike, so the popup works as a second way in.',
+    body: (s) => `${title(s)}${meta(s)}${sum(s)}
+      <div class="actions">
+        <button class="od-btn ${awake() ? 'awake' : ''}" data-od ${awake() ? '' : 'disabled'}>Overdrive ${charges()}<small>${fmt(s.od)}</small></button>
+        <button class="remove">Remove skill</button>
+      </div>`,
+  },
+  {
+    id: 'c', title: 'The diamond, up close',
+    note: 'The list’s diamond, big, at the top of the popup, halo and all. Tap it to land the skill, then again to overdrive. Charges and their hit sit under it.',
+    body: (s) => `${title(s)}
+      <div class="emblem">
+        <button data-od aria-label="${s.name}"><span class="dia ${hits ? 'on' : ''} ${awake() ? 'halo' : ''}"></span></button>
+        <span class="od ${spent() ? 'spent' : ''}">${charges()}<span class="v">${fmt(s.od)}</span></span>
+      </div>
+      ${meta(s)}${sum(s)}${remove}`,
+  },
+];
+
+function render() {
+  document.getElementById('samples').innerHTML = Object.entries(SAMPLES).map(([k, s]) => `<button class="${k === sample ? 'on' : ''}" data-sample="${k}">${s.label}</button>`).join('');
+  document.getElementById('states').innerHTML = STATES.map(([label, n]) => `<button class="${n === hits ? 'on' : ''}" data-hits="${n}">${label}</button>`).join('');
+  const s = SAMPLES[sample];
+  document.getElementById('grid').innerHTML = OPTIONS.map((o) => `
+    <div class="opt" id="opt-${o.id}">
+      <h2 class="engraved"><b>${o.id.toUpperCase()}</b>${o.title}</h2>
+      <p>${o.note}</p>
+      <div class="screen"><div class="modal">${o.body(s)}</div></div>
+    </div>`).join('');
+}
+
+function strike(opt) {
+  const s = SAMPLES[sample];
+  // B's button only overdrives; C's diamond also lands the skill.
+  if (spent() || (opt.id === 'b' && hits === 0)) return;
+  const overdrive = hits >= 1;
+  hits += 1;
+  render();
+  const f = document.createElement('span');
+  f.className = 'float';
+  f.style.setProperty('--fc', overdrive ? 'var(--ember)' : s.c);
+  f.textContent = `+${fmt(overdrive ? s.od : s.hit)}`;
+  document.querySelector(`#opt-${opt.id} .modal`).appendChild(f);
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-sample], [data-hits], [data-od]');
+  if (!t) return;
+  if (t.dataset.sample) { sample = t.dataset.sample; render(); return; }
+  if (t.dataset.hits !== undefined) { hits = Number(t.dataset.hits); render(); return; }
+  strike(OPTIONS.find((o) => `opt-${o.id}` === t.closest('.opt').id));
+});
+render();
+</script>
+</body>
+</html>

@@ -154,6 +154,7 @@ $caps-lg: 0.85rem; // panel and popup titles
   --rarity-epic: #ae8bd6;
   --soon-color: #d49a46;
   --side-quest-color: #c8a96e;
+  --overdrive-color: #{$ember};
   --portrait-border: rgba(200, 169, 110, 0.22);
 
   // Cormorant has a small x-height and reads a size smaller than system-ui;
@@ -508,6 +509,15 @@ $caps-lg: 0.85rem; // panel and popup titles
     box-shadow: 0 0 10px -1px rgba(200, 64, 47, 0.6);
   }
 
+  // The Overdrive halo turns with the diamond: a second, ember diamond
+  // around the lit one.
+  .habit-item .check.overdrive-ready::before {
+    inset: -5px;
+    border-width: 1px;
+    border-radius: 0;
+    box-shadow: 0 0 12px 2px rgba(224, 120, 58, 0.5);
+  }
+
   .habit-item .name {
     font-weight: 600;
   }
@@ -690,7 +700,6 @@ $caps-lg: 0.85rem; // panel and popup titles
     }
   }
 
-  .overdrive-button,
   .confirm-remove-button {
     @include engraved($caps-sm, 0.18em);
     padding: 0.7rem;
@@ -699,16 +708,45 @@ $caps-lg: 0.85rem; // panel and popup titles
     border: 1px solid rgba(200, 64, 47, 0.65);
   }
 
+  // Overdrive burns ember, the same fire as the check's halo.
+  .overdrive-button {
+    @include engraved($caps-sm, 0.18em);
+    padding: 0.7rem;
+    color: var(--text-h);
+    background: linear-gradient(180deg, rgba(160, 60, 20, 0.35), rgba(90, 30, 10, 0.35));
+    border: 1px solid rgba(224, 120, 58, 0.7);
+  }
+
   .overdrive-button:disabled {
-    opacity: 0.4;
+    opacity: 0.45;
     cursor: not-allowed;
   }
 
+  .overdrive-button.ready::after {
+    box-shadow: 0 0 14px 1px rgba(224, 120, 58, 0.55);
+  }
+
   .overdrive-button small {
-    margin-left: 0.4rem;
     letter-spacing: 0.1em;
     color: var(--accent);
     opacity: 1;
+  }
+
+  // Charges are small ember diamonds: dim, then lit, then ash once spent.
+  .overdrive-button .charge {
+    transform: rotate(45deg);
+    border: 1px solid rgba(224, 120, 58, 0.45);
+    opacity: 1;
+  }
+
+  .overdrive-button .charge.ready {
+    background: radial-gradient(circle, #ffe2c4 0, #{$ember} 45%, #7a2e10 85%);
+    border-color: #f2b48a;
+    box-shadow: 0 0 8px 1px rgba(224, 120, 58, 0.6);
+  }
+
+  .overdrive-button .charge.used {
+    border-color: $ash-deep;
   }
 
   // ---------- Popups ----------

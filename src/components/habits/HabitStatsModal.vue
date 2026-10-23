@@ -7,6 +7,7 @@ import {
   periodKeyFor,
 } from '../../game-engine';
 import type { DamageType, Habit } from '../../game-engine';
+import { TUNING } from '../../game-engine/constants/tuning';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { useCharacterStore } from '../../store/characterStore';
@@ -77,6 +78,12 @@ const currentPeriodKey = computed(() => periodKeyFor(props.habit.period, debugCl
 const isCompletedThisPeriod = computed(() => props.habit.lastCompletedPeriodKey === currentPeriodKey.value);
 const overdriveRemaining = computed(() => overdriveUsesRemaining(props.habit, currentPeriodKey.value));
 const canOverdrive = computed(() => isCompletedThisPeriod.value && overdriveRemaining.value > 0);
+// Each charge is dim until the skill lands, lit while it can be used, and
+// greyed once spent.
+function chargeState(n: number): 'used' | 'ready' | undefined {
+  if (n <= TUNING.OVERDRIVE_MAX_EXTRA_USES - overdriveRemaining.value) return 'used';
+  return isCompletedThisPeriod.value ? 'ready' : undefined;
+}
 
 function onOverdrive() {
   const result = activateOverdrive(props.habit.id);
@@ -134,8 +141,20 @@ function removeHabit() {
       </div>
     </dl>
 
-    <button v-if="habit.isOverdrive" type="button" class="overdrive-button" :disabled="!canOverdrive" @click="onOverdrive">
-      Overdrive <small>{{ overdriveRemaining }} left · {{ overdriveDamage.toFixed(0) }}</small>
+    <button
+      v-if="habit.isOverdrive"
+      type="button"
+      class="overdrive-button"
+      :class="{ ready: canOverdrive }"
+      :aria-label="`Overdrive, ${overdriveRemaining} left, ${overdriveDamage.toFixed(0)}`"
+      :disabled="!canOverdrive"
+      @click="onOverdrive"
+    >
+      Overdrive
+      <span class="charges" aria-hidden="true">
+        <span v-for="n in TUNING.OVERDRIVE_MAX_EXTRA_USES" :key="n" class="charge" :class="chargeState(n)" />
+      </span>
+      <small>{{ overdriveDamage.toFixed(0) }}</small>
     </button>
 
     <div class="remove-section">
@@ -238,17 +257,67 @@ function removeHabit() {
 }
 
 .overdrive-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
   width: 100%;
   margin-top: 1rem;
-  background: #dc2626;
+  background: var(--overdrive-color);
   color: white;
   border: none;
 }
 
 .overdrive-button small {
-  margin-left: 0.3rem;
   font-weight: 400;
   opacity: 0.85;
+}
+
+.charges {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.charge {
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.charge.ready {
+  background: currentColor;
+  opacity: 1;
+}
+
+.charge.used {
+  opacity: 0.35;
+}
+
+/* While it has charges to spend the button pulses, like the check's halo:
+   a glow layer whose opacity animates. */
+.overdrive-button.ready::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--overdrive-color) 60%, transparent);
+  pointer-events: none;
+  animation: overdrive-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes overdrive-pulse {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overdrive-button.ready::after {
+    animation: none;
+  }
 }
 
 .overdrive-button:disabled {
