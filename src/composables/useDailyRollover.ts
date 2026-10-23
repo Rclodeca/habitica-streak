@@ -17,8 +17,11 @@
 // missed", not a backlog of every period missed while the app was closed.
 // If the app was closed across multiple period boundaries, only the single
 // immediately-preceding period is checked; earlier gaps are not backfilled.
+//
+// A set-day habit whose preceding day was a rest day has nothing to resolve:
+// no miss, no bad-habit reward — it's just stamped (see `isDueOn`).
 
-import { dailyPeriodKey, daysBetweenDayKeys, periodKeyFor } from '../game-engine';
+import { dailyPeriodKey, daysBetweenDayKeys, isDueOn, periodKeyFor } from '../game-engine';
 import type { Period } from '../game-engine';
 import { useHabitStore } from '../store/habitStore';
 import { useQuestStore } from '../store/questStore';
@@ -52,7 +55,8 @@ export function useDailyRollover(now: Date = new Date()): void {
     if (habit.lastCheckedPeriodKey === currentPeriodKey) continue; // no boundary crossed
 
     const precedingPeriodKey = previousPeriodKey(habit.period, now);
-    if (habit.lastCompletedPeriodKey !== precedingPeriodKey) {
+    const restedYesterday = !isDueOn(habit, new Date(now.getTime() - MS_PER_DAY));
+    if (!restedYesterday && habit.lastCompletedPeriodKey !== precedingPeriodKey) {
       // Not completed in the preceding period: a miss for a good habit, but
       // the win condition (avoided) for a bad one.
       if (habit.isBad) {

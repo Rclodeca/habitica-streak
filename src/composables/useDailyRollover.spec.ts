@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRng, dailyPeriodKey, ITEM_CATALOG, periodKeyFor } from '../game-engine';
+import { createRng, dailyPeriodKey, dayOfWeekIndex, ITEM_CATALOG, periodKeyFor } from '../game-engine';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
@@ -292,5 +292,49 @@ describe('useDailyRollover — quests', () => {
     useDailyRollover(now);
 
     expect(useQuestMissGate().misses.value).toEqual([]);
+  });
+});
+
+describe('useDailyRollover — set days', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  afterEach(() => {
+    useMissedSkillsGate().acknowledge();
+  });
+
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const yesterdayKey = periodKeyFor('daily', yesterday);
+  const yDay = dayOfWeekIndex(yesterday);
+
+  // A habit last checked yesterday and never completed, due on `days`.
+  function addUnfinished(days: number[], isBad = false) {
+    const habitStore = useHabitStore();
+    useBossStore();
+    const habit = habitStore.addHabit('Gym', 'daily', 'medium', isBad, createRng(), days);
+    habitStore.updateHabit({ ...habit, lastCheckedPeriodKey: yesterdayKey, lastCompletedPeriodKey: null });
+    return habit;
+  }
+
+  it('a set-day habit resting yesterday queues nothing and is stamped', () => {
+    const habit = addUnfinished([(yDay + 1) % 7]);
+    useDailyRollover(now);
+    expect(useMissedSkillsGate().misses.value).toHaveLength(0);
+    const updatedHabit = useHabitStore().habits.find((h) => h.id === habit.id);
+    expect(updatedHabit?.lastCheckedPeriodKey).toBe(periodKeyFor('daily', now));
+  });
+
+  it('a set-day habit due yesterday and not done queues a miss', () => {
+    addUnfinished([yDay]);
+    useDailyRollover(now);
+    expect(useMissedSkillsGate().misses.value).toHaveLength(1);
+  });
+
+  it('a bad set-day habit resting yesterday earns no reward', () => {
+    addUnfinished([(yDay + 1) % 7], true);
+    useDailyRollover(now);
+    expect(useMissedSkillsGate().rewards.value).toHaveLength(0);
   });
 });
