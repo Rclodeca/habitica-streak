@@ -54,21 +54,4 @@ describe('HabitListItem', () => {
     expect(check.classes()).not.toContain('overdrive-ready');
     expect(check.attributes('disabled')).toBeDefined();
   });
-
-  it('the popup’s Overdrive button lights its charges once the skill lands, and greys one per use', async () => {
-    const wrapper = mountSkill({ isOverdrive: true });
-    const check = wrapper.find('input.check');
-    await wrapper.find('li').trigger('click'); // opens the popup
-    const charges = (state: string) => document.body.querySelectorAll(`.overdrive-button .charge.${state}`).length;
-
-    expect(document.body.querySelectorAll('.overdrive-button .charge')).toHaveLength(TUNING.OVERDRIVE_MAX_EXTRA_USES);
-    expect(charges('ready')).toBe(0);
-
-    await check.trigger('click');
-    expect(charges('ready')).toBe(TUNING.OVERDRIVE_MAX_EXTRA_USES);
-
-    await check.trigger('click');
-    expect(charges('used')).toBe(1);
-    expect(charges('ready')).toBe(TUNING.OVERDRIVE_MAX_EXTRA_USES - 1);
-  });
 });

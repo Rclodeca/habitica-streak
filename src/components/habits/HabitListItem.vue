@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { habitDamageBreakdown, overdriveUsesRemaining, periodKeyFor } from '../../game-engine';
+import { computed } from 'vue';
+import { dayOfWeekIndex, habitDamageBreakdown, isDueOn, nextDueDay, overdriveUsesRemaining, periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
@@ -9,10 +9,13 @@ import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
 import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
 import StatIcon from '../ui/StatIcon.vue';
-import HabitStatsModal from './HabitStatsModal.vue';
 import SkillSigil from './SkillSigil.vue';
+import { WEEKDAY_SHORT } from './weekdays';
 
 const props = defineProps<{ habit: Habit }>();
+// The skill popup lives in HabitList, so it stays open when this row moves
+// in or out of the Resting fold.
+defineEmits<{ open: [] }>();
 
 const { checkOffHabit, activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
@@ -22,9 +25,14 @@ const habitStore = useHabitStore();
 
 const currentPeriodKey = computed(() => periodKeyFor(props.habit.period, debugClockStore.now()));
 const isCompletedThisPeriod = computed(() => props.habit.lastCompletedPeriodKey === currentPeriodKey.value);
+// A set-day skill on one of its rest days: can't be checked or overdriven.
+const isResting = computed(() => !isDueOn(props.habit, debugClockStore.now()));
+const nextDayLabel = computed(() =>
+  props.habit.days ? WEEKDAY_SHORT[nextDueDay(props.habit.days, dayOfWeekIndex(debugClockStore.now()))] : '',
+);
 // A done Overdrive skill's check stays live, haloed, until its charges are spent.
 const canOverdrive = computed(
-  () => isCompletedThisPeriod.value && overdriveUsesRemaining(props.habit, currentPeriodKey.value) > 0,
+  () => !isResting.value && isCompletedThisPeriod.value && overdriveUsesRemaining(props.habit, currentPeriodKey.value) > 0,
 );
 
 const breakdown = computed(() => {
@@ -76,25 +84,24 @@ function onCheckClick(event: MouseEvent) {
   const result = activateOverdrive(props.habit.id);
   if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
 }
-
-const showStatsModal = ref(false);
 </script>
 
 <template>
-  <li class="habit-item" :class="{ bad: habit.isBad }" :style="{ '--c': damageTypeColor }" @click="showStatsModal = true">
+  <li class="habit-item" :class="{ bad: habit.isBad, resting: isResting }" :style="{ '--c': damageTypeColor }" @click="$emit('open')">
     <input
       type="checkbox"
       class="check"
       :class="{ 'overdrive-ready': canOverdrive }"
       :aria-label="canOverdrive ? `Overdrive ${habit.name}` : `Complete ${habit.name}`"
       :checked="isCompletedThisPeriod"
-      :disabled="isCompletedThisPeriod && !canOverdrive"
+      :disabled="isResting || (isCompletedThisPeriod && !canOverdrive)"
       @click.stop="onCheckClick"
       @change="onCheckOff"
     />
     <span v-if="hasSigil" class="name" :class="{ done: isCompletedThisPeriod }">{{ nameHead }}<span class="name-end">{{ nameTail }}<SkillSigil :habit="habit" /></span></span>
     <span v-else class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
     <span class="meta">
+      <span v-if="isResting" class="next-day">{{ nextDayLabel }}</span>
       <span class="streak" :style="streakStyle" :title="showStreak ? `${habit.streakCount} streak` : undefined">
         <template v-if="showStreak"><StatIcon name="streak" :size="12" />{{ habit.streakCount }}</template>
       </span>
@@ -104,8 +111,6 @@ const showStatsModal = ref(false);
     </span>
     <span class="damage">{{ effectiveDamage.toFixed(0) }}</span>
   </li>
-
-  <HabitStatsModal v-model="showStatsModal" :habit="habit" />
 </template>
 
 <style scoped>
@@ -186,6 +191,15 @@ const showStatsModal = ref(false);
 
 .check:disabled {
   cursor: default;
+}
+
+/* A skill resting today: dimmed, with a hollow dashed check. */
+.habit-item.resting {
+  opacity: 0.45;
+}
+
+.resting .check {
+  border-style: dashed;
 }
 
 /* A done Overdrive skill's check keeps a pulsing ember halo while it has
@@ -271,6 +285,13 @@ const showStatsModal = ref(false);
 .pips {
   display: flex;
   gap: 0.2rem;
+}
+
+.next-day {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.7rem;
 }
 
 .pip {

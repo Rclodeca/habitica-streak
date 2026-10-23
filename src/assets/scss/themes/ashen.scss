@@ -547,6 +547,50 @@ $caps-lg: 0.85rem; // panel and popup titles
     letter-spacing: 0.02em;
   }
 
+  // Resting today: a hollow, dashed ash diamond that can't be checked.
+  .habit-item.resting .check {
+    border: 1px dashed $ash-deep;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .habit-item .next-day {
+    @include engraved($caps-xs, 0.16em);
+    padding: 4px 5px 3px;
+    border: 1px solid $line-mid;
+    border-radius: 0;
+    color: var(--accent-solid);
+  }
+
+  .rest-fold summary {
+    list-style: none;
+    @include engraved($caps-xs, 0.24em);
+    color: var(--text);
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      content: '';
+      width: 5px;
+      height: 5px;
+      margin-left: 2px;
+      border-right: 1px solid currentColor;
+      border-bottom: 1px solid currentColor;
+      transform: rotate(45deg) translateY(-2px);
+      transition: transform 0.2s;
+    }
+  }
+
+  .rest-fold[open] summary::after {
+    transform: rotate(-135deg) translate(-1px, -1px);
+  }
+
+  .rest-fold .rest-count {
+    color: var(--accent-solid);
+  }
+
   .pip {
     width: 5px;
     height: 5px;

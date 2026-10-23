@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { periodKeyFor } from '../../game-engine';
+import { isDueOn, periodKeyFor } from '../../game-engine';
 import type { Period } from '../../game-engine';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
@@ -10,10 +10,11 @@ const habitStore = useHabitStore();
 const debugClockStore = useDebugClockStore();
 
 // Bad habits are left out: checking one off means you gave in, so counting it
-// as "done" would read backwards.
+// as "done" would read backwards. So are set-day skills resting today.
 function progress(period: Period) {
-  const key = periodKeyFor(period, debugClockStore.now());
-  const habits = habitStore.habits.filter((h) => h.period === period && !h.isBad);
+  const now = debugClockStore.now();
+  const key = periodKeyFor(period, now);
+  const habits = habitStore.habits.filter((h) => h.period === period && !h.isBad && isDueOn(h, now));
   const done = habits.filter((h) => h.lastCompletedPeriodKey === key).length;
   return { done, total: habits.length, percent: habits.length ? (done / habits.length) * 100 : 0 };
 }

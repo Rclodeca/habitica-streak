@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { isDueOn } from '../../game-engine';
 import type { DamageType, Habit } from '../../game-engine';
+import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
 import AddHabitModal from './AddHabitModal.vue';
 import HabitListItem from './HabitListItem.vue';
+import HabitStatsModal from './HabitStatsModal.vue';
 
 const habitStore = useHabitStore();
+const debugClockStore = useDebugClockStore();
 const showAddModal = ref(false);
 
 // Healing first, then physical, then magic, then true damage
@@ -18,9 +22,17 @@ function sortByDamageType(habits: Habit[]): Habit[] {
 }
 
 const dailyHabits = computed(() => sortByDamageType(habitStore.habits.filter((habit) => habit.period === 'daily')));
+// Set-day skills resting today fold away at the bottom of Daily.
+const dueDailyHabits = computed(() => dailyHabits.value.filter((habit) => isDueOn(habit, debugClockStore.now())));
+const restingDailyHabits = computed(() => dailyHabits.value.filter((habit) => !isDueOn(habit, debugClockStore.now())));
 const weeklyHabits = computed(() =>
   sortByDamageType(habitStore.habits.filter((habit) => habit.period === 'weekly')),
 );
+
+// One popup for the whole list, by id, so it stays open when changing a
+// skill's days moves its row in or out of the Resting fold.
+const openHabitId = ref<string | null>(null);
+const openHabit = computed(() => habitStore.habits.find((habit) => habit.id === openHabitId.value));
 </script>
 
 <template>
@@ -34,16 +46,22 @@ const weeklyHabits = computed(() =>
     <template v-else>
       <div class="habit-group">
         <h3 class="habit-group-title">Daily</h3>
-        <ul v-if="dailyHabits.length">
-          <HabitListItem v-for="habit in dailyHabits" :key="habit.id" :habit="habit" />
+        <ul v-if="dueDailyHabits.length">
+          <HabitListItem v-for="habit in dueDailyHabits" :key="habit.id" :habit="habit" @open="openHabitId = habit.id" />
         </ul>
-        <p v-else class="habit-group-empty">No daily habits yet.</p>
+        <p v-else-if="!dailyHabits.length" class="habit-group-empty">No daily habits yet.</p>
+        <details v-if="restingDailyHabits.length" class="rest-fold">
+          <summary>Resting <span class="rest-count">{{ restingDailyHabits.length }}</span></summary>
+          <ul>
+            <HabitListItem v-for="habit in restingDailyHabits" :key="habit.id" :habit="habit" @open="openHabitId = habit.id" />
+          </ul>
+        </details>
       </div>
 
       <div class="habit-group">
         <h3 class="habit-group-title">Weekly</h3>
         <ul v-if="weeklyHabits.length">
-          <HabitListItem v-for="habit in weeklyHabits" :key="habit.id" :habit="habit" />
+          <HabitListItem v-for="habit in weeklyHabits" :key="habit.id" :habit="habit" @open="openHabitId = habit.id" />
         </ul>
         <p v-else class="habit-group-empty">No weekly habits yet.</p>
       </div>
@@ -51,6 +69,12 @@ const weeklyHabits = computed(() =>
   </section>
 
   <AddHabitModal v-model="showAddModal" />
+  <HabitStatsModal
+    v-if="openHabit"
+    :model-value="true"
+    :habit="openHabit"
+    @update:model-value="(open) => !open && (openHabitId = null)"
+  />
 </template>
 
 <style scoped>
@@ -96,5 +120,21 @@ const weeklyHabits = computed(() =>
   margin: 0;
   font-size: 0.9rem;
   color: var(--text);
+}
+
+.rest-fold summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.6rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.rest-count {
+  color: var(--text-h);
+  font-weight: 600;
 }
 </style>
