@@ -168,6 +168,10 @@ export interface Habit {
   streakCount: number;
   lastCompletedPeriodKey: string | null;
   lastCheckedPeriodKey: string | null;
+  // Daily habits only: the weekdays it's due (Monday = 0 ... Sunday = 6, see
+  // dayOfWeekIndex), sorted, 1-6 of them. Undefined means every day, so an
+  // existing save still loads as plain dailies — see normalizeDays.
+  days?: number[];
   // All optional so an existing save (no schema-version bump) still loads —
   // undefined is treated as "not yet assigned" everywhere these are read.
   isSpecial?: boolean; // permanent SPECIAL_MULTIPLIER bonus, assigned once at SPECIAL_LEVEL to a random daily good habit

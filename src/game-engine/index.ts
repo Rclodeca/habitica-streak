@@ -42,7 +42,18 @@ export {
   statAtLevel,
 } from './leveling';
 
-export { computeDamageSplit, createHabit, migrateHabitDamageType, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
+export {
+  computeDamageSplit,
+  createHabit,
+  dueFraction,
+  isDueOn,
+  migrateHabitDamageType,
+  nextDueDay,
+  normalizeDays,
+  poolSizeMultiplier,
+  rerollDamageType,
+  resetLevelRewards,
+} from './habits';
 
 export { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
 
@@ -138,4 +149,4 @@ export {
 export type { Rng } from './rng';
 export { createRng, pickRandom, pickWeighted, shuffle } from './rng';
 
-export { dailyPeriodKey, daysBetweenDayKeys, periodKeyFor, weeklyPeriodKey } from './time';
+export { dailyPeriodKey, dayOfWeekIndex, daysBetweenDayKeys, periodKeyFor, weeklyPeriodKey } from './time';

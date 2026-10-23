@@ -1,6 +1,7 @@
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { pickWeighted, type Rng } from './rng';
+import { dayOfWeekIndex } from './time';
 import type { DamageType, Difficulty, Habit, Period } from './types';
 
 export function createHabit(
@@ -9,7 +10,9 @@ export function createHabit(
   difficulty: Difficulty,
   isBad: boolean,
   rng: Rng,
+  days?: number[],
 ): Habit {
+  const dueDays = period === 'daily' ? normalizeDays(days) : undefined;
   return {
     id: crypto.randomUUID(),
     name,
@@ -20,7 +23,34 @@ export function createHabit(
     streakCount: 0,
     lastCompletedPeriodKey: null,
     lastCheckedPeriodKey: null,
+    ...(dueDays && { days: dueDays }),
   };
+}
+
+/** Sorted, deduped weekdays (0-6); undefined for none or all seven, i.e. a plain daily. */
+export function normalizeDays(days: number[] | undefined): number[] | undefined {
+  const unique = [...new Set(days ?? [])].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6).sort((a, b) => a - b);
+  return unique.length === 0 || unique.length === 7 ? undefined : unique;
+}
+
+/** The share of the week a habit is due: days/7 for a set-day daily, 1 for a plain daily or any weekly. */
+export function dueFraction(habit: Habit): number {
+  return habit.period === 'daily' && habit.days ? habit.days.length / 7 : 1;
+}
+
+/** Whether `habit` can be used on `date`'s day — false only on a set-day daily's rest days. */
+export function isDueOn(habit: Habit, date: Date): boolean {
+  if (habit.period !== 'daily' || !habit.days) return true;
+  return habit.days.includes(dayOfWeekIndex(date));
+}
+
+/** The first weekday after `today` (wrapping, so possibly `today` itself a week on) that is in `days`. */
+export function nextDueDay(days: number[], today: number): number {
+  for (let offset = 1; offset <= 7; offset++) {
+    const day = (today + offset) % 7;
+    if (days.includes(day)) return day;
+  }
+  return today;
 }
 
 /** Re-rolls a habit's damage type; with `excludeCurrent`, the result is guaranteed to differ from the current type. */

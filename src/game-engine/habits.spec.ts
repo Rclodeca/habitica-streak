@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { computeDamageSplit, createHabit, migrateHabitDamageType, poolSizeMultiplier, rerollDamageType } from './habits';
+import {
+  computeDamageSplit,
+  createHabit,
+  dueFraction,
+  isDueOn,
+  migrateHabitDamageType,
+  nextDueDay,
+  normalizeDays,
+  poolSizeMultiplier,
+  rerollDamageType,
+} from './habits';
 import { createRng } from './rng';
 import type { Habit } from './types';
 
@@ -176,5 +186,44 @@ describe('removed expGain damage type', () => {
   it('migrateHabitDamageType returns a habit with a valid type untouched (same object)', () => {
     const habit = makeHabit({ damageType: 'magic' });
     expect(migrateHabitDamageType(habit, createRng(1))).toBe(habit);
+  });
+});
+
+describe('set days', () => {
+  it('normalizeDays sorts, dedupes, and turns all seven or none into undefined', () => {
+    expect(normalizeDays([5, 0, 2, 2])).toEqual([0, 2, 5]);
+    expect(normalizeDays([0, 1, 2, 3, 4, 5, 6])).toBeUndefined();
+    expect(normalizeDays([])).toBeUndefined();
+    expect(normalizeDays(undefined)).toBeUndefined();
+  });
+
+  it('dueFraction is days/7 for a set-day daily and 1 otherwise', () => {
+    expect(dueFraction(makeHabit({ days: [0, 2, 5] }))).toBeCloseTo(3 / 7, 10);
+    expect(dueFraction(makeHabit())).toBe(1);
+    expect(dueFraction(makeHabit({ period: 'weekly', days: [0] }))).toBe(1);
+  });
+
+  it('isDueOn follows the Pacific business day', () => {
+    const monOnly = makeHabit({ days: [0] });
+    expect(isDueOn(monOnly, new Date(Date.UTC(2024, 0, 16, 10, 59)))).toBe(true); // Tue 02:59 PST is still Monday
+    expect(isDueOn(monOnly, new Date(Date.UTC(2024, 0, 16, 11, 0)))).toBe(false);
+  });
+
+  it('isDueOn is always true for a plain daily and for a weekly, even with stray days', () => {
+    const tue = new Date(Date.UTC(2024, 0, 16, 20));
+    expect(isDueOn(makeHabit(), tue)).toBe(true);
+    expect(isDueOn(makeHabit({ period: 'weekly', days: [0] }), tue)).toBe(true);
+  });
+
+  it('nextDueDay wraps around the week', () => {
+    expect(nextDueDay([0, 2, 5], 1)).toBe(2);
+    expect(nextDueDay([0, 2, 5], 5)).toBe(0);
+    expect(nextDueDay([3], 3)).toBe(3);
+  });
+
+  it('createHabit keeps normalized days on a daily only', () => {
+    expect(createHabit('Gym', 'daily', 'hard', false, createRng(1), [5, 0, 2]).days).toEqual([0, 2, 5]);
+    expect('days' in createHabit('Read', 'daily', 'easy', false, createRng(1), [0, 1, 2, 3, 4, 5, 6])).toBe(false);
+    expect('days' in createHabit('Hike', 'weekly', 'hard', false, createRng(1), [0])).toBe(false);
   });
 });

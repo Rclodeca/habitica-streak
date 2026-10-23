@@ -74,6 +74,15 @@ export function weeklyPeriodKey(date: Date): string {
 }
 
 /**
+ * The weekday of the date's Pacific business day, Monday = 0 ... Sunday = 6
+ * (ISO order, same as `weeklyPeriodKey`), so it always agrees with
+ * `dailyPeriodKey` across the 3am rollover.
+ */
+export function dayOfWeekIndex(date: Date): number {
+  return (pacificBusinessDay(date).getUTCDay() + 6) % 7;
+}
+
+/**
  * Dispatches to the correct period-key function based on `period`.
  */
 export function periodKeyFor(period: Period, date: Date): string {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dailyPeriodKey, periodKeyFor, weeklyPeriodKey } from './time';
+import { dailyPeriodKey, dayOfWeekIndex, periodKeyFor, weeklyPeriodKey } from './time';
 
 describe('dailyPeriodKey', () => {
   it('formats a date as YYYY-MM-DD using its Pacific business day', () => {
@@ -80,5 +80,17 @@ describe('periodKeyFor', () => {
   it('dispatches to weeklyPeriodKey for "weekly"', () => {
     const date = new Date(Date.UTC(2024, 0, 1, 20));
     expect(periodKeyFor('weekly', date)).toBe(weeklyPeriodKey(date));
+  });
+});
+
+describe('dayOfWeekIndex', () => {
+  it('Monday is 0 and Sunday is 6', () => {
+    expect(dayOfWeekIndex(new Date(Date.UTC(2024, 0, 1, 20)))).toBe(0); // Mon 2024-01-01
+    expect(dayOfWeekIndex(new Date(Date.UTC(2024, 0, 7, 20)))).toBe(6); // Sun 2024-01-07
+  });
+
+  it('before 3am Pacific is still the previous day', () => {
+    expect(dayOfWeekIndex(new Date(Date.UTC(2024, 0, 15, 10, 59)))).toBe(6); // Mon 02:59 PST -> Sunday
+    expect(dayOfWeekIndex(new Date(Date.UTC(2024, 0, 15, 11, 0)))).toBe(0);
   });
 });
