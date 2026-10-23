@@ -1,6 +1,7 @@
 import {
   Backpack,
   Bandage,
+  Calendar,
   Crosshair,
   Dices,
   Droplet,
@@ -55,6 +56,8 @@ export const STAT_ICONS = {
   ult: { icon: Gem, color: 'var(--icon-violet)' },
   itemDoubled: { icon: Hammer, color: 'var(--icon-crit)' },
   slots: { icon: Backpack, color: 'var(--icon-steel)' },
+  gear: { icon: Backpack, color: 'var(--icon-steel)' },
+  weekly: { icon: Calendar, color: 'var(--icon-gold)' },
   reroll: { icon: Dices, color: 'var(--icon-violet)' },
   quest: { icon: ScrollText, color: 'var(--icon-steel)' },
   hit: { icon: Swords, color: 'var(--dmg-physical)' },

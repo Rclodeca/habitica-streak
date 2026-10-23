@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import type { DamageType, Habit } from '../../game-engine';
 import { useHabitStore } from '../../store/habitStore';
 import AddHabitModal from './AddHabitModal.vue';
-import { DAMAGE_TYPE_COLORS, DAMAGE_TYPE_LABELS } from './damageTypeColors';
 import HabitListItem from './HabitListItem.vue';
 
 const habitStore = useHabitStore();
@@ -30,12 +29,6 @@ const weeklyHabits = computed(() =>
       <h2>Skills</h2>
       <button type="button" class="add-button" aria-label="Add habit" @click="showAddModal = true">+ New habit</button>
     </div>
-
-    <ul class="damage-key" aria-label="Damage type colors">
-      <li v-for="type in DAMAGE_TYPE_ORDER" :key="type" :style="{ '--c': DAMAGE_TYPE_COLORS[type] }">
-        <span class="swatch" />{{ DAMAGE_TYPE_LABELS[type] }}
-      </li>
-    </ul>
 
     <p v-if="!habitStore.habits.length">No habits yet — tap + to add one.</p>
     <template v-else>
@@ -84,28 +77,6 @@ const weeklyHabits = computed(() =>
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.habit-list ul.damage-key {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1rem;
-  margin: 0.6rem 0 0;
-  font-size: 0.75rem;
-  color: var(--text);
-}
-
-.damage-key li {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.swatch {
-  width: 8px;
-  height: 8px;
-  background: var(--c);
-  border-radius: 50%;
 }
 
 .habit-group {

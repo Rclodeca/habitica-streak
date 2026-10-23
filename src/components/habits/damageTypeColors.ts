@@ -7,10 +7,3 @@ export const DAMAGE_TYPE_COLORS: Record<DamageType, string> = {
   magic: 'var(--dmg-magic)',
   trueDamage: 'var(--dmg-true)',
 };
-
-export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
-  healing: 'Healing',
-  physical: 'Physical',
-  magic: 'Magic',
-  trueDamage: 'True',
-};

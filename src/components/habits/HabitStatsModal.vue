@@ -13,6 +13,10 @@ import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
 import Modal from '../ui/Modal.vue';
+import StatIcon from '../ui/StatIcon.vue';
+import type { StatIconName } from '../ui/statIcons';
+import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
+import SkillSigil from './SkillSigil.vue';
 
 const props = defineProps<{ modelValue: boolean; habit: Habit }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
@@ -34,14 +38,35 @@ const multiplier = computed(() => breakdown.value.streakMultiplier);
 const weeklyMultiplier = computed(() => breakdown.value.weeklyMultiplier);
 const bonusMultiplier = computed(() => breakdown.value.bonusMultiplier);
 const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
-const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
-const DAMAGE_TYPE_LABEL: Record<DamageType, string> = {
-  physical: 'physical',
-  magic: 'magic',
-  healing: 'healing',
-  trueDamage: 'true damage',
+const DAMAGE_TYPES: Record<DamageType, { label: string; icon: StatIconName }> = {
+  physical: { label: 'Physical', icon: 'physical' },
+  magic: { label: 'Magic', icon: 'magic' },
+  healing: { label: 'Healing', icon: 'healing' },
+  trueDamage: { label: 'True damage', icon: 'true' },
 };
-const damageTypeLabel = computed(() => DAMAGE_TYPE_LABEL[props.habit.damageType]);
+const damageType = computed(() => DAMAGE_TYPES[props.habit.damageType]);
+const damageColor = computed(() => DAMAGE_TYPE_COLORS[props.habit.damageType]);
+const periodLabel = computed(() => (props.habit.period === 'weekly' ? 'Weekly' : 'Daily'));
+const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);
+
+// The hit, worked out top to bottom: the base, then each multiplier that
+// changes it. Gear only shows once items boost this damage type.
+const multipliers = computed(() => {
+  const rows: { label: string; icon: StatIconName; note?: string; value: number }[] = [
+    { label: 'Streak', icon: 'streak', note: String(props.habit.streakCount), value: multiplier.value },
+  ];
+  if (itemMultiplier.value !== 1) rows.push({ label: 'Gear', icon: 'gear', value: itemMultiplier.value });
+  if (props.habit.period === 'weekly') rows.push({ label: 'Weekly', icon: 'weekly', value: weeklyMultiplier.value });
+  return rows;
+});
+const bonusLabel = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
+const totalLabel = computed(() =>
+  props.habit.isBad ? 'If resisted' : props.habit.damageType === 'healing' ? 'Heals for' : 'Strikes for',
+);
+/** ×2.20 → ×2.2, ×2.00 → ×2.0 */
+function formatMultiplier(value: number): string {
+  return `×${value.toFixed(2).replace(/0$/, '')}`;
+}
 // Overdrive never gets the Special/Ult bonus, so its preview excludes
 // bonusMultiplier, but still gets the weekly bonus like any other use.
 const overdriveDamage = computed(() =>
@@ -80,50 +105,38 @@ function removeHabit() {
     :title="habit.name"
     @update:model-value="(value) => $emit('update:modelValue', value)"
   >
-    <dl class="stat-list">
-      <dt>Type</dt>
-      <dd>{{ habit.isBad ? 'Bad Habit' : 'Good Habit' }}</dd>
+    <p class="skill-meta">
+      <StatIcon :name="damageType.icon" />
+      <span>{{ damageType.label }}</span>
+      <span aria-hidden="true">·</span>
+      <span>{{ periodLabel }}</span>
+      <span class="pips" :title="habit.difficulty">
+        <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= difficultyPips }" />
+      </span>
+    </p>
 
-      <dt>Period</dt>
-      <dd>{{ habit.period }}</dd>
-
-      <dt>Difficulty</dt>
-      <dd>{{ habit.difficulty }}</dd>
-
-      <dt>Damage type</dt>
-      <dd>{{ damageTypeLabel }}</dd>
-
-      <dt>Streak</dt>
-      <dd>{{ habit.streakCount }}</dd>
-
-      <dt>Streak multiplier</dt>
-      <dd>×{{ multiplier.toFixed(2) }}</dd>
-
-      <dt>Item multiplier</dt>
-      <dd>×{{ itemMultiplier.toFixed(2) }}</dd>
-
-      <template v-if="habit.period === 'weekly'">
-        <dt>Weekly bonus</dt>
-        <dd>×{{ weeklyMultiplier.toFixed(2) }}</dd>
-      </template>
-
-      <template v-if="rewardTag">
-        <dt>Bonus</dt>
-        <dd><span class="tag">{{ rewardTag }}</span> ×{{ bonusMultiplier.toFixed(2) }} (first use only)</dd>
-      </template>
-
-      <dt>{{ habit.isBad ? 'Base reward if avoided' : 'Base damage' }}</dt>
-      <dd>{{ baseDamage.toFixed(0) }}</dd>
-
-      <dt>{{ habit.isBad ? 'Effective reward if avoided' : 'Effective damage' }}</dt>
-      <dd>{{ effectiveDamage.toFixed(0) }}</dd>
+    <dl class="skill-sum">
+      <div class="sum-row base">
+        <dt>Base</dt>
+        <dd>{{ baseDamage.toFixed(0) }}</dd>
+      </div>
+      <div v-for="row in multipliers" :key="row.label" class="sum-row">
+        <dt><StatIcon :name="row.icon" />{{ row.label }}<small v-if="row.note">{{ row.note }}</small></dt>
+        <dd>{{ formatMultiplier(row.value) }}</dd>
+      </div>
+      <div v-if="bonusLabel" class="sum-row">
+        <dt><SkillSigil :habit="habit" :size="14" />{{ bonusLabel }}<small>first hit</small></dt>
+        <dd>{{ formatMultiplier(bonusMultiplier) }}</dd>
+      </div>
+      <div class="sum-total" :style="{ '--c': damageColor }">
+        <dt>{{ totalLabel }}</dt>
+        <dd>{{ effectiveDamage.toFixed(0) }}</dd>
+      </div>
     </dl>
 
-    <div v-if="habit.isOverdrive" class="overdrive-section">
-      <button type="button" class="overdrive-button" :disabled="!canOverdrive" @click="onOverdrive">
-        Overdrive ({{ overdriveRemaining }} left) — {{ overdriveDamage.toFixed(0) }} dmg
-      </button>
-    </div>
+    <button v-if="habit.isOverdrive" type="button" class="overdrive-button" :disabled="!canOverdrive" @click="onOverdrive">
+      Overdrive <small>{{ overdriveRemaining }} left · {{ overdriveDamage.toFixed(0) }}</small>
+    </button>
 
     <div class="remove-section">
       <button v-if="!confirmingRemove" type="button" class="remove-button" @click="confirmingRemove = true">
@@ -141,43 +154,101 @@ function removeHabit() {
 </template>
 
 <style scoped>
-.stat-list {
+.skill-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.pips {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.pip {
+  width: 6px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 50%;
+}
+
+.pip.lit {
+  background: var(--accent);
+}
+
+.skill-sum {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.4rem 1rem;
+  gap: 0.5rem;
   margin: 0;
 }
 
-.stat-list dt {
+.sum-row,
+.sum-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.skill-sum dt {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-weight: 600;
   color: var(--text-h);
 }
 
-.stat-list dd {
-  margin: 0;
-  text-align: right;
-}
-
-.tag {
-  background: #16a34a;
-  color: white;
+.skill-sum dt small {
+  color: var(--text);
   font-size: 0.8em;
-  font-weight: 600;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
+  font-weight: 400;
 }
 
-.overdrive-section {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
+.skill-sum dd {
+  margin: 0;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.sum-row.base dd {
+  color: var(--text-h);
+}
+
+.sum-total {
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
   border-top: 1px solid var(--border);
+}
+
+.sum-total dt {
+  color: var(--text);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sum-total dd {
+  color: var(--c);
+  font-size: 1.6rem;
+  font-weight: 700;
 }
 
 .overdrive-button {
   width: 100%;
+  margin-top: 1rem;
   background: #dc2626;
   color: white;
   border: none;
+}
+
+.overdrive-button small {
+  margin-left: 0.3rem;
+  font-weight: 400;
+  opacity: 0.85;
 }
 
 .overdrive-button:disabled {
@@ -188,15 +259,16 @@ function removeHabit() {
 }
 
 .remove-section {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
+  margin-top: 0.75rem;
+  text-align: center;
 }
 
 .remove-button {
+  padding: 0.4rem 0.6rem;
   color: #dc2626;
   background: transparent;
-  border: 1px solid rgba(220, 38, 38, 0.4);
+  border: none;
+  font-size: 0.8rem;
 }
 
 .confirm-text {
@@ -206,6 +278,7 @@ function removeHabit() {
 
 .confirm-actions {
   display: flex;
+  justify-content: center;
   gap: 0.5rem;
 }
 

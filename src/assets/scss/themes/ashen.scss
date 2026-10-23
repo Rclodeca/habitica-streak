@@ -13,9 +13,8 @@ $line-mid: rgba(200, 169, 110, 0.4);
 $line-faint: rgba(200, 169, 110, 0.07);
 $ash-deep: #5c554a;
 $ember: #e0783a;
-$frame-top: rgba(27, 24, 21, 0.93);
-$frame-bottom: rgba(14, 13, 11, 0.95);
-$film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .42 0 0 0 -.19'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+$frame-top: rgb(27, 24, 21);
+$frame-bottom: rgb(14, 13, 11);
 
 // Engraved caps sizes. Cinzel's capitals stand about 0.72em tall, so nothing
 // goes below $caps-xs — an 11px font, 8px capitals on a phone — under which
@@ -157,11 +156,18 @@ $caps-lg: 0.85rem; // panel and popup titles
   // Cormorant has a small x-height and reads a size smaller than system-ui;
   // this evens it out so every component's existing font-size still fits.
   font-size-adjust: 0.5;
-  background:
-    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(200, 169, 110, 0.13), transparent 70%),
-    radial-gradient(ellipse 60% 35% at 50% 108%, rgba(224, 120, 58, 0.1), transparent 70%),
-    $film-grain,
-    var(--bg);
+  background: var(--bg);
+
+  // A faint gold glow over the top of the screen, held to the viewport (iOS
+  // ignores background-attachment: fixed) so it stays put as the page scrolls.
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(ellipse 80% 40% at 50% -6%, rgba(200, 169, 110, 0.12), transparent 70%);
+  }
 
   // Nothing is rounded, apart from the few things that are round by nature.
   *:not(.ring, .seal, .stone) {
@@ -428,22 +434,6 @@ $caps-lg: 0.85rem; // panel and popup titles
 
   // ---------- Skills ----------
 
-  .damage-key {
-    @include engraved($caps-xs, 0.16em);
-    color: var(--text);
-  }
-
-  // Keeps all four on one line on a phone.
-  .habit-list ul.damage-key {
-    column-gap: 0.8rem;
-  }
-
-  .damage-key .swatch {
-    width: 6px;
-    height: 6px;
-    transform: rotate(45deg);
-  }
-
   .habit-group-title {
     display: flex;
     align-items: center;
@@ -465,7 +455,6 @@ $caps-lg: 0.85rem; // panel and popup titles
 
   .habit-item {
     padding: 0.62rem 0.6rem 0.62rem 0.7rem;
-    border-bottom: 1px solid $line-faint;
     transition: background 0.25s;
   }
 
@@ -490,6 +479,15 @@ $caps-lg: 0.85rem; // panel and popup titles
     box-shadow: 0 0 10px -1px rgba(230, 199, 127, 0.6);
   }
 
+  // A bad habit's diamond is red until checked.
+  .habit-item.bad .check:not(:checked) {
+    border-color: var(--damage-color);
+  }
+
+  .habit-item.bad .check:hover:not(:disabled) {
+    box-shadow: 0 0 10px -1px rgba(200, 64, 47, 0.6);
+  }
+
   .habit-item .name {
     font-weight: 600;
   }
@@ -498,17 +496,14 @@ $caps-lg: 0.85rem; // panel and popup titles
     text-decoration-color: rgba(200, 169, 110, 0.45);
   }
 
-  .habit-item .tag,
-  .stat-list .tag {
-    @include engraved($caps-xs, 0.12em);
-    padding: 4px 6px 3px;
-    background: transparent;
-    border: 1px solid currentColor;
-    color: var(--accent-solid);
+  .sigil.special {
+    color: var(--accent);
+    filter: drop-shadow(0 0 4px rgba(230, 199, 127, 0.45));
   }
 
-  .habit-item .tag.resist {
-    color: var(--damage-color);
+  .sigil.ult {
+    color: $ember;
+    filter: drop-shadow(0 0 5px rgba(224, 120, 58, 0.55));
   }
 
   .habit-item .streak,
@@ -664,8 +659,15 @@ $caps-lg: 0.85rem; // panel and popup titles
     @include ghost-button($caps-sm, var(--text), $line);
   }
 
+  // Quiet: a line of red caps, not a framed button.
   .remove-button {
-    @include ghost-button($caps-sm, var(--dmg-physical), rgba(200, 64, 47, 0.45));
+    @include engraved($caps-xs, 0.2em);
+    color: rgba(200, 64, 47, 0.8);
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--dmg-physical);
+    }
   }
 
   .overdrive-button,
@@ -680,6 +682,13 @@ $caps-lg: 0.85rem; // panel and popup titles
   .overdrive-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  .overdrive-button small {
+    margin-left: 0.4rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    opacity: 1;
   }
 
   // ---------- Popups ----------
@@ -990,21 +999,41 @@ $caps-lg: 0.85rem; // panel and popup titles
     color: var(--accent);
   }
 
-  // Habit details.
-  .stat-list dt {
-    align-self: center;
-    @include engraved($caps-xs, 0.14em);
-    color: var(--text);
+  // Habit details: the hit worked out like a sum.
+  .skill-meta {
+    @include engraved($caps-xs, 0.2em);
+    gap: 10px;
   }
 
-  .stat-list dd {
-    color: var(--text-h);
+  .skill-meta .pips {
+    gap: 4px;
+  }
+
+  .skill-sum dt small {
+    font-size: 0.95em;
+    font-style: italic;
+  }
+
+  .skill-sum dd {
+    font-family: var(--heading);
+    font-size: 0.92rem;
+    font-size-adjust: none;
     font-variant-numeric: lining-nums;
   }
 
-  .overdrive-section,
-  .remove-section {
-    border-top-color: $line;
+  .sum-total {
+    border-top-color: $line-mid;
+  }
+
+  .sum-total dt {
+    @include engraved($caps-xs, 0.2em);
+  }
+
+  .sum-total dd {
+    font-size: 1.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 22px color-mix(in srgb, var(--c) 35%, transparent);
   }
 
   // Boss / character details.

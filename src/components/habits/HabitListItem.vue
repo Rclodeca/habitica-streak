@@ -10,6 +10,7 @@ import { useHabitStore } from '../../store/habitStore';
 import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
 import StatIcon from '../ui/StatIcon.vue';
 import HabitStatsModal from './HabitStatsModal.vue';
+import SkillSigil from './SkillSigil.vue';
 
 const props = defineProps<{ habit: Habit }>();
 
@@ -49,7 +50,11 @@ const streakStyle = computed(() => {
 });
 const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);
 
-const rewardTag = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
+// A Special or Ult skill's sigil travels with the name's last word, so it
+// never wraps onto a line alone.
+const hasSigil = computed(() => !!(props.habit.isSpecial || props.habit.isUlt));
+const nameHead = computed(() => props.habit.name.slice(0, props.habit.name.lastIndexOf(' ') + 1));
+const nameTail = computed(() => props.habit.name.slice(nameHead.value.length));
 
 function onCheckOff() {
   const result = checkOffHabit(props.habit.id);
@@ -70,11 +75,8 @@ const showStatsModal = ref(false);
       @click.stop
       @change="onCheckOff"
     />
-    <div class="left">
-      <span class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
-      <span v-if="habit.isBad" class="tag resist">Resist</span>
-      <span v-if="rewardTag" class="tag">{{ rewardTag }}</span>
-    </div>
+    <span v-if="hasSigil" class="name" :class="{ done: isCompletedThisPeriod }">{{ nameHead }}<span class="name-end">{{ nameTail }}<SkillSigil :habit="habit" /></span></span>
+    <span v-else class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
     <span class="meta">
       <span class="streak" :style="streakStyle" :title="habit.streakCount > 0 ? `${habit.streakCount} streak` : undefined">
         <template v-if="habit.streakCount > 0"><StatIcon name="streak" :size="12" />{{ habit.streakCount }}</template>
@@ -139,6 +141,14 @@ const showStatsModal = ref(false);
   border-color: var(--accent-border);
 }
 
+.bad .check:not(:checked) {
+  border-color: color-mix(in srgb, var(--damage-color) 70%, transparent);
+}
+
+.bad .check:hover:not(:disabled) {
+  border-color: var(--damage-color);
+}
+
 .check:checked {
   background: var(--accent-solid);
   border-color: var(--accent-solid);
@@ -161,18 +171,8 @@ const showStatsModal = ref(false);
   outline-offset: 2px;
 }
 
-/* Wraps so a tag drops under a long name, rather than squeezing the name
-   into breaking mid-word. */
-.left {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem 0.5rem;
-  flex: 1;
-  min-width: 0;
-}
-
 .name {
+  flex: 1;
   min-width: 0;
   text-align: left;
   color: var(--text-h);
@@ -185,21 +185,18 @@ const showStatsModal = ref(false);
   opacity: 0.6;
 }
 
-.tag {
-  flex-shrink: 0;
-  padding: 0 0.45rem;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
-  border-radius: 999px;
-  color: var(--accent);
-  font-size: 0.7rem;
-  font-weight: 600;
+/* One unit, so the last word and its sigil wrap together. Text decoration
+   doesn't reach into inline blocks, hence the explicit strike-through. */
+.name-end {
+  display: inline-block;
 }
 
-.tag.resist {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--damage-color) 60%, transparent);
-  color: var(--damage-color);
+.name.done .name-end {
+  text-decoration: inherit;
+}
+
+.sigil {
+  margin-left: 0.4em;
 }
 
 .meta {

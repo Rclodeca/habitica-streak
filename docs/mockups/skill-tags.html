@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — skill markers (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Six takes on marking Resist / Special / Ult skills without the boxed tags.
+   Each card is the phone's skills panel at 360px, no row lines, no color key. */
+:root {
+  --bg: #0b0a09;
+  --text: #a1988a;
+  --text-h: #ece3cd;
+  --bone: #d8cdb5;
+  --gold: #c8a96e;
+  --gold-hi: #e6cf9a;
+  --ember: #e0783a;
+  --blood: #c8402f;
+  --ash: #5c554a;
+  --dmg-physical: #d0604f;
+  --dmg-magic: #ab8dd8;
+  --dmg-healing: #92bf88;
+  --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2);
+  --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200, 169, 110, 0.1), transparent 70%), #070606;
+  font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif;
+}
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+
+.page { max-width: 1260px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: 0.32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 34px 26px; justify-items: center; }
+.opt { display: flex; flex-direction: column; gap: 12px; width: 360px; max-width: 100%; }
+.opt h2 { display: flex; align-items: baseline; gap: 10px; font-size: 12px; letter-spacing: 0.2em; color: var(--text-h); }
+.opt h2 b { color: var(--gold); font-weight: 600; }
+.opt > p { font-style: italic; color: var(--text); font-size: 16px; line-height: 1.3; }
+
+.screen { padding: 14px 12px; background: radial-gradient(ellipse 80% 40% at 50% -6%, rgba(200, 169, 110, 0.12), transparent 70%), var(--bg); border: 1px solid rgba(200, 169, 110, 0.18); border-radius: 22px; }
+
+.panel {
+  position: relative; padding: 13px 14px;
+  background: linear-gradient(180deg, rgba(27, 24, 21, 0.96), rgba(14, 13, 11, 0.98)); border: 1px solid var(--line);
+  box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.95);
+}
+.panel::before {
+  content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: 0.75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat;
+}
+.panel h3 { font-size: 11.5px; letter-spacing: 0.22em; color: var(--gold-hi); }
+.ico { display: inline-grid; place-items: center; line-height: 0; color: var(--k, var(--gold)); }
+.ico svg { display: block; }
+
+.group { display: flex; align-items: center; gap: 10px; margin: 12px 0 2px; font: 600 9px/1 'Cinzel', serif; letter-spacing: 0.32em; text-transform: uppercase; color: var(--text); }
+.group::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-mid), transparent); }
+
+.skill { position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 6px 10px 8px; }
+.skill.bad::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: var(--blood); box-shadow: 0 0 8px var(--blood); }
+.skill .dia { flex-shrink: 0; width: 13px; height: 13px; margin: 0 3px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0, 0, 0, 0.45); }
+.skill .left { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 7px; }
+.skill .name { font-weight: 600; color: var(--text-h); }
+.skill .meta { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.skill .streak { display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; min-width: 2.6rem; font: 600 11px/1 'Cinzel', serif; color: var(--text); }
+.skill .pips { display: flex; gap: 4px; }
+.skill .pips i { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid var(--ash); }
+.skill .pips i.on { background: var(--gold); border-color: var(--gold); }
+.skill .dmg { width: 44px; text-align: right; font: 600 14.5px/1 'Cinzel', serif; color: var(--c); }
+
+/* A · today's boxed tags. */
+.tag-box { font: 600 11px/1 'Cinzel', serif; letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 6px 3px; border: 1px solid currentColor; color: var(--gold); }
+.tag-box.resist { color: var(--blood); }
+
+/* B · a small sigil after the name. */
+.sigil { display: inline-grid; place-items: center; line-height: 0; }
+.sigil.special { color: var(--gold-hi); filter: drop-shadow(0 0 4px rgba(230, 199, 127, 0.45)); }
+.sigil.ult { color: var(--ember); filter: drop-shadow(0 0 5px rgba(224, 120, 58, 0.55)); }
+.sigil.resist { color: var(--blood); }
+
+/* C · a whispered word under the name, no frame. */
+.opt-c .skill .left { flex-direction: column; align-items: flex-start; gap: 1px; }
+.whisper { font: 600 9px/1 'Cinzel', serif; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(200, 169, 110, 0.7); }
+.whisper.resist { color: rgba(200, 64, 47, 0.8); }
+
+/* D · the diamond itself carries it. */
+.opt-d .skill.special .dia { border-color: var(--gold-hi); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px rgba(230, 199, 127, 0.55); }
+.opt-d .skill.ult .dia { border-color: var(--ember); background: radial-gradient(circle, rgba(224, 120, 58, 0.45), rgba(0, 0, 0, 0.45) 70%); box-shadow: 0 0 10px rgba(224, 120, 58, 0.55); }
+.opt-d .skill.bad .dia { border-color: var(--blood); }
+
+/* E · the name itself is lit. */
+.opt-e .skill.special .name { color: var(--gold-hi); }
+.opt-e .skill.ult .name { color: #f0c58a; text-shadow: 0 0 10px rgba(224, 120, 58, 0.55); }
+.opt-e .skill.bad .name { color: #d9a59b; }
+
+/* F · a mark set before the damage. */
+.dmg-mark { display: inline-grid; place-items: center; line-height: 0; margin-right: 4px; vertical-align: -1px; }
+.opt-f .skill .dmg { width: auto; min-width: 44px; display: inline-flex; align-items: center; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Marking a skill</h1>
+  <p>Resist, Special and Ult without the boxed tags. Row lines and the color key are gone in all six.</p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const LUCIDE = {
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  sparkle: '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
+  crown: '<path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>',
+  skull: '<path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/>',
+};
+const svg = (name, size, fill = 'none') => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[name]}</svg>`;
+
+// [name, type, pips, streak, dmg, mark]
+const DAILY = [
+  ['Meditate', 'healing', 1, 3, 338, null],
+  ['Morning run', 'physical', 2, 12, 1587, 'special'],
+  ['Doomscrolling after midnight', 'physical', 2, 0, 412, 'resist'],
+  ['Read 20 pages', 'magic', 1, 5, 274, null],
+  ['Cold shower', 'true', 1, 2, 201, null],
+];
+const WEEKLY = [
+  ['Long hike', 'physical', 3, 4, 1380, 'ult'],
+  ['Call family', 'healing', 1, 6, 640, null],
+];
+const WORD = { special: 'Special', ult: 'Ult', resist: 'Resist' };
+const SIGIL = { special: 'sparkle', ult: 'crown', resist: 'skull' };
+const MARK_COLOR = { special: 'var(--gold-hi)', ult: 'var(--ember)', resist: 'var(--blood)' };
+
+const OPTIONS = [
+  { id: 'a', title: 'Today', note: 'Boxed engraved tags. They wrap long names onto a second line.', tag: (m) => `<span class="tag-box ${m}">${WORD[m]}</span>` },
+  { id: 'b', title: 'Sigils', note: 'A small glyph after the name: star, crown, skull. No words; the popup still names it.', tag: (m) => `<span class="sigil ${m}" title="${WORD[m]}">${svg(SIGIL[m], 12, m === 'resist' ? 'none' : 'currentColor')}</span>` },
+  { id: 'c', title: 'Whisper', note: 'The word set tiny under the name, no frame. Reads as a subtitle, not a button.', tag: (m) => `<span class="whisper ${m}">${WORD[m]}</span>` },
+  { id: 'd', title: 'Lit diamond', note: 'The check itself carries it: a halo for Special, an ember for Ult, red for Resist.', tag: () => '' },
+  { id: 'e', title: 'Lit name', note: 'The name takes the color: pale gold, ember glow, ashen red. Nothing added to the row.', tag: () => '' },
+  { id: 'f', title: 'Mark on the hit', note: 'A small glyph set before the damage number, where the bonus lands.', tag: () => '', dmg: (m) => `<span class="dmg-mark" style="color:${MARK_COLOR[m]}">${svg(SIGIL[m], 11, m === 'resist' ? 'none' : 'currentColor')}</span>` },
+];
+
+const row = (opt) => ([name, type, pips, streak, dmg, mark]) => `
+  <li class="skill ${mark === 'resist' ? 'bad' : ''} ${mark ?? ''}">
+    <span class="dia"></span>
+    <div class="left"><span class="name">${name}</span>${mark ? opt.tag(mark) : ''}</div>
+    <span class="meta">
+      <span class="streak">${streak ? `<i class="ico" style="--k:#8d8475">${svg('flame', 11)}</i>${streak}` : ''}</span>
+      <span class="pips">${[1, 2, 3].map((n) => `<i class="${n <= pips ? 'on' : ''}"></i>`).join('')}</span>
+    </span>
+    <span class="dmg" style="--c:var(--dmg-${type})">${mark && opt.dmg ? opt.dmg(mark) : ''}${dmg}</span>
+  </li>`;
+
+document.getElementById('grid').innerHTML = OPTIONS.map((opt) => `
+  <div class="opt opt-${opt.id}">
+    <h2 class="engraved"><b>${opt.id.toUpperCase()}</b>${opt.title}</h2>
+    <p>${opt.note}</p>
+    <div class="screen">
+      <section class="panel">
+        <h3 class="engraved">Skills</h3>
+        <p class="group">Daily</p><ul>${DAILY.map(row(opt)).join('')}</ul>
+        <p class="group">Weekly</p><ul>${WEEKLY.map(row(opt)).join('')}</ul>
+      </section>
+    </div>
+  </div>`).join('');
+</script>
+</body>
+</html>

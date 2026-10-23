@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, onUpdated, ref } from 'vue';
 import {
   activeCritBoost,
   itemDoubleFactor,
@@ -205,6 +205,41 @@ const heroStrip = useHeroStrip();
 function registerHeroStrip(el: unknown) {
   heroStrip.value = el instanceof HTMLElement ? el : null;
 }
+
+// The strip keeps its stat line to one row: whatever wraps past the first is
+// hidden (it's all in the details popup), so the pinned header never grows.
+const PHONE = '(max-width: 820px)';
+const statLine = ref<HTMLElement | null>(null);
+let phone: MediaQueryList | null = null;
+let statLineObserver: ResizeObserver | null = null;
+
+function clipStatLine() {
+  const items = Array.from(statLine.value?.children ?? []) as HTMLElement[];
+  for (const item of items) item.style.display = '';
+  if (!phone?.matches) return;
+  // Measure every item before hiding any, so hiding can't reflow the rest.
+  const shown = items.filter((item) => item.getClientRects().length > 0);
+  const tops = shown.map((item) => item.getBoundingClientRect().top);
+  const firstRowEnd = shown[0]?.getBoundingClientRect().bottom ?? 0;
+  shown.forEach((item, i) => {
+    if (tops[i] >= firstRowEnd) item.style.display = 'none';
+  });
+}
+
+onMounted(() => {
+  phone = window.matchMedia?.(PHONE) ?? null;
+  phone?.addEventListener('change', clipStatLine);
+  // Sizes change with the width, the theme and the numbers themselves.
+  statLineObserver = new ResizeObserver(() => requestAnimationFrame(clipStatLine));
+  if (statLine.value) statLineObserver.observe(statLine.value);
+  document.fonts?.ready.then(clipStatLine);
+  clipStatLine();
+});
+onUpdated(clipStatLine);
+onBeforeUnmount(() => {
+  phone?.removeEventListener('change', clipStatLine);
+  statLineObserver?.disconnect();
+});
 </script>
 
 <template>
@@ -234,7 +269,7 @@ function registerHeroStrip(el: unknown) {
       <h2>{{ heroName }} — Lv. {{ character.level }}</h2>
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
       <ExpBar :current="character.exp" :max="expNeeded" />
-      <p class="stat-summary">
+      <p ref="statLine" class="stat-summary">
         <!-- The EXP bar's numbers again, for themes that set them in this line instead. -->
         <span class="exp-numbers" aria-hidden="true">{{ Math.round(character.exp) }} / {{ Math.round(expNeeded) }}</span>
         <span><StatIcon name="physical" />{{ physicalDamage.toFixed(0) }}</span>
