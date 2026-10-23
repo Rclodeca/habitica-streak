@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — set-day skills (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Skills that only fall on chosen days: the list, the Forge popup and the
+   skill popup, each in a few takes at phone width. The switch at the top
+   changes what day it is. */
+:root {
+  --bg: #0b0a09;
+  --text: #a1988a;
+  --text-h: #ece3cd;
+  --bone: #d8cdb5;
+  --gold: #c8a96e;
+  --gold-hi: #e6cf9a;
+  --ember: #e0783a;
+  --blood: #c8402f;
+  --ash: #5c554a;
+  --ash-deep: #3a352e;
+  --dmg-physical: #d0604f;
+  --dmg-magic: #ab8dd8;
+  --dmg-healing: #92bf88;
+  --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2);
+  --line-mid: rgba(200, 169, 110, 0.4);
+  --line-faint: rgba(200, 169, 110, 0.08);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200, 169, 110, 0.1), transparent 70%), #070606;
+  font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, h4, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+.caps { font: 600 11px/1 'Cinzel', serif; letter-spacing: 0.2em; text-transform: uppercase; }
+
+.page { max-width: 1260px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: 0.32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 18px; }
+.switch { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 34px; }
+.switch > span { color: var(--text); font-size: 10.5px; margin-right: 4px; }
+.switch button { padding: 8px 12px; background: transparent; border: 1px solid var(--line); color: var(--text); font: 600 10.5px/1 'Cinzel', serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.switch button.on { border-color: var(--gold); color: var(--gold-hi); background: rgba(200, 169, 110, 0.07); }
+
+section.part { margin-bottom: 56px; }
+section.part > h2 { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; font-size: 13px; letter-spacing: 0.3em; color: var(--gold-hi); }
+section.part > h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-mid), transparent); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 34px 26px; justify-items: center; }
+.opt { display: flex; flex-direction: column; gap: 12px; width: 360px; max-width: 100%; }
+.opt > h3 { display: flex; align-items: baseline; gap: 10px; font-size: 12px; letter-spacing: 0.2em; color: var(--text-h); }
+.opt > h3 b { color: var(--gold); font-weight: 600; }
+.opt > p { font-style: italic; color: var(--text); font-size: 16px; line-height: 1.3; }
+
+.ico { display: inline-grid; place-items: center; line-height: 0; color: var(--k, var(--gold)); vertical-align: -2px; }
+.ico svg { display: block; }
+.pips { display: inline-flex; gap: 4px; vertical-align: 1px; }
+.pips i { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid var(--ash); }
+.pips i.on { background: var(--gold); border-color: var(--gold); }
+
+/* ---------- The phone skills panel ---------- */
+.screen { padding: 14px 12px; background: radial-gradient(ellipse 80% 40% at 50% -6%, rgba(200, 169, 110, 0.12), transparent 70%), var(--bg); border: 1px solid rgba(200, 169, 110, 0.18); border-radius: 22px; }
+.panel { position: relative; padding: 13px 14px; background: linear-gradient(180deg, rgba(27, 24, 21, 0.96), rgba(14, 13, 11, 0.98)); border: 1px solid var(--line); box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.95); }
+.panel::before, .modal::before {
+  content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: 0.75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat;
+}
+.panel-head { display: flex; justify-content: space-between; align-items: center; }
+.panel-head h4 { font-size: 11.5px; letter-spacing: 0.22em; color: var(--gold-hi); }
+.panel-head span { padding: 6px 10px; border: 1px solid var(--line-mid); font: 600 9.5px/1 'Cinzel', serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+
+.group { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; font: 600 9px/1 'Cinzel', serif; letter-spacing: 0.32em; text-transform: uppercase; color: var(--text); }
+.group::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-mid), transparent); }
+
+.skill { position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 6px 10px 8px; min-height: 44px; }
+.skill.bad::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: var(--blood); box-shadow: 0 0 8px var(--blood); }
+.dia { flex-shrink: 0; width: 13px; height: 13px; margin: 0 3px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0, 0, 0, 0.45); }
+.dia.done { background: radial-gradient(circle, #fff3d6 0, #e6cf9a 38%, #8a6a2c 82%); border-color: #f1dfb0; box-shadow: 0 0 12px 1px rgba(230, 199, 127, 0.45); }
+.skill.bad .dia { border-color: var(--blood); }
+/* A skill resting today: hollow, dashed diamond, the row dimmed. */
+.dia.rest { border: 1px dashed var(--ash); background: transparent; }
+.skill.resting { opacity: 0.42; }
+.skill .left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.skill .name { font-weight: 600; color: var(--text-h); }
+.skill .name.done { text-decoration: line-through; text-decoration-color: rgba(200, 169, 110, 0.45); color: var(--text); }
+.skill .meta { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.skill .streak { display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; min-width: 2.4rem; font: 600 11px/1 'Cinzel', serif; color: var(--text); }
+.skill .dmg { width: 40px; text-align: right; font: 600 14.5px/1 'Cinzel', serif; color: var(--c); }
+
+/* Tiny week under a skill's name: due letters gold, today underlined. */
+.wk { display: flex; gap: 5px; font: 600 8.5px/1 'Cinzel', serif; letter-spacing: 0.04em; color: var(--ash-deep); }
+.wk b { font-weight: 600; position: relative; padding-bottom: 3px; }
+.wk b.due { color: var(--gold); }
+.wk b.now::after { content: ''; position: absolute; left: -1px; right: -1px; bottom: 0; height: 1px; background: var(--gold-hi); }
+.wk b.now:not(.due)::after { background: var(--ash); }
+/* Short day list ("Mon · Wed · Sat"). */
+.dl { font: 600 9px/1 'Cinzel', serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text); }
+.dl .now { color: var(--gold-hi); }
+.next-tag { font: 600 9px/1 'Cinzel', serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); padding: 4px 5px 3px; border: 1px solid var(--line-mid); }
+
+details.rest-fold { margin-top: 4px; }
+details.rest-fold summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 10px 8px; min-height: 44px; cursor: pointer; font: 600 9.5px/1 'Cinzel', serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--text); }
+details.rest-fold summary::-webkit-details-marker { display: none; }
+details.rest-fold summary .n { color: var(--gold); }
+details.rest-fold summary::after { content: ''; width: 5px; height: 5px; margin-left: 2px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg) translateY(-2px); transition: transform 0.2s; }
+details.rest-fold[open] summary::after { transform: rotate(-135deg) translate(-1px, -1px); }
+
+/* ---------- Popups ---------- */
+.screen.dim { position: relative; display: flex; align-items: center; min-height: 600px; padding: 20px 14px; overflow: hidden;
+  background: repeating-linear-gradient(180deg, transparent 0 44px, rgba(200, 169, 110, 0.05) 44px 45px), radial-gradient(ellipse 80% 40% at 50% -6%, rgba(200, 169, 110, 0.12), transparent 70%), var(--bg); }
+.screen.dim::before { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.62); }
+.modal { position: relative; width: 100%; padding: 18px 16px 16px;
+  background: linear-gradient(180deg, rgba(24, 21, 18, 0.985), rgba(10, 9, 8, 0.985)); border: 1px solid var(--line-mid);
+  box-shadow: 0 40px 80px -30px #000, 0 0 0 4px rgba(0, 0, 0, 0.6), 0 0 0 5px rgba(200, 169, 110, 0.13); }
+.close { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; display: grid; place-items: center; color: var(--text); font-size: 18px; line-height: 1; }
+.title { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 28px; margin-bottom: 14px; font: 600 13.5px/1.3 'Cinzel', serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); text-align: center; }
+.title::before, .title::after { content: ''; flex: 1; max-width: 50px; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.title::after { background: linear-gradient(270deg, transparent, var(--line-mid)); }
+
+/* Forge form. */
+.form { display: flex; flex-direction: column; gap: 13px; }
+.intro { padding: 8px 10px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); border-left: 2px solid var(--gold); font-style: italic; font-size: 15px; color: var(--text); line-height: 1.3; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.label { font: 600 9.5px/1 'Cinzel', serif; letter-spacing: 0.24em; text-transform: uppercase; color: var(--text); }
+.name-input { padding: 10px 11px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line); color: var(--text-h); font-style: italic; }
+.cards { display: grid; gap: 6px; }
+.cards.two { grid-template-columns: repeat(2, 1fr); }
+.cards.three { grid-template-columns: repeat(3, 1fr); }
+.card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 54px; padding: 8px 4px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--line); text-align: center; }
+.card .t { font: 600 10.5px/1.1 'Cinzel', serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-h); }
+.card .h { font-style: italic; font-size: 14px; color: var(--text); }
+.card.on { border-color: var(--gold); background: rgba(200, 169, 110, 0.08); box-shadow: 0 0 16px -6px var(--gold); }
+.card.on .t { color: var(--gold-hi); }
+.card.good.on { border-color: var(--dmg-healing); background: rgba(146, 191, 136, 0.1); box-shadow: 0 0 16px -6px var(--dmg-healing); }
+.card.good.on .t { color: var(--dmg-healing); }
+.pledge { font-style: italic; font-size: 14.5px; color: var(--text); text-align: center; }
+.submit { margin-top: 2px; padding: 12px; border: 1px solid var(--gold); background: linear-gradient(180deg, rgba(200, 169, 110, 0.2), rgba(200, 169, 110, 0.06)); color: var(--gold-hi); font: 600 12px/1 'Cinzel', serif; letter-spacing: 0.3em; text-transform: uppercase; }
+
+/* The day picker: seven tappable days, full width. */
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.day { position: relative; height: 44px; display: grid; place-items: center; padding: 0; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); font: 600 11px/1 'Cinzel', serif; color: var(--text); }
+.day.on { border-color: var(--gold); color: var(--gold-hi); background: rgba(200, 169, 110, 0.1); }
+.day.on::after { content: ''; position: absolute; bottom: 6px; width: 4px; height: 4px; transform: rotate(45deg); background: var(--gold); }
+/* Diamond-style days. */
+.days.dia-days { gap: 2px; }
+.days.dia-days .day { background: none; border: 0; }
+.days.dia-days .day::before { content: ''; position: absolute; width: 26px; height: 26px; transform: rotate(45deg); border: 1px solid var(--ash); background: rgba(0, 0, 0, 0.35); }
+.days.dia-days .day span { position: relative; }
+.days.dia-days .day.on::before { border-color: var(--gold); background: radial-gradient(circle, rgba(230, 207, 154, 0.35), rgba(138, 106, 44, 0.2) 70%); box-shadow: 0 0 10px -2px rgba(230, 199, 127, 0.5); }
+.days.dia-days .day.on::after { display: none; }
+.presets { display: flex; gap: 6px; }
+.preset { flex: 1; min-height: 36px; padding: 6px 4px; background: none; border: 1px solid var(--line); font: 600 9.5px/1 'Cinzel', serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text); }
+.preset.on { border-color: var(--gold); color: var(--gold-hi); }
+.reveal { display: flex; flex-direction: column; gap: 8px; padding: 10px; margin-top: 2px; border: 1px solid var(--line-faint); background: rgba(0, 0, 0, 0.2); }
+
+/* Skill popup: the sum. */
+.skill-meta { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-bottom: 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text); }
+.skill-meta .now { color: var(--gold-hi); }
+.sum { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: baseline; }
+.sum .k { display: flex; align-items: center; gap: 7px; color: var(--text-h); font-weight: 600; }
+.sum .k small { color: var(--text); font-weight: 500; font-style: italic; font-size: 15px; }
+.sum .v { font: 600 14px/1 'Cinzel', serif; color: var(--gold-hi); text-align: right; }
+.sum .v.base { color: var(--text-h); }
+.sum .total { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; margin-top: 2px; border-top: 1px solid var(--line-mid); }
+.sum .total .caps { color: var(--text); }
+.big { font: 600 30px/1 'Cinzel', serif; letter-spacing: 0.02em; color: var(--c); text-shadow: 0 0 22px color-mix(in srgb, var(--c) 35%, transparent); }
+.sum.resting .total .big { opacity: 0.45; text-shadow: none; }
+.remove { display: block; margin: 16px auto 0; padding: 6px 10px; background: none; border: 0; color: rgba(200, 64, 47, 0.75); font: 600 10px/1 'Cinzel', serif; letter-spacing: 0.2em; text-transform: uppercase; }
+/* Read-only week strip in the popup. */
+.strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin: -2px 0 16px; }
+.strip i { position: relative; height: 34px; display: grid; place-items: center; font: normal 600 10px/1 'Cinzel', serif; color: var(--ash); }
+.strip i::before { content: ''; position: absolute; width: 18px; height: 18px; transform: rotate(45deg); border: 1px solid var(--ash-deep); }
+.strip i span { position: relative; }
+.strip i.due { color: var(--gold-hi); }
+.strip i.due::before { border-color: var(--gold); background: rgba(200, 169, 110, 0.1); }
+.strip i.now::after { content: ''; position: absolute; bottom: -1px; width: 14px; height: 1px; background: var(--gold-hi); box-shadow: 0 0 6px var(--gold-hi); }
+.strip i.now:not(.due)::after { background: var(--ash); box-shadow: none; }
+.days-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.days-label .label { color: var(--text); }
+.hint { font-style: italic; font-size: 14px; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Skills on chosen days</h1>
+  <p>Gym falls on Mon · Wed · Sat, Deep work on weekdays. Change the day to see them rest.</p>
+  <div class="switch" id="switch"></div>
+
+  <section class="part"><h2 class="engraved">The list</h2><div class="grid" id="list"></div></section>
+  <section class="part"><h2 class="engraved">Forge a habit</h2><div class="grid" id="forge"></div></section>
+  <section class="part"><h2 class="engraved">The skill popup</h2><div class="grid" id="popup"></div></section>
+</div>
+
+<script>
+const LUCIDE = {
+  sword: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  heart: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  gear: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+};
+const ico = (name, k, size = 14) => `<i class="ico" style="--k:${k}"><svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[name]}</svg></i>`;
+const pips = (n) => `<span class="pips">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
+
+const LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const TODAYS = [0, 1, 5]; // Monday, Tuesday, Saturday
+let today = 1;
+
+const DAILY = [
+  { name: 'Morning run', c: 'var(--dmg-physical)', pips: 2, streak: 12, dmg: 168, done: true },
+  { name: 'Gym', c: 'var(--dmg-physical)', pips: 3, streak: 6, dmg: 252, days: [0, 2, 5] },
+  { name: 'Read 20 pages', c: 'var(--dmg-magic)', pips: 1, streak: 4, dmg: 84 },
+  { name: 'Deep work', c: 'var(--dmg-magic)', pips: 2, streak: 9, dmg: 168, days: [0, 1, 2, 3, 4] },
+  { name: 'Stretch', c: 'var(--dmg-healing)', pips: 1, streak: 0, dmg: 61 },
+  { name: 'Doomscrolling', c: 'var(--dmg-physical)', pips: 2, streak: 3, dmg: 168, bad: true },
+];
+const WEEKLY = [{ name: 'Long hike', c: 'var(--dmg-physical)', pips: 3, streak: 4, dmg: 1020 }];
+
+const isSet = (h) => !!h.days;
+const restsToday = (h) => isSet(h) && !h.days.includes(today);
+const nextDue = (h) => { for (let i = 1; i <= 7; i++) { const d = (today + i) % 7; if (h.days.includes(d)) return d; } };
+const wk = (days) => `<span class="wk">${LETTERS.map((l, i) => `<b class="${days.includes(i) ? 'due' : ''} ${i === today ? 'now' : ''}">${l}</b>`).join('')}</span>`;
+const dayList = (days) => `<span class="dl">${days.length === 5 && days.join() === '0,1,2,3,4' ? 'Weekdays' : days.map((d) => `<span class="${d === today ? 'now' : ''}">${SHORT[d]}</span>`).join(' · ')}</span>`;
+
+// One skill row. `under` adds something beneath the name; `tag` sits in the meta.
+function row(h, { under = '', tag = '', dimRest = true } = {}) {
+  const resting = restsToday(h);
+  const streak = h.streak >= 3 ? `${ico('flame', '#8d8475', 11)}${h.streak}` : '';
+  return `<li class="skill ${h.bad ? 'bad' : ''} ${resting && dimRest ? 'resting' : ''}" style="--c:${h.c}">
+    <span class="dia ${h.done ? 'done' : ''} ${resting ? 'rest' : ''}"></span>
+    <span class="left"><span class="name ${h.done ? 'done' : ''}">${h.name}</span>${under}</span>
+    <span class="meta">${tag}<span class="streak">${streak}</span>${pips(h.pips)}</span>
+    <span class="dmg">${h.dmg}</span>
+  </li>`;
+}
+const panel = (inner) => `<div class="screen"><div class="panel"><div class="panel-head"><h4 class="engraved">Skills</h4><span>+ New habit</span></div>${inner}</div></div>`;
+const group = (title, rows) => `<div class="group">${title}</div><ul>${rows}</ul>`;
+const weekly = group('Weekly', WEEKLY.map((h) => row(h)).join(''));
+
+const LIST = [
+  {
+    id: 'a', title: 'Their own group', note: 'A third group between Daily and Weekly. The days sit under the name; on a rest day the row dims and its diamond goes hollow.',
+    body: () => panel(
+      group('Daily', DAILY.filter((h) => !isSet(h)).map((h) => row(h)).join('')) +
+      group('Set days', DAILY.filter(isSet).map((h) => row(h, { under: dayList(h.days) })).join('')) +
+      weekly),
+  },
+  {
+    id: 'b', title: 'Week under the name', note: 'They live with the dailies. A tiny week under the name, due days in gold, today underlined.',
+    body: () => panel(group('Daily', DAILY.map((h) => row(h, { under: isSet(h) ? wk(h.days) : '' })).join('')) + weekly),
+  },
+  {
+    id: 'c', title: 'Resting, folded away', note: 'Due today, they look like any daily. Resting, they fold into one line at the bottom of Daily.',
+    body: () => {
+      const awake = DAILY.filter((h) => !restsToday(h));
+      const asleep = DAILY.filter(restsToday);
+      return panel(
+        `<div class="group">Daily</div><ul>${awake.map((h) => row(h)).join('')}</ul>` +
+        (asleep.length ? `<details class="rest-fold"><summary>Resting <span class="n">${asleep.length}</span></summary><ul>${asleep.map((h) => row(h, { tag: `<span class="next-tag">${SHORT[nextDue(h)]}</span>` })).join('')}</ul></details>` : '') +
+        weekly);
+    },
+  },
+  {
+    id: 'd', title: 'Only the next day', note: 'Nothing extra on a due day. On a rest day the row dims and names the day it wakes.',
+    body: () => panel(group('Daily', DAILY.map((h) => row(h, { tag: restsToday(h) ? `<span class="next-tag">${SHORT[nextDue(h)]}</span>` : '' })).join('')) + weekly),
+  },
+];
+
+// ---------- Forge ----------
+// Each option keeps its own picked days so taps survive a re-render.
+const forgeState = { a: [0, 2, 5], b: [0, 1, 2, 3, 4], c: [0, 2, 5] };
+const forgeCadence = { a: 'set', b: 'daily', c: 'set' };
+const dayButtons = (key, days, extra = '') => `<div class="days ${extra}">${LETTERS.map((l, i) => `<button class="day ${days.includes(i) ? 'on' : ''}" data-forge="${key}" data-day="${i}"><span>${l}</span></button>`).join('')}</div>`;
+const forgeTop = `<span class="close">×</span><h3 class="title">Forge a habit</h3>
+  <div class="form">
+  <p class="intro">Every habit is a weapon. Keep it, and it strikes the boss. Fail it, and the boss strikes back.</p>
+  <div class="field"><span class="label">Name</span><input class="name-input" value="Gym" /></div>
+  <div class="field"><span class="label">Type</span><div class="cards two"><div class="card good on"><span class="t">Good</span><span class="h">Do it</span></div><div class="card"><span class="t">Bad</span><span class="h">Resist it</span></div></div>
+  <p class="pledge">Do it and the boss bleeds. Skip it and you do.</p></div>`;
+const forgeBottom = `<div class="field"><span class="label">Difficulty</span><div class="cards three">
+    <div class="card"><span class="t">Easy</span>${pips(1)}</div><div class="card"><span class="t">Medium</span>${pips(2)}</div><div class="card on"><span class="t">Hard</span>${pips(3)}</div></div></div>
+  <button class="submit">Forge</button></div>`;
+const countHint = (days) => (days.length === 7 ? 'Every day' : `${days.length} day${days.length === 1 ? '' : 's'}`);
+const cadenceCard = (key, value, t, h) => `<button class="card ${forgeCadence[key] === value ? 'on' : ''}" data-cad="${key}" data-val="${value}"><span class="t">${t}</span><span class="h">${h}</span></button>`;
+const PRESETS = { Weekdays: [0, 1, 2, 3, 4], Weekends: [5, 6] };
+
+const FORGE = [
+  {
+    id: 'a', title: 'A third cadence', note: 'Set days joins Daily and Weekly. Picking it opens the week underneath.',
+    body: () => `${forgeTop}
+      <div class="field"><span class="label">Cadence</span><div class="cards three">
+        ${cadenceCard('a', 'daily', 'Daily', 'Every day')}${cadenceCard('a', 'set', 'Set days', countHint(forgeState.a))}${cadenceCard('a', 'weekly', 'Weekly', 'Every week')}
+      </div>${forgeCadence.a === 'set' ? `<div class="reveal">${dayButtons('a', forgeState.a)}</div>` : ''}</div>${forgeBottom}`,
+  },
+  {
+    id: 'b', title: 'Daily, with days off', note: 'No new cadence. Daily shows its week, all lit. Tap a day to let it rest. All seven lit is a plain daily.',
+    body: () => `${forgeTop}
+      <div class="field"><span class="label">Cadence</span><div class="cards two">
+        ${cadenceCard('b', 'daily', 'Daily', countHint(forgeState.b))}${cadenceCard('b', 'weekly', 'Weekly', 'Every week')}
+      </div>${forgeCadence.b === 'daily' ? `<div class="reveal">${dayButtons('b', forgeState.b, 'dia-days')}</div>` : ''}</div>${forgeBottom}`,
+  },
+  {
+    id: 'c', title: 'Third cadence, with shortcuts', note: 'Like A, plus Weekdays and Weekends to fill the week in one tap.',
+    body: () => {
+      const preset = Object.entries(PRESETS).find(([, d]) => d.join() === forgeState.c.join())?.[0];
+      return `${forgeTop}
+      <div class="field"><span class="label">Cadence</span><div class="cards three">
+        ${cadenceCard('c', 'daily', 'Daily', 'Every day')}${cadenceCard('c', 'set', 'Set days', countHint(forgeState.c))}${cadenceCard('c', 'weekly', 'Weekly', 'Every week')}
+      </div>${forgeCadence.c === 'set' ? `<div class="reveal">
+        <div class="presets">${Object.keys(PRESETS).map((p) => `<button class="preset ${preset === p ? 'on' : ''}" data-preset="${p}">${p}</button>`).join('')}</div>
+        ${dayButtons('c', forgeState.c)}</div>` : ''}</div>${forgeBottom}`;
+    },
+  },
+];
+
+// ---------- Skill popup ----------
+const GYM = DAILY[1];
+const popupDays = { c: [...GYM.days] };
+const popupTop = (meta) => `<span class="close">×</span><h3 class="title">${GYM.name}</h3>${meta}`;
+const gymSum = (base, resting) => {
+  const total = Math.round(base * 1.6 * 1.15);
+  return `<dl class="sum ${resting ? 'resting' : ''}">
+    <span class="k">Base</span><span class="v base">${base}</span>
+    <span class="k">${ico('flame', '#8d8475')}Streak <small>${GYM.streak}</small></span><span class="v">×1.6</span>
+    <span class="k">${ico('gear', '#a8a092')}Gear</span><span class="v">×1.15</span>
+    <div class="total"><span class="caps">Strikes for</span><span class="big" style="--c:${GYM.c}">${total}</span></div>
+  </dl>`;
+};
+const strip = (days) => `<div class="strip">${LETTERS.map((l, i) => `<i class="${days.includes(i) ? 'due' : ''} ${i === today ? 'now' : ''}"><span>${l}</span></i>`).join('')}</div>`;
+// Gym's base shifts a little with how many days it falls on (its share of the pool).
+const baseFor = (n) => Math.round(137 * (1 + 0.05 * (3 - n)));
+
+const POPUP = [
+  {
+    id: 'a', title: 'Days in the line', note: 'The days take Daily’s place in the line above the sum. Today glows when it falls on one.',
+    body: () => popupTop(`<p class="skill-meta">${ico('sword', GYM.c)}<span>Physical</span><span>·</span>${GYM.days.map((d) => `<span class="${d === today ? 'now' : ''}">${SHORT[d]}</span>`).join('<span>·</span>')}${pips(GYM.pips)}</p>`)
+      + gymSum(baseFor(3), restsToday(GYM)) + '<button class="remove">Remove skill</button>',
+  },
+  {
+    id: 'b', title: 'The week as a strip', note: 'A row of seven diamonds under the line, due days lit, today underlined. Read only.',
+    body: () => popupTop(`<p class="skill-meta">${ico('sword', GYM.c)}<span>Physical</span><span>·</span><span>Set days</span>${pips(GYM.pips)}</p>${strip(GYM.days)}`)
+      + gymSum(baseFor(3), restsToday(GYM)) + '<button class="remove">Remove skill</button>',
+  },
+  {
+    id: 'c', title: 'Change the days here', note: 'The same week, but tappable. The base moves as you change it. Dropping to every day turns it into a plain daily.',
+    body: () => popupTop(`<p class="skill-meta">${ico('sword', GYM.c)}<span>Physical</span>${pips(GYM.pips)}</p>
+      <div class="field" style="margin-bottom:16px"><div class="days-label"><span class="label">Days</span><span class="hint">${countHint(popupDays.c)}</span></div>${dayButtons('popup-c', popupDays.c, 'dia-days')}</div>`)
+      + gymSum(baseFor(popupDays.c.length), !popupDays.c.includes(today)) + '<button class="remove">Remove skill</button>',
+  },
+];
+
+const opt = (o, inner, dim) => `<div class="opt"><h3 class="engraved"><b>${o.id.toUpperCase()}</b>${o.title}</h3><p>${o.note}</p>${dim ? `<div class="screen dim"><div class="modal">${inner}</div></div>` : inner}</div>`;
+function render() {
+  document.getElementById('switch').innerHTML = '<span class="caps">Today</span>' + TODAYS.map((d) => `<button class="${d === today ? 'on' : ''}" data-today="${d}">${SHORT[d]}</button>`).join('');
+  document.getElementById('list').innerHTML = LIST.map((o) => opt(o, o.body())).join('');
+  document.getElementById('forge').innerHTML = FORGE.map((o) => opt(o, o.body(), true)).join('');
+  document.getElementById('popup').innerHTML = POPUP.map((o) => opt(o, o.body(), true)).join('');
+}
+function toggle(list, d) { const i = list.indexOf(d); if (i >= 0) { if (list.length > 1) list.splice(i, 1); } else { list.push(d); list.sort(); } }
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.today) today = Number(b.dataset.today);
+  else if (b.dataset.cad) forgeCadence[b.dataset.cad] = b.dataset.val;
+  else if (b.dataset.preset) forgeState.c = [...PRESETS[b.dataset.preset]];
+  else if (b.dataset.forge === 'popup-c') toggle(popupDays.c, Number(b.dataset.day));
+  else if (b.dataset.forge) toggle(forgeState[b.dataset.forge], Number(b.dataset.day));
+  else return;
+  render();
+});
+render();
+</script>
+</body>
+</html>
