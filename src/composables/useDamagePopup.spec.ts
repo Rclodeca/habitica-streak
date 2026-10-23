@@ -24,7 +24,10 @@ describe('useDamagePopup', () => {
     vi.advanceTimersByTime(300);
     expect(isHit.value).toBe(false);
 
-    vi.advanceTimersByTime(600);
+    vi.advanceTimersByTime(899);
+    expect(popups.value.length).toBe(1);
+
+    vi.advanceTimersByTime(1);
     expect(popups.value).toEqual([]);
   });
 
@@ -52,7 +55,7 @@ describe('useDamagePopup', () => {
     await nextTick();
     expect(popups.value.length).toBe(2);
 
-    vi.advanceTimersByTime(500); // first popup (900ms lifetime) expires, second doesn't yet
+    vi.advanceTimersByTime(800); // first popup (1200ms lifetime) expires, second doesn't yet
     expect(popups.value).toEqual([{ id: expect.any(Number), amount: 15 }]);
   });
 });

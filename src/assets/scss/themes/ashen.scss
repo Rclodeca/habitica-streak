@@ -8,6 +8,8 @@
 // so this file can restyle component internals while Minimalist (the
 // unthemed base styles) stays exactly as it was.
 
+@use 'sass:list';
+
 $line: rgba(200, 169, 110, 0.2);
 $line-mid: rgba(200, 169, 110, 0.4);
 $line-faint: rgba(200, 169, 110, 0.07);
@@ -52,22 +54,23 @@ $caps-lg: 0.85rem; // panel and popup titles
   }
 }
 
-// Gold L-brackets on all four corners of a frame.
-@mixin corner-brackets($inset: -1px) {
+// Gold L-brackets on the corners of a frame — all four, or just those along
+// one edge (`$edges: top` or `bottom`).
+@mixin corner-brackets($inset: -1px, $edges: top bottom) {
+  $layers: ();
+  @each $edge in $edges {
+    @each $side in left, right {
+      $layers: list.append($layers, linear-gradient(var(--accent-solid), var(--accent-solid)) $edge $side / 12px 1px no-repeat, $separator: comma);
+      $layers: list.append($layers, linear-gradient(var(--accent-solid), var(--accent-solid)) $edge $side / 1px 12px no-repeat, $separator: comma);
+    }
+  }
+
   content: '';
   position: absolute;
   inset: $inset;
   pointer-events: none;
   opacity: 0.75;
-  background:
-    linear-gradient(var(--accent-solid), var(--accent-solid)) top left / 12px 1px no-repeat,
-    linear-gradient(var(--accent-solid), var(--accent-solid)) top left / 1px 12px no-repeat,
-    linear-gradient(var(--accent-solid), var(--accent-solid)) top right / 12px 1px no-repeat,
-    linear-gradient(var(--accent-solid), var(--accent-solid)) top right / 1px 12px no-repeat,
-    linear-gradient(var(--accent-solid), var(--accent-solid)) bottom left / 12px 1px no-repeat,
-    linear-gradient(var(--accent-solid), var(--accent-solid)) bottom left / 1px 12px no-repeat,
-    linear-gradient(var(--accent-solid), var(--accent-solid)) bottom right / 12px 1px no-repeat,
-    linear-gradient(var(--accent-solid), var(--accent-solid)) bottom right / 1px 12px no-repeat;
+  background: $layers;
 }
 
 // Embers drifting upward, for a ::before inside an overflow-hidden stage.
@@ -313,6 +316,16 @@ $caps-lg: 0.85rem; // panel and popup titles
     text-shadow: 0 0 10px #000;
   }
 
+  // The boss's hits are outlined to read over its sprite (BossPanel), with
+  // the soft dark halo kept around the outline.
+  .boss-panel .damage-popup {
+    font-weight: 600;
+    text-shadow:
+      0 0 2px #000,
+      0 0 2px #000,
+      0 0 10px #000;
+  }
+
   // ---------- Character ----------
 
   .item-slot {
@@ -479,9 +492,16 @@ $caps-lg: 0.85rem; // panel and popup titles
     box-shadow: 0 0 10px -1px rgba(230, 199, 127, 0.6);
   }
 
-  // A bad habit's diamond is red until checked.
-  .habit-item.bad .check:not(:checked) {
+  // A bad habit's diamond is red, and lights red once checked: giving in
+  // is a blow taken, not a skill landed.
+  .habit-item.bad .check {
     border-color: var(--damage-color);
+  }
+
+  .habit-item.bad .check:checked {
+    background: radial-gradient(circle, #ffd6c8 0, #d0604f 38%, #7c1d15 82%);
+    border-color: #eba08f;
+    box-shadow: 0 0 12px 1px rgba(200, 64, 47, 0.55);
   }
 
   .habit-item.bad .check:hover:not(:disabled) {
@@ -1267,9 +1287,13 @@ $caps-lg: 0.85rem; // panel and popup titles
   }
 
   // ---------- Phones: the condensing boss bar and hero strip ----------
-  // (useCondensingBoss). The visible part of the boss panel is framed by
-  // .boss-frame — a .panel itself, so it gets the corner brackets — and the
-  // section draws nothing. The pinned pair skip the section diamonds.
+  // (useCondensingBoss). The boss panel is framed by .boss-frame — a .panel
+  // itself, so it gets the corner brackets — and the section draws nothing.
+  // The frame scrolls up with the panel, so its top edge (border, brackets,
+  // highlight, diamond) is drawn on .boss-cap instead, which stays on screen
+  // with the bar. The cap also fades in the frame's gradient over the bar as
+  // it condenses, so the bar shades like the hero strip under it. The pinned
+  // pair skip the section diamonds.
 
   @media (max-width: 820px) {
     .panel.boss-panel {
@@ -1284,10 +1308,39 @@ $caps-lg: 0.85rem; // panel and popup titles
       content: none;
     }
 
-    .boss-frame::after {
+    .boss-frame {
+      border-top: 0;
+      box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.95);
+    }
+
+    .boss-frame::before {
+      @include corner-brackets(-1px, bottom);
+    }
+
+    // The border sits on the frame's darkest shade, as the frame's own top
+    // border did (a background tiles under its border).
+    .boss-cap {
+      display: block;
+      background:
+        linear-gradient($line, $line) top / 100% 1px no-repeat,
+        linear-gradient($frame-bottom, $frame-bottom) top / 100% 1px no-repeat,
+        linear-gradient(rgba(255, 236, 200, 0.04), rgba(255, 236, 200, 0.04)) 0 1px / 100% 1px no-repeat,
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, $frame-top calc(var(--p, 0) * 100%), transparent),
+          color-mix(in srgb, $frame-bottom calc(var(--p, 0) * 100%), transparent)
+        );
+    }
+
+    .boss-cap::before {
+      @include corner-brackets(0 -1px auto, top);
+      height: 12px;
+    }
+
+    .boss-cap::after {
       content: '';
       position: absolute;
-      top: -4px;
+      top: -3px;
       left: 50%;
       width: 7px;
       height: 7px;

@@ -15,7 +15,8 @@ export interface DamagePopup {
 }
 
 const HIT_FLASH_MS = 300;
-const POPUP_LIFETIME_MS = 900;
+// At least as long as the longest popup animation (the boss's, 1.2s).
+const POPUP_LIFETIME_MS = 1200;
 
 let nextPopupId = 0;
 

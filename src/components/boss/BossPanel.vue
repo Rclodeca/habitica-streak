@@ -50,8 +50,7 @@ const panel = ref<HTMLElement | null>(null);
 useCondensingBoss(panel);
 
 // A condensed, always-visible emoji stat line (effective numbers only) sits
-// under the HP bar; the full base-vs-effective breakdown lives in a modal
-// behind the same tap. See CharacterPanel.vue for the same pattern.
+// under the HP bar; the full stats live in a modal behind the same tap. See CharacterPanel.vue for the same pattern.
 const showDetails = ref(false);
 
 const physicalAttack = computed(() => bossMissDamage(boss.value.physicalAttack));
@@ -79,8 +78,8 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const statTiles = computed<StatTile[]>(() => {
   const b = boss.value;
   return [
-    { icon: 'physical', label: 'Physical attack', value: physicalAttack.value.toFixed(0), note: `Base ${b.physicalAttack.toFixed(0)}` },
-    { icon: 'magic', label: 'Magic attack', value: magicAttack.value.toFixed(0), note: `Base ${b.magicAttack.toFixed(0)}` },
+    { icon: 'physical', label: 'Physical attack', value: physicalAttack.value.toFixed(0) },
+    { icon: 'magic', label: 'Magic attack', value: magicAttack.value.toFixed(0) },
     { icon: 'armor', label: 'Armor', value: b.armor.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` },
     { icon: 'magicResist', label: 'Magic resist', value: b.magicResist.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` },
     { icon: 'crit', label: 'Crit chance', value: pct(b.critChance) },
@@ -102,9 +101,12 @@ const statTiles = computed<StatTile[]>(() => {
 
 <template>
   <section ref="panel" class="panel boss-panel">
-    <!-- Phones only: frames just the part of the condensing panel still on screen. -->
-    <div class="panel boss-frame" aria-hidden="true" />
+    <!-- Phones only: frames the condensing panel. It scrolls with the panel, so
+         it also takes taps on the parts of the panel the bar doesn't cover. -->
+    <div class="panel boss-frame" aria-hidden="true" @click="showDetails = true" />
     <button type="button" class="summary-row" @click="showDetails = true">
+      <!-- Phones only: the frame's top edge, kept on screen with the bar (themes draw it). -->
+      <div class="boss-cap" aria-hidden="true" />
       <div class="stage-wrap">
         <div class="sprite-wrapper" :class="{ hit: isHit }">
           <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
@@ -320,32 +322,44 @@ const statTiles = computed<StatTile[]>(() => {
   animation: sprite-shake 0.3s ease;
 }
 
+/* Above the name and HP bar, which hits can rise past on the phone bar. */
 .hit-layer {
   position: absolute;
+  z-index: 1;
   inset: 0;
   pointer-events: none;
 }
 
-.boss-frame {
+.boss-frame,
+.boss-cap {
   display: none;
 }
 
+/* Big, outlined and held before it fades, so it reads over the sprite's busy
+   pixels. Centered on the stage; the condensed phone bar moves it (and
+   shortens its rise) through the --pop-* properties (useCondensingBoss). */
 .damage-popup {
   position: absolute;
-  top: 35%;
-  left: 50%;
+  top: var(--pop-top, 35%);
+  left: var(--pop-left, 50%);
+  translate: var(--pop-shift, -50% 0);
   color: var(--hp-color);
-  font-weight: 700;
-  font-size: 0.9rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  font-weight: 800;
+  font-size: 1.25rem;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px #000,
+    0 0 2px #000,
+    0 1px 3px rgba(0, 0, 0, 0.8);
   pointer-events: none;
-  animation: damage-float-fade 0.9s ease-out forwards;
+  animation: damage-float-fade 1.2s ease-out forwards;
 }
 
 /* Phones: the panel condenses into a bar pinned to the top as the page
-   scrolls (useCondensingBoss sets the height, sticky top and each piece's
-   position). It keeps a fixed height and only its visible part is framed,
-   by .boss-frame, so the section itself draws nothing. */
+   scrolls (useCondensingBoss sets the height, sticky top, --compact-h and
+   each piece's position). It keeps a fixed height and is framed by
+   .boss-frame, so the section itself draws nothing. */
 @media (max-width: 820px) {
   .boss-panel {
     position: sticky;
@@ -361,14 +375,27 @@ const statTiles = computed<StatTile[]>(() => {
   .boss-frame {
     display: block;
     position: absolute;
-    inset: var(--frame-top, 0px) 0 0;
+    inset: 0;
     padding: 0;
   }
 
+  /* The bar the pieces sit on. It's sticky too, so the browser holds it at
+     the top of the screen while the panel scrolls up beneath it — JS that
+     chased the scroll instead landed a frame late on phones, and the boss
+     jittered. */
   .summary-row {
-    position: absolute;
-    inset: 0;
+    position: sticky;
+    top: 0;
     display: block;
+    height: var(--compact-h, 0px);
+  }
+
+  .boss-cap {
+    position: absolute;
+    top: 0;
+    left: 1px;
+    right: 1px;
+    height: calc(var(--compact-h, 0px) - 1px);
   }
 
   .stage-wrap,
@@ -431,14 +458,25 @@ const statTiles = computed<StatTile[]>(() => {
   }
 }
 
+/* Pops in, holds, then rises as it fades. */
 @keyframes damage-float-fade {
   0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7);
+  }
+  12% {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0) scale(1.15);
+  }
+  24% {
+    transform: translateY(-4px) scale(1);
+  }
+  65% {
+    opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -30px);
+    transform: translateY(var(--pop-rise, -36px)) scale(1);
   }
 }
 </style>

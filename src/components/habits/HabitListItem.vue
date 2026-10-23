@@ -145,6 +145,11 @@ const showStatsModal = ref(false);
   border-color: color-mix(in srgb, var(--damage-color) 70%, transparent);
 }
 
+.bad .check:checked {
+  background: var(--damage-color);
+  border-color: var(--damage-color);
+}
+
 .bad .check:hover:not(:disabled) {
   border-color: var(--damage-color);
 }

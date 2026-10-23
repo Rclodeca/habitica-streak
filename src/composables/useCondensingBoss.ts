@@ -2,8 +2,11 @@
 // scrolls, the boss panel condenses into a bar shaped exactly like the hero
 // strip and both pin to the top, so every hit stays in view while ticking
 // skills. The panel is sticky with a negative top — it scrolls up until only
-// the compact bar's height is left — and this just moves the pieces inside it
-// to match how far it has collapsed (see condenseLayout for the choreography).
+// the compact bar's height is left — and the bar inside it is sticky at the
+// top, so the browser keeps both in step with the scroll. This only reshapes
+// the pieces on the bar to match how far the panel has collapsed (see
+// condenseLayout for the choreography); it never moves them to follow the
+// scroll, which on phones lands a frame late and makes the boss jitter.
 // Desktop keeps its own pinned side column, so nothing here runs there.
 
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -43,7 +46,7 @@ export function useCondensingBoss(panel: Ref<HTMLElement | null>) {
   let resizeObserver: ResizeObserver | null = null;
 
   const piece = (selector: string) => panel.value?.querySelector<HTMLElement>(selector) ?? null;
-  const pieces = () => ['.stage-wrap', '.sprite', '.boss-name', '.health-bar', '.stat-summary'].map(piece);
+  const pieces = () => ['.stage-wrap', '.sprite', '.boss-name', '.health-bar', '.stat-summary', '.hit-layer'].map(piece);
 
   function measure(): boolean {
     const hero = heroStrip.value;
@@ -73,6 +76,7 @@ export function useCondensingBoss(panel: Ref<HTMLElement | null>) {
     };
     panel.value.style.height = `${FULL_LAYOUT.height}px`;
     panel.value.style.top = `${compact.height - FULL_LAYOUT.height}px`;
+    panel.value.style.setProperty('--compact-h', `${compact.height}px`);
     // Overlaps the boss bar's bottom border by 1px so the two read as one header.
     hero.style.top = `${compact.height - 1}px`;
     return true;
@@ -85,26 +89,37 @@ export function useCondensingBoss(panel: Ref<HTMLElement | null>) {
     const collapse = FULL_LAYOUT.height - compact.height;
     const off = Math.min(collapse, Math.max(0, -el.getBoundingClientRect().top));
     const p = collapse > 0 ? off / collapse : 0;
-    const [stage, sprite, name, hp, stats] = pieces();
-    if (!stage || !sprite || !name || !hp || !stats) return;
+    const [stage, sprite, name, hp, stats, hits] = pieces();
+    if (!stage || !sprite || !name || !hp || !stats || !hits) return;
     const L = condenseLayout(p, el.clientWidth, name.offsetWidth, compact);
 
     el.style.setProperty('--p', String(p));
-    el.style.setProperty('--frame-top', `${off}px`);
-    Object.assign(stage.style, { left: `${L.stage.x}px`, top: `${off + L.stage.y}px`, width: `${L.stage.w}px`, height: `${L.stage.h}px` });
+    Object.assign(stage.style, { left: `${L.stage.x}px`, top: `${L.stage.y}px`, width: `${L.stage.w}px`, height: `${L.stage.h}px` });
     Object.assign(sprite.style, { width: `${L.sprite}px`, height: `${L.sprite}px` });
-    Object.assign(name.style, { left: `${L.name.x}px`, top: `${off + L.name.y}px`, transform: `scale(${L.name.scale})` });
-    Object.assign(hp.style, { left: `${L.hp.x}px`, top: `${off + L.hp.y}px`, width: `${L.hp.w}px` });
+    Object.assign(name.style, { left: `${L.name.x}px`, top: `${L.name.y}px`, transform: `scale(${L.name.scale})` });
+    Object.assign(hp.style, { left: `${L.hp.x}px`, top: `${L.hp.y}px`, width: `${L.hp.w}px` });
     // Centered across the full panel, left-aligned (and clipped to whole rows) once condensed.
     Object.assign(stats.style, {
       left: `${L.stats.x}px`,
       right: 'auto',
       width: `${L.stats.w}px`,
-      top: `${off + L.stats.y}px`,
+      top: `${L.stats.y}px`,
       opacity: String(L.stats.opacity),
       height: p > 0.5 ? `${L.stats.h}px` : '',
       justifyContent: p > 0.5 ? 'flex-start' : '',
     });
+    // Hits pop over the boss while it's big. Once condensed its portrait is
+    // too small and busy to read them over, so they rise from the right end of
+    // the HP bar instead (over the end of the name row), in a shorter hop that
+    // stays on screen. The hit layer stays on the stage, so this is relative to it.
+    if (p > 0.5) {
+      hits.style.setProperty('--pop-left', `${L.hp.x + L.hp.w - L.stage.x}px`);
+      hits.style.setProperty('--pop-top', `${L.hp.y - compact.hpRise - L.stage.y}px`);
+      hits.style.setProperty('--pop-shift', '-100% -100%');
+      hits.style.setProperty('--pop-rise', '-16px');
+    } else {
+      hits.style.cssText = '';
+    }
   }
 
   // Back to the plain layout (desktop, or on the way out). None of these

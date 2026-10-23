@@ -1,7 +1,7 @@
 // Where each piece of the boss panel sits while it condenses on phones (see
 // useCondensingBoss). Pure geometry, so the choreography is testable.
-// Positions are px from the top of the panel's *visible* part; the caller adds
-// how far the panel has scrolled up.
+// Positions are px from the top of the panel's *visible* part, where the bar
+// they sit on stays pinned while the panel scrolls up.
 //
 // The stage (the boss scene) shrinks in height evenly over the whole collapse,
 // so the boss shrinks steadily, and narrows until it's square by SPLIT, then
