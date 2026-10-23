@@ -18,11 +18,13 @@
 // If the app was closed across multiple period boundaries, only the single
 // immediately-preceding period is checked; earlier gaps are not backfilled.
 //
-// A set-day habit whose preceding day was a rest day has nothing to resolve:
-// no miss, no bad-habit reward — it's just stamped (see `isDueOn`).
+// A set-day habit is resolved against its most recent due day since it was
+// last checked rather than literally yesterday, so a missed Monday still
+// counts when the app first opens on Wednesday after a Tuesday rest day. If
+// it only rested since, there's nothing to resolve and it's just stamped.
 
 import { dailyPeriodKey, daysBetweenDayKeys, isDueOn, periodKeyFor } from '../game-engine';
-import type { Period } from '../game-engine';
+import type { Habit, Period } from '../game-engine';
 import { useHabitStore } from '../store/habitStore';
 import { useQuestStore } from '../store/questStore';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
@@ -34,6 +36,22 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 function previousPeriodKey(period: Period, date: Date): string {
   const offsetMs = period === 'daily' ? MS_PER_DAY : 7 * MS_PER_DAY;
   return periodKeyFor(period, new Date(date.getTime() - offsetMs));
+}
+
+/**
+ * The period key a habit's rollover resolves: the period just before `now`
+ * — or, for a set-day daily, its most recent due day (at most a week back)
+ * no earlier than `lastCheckedPeriodKey`. Undefined when it only rested.
+ */
+function periodKeyToResolve(habit: Habit, now: Date): string | undefined {
+  if (habit.period !== 'daily' || !habit.days) return previousPeriodKey(habit.period, now);
+  for (let back = 1; back <= 7; back++) {
+    const day = new Date(now.getTime() - back * MS_PER_DAY);
+    const dayKey = dailyPeriodKey(day);
+    if (habit.lastCheckedPeriodKey && daysBetweenDayKeys(habit.lastCheckedPeriodKey, dayKey) < 0) return undefined;
+    if (isDueOn(habit, day)) return dayKey;
+  }
+  return undefined;
 }
 
 /**
@@ -54,9 +72,8 @@ export function useDailyRollover(now: Date = new Date()): void {
     const currentPeriodKey = periodKeyFor(habit.period, now);
     if (habit.lastCheckedPeriodKey === currentPeriodKey) continue; // no boundary crossed
 
-    const precedingPeriodKey = previousPeriodKey(habit.period, now);
-    const restedYesterday = !isDueOn(habit, new Date(now.getTime() - MS_PER_DAY));
-    if (!restedYesterday && habit.lastCompletedPeriodKey !== precedingPeriodKey) {
+    const keyToResolve = periodKeyToResolve(habit, now);
+    if (keyToResolve !== undefined && habit.lastCompletedPeriodKey !== keyToResolve) {
       // Not completed in the preceding period: a miss for a good habit, but
       // the win condition (avoided) for a bad one.
       if (habit.isBad) {

@@ -337,4 +337,31 @@ describe('useDailyRollover — set days', () => {
     useDailyRollover(now);
     expect(useMissedSkillsGate().rewards.value).toHaveLength(0);
   });
+
+  it('a miss on a due day still counts when the app was not opened on the rest day after it', () => {
+    const twoAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    const habitStore = useHabitStore();
+    useBossStore();
+    const habit = habitStore.addHabit('Gym', 'daily', 'medium', false, createRng(), [dayOfWeekIndex(twoAgo)]);
+    habitStore.updateHabit({ ...habit, lastCheckedPeriodKey: periodKeyFor('daily', twoAgo), lastCompletedPeriodKey: null });
+    useDailyRollover(now);
+    expect(useMissedSkillsGate().misses.value).toHaveLength(1);
+  });
+
+  it('a bad set-day habit avoided on its last due day still earns its reward after an unopened rest day', () => {
+    const twoAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    const habitStore = useHabitStore();
+    useBossStore();
+    const habit = habitStore.addHabit('Junk food', 'daily', 'medium', true, createRng(), [dayOfWeekIndex(twoAgo)]);
+    habitStore.updateHabit({ ...habit, lastCheckedPeriodKey: periodKeyFor('daily', twoAgo), lastCompletedPeriodKey: null });
+    useDailyRollover(now);
+    expect(useMissedSkillsGate().rewards.value).toHaveLength(1);
+  });
+
+  it('a due day already resolved before a rest day is not looked at again', () => {
+    const twoAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    addUnfinished([dayOfWeekIndex(twoAgo)]); // last checked yesterday, a rest day
+    useDailyRollover(now);
+    expect(useMissedSkillsGate().misses.value).toHaveLength(0);
+  });
 });
