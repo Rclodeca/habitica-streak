@@ -342,7 +342,7 @@ function onCheckOff(quest: Quest) {
   gap: 3px;
   width: 44px;
   color: var(--icon-exp);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.04em;

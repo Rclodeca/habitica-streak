@@ -24,8 +24,19 @@ export interface CompactTargets {
   portrait: Box;
   name: Box;
   hp: Box;
+  /**
+   * How far the theme sets the HP numbers above the bar (0 when they sit in
+   * or under it); the full panel leaves them the same room under the name.
+   */
+  hpRise: number;
   /** Hero name font size over boss name font size. */
   nameScale: number;
+  /**
+   * The empty strip under the HP bar and its numbers where the boss's stat
+   * line sits once condensed: top (from the strip's top) and the height that
+   * fits whole rows (0 when nothing fits — the stats then stay hidden).
+   */
+  stats: { y: number; h: number };
 }
 
 /** The uncondensed boss panel on phones. */
@@ -35,7 +46,7 @@ export const FULL_LAYOUT = {
   sprite: 118,
   /** Name sits this far under the stage. */
   nameGap: 10,
-  /** HP bar top, relative to the name's top. */
+  /** HP bar top, relative to the name's top (plus CompactTargets.hpRise). */
   hpGap: 26,
   /** Stat line top, relative to the name's top. */
   statsGap: 56,
@@ -49,7 +60,7 @@ export interface CondensedPieces {
   sprite: number;
   name: { x: number; y: number; scale: number };
   hp: { x: number; y: number; w: number };
-  stats: { y: number; opacity: number };
+  stats: { x: number; y: number; w: number; h: number; opacity: number };
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -79,7 +90,7 @@ export function condenseLayout(p: number, width: number, nameWidth: number, comp
   const nameX = below ? lerp((width - nameWidth) / 2, riseX, slide) : besideX;
   const nameY = below ? lerp(F.stageH + F.nameGap, belowY, p / SPLIT) : lerp(belowY, compact.name.y, (p - SPLIT) / (1 - SPLIT));
   const hpX = below ? lerp(F.pad, riseX, slide) : besideX;
-  const hpY = nameY + lerp(F.hpGap, compact.hp.y - compact.name.y, t);
+  const hpY = nameY + lerp(F.hpGap + compact.hpRise, compact.hp.y - compact.name.y, t);
   const hpRight = lerp(F.pad, width - (compact.hp.x + compact.hp.w), t);
 
   return {
@@ -87,7 +98,15 @@ export function condenseLayout(p: number, width: number, nameWidth: number, comp
     sprite: Math.min(F.sprite, sh - 8, sw - 6),
     name: { x: nameX, y: nameY, scale: lerp(1, compact.nameScale, t) },
     hp: { x: hpX, y: hpY, w: width - hpX - hpRight },
-    // Gone within the first ~10% of the collapse, before the frame reaches it.
-    stats: { y: nameY + F.statsGap, opacity: Math.max(0, 1 - p / 0.1) },
+    // The full panel's stat line is gone within the first ~10% of the collapse,
+    // before the frame reaches it; the condensed bar's own (clipped to whole
+    // rows) fades in over the last stretch, once everything has settled.
+    stats: {
+      x: hpX,
+      y: lerp(nameY + F.statsGap, hpY + compact.stats.y - compact.hp.y, t),
+      w: width - hpX - hpRight,
+      h: compact.stats.h,
+      opacity: Math.max(1 - p / 0.1, compact.stats.h > 0 ? clamp01((p - 0.85) / 0.15) : 0, 0),
+    },
   };
 }

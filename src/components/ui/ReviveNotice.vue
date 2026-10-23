@@ -16,6 +16,9 @@ const { visible } = useReviveNotice();
   top: 1rem;
   left: 50%;
   transform: translateX(-50%);
+  /* Centred by its own width: left: 50% alone caps it at half the screen. */
+  width: max-content;
+  max-width: calc(100vw - 2rem);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;

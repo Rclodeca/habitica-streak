@@ -117,7 +117,7 @@ onBeforeUnmount(() => {
   display: block;
   padding: 0.3rem 0.65rem 0.2rem;
   color: var(--text);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

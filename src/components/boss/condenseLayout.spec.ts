@@ -7,14 +7,18 @@ const WIDTH = 334;
 const NAME_WIDTH = 150;
 const NAME_HEIGHT = 18;
 const HP_HEIGHT = 8;
-const HP_LABEL = 16; // Ashen hangs the HP numbers under the bar
+const HP_RISE = 16; // Ashen sets the HP numbers above the bar
 const COMPACT: CompactTargets = {
   height: 80,
   portrait: { x: 15, y: 14, w: 52, h: 52 },
   name: { x: 78, y: 14, w: 240, h: 15 },
-  hp: { x: 78, y: 36, w: 241, h: 7 },
+  hp: { x: 78, y: 46, w: 241, h: 7 },
+  hpRise: HP_RISE,
   nameScale: 0.85,
+  stats: { y: 60, h: 0 }, // too short for a row: the boss stats stay hidden
 };
+// Same strip, but tall enough (like the real two-bar hero strip) for two rows of stats.
+const ROOMY: CompactTargets = { ...COMPACT, height: 150, stats: { y: 60, h: 32 } };
 const STEPS = Array.from({ length: 81 }, (_, i) => i / 80);
 
 const overlaps = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
@@ -25,7 +29,8 @@ function rects(p: number) {
   return {
     L,
     name: { x: L.name.x, y: L.name.y, w: NAME_WIDTH * L.name.scale, h: NAME_HEIGHT * L.name.scale },
-    hp: { x: L.hp.x, y: L.hp.y, w: L.hp.w, h: HP_HEIGHT + HP_LABEL },
+    // The bar with its numbers above it.
+    hp: { x: L.hp.x, y: L.hp.y - HP_RISE, w: L.hp.w, h: HP_RISE + HP_HEIGHT },
     // How much of the panel is still on screen at this point of the collapse.
     visible: FULL_LAYOUT.height - (FULL_LAYOUT.height - COMPACT.height) * p,
   };
@@ -54,11 +59,30 @@ describe('condenseLayout', () => {
     expect(L.stats.opacity).toBe(0);
   });
 
+  it('shows the boss stats under the HP bar once condensed, clipped to the room there', () => {
+    const early = condenseLayout(0.3, WIDTH, NAME_WIDTH, ROOMY).stats;
+    expect(early.opacity).toBe(0);
+    const L = condenseLayout(1, WIDTH, NAME_WIDTH, ROOMY);
+    expect(L.stats.opacity).toBe(1);
+    expect(L.stats.x).toBeCloseTo(ROOMY.hp.x, 6);
+    expect(L.stats.y).toBeCloseTo(ROOMY.stats.y, 6);
+    expect(L.stats.w).toBeCloseTo(ROOMY.hp.w, 6);
+    expect(L.stats.h).toBe(ROOMY.stats.h);
+    expect(L.stats.y + L.stats.h).toBeLessThanOrEqual(ROOMY.height);
+  });
+
   it('never lets the name or HP bar cross the stage', () => {
     for (const p of STEPS) {
       const { L, name, hp } = rects(p);
       expect(overlaps(name, L.stage), `name at p=${p}`).toBe(false);
       expect(overlaps(hp, L.stage), `hp at p=${p}`).toBe(false);
+    }
+  });
+
+  it('leaves the HP numbers room above the bar, clear of the name', () => {
+    for (const p of STEPS) {
+      const { name, hp } = rects(p);
+      expect(overlaps(name, hp), `p=${p}`).toBe(false);
     }
   });
 

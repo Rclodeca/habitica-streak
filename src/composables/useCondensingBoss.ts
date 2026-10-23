@@ -13,6 +13,19 @@ import type { Box, CompactTargets } from '../components/boss/condenseLayout';
 import { useThemeStore } from '../store/themeStore';
 
 const PHONE = '(max-width: 820px)';
+// Space kept above and below the boss's stat line in the condensed bar.
+const STATS_GAP_TOP = 0;
+const STATS_GAP_BOTTOM = 6;
+
+/** The tallest height up to `avail` made of whole rows of the stat line (0 if not even one fits). */
+function wholeRows(stats: HTMLElement | null, avail: number): number {
+  const first = stats?.firstElementChild;
+  if (!stats || !first) return 0;
+  const row = first.getBoundingClientRect().height;
+  const gap = parseFloat(getComputedStyle(stats).rowGap) || 0;
+  const rows = Math.floor((avail + gap) / (row + gap));
+  return rows > 0 ? rows * row + (rows - 1) * gap : 0;
+}
 
 // CharacterPanel's root registers itself here so the boss bar can copy its geometry.
 const heroStrip = ref<HTMLElement | null>(null);
@@ -37,17 +50,26 @@ export function useCondensingBoss(panel: Ref<HTMLElement | null>) {
     const bossName = piece('.boss-name');
     const heroName = hero?.querySelector('h2');
     if (!panel.value || !hero || !bossName || !heroName) return false;
+    const stats = piece('.stat-summary');
     const base = hero.getBoundingClientRect();
     const rel = (el: Element | null): Box => {
       const r = el?.getBoundingClientRect() ?? new DOMRect();
       return { x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height };
     };
+    const hp = rel(hero.querySelector('.health-bar'));
+    // Themes may set the HP numbers above the bar or hang them under it, so
+    // leave them room on whichever side they're on.
+    const label = rel(hero.querySelector('.health-bar-label'));
+    const height = hero.offsetHeight;
+    const statsY = Math.max(hp.y + hp.h, label.y + label.h) + STATS_GAP_TOP;
     compact = {
-      height: hero.offsetHeight,
+      height,
       portrait: rel(hero.querySelector('.sprite-wrapper')),
       name: rel(heroName),
-      hp: rel(hero.querySelector('.health-bar')),
+      hp,
+      hpRise: Math.max(0, hp.y - label.y),
       nameScale: parseFloat(getComputedStyle(heroName).fontSize) / parseFloat(getComputedStyle(bossName).fontSize),
+      stats: { y: statsY, h: wholeRows(stats, height - STATS_GAP_BOTTOM - statsY) },
     };
     panel.value.style.height = `${FULL_LAYOUT.height}px`;
     panel.value.style.top = `${compact.height - FULL_LAYOUT.height}px`;
@@ -73,7 +95,16 @@ export function useCondensingBoss(panel: Ref<HTMLElement | null>) {
     Object.assign(sprite.style, { width: `${L.sprite}px`, height: `${L.sprite}px` });
     Object.assign(name.style, { left: `${L.name.x}px`, top: `${off + L.name.y}px`, transform: `scale(${L.name.scale})` });
     Object.assign(hp.style, { left: `${L.hp.x}px`, top: `${off + L.hp.y}px`, width: `${L.hp.w}px` });
-    Object.assign(stats.style, { top: `${off + L.stats.y}px`, opacity: String(L.stats.opacity) });
+    // Centered across the full panel, left-aligned (and clipped to whole rows) once condensed.
+    Object.assign(stats.style, {
+      left: `${L.stats.x}px`,
+      right: 'auto',
+      width: `${L.stats.w}px`,
+      top: `${off + L.stats.y}px`,
+      opacity: String(L.stats.opacity),
+      height: p > 0.5 ? `${L.stats.h}px` : '',
+      justifyContent: p > 0.5 ? 'flex-start' : '',
+    });
   }
 
   // Back to the plain layout (desktop, or on the way out). None of these

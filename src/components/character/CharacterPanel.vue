@@ -235,6 +235,8 @@ function registerHeroStrip(el: unknown) {
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
       <ExpBar :current="character.exp" :max="expNeeded" />
       <p class="stat-summary">
+        <!-- The EXP bar's numbers again, for themes that set them in this line instead. -->
+        <span class="exp-numbers" aria-hidden="true">{{ Math.round(character.exp) }} / {{ Math.round(expNeeded) }}</span>
         <span><StatIcon name="physical" />{{ physicalDamage.toFixed(0) }}</span>
         <span><StatIcon name="magic" />{{ magicDamage.toFixed(0) }}</span>
         <span><StatIcon name="healing" />{{ healing.toFixed(0) }}</span>
@@ -374,6 +376,10 @@ function registerHeroStrip(el: unknown) {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-h);
+}
+
+.stat-summary .exp-numbers {
+  display: none;
 }
 
 /* Cells target ~46px squares (so 2 rows match the 96px sprite, see
@@ -575,7 +581,7 @@ function registerHeroStrip(el: unknown) {
 .gear-rarity {
   margin-left: 0.4rem;
   color: var(--rarity);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -588,7 +594,7 @@ function registerHeroStrip(el: unknown) {
   border: 1px solid rgba(167, 139, 250, 0.5);
   border-radius: 999px;
   color: var(--accent-solid);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
@@ -671,7 +677,7 @@ function registerHeroStrip(el: unknown) {
 }
 
 .tiles.five .tile-label {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
@@ -720,7 +726,7 @@ function registerHeroStrip(el: unknown) {
 
 .tile-note {
   color: var(--text);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .stat-note {
@@ -750,9 +756,9 @@ function registerHeroStrip(el: unknown) {
   animation: damage-float-fade 0.9s ease-out forwards;
 }
 
-/* Phones: a condensed strip (portrait, name, HP and EXP) pinned under the
-   condensing boss bar; useCondensingBoss sets its sticky top. Gear and stats
-   live behind the tap, in the details popup. */
+/* Phones: a condensed strip (portrait, name, HP, EXP and the stat line)
+   pinned under the condensing boss bar; useCondensingBoss sets its sticky
+   top. Gear and the stat breakdown live behind the tap, in the details popup. */
 @media (max-width: 820px) {
   .character-panel {
     position: sticky;
@@ -767,9 +773,12 @@ function registerHeroStrip(el: unknown) {
     display: contents;
   }
 
-  .item-grid,
-  .title-button .stat-summary {
+  .item-grid {
     display: none;
+  }
+
+  .stat-summary {
+    justify-content: flex-start;
   }
 
   .character-panel .sprite-wrapper {

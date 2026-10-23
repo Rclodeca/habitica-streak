@@ -17,6 +17,14 @@ $frame-top: rgba(27, 24, 21, 0.93);
 $frame-bottom: rgba(14, 13, 11, 0.95);
 $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .42 0 0 0 -.19'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
+// Engraved caps sizes. Cinzel's capitals stand about 0.72em tall, so nothing
+// goes below $caps-xs — an 11px font, 8px capitals on a phone — under which
+// the tracked caps stop reading as words.
+$caps-xs: 0.7rem; // tags, captions, field and group labels
+$caps-sm: 0.75rem; // buttons, menu items, choice titles
+$caps-md: 0.8rem; // primary buttons, event cards
+$caps-lg: 0.85rem; // panel and popup titles
+
 // Engraved caps — every heading, label and button.
 @mixin engraved($size, $tracking: 0.2em) {
   font-family: var(--heading);
@@ -28,7 +36,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
 }
 
 // Hairline gold frame button.
-@mixin ghost-button($size: 0.6rem, $color: var(--accent), $border: $line-mid) {
+@mixin ghost-button($size: $caps-sm, $color: var(--accent), $border: $line-mid) {
   @include engraved($size, 0.18em);
   color: $color;
   background: transparent;
@@ -192,14 +200,14 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .panel h2 {
-    @include engraved(0.78rem, 0.22em);
+    @include engraved($caps-lg, 0.2em);
     color: var(--accent);
   }
 
   // ---------- Top bar + menu ----------
 
   .progress-bar > span {
-    @include engraved(0.66rem, 0.32em);
+    @include engraved($caps-sm, 0.28em);
     color: var(--accent-solid);
   }
 
@@ -227,7 +235,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .menu-item {
-    @include engraved(0.6rem, 0.18em);
+    @include engraved($caps-sm, 0.16em);
   }
 
   .menu-item:hover {
@@ -236,7 +244,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .menu-label {
-    @include engraved(0.5rem, 0.3em);
+    @include engraved($caps-xs, 0.24em);
   }
 
   .menu-divider {
@@ -334,23 +342,26 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
     color: var(--accent);
   }
 
-  // ---------- Bars: thin, numbers set below ----------
+  // ---------- Bars: thin, HP numbers set above, EXP below ----------
+  // (so the hero's two bars sit together between their numbers)
 
   .health-bar,
   .exp-bar {
     overflow: visible;
-    margin-bottom: 1.15rem;
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid rgba(200, 169, 110, 0.32);
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
   }
 
+  // Each margin is exactly the room its numbers take: the text plus 4px.
   .health-bar {
     height: 8px;
+    margin-top: calc(0.7rem + 4px);
   }
 
   .exp-bar {
     height: 5px;
+    margin-bottom: calc(0.7rem + 4px);
     border-color: rgba(200, 169, 110, 0.24);
   }
 
@@ -365,16 +376,23 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   // A box only as tall as the text (the inherited line height is a fixed
-  // ~1.45rem, which would make it far taller than it looks), offset by the
-  // difference so the numbers sit where a full line box would centre them.
+  // ~1.45rem, which would make it far taller than it looks), so the numbers
+  // hug their bar. Offsets count from inside the 1px border: 4px clear of it.
   .health-bar-label,
   .exp-bar-label {
-    inset: calc(100% + 5px + 0.45rem) 0 auto;
     justify-content: flex-end;
-    @include engraved(0.55rem, 0.12em);
+    @include engraved($caps-xs, 0.12em);
     line-height: 1;
     color: var(--text);
     text-shadow: none;
+  }
+
+  .health-bar-label {
+    inset: auto 0 calc(100% + 5px);
+  }
+
+  .exp-bar-label {
+    inset: calc(100% + 5px) 0 auto;
   }
 
   .stat-summary {
@@ -399,7 +417,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .summary .stat div > span {
-    @include engraved(0.52rem, 0.24em);
+    @include engraved($caps-xs, 0.18em);
     color: var(--text);
   }
 
@@ -411,8 +429,13 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   // ---------- Skills ----------
 
   .damage-key {
-    @include engraved(0.52rem, 0.2em);
+    @include engraved($caps-xs, 0.16em);
     color: var(--text);
+  }
+
+  // Keeps all four on one line on a phone.
+  .habit-list ul.damage-key {
+    column-gap: 0.8rem;
   }
 
   .damage-key .swatch {
@@ -425,7 +448,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
     display: flex;
     align-items: center;
     gap: 12px;
-    @include engraved(0.55rem, 0.32em);
+    @include engraved($caps-xs, 0.26em);
     color: var(--text);
 
     &::after {
@@ -477,7 +500,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
 
   .habit-item .tag,
   .stat-list .tag {
-    @include engraved(0.5rem, 0.16em);
+    @include engraved($caps-xs, 0.12em);
     padding: 4px 6px 3px;
     background: transparent;
     border: 1px solid currentColor;
@@ -537,7 +560,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .quest-item .meta {
-    @include engraved(0.52rem, 0.18em);
+    @include engraved($caps-xs, 0.14em);
   }
 
   .reward-icon,
@@ -552,7 +575,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   // The glow sits behind the icon itself, not the icon + label block.
   .reward-exp {
     isolation: isolate;
-    @include engraved(0.48rem, 0.12em);
+    @include engraved($caps-xs, 0.08em);
     color: var(--accent);
   }
 
@@ -598,7 +621,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   .submit,
   .restart-button,
   .ok-button {
-    @include engraved(0.66rem, 0.26em);
+    @include engraved($caps-md, 0.22em);
     padding: 0.85rem 1rem;
     color: var(--text-h);
     background: linear-gradient(180deg, rgba(146, 124, 80, 0.25), rgba(60, 48, 28, 0.25));
@@ -627,21 +650,27 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   .back,
   .cancel-button {
     padding: 0.6rem 0.8rem;
-    @include ghost-button(0.55rem);
+    @include ghost-button;
+  }
+
+  // Tighter, so the replace list keeps room for item names on a phone.
+  .replace-button {
+    padding-inline: 0.6rem;
+    letter-spacing: 0.12em;
   }
 
   .drop-button {
     padding: 0.6rem 0.8rem;
-    @include ghost-button(0.55rem, var(--text), $line);
+    @include ghost-button($caps-sm, var(--text), $line);
   }
 
   .remove-button {
-    @include ghost-button(0.55rem, var(--dmg-physical), rgba(200, 64, 47, 0.45));
+    @include ghost-button($caps-sm, var(--dmg-physical), rgba(200, 64, 47, 0.45));
   }
 
   .overdrive-button,
   .confirm-remove-button {
-    @include engraved(0.6rem, 0.2em);
+    @include engraved($caps-sm, 0.18em);
     padding: 0.7rem;
     color: var(--text-h);
     background: linear-gradient(180deg, rgba(160, 34, 30, 0.38), rgba(90, 16, 13, 0.38));
@@ -686,7 +715,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
     align-items: center;
     justify-content: center;
     gap: 14px;
-    @include engraved(0.75rem, 0.28em);
+    @include engraved($caps-lg, 0.24em);
     color: var(--accent);
     text-align: center;
 
@@ -701,7 +730,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
 
     // Cancels the letter-spacing trailing the last letter, so both gaps match.
     &::after {
-      margin-left: -0.28em;
+      margin-left: -0.24em;
       background: linear-gradient(270deg, transparent, $line-mid);
     }
   }
@@ -739,7 +768,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
     display: flex;
     align-items: center;
     gap: 12px;
-    @include engraved(0.52rem, 0.3em);
+    @include engraved($caps-xs, 0.24em);
     color: var(--text);
 
     &::after {
@@ -792,11 +821,11 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   button.card .card-title {
-    @include engraved(0.68rem, 0.16em);
+    @include engraved($caps-md, 0.14em);
   }
 
   button.card .badge {
-    @include engraved(0.48rem, 0.22em);
+    @include engraved($caps-xs, 0.16em);
     border-color: $line-mid;
     color: var(--accent-solid);
   }
@@ -837,7 +866,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .hero .rarity {
-    @include engraved(0.55rem, 0.32em);
+    @include engraved($caps-xs, 0.28em);
   }
 
   .hero:has(> .icon-frame) .name {
@@ -877,7 +906,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .equipped-note {
-    @include engraved(0.6rem, 0.24em);
+    @include engraved($caps-sm, 0.2em);
   }
 
   // Daily update + missed deadlines.
@@ -896,7 +925,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .outcome {
-    @include engraved(0.55rem, 0.18em);
+    @include engraved($caps-xs, 0.14em);
   }
 
   .pill,
@@ -925,7 +954,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
 
   // Forms (new habit, new quest).
   .field-label {
-    @include engraved(0.52rem, 0.24em);
+    @include engraved($caps-xs, 0.2em);
   }
 
   .name-input,
@@ -946,7 +975,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   label.card .card-title {
-    @include engraved(0.62rem, 0.18em);
+    @include engraved($caps-sm, 0.16em);
   }
 
   .quest-form .chip {
@@ -964,7 +993,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   // Habit details.
   .stat-list dt {
     align-self: center;
-    @include engraved(0.55rem, 0.18em);
+    @include engraved($caps-xs, 0.14em);
     color: var(--text);
   }
 
@@ -984,12 +1013,12 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .hero-tag {
-    @include engraved(0.52rem, 0.24em);
+    @include engraved($caps-xs, 0.2em);
   }
 
   .hero-name,
   .hero-level {
-    @include engraved(0.85rem, 0.16em);
+    @include engraved($caps-lg, 0.16em);
   }
 
   .stat-tile {
@@ -1022,11 +1051,11 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .gear-rarity {
-    @include engraved(0.48rem, 0.22em);
+    @include engraved($caps-xs, 0.16em);
   }
 
   .gear-enchanted {
-    @include engraved(0.48rem, 0.16em);
+    @include engraved($caps-xs, 0.12em);
     background: rgba(200, 169, 110, 0.1);
     border-color: rgba(200, 169, 110, 0.5);
   }
@@ -1067,7 +1096,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .run-headline {
-    @include engraved(0.7rem, 0.14em);
+    @include engraved($caps-sm, 0.14em);
     color: var(--text-h);
   }
 
@@ -1080,7 +1109,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .run-details h4 {
-    @include engraved(0.52rem, 0.26em);
+    @include engraved($caps-xs, 0.22em);
   }
 
   .revive-toast {
@@ -1126,7 +1155,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
     align-items: center;
     justify-content: center;
     gap: 14px;
-    @include engraved(0.72rem, 0.3em);
+    @include engraved($caps-lg, 0.26em);
     color: var(--accent);
 
     &::before,
@@ -1139,7 +1168,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
     }
 
     &::after {
-      margin-left: -0.3em;
+      margin-left: -0.26em;
       background: linear-gradient(270deg, transparent, $line-mid);
     }
   }
@@ -1154,7 +1183,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .rule-list b {
-    @include engraved(0.58rem, 0.2em);
+    @include engraved($caps-xs, 0.18em);
     color: var(--text-h);
   }
 
@@ -1191,7 +1220,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .lock-text {
-    @include engraved(0.55rem, 0.3em);
+    @include engraved($caps-xs, 0.26em);
   }
 
   .emblem {
@@ -1240,6 +1269,41 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
 
     .boss-panel .sprite-wrapper {
       height: 100%;
+    }
+
+    // Placed by useCondensingBoss, which leaves its numbers room itself.
+    .boss-panel .health-bar {
+      margin-top: 0;
+    }
+
+    // The hero's stat line hugs the EXP bar, as the boss's hugs its HP bar:
+    // the EXP numbers move into its first row, floated right so the stats
+    // wrap around them, which takes inline flow rather than flex.
+    .character-panel .exp-bar {
+      margin-bottom: 0;
+    }
+
+    .character-panel .exp-bar-label {
+      display: none;
+    }
+
+    // Cancels the strip's gap above and the last row's gap below, and pulls
+    // each row's leading gap out past the left edge.
+    .character-panel .stat-summary {
+      display: block;
+      margin: -0.35rem 0 -0.5rem -0.75rem;
+    }
+
+    .character-panel .stat-summary > span {
+      vertical-align: top;
+      margin: 0 0 0.5rem 0.75rem;
+    }
+
+    .character-panel .stat-summary > .exp-numbers {
+      display: block;
+      float: right;
+      @include engraved($caps-xs, 0.12em);
+      color: var(--text);
     }
   }
 
@@ -1292,7 +1356,7 @@ $film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w
   }
 
   .death h2 {
-    @include engraved(0.85rem, 0.16em);
+    @include engraved($caps-lg, 0.16em);
     color: var(--text-h);
   }
 

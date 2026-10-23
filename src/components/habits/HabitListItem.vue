@@ -161,10 +161,13 @@ const showStatsModal = ref(false);
   outline-offset: 2px;
 }
 
+/* Wraps so a tag drops under a long name, rather than squeezing the name
+   into breaking mid-word. */
 .left {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem 0.5rem;
   flex: 1;
   min-width: 0;
 }
@@ -173,7 +176,7 @@ const showStatsModal = ref(false);
   min-width: 0;
   text-align: left;
   color: var(--text-h);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .name.done {
@@ -189,7 +192,7 @@ const showStatsModal = ref(false);
   border: 1px solid var(--accent-border);
   border-radius: 999px;
   color: var(--accent);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 

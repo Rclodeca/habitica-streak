@@ -298,7 +298,7 @@ const statTiles = computed<StatTile[]>(() => {
 
 .tile-note {
   color: var(--text);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .stat-note {
@@ -400,9 +400,14 @@ const statTiles = computed<StatTile[]>(() => {
     transform-origin: left top;
   }
 
+  /* Once condensed the stat line is clipped to whole rows (useCondensingBoss);
+     whatever doesn't fit under the HP bar is cut off, and rows stay packed at
+     the top when there's room to spare. */
   .stat-summary {
     left: 14px;
     right: 14px;
+    overflow: hidden;
+    align-content: flex-start;
   }
 }
 
