@@ -3,11 +3,30 @@
 // state lives here. Consumers pass their content via the default slot and
 // control visibility via the `modelValue` prop (v-model:modelValue / v-model).
 
+import { onBeforeUnmount, watch } from 'vue';
+import { lockBodyScroll } from '../../composables/useBodyScrollLock';
+
 const props = withDefaults(defineProps<{ modelValue: boolean; title?: string; dismissible?: boolean; maxWidth?: string }>(), {
   dismissible: true,
   maxWidth: '420px',
 });
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
+
+// Keep the page behind the backdrop from scrolling while the modal is open.
+let releaseScrollLock: (() => void) | null = null;
+function unlock() {
+  releaseScrollLock?.();
+  releaseScrollLock = null;
+}
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open && !releaseScrollLock) releaseScrollLock = lockBodyScroll();
+    else if (!open) unlock();
+  },
+  { immediate: true },
+);
+onBeforeUnmount(unlock);
 
 function close() {
   if (!props.dismissible) return;
@@ -41,6 +60,7 @@ function close() {
   justify-content: center;
   padding: 1rem;
   z-index: 1000;
+  overscroll-behavior: contain;
 }
 
 .modal-content {
@@ -51,6 +71,7 @@ function close() {
   width: 100%;
   max-height: 80vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: var(--shadow);
 }
 
