@@ -120,7 +120,7 @@ export const PERSONALITY_NAME: Record<Personality, string> = {
   armored4x: 'Adamant Bastion',
   armored5x: 'Mythic Juggernaut',
   warded: 'Arcane Warden',
-  warded3x: 'Runed Sentinel',
+  warded3x: 'Frost Sentinel',
   warded4x: 'Spectral Aegis',
   warded5x: 'Ethereal Sovereign',
   brute: 'Savage Brute',

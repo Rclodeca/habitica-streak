@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { Check, Dices, Menu, Trophy, Wrench } from 'lucide-vue-next';
-import { useEventChoice } from '../../composables/useEventChoice';
+import { Check, Menu, Trophy, Wrench } from 'lucide-vue-next';
 import { useDevBossArt } from '../../composables/useDevBossArt';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { THEMES, useThemeStore } from '../../store/themeStore';
@@ -17,7 +16,6 @@ const themeStore = useThemeStore();
 const characterStore = useCharacterStore();
 const { enqueueDrops } = useItemDropQueue();
 const { cycle: cycleBossArt } = useDevBossArt();
-const { devReroll } = useEventChoice();
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
 
@@ -37,12 +35,6 @@ function devMode() {
   const items = DEV_ITEM_IDS.map((id) => characterStore.grantItem(id)).filter((item) => item !== null);
   if (items.length) enqueueDrops(items);
   cycleBossArt();
-}
-
-// Temporary test hook: opens the reroll picker without spending a level-up pick.
-function openReroll() {
-  open.value = false;
-  devReroll.value = true;
 }
 
 function pickTheme(theme: Theme) {
@@ -89,7 +81,6 @@ onBeforeUnmount(() => {
       </button>
       <div class="menu-divider" role="separator" />
       <button type="button" class="menu-item" role="menuitem" @click="devMode"><Wrench :size="15" />Dev mode</button>
-      <button type="button" class="menu-item" role="menuitem" @click="openReroll"><Dices :size="15" />Reroll a skill</button>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { describeItemBonus, describeItemBonusParts } from '../../game-engine';
 import type { ItemDef } from '../../game-engine';
 import StatIcon from './StatIcon.vue';
@@ -10,19 +10,6 @@ const props = withDefaults(defineProps<{ item: ItemDef; factor?: number }>(), { 
 const baseUrl = import.meta.env.BASE_URL;
 const chips = computed(() => describeItemBonusParts(props.item, props.factor));
 const enchanted = computed(() => props.factor > 1);
-
-// Tapping a stat pill toggles its label (hover covers desktop; touch has
-// no hover). Reset whenever a different item is shown.
-const openChip = ref<number | null>(null);
-watch(
-  () => props.item,
-  () => {
-    openChip.value = null;
-  },
-);
-function toggleChip(index: number) {
-  openChip.value = openChip.value === index ? null : index;
-}
 </script>
 
 <template>
@@ -32,19 +19,10 @@ function toggleChip(index: number) {
     </div>
     <span class="rarity">{{ item.rarity }}</span>
     <strong class="name">{{ item.name }}</strong>
-    <div v-if="chips.length" class="chips">
-      <button
-        v-for="(chip, i) in chips"
-        :key="`${chip.stat}${chip.text}`"
-        type="button"
-        class="chip"
-        :class="{ open: openChip === i, enchanted }"
-        :aria-label="`${chip.text}: ${chip.label}`"
-        @click="toggleChip(i)"
-      >
-        <StatIcon :name="BOOST_STAT_ICON[chip.stat]" />{{ chip.text }}
-        <span class="chip-tip" role="tooltip">{{ chip.label }}</span>
-      </button>
+    <div v-if="chips.length" class="bonuses">
+      <span v-for="chip in chips" :key="`${chip.stat}${chip.text}`" class="bonus" :class="{ enchanted, drawback: chip.text.startsWith('\u2212') }">
+        <StatIcon :name="BOOST_STAT_ICON[chip.stat]" />{{ chip.text }} <span class="bonus-label">{{ chip.label }}</span>
+      </span>
     </div>
     <p v-else class="consumable">{{ describeItemBonus(item) }}</p>
     <p v-if="item.effectText" class="effect">{{ item.effectText }}</p>
@@ -116,59 +94,34 @@ function toggleChip(index: number) {
   font-size: 1.15rem;
 }
 
-.chips {
+/* Same as the character modal's gear rows: the stat's icon, a bright amount, then its dim name. */
+.bonuses {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.25rem 0.9rem;
 }
 
-.chip {
-  position: relative;
+.bonus {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.15rem 0.6rem;
-  background: color-mix(in srgb, var(--rarity) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--rarity) 45%, transparent);
-  border-radius: 999px;
   color: var(--text-h);
-  font-size: 0.85rem;
-  cursor: help;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
-.chip.enchanted {
-  background: rgba(167, 139, 250, 0.14);
-  border-color: rgba(167, 139, 250, 0.5);
+.bonus.enchanted {
   color: var(--accent-solid);
 }
 
-.chip-tip {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1;
-  width: max-content;
-  max-width: 220px;
-  padding: 0.35rem 0.6rem;
-  background: var(--bg);
-  border: 1px solid var(--rarity);
-  border-radius: 6px;
-  box-shadow: var(--shadow);
-  color: var(--text-h);
-  font-size: 0.8rem;
-  font-weight: 400;
-  line-height: 1.3;
-  white-space: normal;
-  pointer-events: none;
+.bonus.drawback {
+  color: var(--dmg-physical);
 }
 
-.chip:hover .chip-tip,
-.chip:focus-visible .chip-tip,
-.chip.open .chip-tip {
-  display: block;
+.bonus-label {
+  color: var(--text);
+  font-weight: 500;
 }
 
 .consumable {
@@ -179,8 +132,9 @@ function toggleChip(index: number) {
 
 .effect {
   margin: 0;
+  margin-top: 0.2rem;
   color: var(--rarity);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-style: italic;
 }
 </style>

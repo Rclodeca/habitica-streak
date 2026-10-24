@@ -200,7 +200,7 @@ const STAT_LABEL: Record<BoostableStat, string> = {
   magicDamage: 'Magic damage',
   healing: 'Healing',
   health: 'Max health',
-  trueDamage: 'True damage (ignores armor and magic resist)',
+  trueDamage: 'True damage',
   expGain: 'EXP gain',
   critChance: 'Crit chance',
   lifesteal: 'Lifesteal',
@@ -344,40 +344,4 @@ export const MAX_EQUIP_SLOTS = 8;
 export function maxEquipSlots(character: Pick<Character, 'takenEventIds'>): number {
   if (character.takenEventIds?.includes('item-slots-2')) return MAX_EQUIP_SLOTS;
   return character.takenEventIds?.includes('item-slots') ? 6 : 4;
-}
-
-// Which body-worn sprite slot each stat category renders as on the player
-// sprite. expGain, critChance, and lifesteal have no entry — those items
-// have no natural body slot and stay icon-grid-only.
-const BODY_SLOT_BY_STAT: Partial<Record<BoostableStat, string>> = {
-  physicalDamage: 'weapon-physical',
-  magicDamage: 'weapon-magic',
-  health: 'armor',
-  healing: 'shield',
-};
-
-/**
- * bonusPercent -> art tier, by threshold rather than exact match so hybrid
- * and rare items still map onto one of the 3 existing art tiers per slot.
- */
-function tierForBonusPercent(bonusPercent: number): number | null {
-  if (bonusPercent >= 10) return 3;
-  if (bonusPercent >= 5) return 2;
-  if (bonusPercent >= 3) return 1;
-  return null;
-}
-
-/**
- * The body-worn sprite layer (a path segment relative to public/sprites/)
- * for an equipped item, or null if it has no visual slot (not equipped, a
- * consumable, or a stat with no body-slot mapping). Uses the item's first
- * positive percent bonus on a body-relevant stat — a drawback never draws.
- */
-export function bodySpriteFor(item: ItemDef | null): string | null {
-  if (!item) return null;
-  const bonus = item.bonuses.find((b) => b.stat in BODY_SLOT_BY_STAT && (b.percent ?? 0) > 0);
-  if (!bonus?.percent) return null;
-  const slot = BODY_SLOT_BY_STAT[bonus.stat];
-  const tier = tierForBonusPercent(bonus.percent);
-  return slot && tier ? `player/${slot}-${tier}` : null;
 }

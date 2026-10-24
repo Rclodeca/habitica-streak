@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — item drop stats (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* "Item found!" today shows icon + amount only (the name sits behind a tap).
+   Two takes on spelling every stat out, since a drop is the first time the
+   player meets the item. Stat icons here are stand-ins for the real StatIcons. */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a; --blood: #c8402f; --ash: #5c554a;
+  --rarity-common: #8d8475; --rarity-uncommon: #86b08b; --rarity-rare: #7f9fd1; --rarity-epic: #ae8bd6;
+  --good: #92bf88; --bad: #d0604f;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1400px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.row { margin-bottom: 40px; }
+.row > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.row > h2 b { color: var(--gold); margin-right: 8px; }
+.row > p { font-style: italic; color: var(--text); font-size: 16px; margin-bottom: 14px; max-width: 760px; }
+.cards { display: flex; flex-wrap: wrap; gap: 22px; }
+.screen { width: 320px; padding: 22px 12px; background: rgba(0,0,0,.55); border: 1px solid rgba(200,169,110,.18); border-radius: 22px; }
+
+.modal { position: relative; padding: 16px 14px 14px; background: linear-gradient(180deg, rgba(27,24,21,.97), rgba(14,13,11,.99)); border: 1px solid var(--line); box-shadow: 0 20px 40px -24px rgba(0,0,0,.95); }
+.modal::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat; }
+.modal > h3 { text-align: center; font-size: 12px; letter-spacing: .24em; color: var(--gold-hi); margin-bottom: 12px; }
+
+.hero { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 14px 16px; border: 1px solid color-mix(in srgb, var(--r) 45%, transparent); box-shadow: 0 0 24px -10px var(--r); background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--r) 10%, transparent), transparent 70%), rgba(0,0,0,.25); text-align: center; }
+/* The lit diamond the icon sits in, as in the live popup. */
+.frame { width: 112px; height: 112px; margin: 1.7rem 0 1.8rem; transform: rotate(45deg); display: grid; place-items: center; border: 1px solid var(--r);
+  background: radial-gradient(circle, color-mix(in srgb, var(--r) 24%, transparent), rgba(0,0,0,.45) 75%);
+  box-shadow: 0 0 30px -8px var(--r), inset 0 0 0 4px rgba(0,0,0,.55), inset 0 0 0 5px color-mix(in srgb, var(--r) 35%, transparent); }
+.frame img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; transform: rotate(-45deg) scale(1.4); }
+.rar { font: 600 9px/1 'Cinzel', serif; letter-spacing: .28em; text-transform: uppercase; color: var(--r); }
+.name { font-size: 23px; font-weight: 600; color: var(--text-h); line-height: 1.1; }
+
+/* Stats and effect borrow the character modal's gear rows: icon, bright amount,
+   dim stat name; the effect is italic in the rarity colour. */
+.gear-bonuses { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin-top: 4px; }
+.stacked .gear-bonuses { flex-direction: column; align-items: flex-start; gap: 6px; align-self: stretch; padding: 0 6px; }
+.gear-bonus { display: inline-flex; align-items: center; gap: 6px; color: var(--text-h); font-size: 16px; font-weight: 600; }
+.gear-bonus .ic { display: inline-grid; place-items: center; flex-shrink: 0; color: var(--k); line-height: 0; }
+.gear-bonus .lab { color: var(--text); font-weight: 500; }
+.gear-bonus.neg { color: var(--bad); }
+.gear-effect { margin-top: 6px; color: var(--r); font-size: 16px; font-style: italic; line-height: 1.25; }
+.stacked .gear-effect { text-align: left; align-self: stretch; padding: 0 6px; }
+
+.eq { text-align: center; margin: 12px 0 8px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .28em; text-transform: uppercase; color: var(--good); }
+.cta { display: block; width: 100%; height: 44px; font: 600 11px/1 'Cinzel', serif; letter-spacing: .26em; text-transform: uppercase; color: var(--gold-hi); border: 1px solid var(--gold); background: rgba(200,169,110,.1); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Item found: full stats</h1>
+  <p>Four sample drops. Common, a rare with a drawback, an uncommon true-damage item, and an epic with an effect.</p>
+  <div id="root"></div>
+</div>
+
+<script>
+const K = { physicalDamage: '#d0604f', magicDamage: '#ab8dd8', healing: '#92bf88', health: '#c33a2e', trueDamage: '#f1e9d6', critChance: '#d6a24f', lifesteal: '#b8433a', armor: '#a8a092', magicResist: '#8d9bd1', armorPen: '#a8a092', magicPen: '#a58bd0', expGain: '#d8b46a', allDamage: '#d0604f' };
+// The same lucide glyphs the app's StatIcon uses (BOOST_STAT_ICON), 14px, stroke 2.
+const GLYPH = {"physicalDamage":"<path d=\"m11 19-6-6\"/><path d=\"m5 21-2-2\"/><path d=\"m8 16-4 4\"/><path d=\"M9.5 17.5 21 6V3h-3L6.5 14.5\"/>","magicDamage":"<path d=\"m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72\"/><path d=\"m14 7 3 3\"/><path d=\"M5 6v4\"/><path d=\"M19 14v4\"/><path d=\"M10 2v2\"/><path d=\"M7 8H3\"/><path d=\"M21 16h-4\"/><path d=\"M11 3H9\"/>","healing":"<path d=\"M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5\"/><path d=\"M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27\"/>","health":"<path d=\"M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5\"/>","trueDamage":"<path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\"/>","critChance":"<circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"22\" x2=\"18\" y1=\"12\" y2=\"12\"/><line x1=\"6\" x2=\"2\" y1=\"12\" y2=\"12\"/><line x1=\"12\" x2=\"12\" y1=\"6\" y2=\"2\"/><line x1=\"12\" x2=\"12\" y1=\"22\" y2=\"18\"/>","lifesteal":"<path d=\"M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z\"/>","armor":"<path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/>","magicResist":"<path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/><path d=\"M12 22V2\"/>","armorPen":"<path d=\"m2 2 20 20\"/><path d=\"M5 5a1 1 0 0 0-1 1v7c0 5 3.5 7.5 7.67 8.94a1 1 0 0 0 .67.01c2.35-.82 4.48-1.97 5.9-3.71\"/><path d=\"M9.309 3.652A12.252 12.252 0 0 0 11.24 2.28a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1v7a9.784 9.784 0 0 1-.08 1.264\"/>","magicPen":"<path d=\"M20.341 6.484A10 10 0 0 1 10.266 21.85\"/><path d=\"M3.659 17.516A10 10 0 0 1 13.74 2.152\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><circle cx=\"19\" cy=\"5\" r=\"2\"/><circle cx=\"5\" cy=\"19\" r=\"2\"/>","expGain":"<path d=\"M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z\"/><path d=\"M20 2v4\"/><path d=\"M22 4h-4\"/><circle cx=\"4\" cy=\"20\" r=\"2\"/>","allDamage":"<polyline points=\"14.5 17.5 3 6 3 3 6 3 17.5 14.5\"/><line x1=\"13\" x2=\"19\" y1=\"19\" y2=\"13\"/><line x1=\"16\" x2=\"20\" y1=\"16\" y2=\"20\"/><line x1=\"19\" x2=\"21\" y1=\"21\" y2=\"19\"/><polyline points=\"14.5 6.5 18 3 21 3 21 6 17.5 9.5\"/><line x1=\"5\" x2=\"9\" y1=\"14\" y2=\"18\"/><line x1=\"7\" x2=\"4\" y1=\"17\" y2=\"20\"/><line x1=\"3\" x2=\"5\" y1=\"19\" y2=\"21\"/>"};
+const icon = (stat) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${GLYPH[stat]}</svg>`;
+// The game's own stat labels (describeItemBonusParts), exactly as the character modal shows them.
+const LABEL = { physicalDamage: 'Physical damage', magicDamage: 'Magic damage', healing: 'Healing', health: 'Max health', trueDamage: 'True damage (ignores armor and magic resist)', critChance: 'Crit chance', lifesteal: 'Lifesteal', armor: 'Armor', magicResist: 'Magic resist', expGain: 'EXP gain' };
+
+const ITEMS = [
+  { name: 'Steel Sword', icon: 'steel-sword', rarity: 'common', bonuses: [['physicalDamage', 5, '%']] },
+  { name: 'Molten Fury', icon: 'berserkers-fury', rarity: 'rare', bonuses: [['physicalDamage', 28, '%'], ['critChance', 15, '%'], ['health', -10, '%']] },
+  { name: 'Frost Stiletto', icon: 'silver-stiletto', rarity: 'uncommon', bonuses: [['trueDamage', 12, '%']] },
+  { name: 'Godslayer Greatblade', icon: 'godslayer-greatblade', rarity: 'epic', bonuses: [['physicalDamage', 42, '%'], ['health', 10, '%'], ['lifesteal', 3, '%']], fx: '+30% damage to bosses above 75% HP.' },
+];
+const amt = ([, n, u]) => `${n < 0 ? '−' : '+'}${Math.abs(n)}${u}`;
+
+const card = (it, cls) => `<div class="screen"><div class="modal ${cls}">
+  <h3 class="engraved">Item found!</h3>
+  <div class="hero" style="--r:var(--rarity-${it.rarity})">
+    <div class="frame"><img src="../../public/sprites/items/${it.icon}.png" alt="" /></div>
+    <span class="rar">${it.rarity}</span><strong class="name">${it.name}</strong>
+    <div class="gear-bonuses">${it.bonuses.map((b) => `<span class="gear-bonus ${b[1] < 0 ? 'neg' : ''}" style="--k:${K[b[0]]}"><span class="ic">${icon(b[0])}</span>${amt(b)} <span class="lab">${LABEL[b[0]]}</span></span>`).join('')}</div>
+    ${it.fx ? `<p class="gear-effect">${it.fx}</p>` : ''}
+  </div>
+  <p class="eq">✓ Equipped</p><button class="cta">Nice!</button>
+</div></div>`;
+
+const OPTIONS = [
+  { id: 'A', title: 'Character-modal stats, real icons', cls: '', note: 'Stats flow inline as in the gear rows: the stat’s own icon, a bright amount, then the dim stat name, wrapping when full. Effect is the same italic rarity-coloured line. Diamond frame kept.' }
+];
+document.getElementById('root').innerHTML = OPTIONS.map((o) => `<section class="row">
+  <h2 class="engraved"><b>${o.id}</b>${o.title}</h2><p>${o.note}</p>
+  <div class="cards">${ITEMS.map((it) => card(it, o.cls)).join('')}</div></section>`).join('');
+</script>
+</body>
+</html>

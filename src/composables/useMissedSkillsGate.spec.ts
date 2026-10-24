@@ -101,7 +101,9 @@ describe('useMissedSkillsGate', () => {
 
     const habit = habitStore.addHabit('Meditate', 'daily', 'medium', false, createRng());
     habitStore.updateHabit({ ...habit, damageType: 'physical' }); // deterministic damage type
-    bossStore.setBoss({ ...bossStore.boss, health: 1_000_000 });
+    // reflectPct pinned to 0: the store's boss is rolled from an unseeded rng,
+    // and a reflecting boss (~1 in 5) would bounce damage back on the reward hit.
+    bossStore.setBoss({ ...bossStore.boss, health: 1_000_000, reflectPct: 0 });
     const healthBefore = characterStore.character.currentHealth;
     const bossHealthBefore = bossStore.boss.health;
 

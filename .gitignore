@@ -25,3 +25,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Raw FreePixel downloads: the license forbids redistributing them, so only
+# the processed sprites under public/sprites are committed.
+assets/

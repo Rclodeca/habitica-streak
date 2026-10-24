@@ -4,6 +4,7 @@ import {
   createCharacter,
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
+  heroClassFor,
   MAX_HERO_NAME_LENGTH,
   migrateCharacter,
   nameCharacter,
@@ -279,5 +280,30 @@ describe('nameCharacter', () => {
     const { name, ...rest } = nameCharacter(character, 'Aria');
     expect(name).toBe('Aria');
     expect(rest).toEqual(character);
+  });
+});
+
+describe('heroClassFor', () => {
+  const withSplit = (physicalDamage: number, magicDamage: number) => ({
+    starterStats: { physicalDamage, magicDamage, healing: 0, health: 0, trueDamage: 0 },
+  });
+
+  it.each(TUNING.DAMAGE_SPLIT_RATIOS.flatMap(([physical, magic]) => [
+    [physical, magic, physical * 1.05, magic * 0.95],
+    [physical, magic, physical * 0.95, magic * 1.05],
+  ]))('reads a %s/%s split the same at either jitter extreme', (physical, magic, physicalDamage, magicDamage) => {
+    const expected = physical > magic ? 'warrior' : physical < magic ? 'cleric' : 'ranger';
+    expect(heroClassFor(withSplit(physicalDamage, magicDamage))).toBe(expected);
+  });
+
+  it('gives every freshly rolled character a class that matches its split', () => {
+    const rng = createRng();
+    for (let i = 0; i < 200; i++) {
+      const character = createCharacter(rng);
+      const { physicalDamage, magicDamage } = character.starterStats;
+      const share = physicalDamage / (physicalDamage + magicDamage);
+      const expected = share > 0.55 ? 'warrior' : share < 0.45 ? 'cleric' : 'ranger';
+      expect(heroClassFor(character)).toBe(expected);
+    }
   });
 });

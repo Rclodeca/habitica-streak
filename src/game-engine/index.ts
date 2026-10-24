@@ -25,11 +25,13 @@ export {
   createCharacter,
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
+  heroClassFor,
   MAX_HERO_NAME_LENGTH,
   migrateCharacter,
   nameCharacter,
   randomizeStat,
 } from './character';
+export type { HeroClass } from './character';
 
 export {
   addExpAndResolveLevelUps,
@@ -128,7 +130,6 @@ export {
   assignNewItemUnlockTiers,
   availableRelics,
   backfillUnlockTiers,
-  bodySpriteFor,
   describeItemBonus,
   describeItemBonusParts,
   doublableItems,

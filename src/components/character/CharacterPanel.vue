@@ -195,6 +195,18 @@ const newHabitTiles = computed(() => [
 ]);
 
 const equippedItems = computed(() => equippedSlots.value.flatMap((item) => (item ? [item] : [])));
+
+// The gear list draws each art pixel as a whole block of screen pixels, so
+// one-pixel lines (staffs, blades) come out even instead of thin and blotchy.
+// Item art comes as 240px files (80 art pixels at 3x, drawn 2x2) or older
+// 68px files (34 coarser art pixels at 2x, drawn 3x3); either way the item
+// itself lands at about 68px. Other sizes just fit the slot.
+const GEAR_ART_PX: Record<number, number> = { 240: 160, 68: 102 };
+const gearArtPx = ref<Record<string, number>>({});
+function sizeGearArt(itemId: string, event: Event) {
+  const px = GEAR_ART_PX[(event.target as HTMLImageElement).naturalWidth];
+  if (px) gearArtPx.value[itemId] = px;
+}
 const emptySlotCount = computed(() => slotCount.value - equippedItems.value.length);
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
@@ -316,7 +328,14 @@ onBeforeUnmount(() => {
             :class="[`rarity-${item.rarity}`, { enchanted: itemDoubleFactor(character, item.id) > 1 }]"
           >
             <span class="gear-icon">
-              <img :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
+              <span class="gear-art">
+                <img
+                  :src="`${baseUrl}sprites/${item.icon}.png`"
+                  :alt="item.name"
+                  :style="{ '--art': gearArtPx[item.id] ? `${gearArtPx[item.id]}px` : undefined }"
+                  @load="sizeGearArt(item.id, $event)"
+                />
+              </span>
             </span>
             <div class="gear-text">
               <span class="gear-name">
@@ -586,23 +605,48 @@ onBeforeUnmount(() => {
   border-left-color: var(--border);
 }
 
+/* A recessed slot: rarity hairline, a dark inner bevel and a faint glow. */
 .gear-icon {
+  position: relative;
   flex-shrink: 0;
-  width: 72px;
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle, color-mix(in srgb, var(--rarity) 28%, transparent), transparent 70%);
-  border-radius: 8px;
+  width: 80px;
+  height: 80px;
+  border: 1px solid color-mix(in srgb, var(--rarity) 55%, transparent);
+  border-radius: 4px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--rarity) 22%, transparent), rgba(0, 0, 0, 0.55) 72%);
+  box-shadow:
+    inset 0 0 0 3px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 4px color-mix(in srgb, var(--rarity) 22%, transparent),
+    0 0 14px -6px var(--rarity);
 }
 
-.gear-icon img {
-  width: 100%;
-  height: 100%;
+/* Clips the art's transparent padding, which overflows the slot at --art. */
+.gear-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+/* --art is set once the image loads (see sizeGearArt). The rim is a dark
+   rarity tone around the silhouette, which thickens thin items. */
+.gear-art img {
+  --rim: color-mix(in srgb, var(--rarity) 55%, #000);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--art, 100%);
+  height: var(--art, 100%);
   object-fit: contain;
+  transform: translate(-50%, -50%);
   image-rendering: pixelated;
-  transform: scale(1.7);
+  pointer-events: none;
+  filter:
+    drop-shadow(2px 0 0 var(--rim))
+    drop-shadow(-2px 0 0 var(--rim))
+    drop-shadow(0 2px 0 var(--rim))
+    drop-shadow(0 -2px 0 var(--rim))
+    drop-shadow(0 0 6px color-mix(in srgb, var(--rarity) 45%, transparent));
 }
 
 .gear-text {

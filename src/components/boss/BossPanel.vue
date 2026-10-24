@@ -13,11 +13,10 @@ import StatIcon from '../ui/StatIcon.vue';
 import type { StatIconName } from '../ui/statIcons';
 import Sprite from '../ui/Sprite.vue';
 
-// Boss art from HabitRPG/habitica-images (CC-BY-NC-SA 3.0, see CREDITS.md),
-// picked to match each personality's emphasized stat and escalate visually
-// within its family as PERSONALITY_NAME's flavor names climb in intensity
-// (boss.ts) — every one of the 18 personalities now has its own distinct
-// sprite, none reused/borrowed.
+// Boss art from FreePixel (see CREDITS.md), picked to match each
+// personality's emphasized stat and escalate within its family as
+// PERSONALITY_NAME's flavor names climb in intensity (boss.ts) — every one
+// of the 18 personalities has its own distinct sprite.
 const PERSONALITY_SPRITE: Record<Personality, string> = {
   balanced: 'bosses/balanced',
   tank: 'bosses/tank',

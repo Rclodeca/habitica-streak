@@ -37,8 +37,6 @@ const rng = createRng();
 const options = ref<EventDef[] | null>(null);
 // The item just enchanted, shown on its own screen until the player continues.
 const revealed = ref<ItemDef | null>(null);
-// Temporary test hook: the reroll picker opened from the menu, outside any level-up pick.
-const devReroll = ref(false);
 
 export function useEventChoice() {
   const characterStore = useCharacterStore();
@@ -120,9 +118,7 @@ export function useEventChoice() {
     habitStore.setHabits(habits);
     const rerolled = habits.find((h) => h.id === habitId);
     if (rerolled) activityLogStore.addEntry({ kind: 'skill-rerolled', habitName: rerolled.name, damageType: rerolled.damageType });
-    // A menu-opened reroll isn't a level-up pick, so it doesn't spend one.
-    if (devReroll.value) devReroll.value = false;
-    else finish('reroll-skill');
+    finish('reroll-skill');
   }
 
   /** Creates the side quest, promising it one of the currently available relics at random. */
@@ -137,5 +133,5 @@ export function useEventChoice() {
     revealed.value = null;
   }
 
-  return { pending, choices, revealed, devReroll, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal };
+  return { pending, choices, revealed, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal };
 }

@@ -6,7 +6,6 @@ import {
   assignNewItemUnlockTiers,
   availableRelics,
   backfillUnlockTiers,
-  bodySpriteFor,
   describeItemBonus,
   describeItemBonusParts,
   ITEM_CATALOG,
@@ -361,54 +360,6 @@ describe('rollItemDrops', () => {
       const result = rollItemDrops(character, 50, createRng(seed));
       expect(result.every((item) => !item.levelGated)).toBe(true);
     }
-  });
-});
-
-describe('bodySpriteFor', () => {
-  const itemNamed = itemById;
-
-  it('returns null for no item', () => {
-    expect(bodySpriteFor(null)).toBeNull();
-  });
-
-  it('returns null for an expGain item (no body slot)', () => {
-    expect(bodySpriteFor(itemNamed('lucky-coin'))).toBeNull();
-  });
-
-  it('returns null for a critChance item (no body slot)', () => {
-    expect(bodySpriteFor(itemNamed('lucky-dagger'))).toBeNull();
-  });
-
-  it('returns null for the consumable Phoenix Feather (no stat, no body slot)', () => {
-    expect(bodySpriteFor(itemNamed('phoenix-feather'))).toBeNull();
-  });
-
-  it.each([
-    ['rusty-blade', 'player/weapon-physical-1'],
-    ['steel-sword', 'player/weapon-physical-2'],
-    ['warlords-greatsword', 'player/weapon-physical-3'],
-    ['apprentice-wand', 'player/weapon-magic-1'],
-    ['arcane-staff', 'player/weapon-magic-2'],
-    ['archmages-rod', 'player/weapon-magic-3'],
-    ['padded-vest', 'player/armor-1'],
-    ['chainmail-hauberk', 'player/armor-2'],
-    ['plate-armor', 'player/armor-3'],
-    ['novices-charm', 'player/shield-1'],
-    ['blessed-censer', 'player/shield-2'],
-    ['sacred-chalice', 'player/shield-3'],
-  ])('maps %s to %s', (id, expected) => {
-    expect(bodySpriteFor(itemNamed(id))).toBe(expected);
-  });
-
-  it('maps a hybrid item to a tier by threshold, not exact match, using its primary stat', () => {
-    expect(bodySpriteFor(itemNamed('battlemage-gauntlets'))).toBe('player/weapon-physical-1'); // bonusPercent 4
-    expect(bodySpriteFor(itemNamed('chaos-blade'))).toBe('player/weapon-physical-3'); // bonusPercent 15
-  });
-
-  it('maps the first positive body-relevant percent bonus, skipping drawbacks', () => {
-    expect(bodySpriteFor(itemNamed('void-crystal'))).toBe('player/weapon-magic-3'); // +38% magic, -10% health
-    expect(bodySpriteFor(itemNamed('glass-crown'))).toBeNull(); // allDamage has no body slot; the health bonus is a drawback
-    expect(bodySpriteFor(itemNamed('titans-lifeblood'))).toBe('player/shield-3'); // +30% healing first
   });
 });
 

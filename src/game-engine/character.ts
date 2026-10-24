@@ -41,6 +41,24 @@ export function createCharacter(rng: Rng): Character {
   };
 }
 
+export type HeroClass = 'warrior' | 'cleric' | 'ranger';
+
+// Physical share of the starting physical+magic pool past which a run reads
+// as leaning one way. DAMAGE_SPLIT_RATIOS only rolls 50/50, 60/40 or 70/30
+// (either way) before ±5% jitter, so these cut cleanly between the even
+// split and the leaning ones.
+const WARRIOR_MIN_PHYSICAL_SHARE = 0.55;
+const CLERIC_MAX_PHYSICAL_SHARE = 0.45;
+
+/** The hero art for a run, read off its rolled starting stats: physical-leaning is a warrior, magic-leaning a cleric, an even split a ranger. */
+export function heroClassFor(character: Pick<Character, 'starterStats'>): HeroClass {
+  const { physicalDamage, magicDamage } = character.starterStats;
+  const physicalShare = physicalDamage / (physicalDamage + magicDamage);
+  if (physicalShare >= WARRIOR_MIN_PHYSICAL_SHARE) return 'warrior';
+  if (physicalShare <= CLERIC_MAX_PHYSICAL_SHARE) return 'cleric';
+  return 'ranger';
+}
+
 export const MAX_HERO_NAME_LENGTH = 16;
 export const DEFAULT_HERO_NAME = 'Nameless';
 

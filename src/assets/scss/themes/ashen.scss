@@ -56,12 +56,12 @@ $caps-lg: 0.85rem; // panel and popup titles
 
 // Gold L-brackets on the corners of a frame — all four, or just those along
 // one edge (`$edges: top` or `bottom`).
-@mixin corner-brackets($inset: -1px, $edges: top bottom) {
+@mixin corner-brackets($inset: -1px, $edges: top bottom, $length: 12px) {
   $layers: ();
   @each $edge in $edges {
     @each $side in left, right {
-      $layers: list.append($layers, linear-gradient(var(--accent-solid), var(--accent-solid)) $edge $side / 12px 1px no-repeat, $separator: comma);
-      $layers: list.append($layers, linear-gradient(var(--accent-solid), var(--accent-solid)) $edge $side / 1px 12px no-repeat, $separator: comma);
+      $layers: list.append($layers, linear-gradient(var(--accent-solid), var(--accent-solid)) $edge $side / $length 1px no-repeat, $separator: comma);
+      $layers: list.append($layers, linear-gradient(var(--accent-solid), var(--accent-solid)) $edge $side / 1px $length no-repeat, $separator: comma);
     }
   }
 
@@ -1026,23 +1026,6 @@ $caps-lg: 0.85rem; // panel and popup titles
     font-weight: 600;
   }
 
-  .hero .chips .chip {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid color-mix(in srgb, var(--rarity) 50%, transparent);
-    font-weight: 700;
-  }
-
-  .hero .chips .chip.enchanted {
-    border-color: var(--accent-solid);
-    background: rgba(200, 169, 110, 0.1);
-    color: var(--accent);
-  }
-
-  .chip-tip {
-    background: #0e0d0b;
-    border-color: $line-mid;
-  }
-
   .replace-row {
     background: rgba(0, 0, 0, 0.25);
     border-color: $line;
@@ -1224,6 +1207,11 @@ $caps-lg: 0.85rem; // panel and popup titles
 
   .gear-row.empty {
     border-left: 1px dashed $line;
+  }
+
+  .gear-icon::before {
+    @include corner-brackets(-1px, top bottom, 7px);
+    opacity: 0.9;
   }
 
   .gear-name {

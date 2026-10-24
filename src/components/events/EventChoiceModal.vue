@@ -13,25 +13,16 @@ import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
 import { EVENT_ICON } from '../ui/statIcons';
 
-const { pending, choices, revealed, devReroll, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal } = useEventChoice();
+const { pending, choices, revealed, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal } = useEventChoice();
 const { eventChoiceVisible } = useModalPriority();
 const habitStore = useHabitStore();
 
 watchEffect(ensureChoices);
 
-const pickStep = ref<'choose' | 'reroll' | 'quest'>('choose');
+const step = ref<'choose' | 'reroll' | 'quest'>('choose');
 watch(choices, () => {
-  pickStep.value = 'choose';
+  step.value = 'choose';
 });
-// A menu-opened reroll shows the reroll step on its own, whatever a level-up pick is doing.
-const step = computed(() => (devReroll.value ? 'reroll' : pickStep.value));
-watch(devReroll, (on) => {
-  if (on) rerollPickId.value = null;
-});
-function back() {
-  if (devReroll.value) devReroll.value = false;
-  else pickStep.value = 'choose';
-}
 
 // Reroll step: tap a row to pick it, then confirm.
 const rerollPickId = ref<string | null>(null);
@@ -59,17 +50,17 @@ const subtitle = computed(() => {
 });
 
 function onPick(id: EventId) {
-  if (id === 'side-quest') pickStep.value = 'quest';
+  if (id === 'side-quest') step.value = 'quest';
   else if (id === 'reroll-skill') {
     rerollPickId.value = null;
-    pickStep.value = 'reroll';
+    step.value = 'reroll';
   }
   else choose(id);
 }
 </script>
 
 <template>
-  <Modal :model-value="eventChoiceVisible || devReroll" :dismissible="false" :title="revealed ? 'Enchanted!' : devReroll ? 'Reroll a skill' : 'Level up!'" max-width="640px">
+  <Modal :model-value="eventChoiceVisible" :dismissible="false" :title="revealed ? 'Enchanted!' : 'Level up!'" max-width="640px">
     <template v-if="revealed">
       <ItemHero :item="revealed" :factor="enchantFactor" />
       <button type="button" class="ok primary-button" @click="dismissReveal">Nice!</button>
@@ -105,12 +96,12 @@ function onPick(id: EventId) {
       <button type="button" class="ok primary-button" :disabled="!rerollPick" @click="confirmReroll">
         {{ rerollPick ? `Reroll ${rerollPick.name}` : 'Pick a skill' }}
       </button>
-      <button type="button" class="back" @click="back">← Back</button>
+      <button type="button" class="back" @click="step = 'choose'">← Back</button>
     </template>
 
     <template v-else>
       <QuestForm kind="side" @submit="chooseSideQuest" />
-      <button type="button" class="back" @click="back">← Back</button>
+      <button type="button" class="back" @click="step = 'choose'">← Back</button>
     </template>
     </template>
   </Modal>
