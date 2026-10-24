@@ -195,18 +195,6 @@ const newHabitTiles = computed(() => [
 ]);
 
 const equippedItems = computed(() => equippedSlots.value.flatMap((item) => (item ? [item] : [])));
-
-// The gear list draws each art pixel as a whole block of screen pixels, so
-// one-pixel lines (staffs, blades) come out even instead of thin and blotchy.
-// Item art comes as 240px files (80 art pixels at 3x, drawn 2x2) or older
-// 68px files (34 coarser art pixels at 2x, drawn 3x3); either way the item
-// itself lands at about 68px. Other sizes just fit the slot.
-const GEAR_ART_PX: Record<number, number> = { 240: 160, 68: 102 };
-const gearArtPx = ref<Record<string, number>>({});
-function sizeGearArt(itemId: string, event: Event) {
-  const px = GEAR_ART_PX[(event.target as HTMLImageElement).naturalWidth];
-  if (px) gearArtPx.value[itemId] = px;
-}
 const emptySlotCount = computed(() => slotCount.value - equippedItems.value.length);
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
@@ -266,11 +254,16 @@ onBeforeUnmount(() => {
           v-for="(item, i) in equippedSlots"
           :key="i"
           class="item-slot"
-          :class="{ pinned: pinnedSlot === i, 'right-edge': (i + 1) % gridCols === 0, enchanted: !!item && itemDoubleFactor(character, item.id) > 1 }"
+          :class="[
+            item ? `rarity-${item.rarity}` : 'empty',
+            { pinned: pinnedSlot === i, 'right-edge': (i + 1) % gridCols === 0, enchanted: !!item && itemDoubleFactor(character, item.id) > 1 },
+          ]"
           @click="item && togglePin(i)"
         >
           <template v-if="item">
-            <img class="item-icon" :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
+            <span class="item-art">
+              <img class="item-icon" :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
+            </span>
             <div class="item-tooltip">{{ item.name }} — <span class="item-stats">{{ describeItemBonus(item, itemDoubleFactor(character, item.id)) }}</span></div>
           </template>
         </div>
@@ -329,12 +322,7 @@ onBeforeUnmount(() => {
           >
             <span class="gear-icon">
               <span class="gear-art">
-                <img
-                  :src="`${baseUrl}sprites/${item.icon}.png`"
-                  :alt="item.name"
-                  :style="{ '--art': gearArtPx[item.id] ? `${gearArtPx[item.id]}px` : undefined }"
-                  @load="sizeGearArt(item.id, $event)"
-                />
+                <img :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
               </span>
             </span>
             <div class="gear-text">
@@ -447,31 +435,65 @@ onBeforeUnmount(() => {
   align-self: center;
 }
 
+/* The gear list's recessed slot (.gear-icon), scaled down to the cell. */
 .item-slot {
   position: relative;
   aspect-ratio: 1;
-  background: var(--border);
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--rarity) 55%, transparent);
+  border-radius: 4px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--rarity) 22%, transparent), rgba(0, 0, 0, 0.55) 72%);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 3px color-mix(in srgb, var(--rarity) 22%, transparent),
+    0 0 10px -5px var(--rarity);
   cursor: pointer;
 }
 
+.item-slot.empty {
+  --rarity: transparent;
+  border: 1px dashed var(--border);
+  cursor: default;
+}
+
 .item-slot.enchanted {
-  border: 1px solid var(--accent-solid);
+  border-color: var(--accent-solid);
 }
 
 .item-slot.enchanted .item-stats {
   color: var(--accent-solid);
 }
 
+/* Clips the art's transparent padding; the slot itself mustn't clip, its
+   tooltip overflows it. */
+.item-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  container-type: inline-size;
+}
+
+/* 1 screen px per art pixel (half the gear list's 2x), which puts the item at
+   34px. Cells too small for that (8 slots in the desktop column) fit it
+   instead, at 36 art pixels across the cell. Same rim and glow as the list. */
 .item-icon {
-  display: block;
-  width: 100%;
-  height: 100%;
+  --rim: color-mix(in srgb, var(--rarity) 55%, #000);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 80px;
+  height: 80px;
+  width: min(80px, 222cqw);
+  height: min(80px, 222cqw);
+  transform: translate(-50%, -50%);
+  image-rendering: pixelated;
   pointer-events: none;
-  /* The art has transparent padding around the item, so scaling past the
-     cell (the slot doesn't clip — the tooltip must overflow it) enlarges
-     the visible icon without growing the grid. */
-  transform: scale(1.45);
+  filter:
+    drop-shadow(1px 0 0 var(--rim))
+    drop-shadow(-1px 0 0 var(--rim))
+    drop-shadow(0 1px 0 var(--rim))
+    drop-shadow(0 -1px 0 var(--rim))
+    drop-shadow(0 0 3px color-mix(in srgb, var(--rarity) 45%, transparent));
 }
 
 .item-tooltip {
@@ -652,7 +674,7 @@ onBeforeUnmount(() => {
     0 0 14px -6px var(--rarity);
 }
 
-/* Clips the art's transparent padding, which overflows the slot at --art. */
+/* Clips the art's transparent padding, which overflows the slot. */
 .gear-art {
   position: absolute;
   inset: 0;
@@ -660,16 +682,17 @@ onBeforeUnmount(() => {
   border-radius: inherit;
 }
 
-/* --art is set once the image loads (see sizeGearArt). The rim is a dark
-   rarity tone around the silhouette, which thickens thin items. */
+/* Each art pixel as an even 2x2 block, so one-pixel lines (staffs, blades)
+   don't come out thin and blotchy: the 240px file is 80 art pixels at 3x,
+   which puts the item itself at 68px. The rim is a dark rarity tone around
+   the silhouette, which thickens thin items. */
 .gear-art img {
   --rim: color-mix(in srgb, var(--rarity) 55%, #000);
   position: absolute;
   left: 50%;
   top: 50%;
-  width: var(--art, 100%);
-  height: var(--art, 100%);
-  object-fit: contain;
+  width: 160px;
+  height: 160px;
   transform: translate(-50%, -50%);
   image-rendering: pixelated;
   pointer-events: none;

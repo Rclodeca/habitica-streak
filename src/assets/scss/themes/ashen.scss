@@ -335,18 +335,15 @@ $caps-lg: 0.85rem; // panel and popup titles
 
   // ---------- Character ----------
 
-  .item-slot {
-    background:
-      radial-gradient(circle at 50% 40%, rgba(255, 240, 210, 0.05), transparent 70%),
-      rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(200, 169, 110, 0.22);
-    box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.85);
+  // The slot is the gear list's well (CharacterPanel), with its gold ticks.
+  .item-slot:not(.empty)::before {
+    @include corner-brackets(-1px, top bottom, 5px);
+    opacity: 0.9;
   }
 
   .item-slot.enchanted {
-    border-color: var(--accent-solid);
     box-shadow:
-      inset 0 0 14px rgba(0, 0, 0, 0.85),
+      inset 0 0 0 2px rgba(0, 0, 0, 0.55),
       0 0 14px -3px rgba(230, 199, 127, 0.55);
   }
 
