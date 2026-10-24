@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — hero portrait (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* The top of the character modal. Today the hero art is squeezed to 96px,
+   about 1 screen px per art pixel. Every option after A draws it at its
+   file size, which is exactly 2 screen px per art pixel (the gear icons'
+   scale), so the hero is twice as big and as crisp as the items below. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a;
+  --rarity-rare: #7f9fd1;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, h4, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1400px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.cards { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; }
+.opt { width: 400px; max-width: 100%; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 10px; min-height: 60px; }
+
+/* Corner ticks, as on every Ashen frame. */
+.ticks { position: relative; }
+.ticks::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .8; z-index: 2;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / var(--t, 10px) 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px var(--t, 10px) no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / var(--t, 10px) 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px var(--t, 10px) no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / var(--t, 10px) 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px var(--t, 10px) no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / var(--t, 10px) 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px var(--t, 10px) no-repeat; }
+
+.modal { padding: 14px 12px; background: linear-gradient(180deg, rgba(27,24,21,.97), rgba(14,13,11,.99)); border: 1px solid var(--line); }
+.title { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; font-size: 13px; letter-spacing: .24em; color: var(--gold-hi); }
+.title::before, .title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid), transparent); }
+
+/* Hero box, as live. */
+.hero { display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid var(--line-mid); background: linear-gradient(180deg, rgba(200,169,110,.05), rgba(0,0,0,.3)); }
+.hero-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.hero-level { font-size: 13px; letter-spacing: .16em; color: var(--text-h); margin-bottom: 4px; }
+.num { font: 600 11px/1 'Cinzel', serif; letter-spacing: .12em; color: var(--text); text-align: right; }
+.hp { height: 8px; margin: 5px 0 6px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.32); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.hp i { display: block; width: 78%; height: 100%; background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 10px rgba(195,58,46,.35); }
+.xp { height: 5px; margin-bottom: 5px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.24); }
+.xp i { display: block; width: 16%; height: 100%; background: linear-gradient(90deg, #8a6a2c, #e6c77f); box-shadow: 0 0 8px rgba(230,199,127,.4); }
+
+/* The F gear row underneath, for scale. */
+.group-label { display: flex; align-items: center; gap: 12px; margin: 18px 0 8px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; color: var(--text); }
+.group-label::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.gear-row { --r: var(--rarity-rare); display: flex; align-items: center; gap: 10px; padding: 5px 10px; background: rgba(0,0,0,.25); border: 1px solid var(--line); border-left: 2px solid var(--r); border-radius: 8px; }
+.gear-icon { --t: 7px; position: relative; flex-shrink: 0; width: 80px; height: 80px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--r) 55%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--r) 22%, transparent), rgba(0,0,0,.55) 72%);
+  box-shadow: inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px color-mix(in srgb, var(--r) 22%, transparent), 0 0 14px -6px var(--r); }
+.gear-art { position: absolute; inset: 0; overflow: hidden; }
+.gear-art img { --rim: color-mix(in srgb, var(--r) 55%, #000); position: absolute; left: 50%; top: 50%; width: 160px; height: 160px; transform: translate(-50%, -50%); image-rendering: pixelated;
+  filter: drop-shadow(2px 0 0 var(--rim)) drop-shadow(-2px 0 0 var(--rim)) drop-shadow(0 2px 0 var(--rim)) drop-shadow(0 -2px 0 var(--rim)) drop-shadow(0 0 6px color-mix(in srgb, var(--r) 45%, transparent)); }
+.gear-name { color: var(--text-h); font-weight: 700; font-size: 18px; }
+.gear-rarity { margin-left: 6px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--r); }
+.gear-bonus { display: block; font-size: 15px; color: var(--text-h); }
+.gear-bonus span { color: var(--text); }
+
+/* The hero art. 184px file = 92 art px; drawn at its own size = 2x. */
+.art { position: relative; flex-shrink: 0; display: grid; place-items: center; }
+.art img { display: block; image-rendering: pixelated; position: relative; z-index: 1; }
+
+/* A: today. */
+.today .art { padding: 4px; background: radial-gradient(circle, rgba(230,199,127,.12), transparent 70%); border-radius: 12px; }
+.today .art img { width: 96px; height: 96px; }
+
+/* B: portrait well — the gear slot, scaled up. */
+.well .art { --t: 10px; width: 164px; height: 196px; overflow: hidden; border: 1px solid var(--line-mid); border-radius: 4px;
+  background: radial-gradient(ellipse 70% 60% at 50% 42%, rgba(230,199,127,.16), rgba(0,0,0,.6) 75%);
+  box-shadow: inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px rgba(200,169,110,.18), 0 0 18px -8px var(--gold); }
+.well .art::after { content: ''; position: absolute; left: 50%; bottom: 14px; width: 110px; height: 14px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.75), transparent); }
+.well .art img { margin-top: 6px; }
+
+/* C: shrine alcove — an arched niche, lit from above, fog at the feet. */
+.alcove .art { width: 164px; height: 204px; overflow: hidden; border: 1px solid var(--line-mid); border-radius: 82px 82px 3px 3px;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 18%, rgba(230,199,127,.22), transparent 70%),
+    linear-gradient(180deg, rgba(40,33,25,.6), rgba(0,0,0,.7));
+  box-shadow: inset 0 0 0 3px rgba(0,0,0,.5), inset 0 0 0 4px rgba(200,169,110,.16), 0 0 22px -8px var(--gold); }
+.alcove .art::after { content: ''; position: absolute; inset: auto 0 0; height: 46px; z-index: 2; background: linear-gradient(0deg, rgba(150,140,125,.22), transparent); filter: blur(2px); }
+.alcove .art img { margin-top: 16px; }
+
+/* D: stage — the hero stands centred, stats below at full width. */
+.stage .hero { flex-direction: column; align-items: stretch; gap: 8px; padding-top: 6px; }
+.stage .art { height: 196px;
+  background: radial-gradient(ellipse 45% 70% at 50% 45%, rgba(230,199,127,.14), transparent 70%); }
+.stage .art::after { content: ''; position: absolute; left: 12%; right: 12%; bottom: 10px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .55; }
+.stage .art::before { content: ''; position: absolute; left: 50%; bottom: 4px; width: 130px; height: 14px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(230,199,127,.2), transparent); }
+.stage .hero-level { text-align: center; }
+
+/* E: no box, outlined — the gear icons' rim and glow, on a lit plinth. */
+.outline .art { width: 164px; height: 190px; }
+.outline .art img { margin: 0 -10px; filter: drop-shadow(2px 0 0 #3a2f1f) drop-shadow(-2px 0 0 #3a2f1f) drop-shadow(0 2px 0 #3a2f1f) drop-shadow(0 -2px 0 #3a2f1f) drop-shadow(0 0 10px rgba(230,199,127,.3)); }
+.outline .art::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 120px; height: 24px; transform: translateX(-50%); border: 1px solid rgba(200,169,110,.45); border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(230,199,127,.22), rgba(0,0,0,.4)); box-shadow: 0 0 16px -4px rgba(230,199,127,.35); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Hero portrait</h1>
+  <p>The top of the character modal, at phone width, with one gear row for scale.</p>
+  <div class="cards" id="root"></div>
+</div>
+
+<script>
+const OPTIONS = [
+  { id: 'A', cls: 'today', title: 'Today', note: 'For reference. The art is squeezed to 96px, about 1 screen pixel per art pixel, half the gear icons’ scale.' },
+  { id: 'B', cls: 'well', title: 'Portrait well', note: 'The gear slot scaled up: a recessed, gold-ticked frame with a warm backlight and a shadow at the feet. Hero at 2x like the items.' },
+  { id: 'C', cls: 'alcove', title: 'Shrine alcove', note: 'An arched niche lit from above, with fog at the feet. More Souls than inventory.' },
+  { id: 'D', cls: 'stage', title: 'Stage', note: 'The hero stands centred on a gold floor line, stats below at full width. Biggest presence, taller header.' },
+  { id: 'E', cls: 'outline', title: 'Outlined on a plinth', note: 'No box. The hero gets the gear icons’ dark rim and a glow, standing on a lit disc.' },
+];
+
+const hero = (o) => `<div class="hero ticks">
+  <div class="art ${o.cls === 'well' ? 'ticks' : ''}"><img src="../../public/sprites/player/warrior.png" alt="" /></div>
+  <div class="hero-info">
+    <span class="hero-level engraved">Level 2</span>
+    <span class="num">1050 / 1349</span>
+    <div class="hp"><i></i></div>
+    <div class="xp"><i></i></div>
+    <span class="num">8 / 50</span>
+  </div>
+</div>`;
+
+const gear = `<h4 class="group-label">EQUIPMENT</h4>
+<div class="gear-row">
+  <span class="gear-icon ticks"><span class="gear-art"><img src="../../public/sprites/items/berserkers-war-axe.png" alt="" /></span></span>
+  <div><span class="gear-name">Berserker’s War Axe<span class="gear-rarity">rare</span></span>
+  <span class="gear-bonus">+24% <span>Physical damage</span></span><span class="gear-bonus">+4% <span>Lifesteal</span></span></div>
+</div>`;
+
+document.getElementById('root').innerHTML = OPTIONS.map((o) => `<section class="opt">
+  <h2 class="engraved"><b>${o.id}</b>${o.title}</h2><p>${o.note}</p>
+  <div class="modal ticks ${o.cls}"><h3 class="title engraved">Nameless</h3>${hero(o)}${gear}</div>
+</section>`).join('');
+</script>
+</body>
+</html>
