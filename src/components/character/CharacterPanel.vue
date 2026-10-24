@@ -17,7 +17,6 @@ import {
   ITEM_CATALOG,
   itemBonusPercent,
   itemFlatBonus,
-  MAX_EQUIP_SLOTS,
   maxEquipSlots,
   statAtLevel,
 } from '../../game-engine';
@@ -116,11 +115,8 @@ const expectedTrueDamage = computed(() =>
 // Sized to the character's current slot cap (4, 6 or 8 — see maxEquipSlots),
 // in whatever order they were equipped — empty ones render as blank grid
 // cells rather than being compacted away, so the grid never visually shifts
-// as items are gained/replaced. Slots not yet unlocked show only in the
-// details popup's Equipment list: drawn here too, 8 cells would shrink every
-// cell well below a tap target in this narrow panel.
+// as items are gained/replaced. Slots not yet unlocked aren't shown anywhere.
 const slotCount = computed(() => maxEquipSlots(character.value));
-const lockedSlotCount = computed(() => MAX_EQUIP_SLOTS - slotCount.value);
 const equippedSlots = computed(() =>
   Array.from({ length: slotCount.value }, (_, i) => {
     const itemId = character.value.equippedItemIds[i];
@@ -338,7 +334,6 @@ onBeforeUnmount(() => {
             </div>
           </li>
           <li v-for="n in emptySlotCount" :key="`empty-${n}`" class="gear-row empty">Empty slot</li>
-          <li v-for="n in lockedSlotCount" :key="`locked-${n}`" class="gear-row empty locked">Locked</li>
         </ul>
       </section>
 
@@ -570,8 +565,8 @@ onBeforeUnmount(() => {
 .gear-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.7rem;
+  gap: 0.6rem;
+  padding: 0.3rem 0.6rem;
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-left: 3px solid var(--rarity);
@@ -591,14 +586,10 @@ onBeforeUnmount(() => {
   border-left-color: var(--border);
 }
 
-.gear-row.locked {
-  opacity: 0.5;
-}
-
 .gear-icon {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: 72px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -611,7 +602,7 @@ onBeforeUnmount(() => {
   height: 100%;
   object-fit: contain;
   image-rendering: pixelated;
-  transform: scale(1.4);
+  transform: scale(1.7);
 }
 
 .gear-text {

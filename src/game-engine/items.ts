@@ -203,7 +203,7 @@ const STAT_LABEL: Record<BoostableStat, string> = {
   trueDamage: 'True damage (ignores armor and magic resist)',
   expGain: 'EXP gain',
   critChance: 'Crit chance',
-  lifesteal: 'Lifesteal (heal from damage dealt)',
+  lifesteal: 'Lifesteal',
   armorPen: 'Armor penetration',
   magicPen: 'Magic penetration',
   armor: 'Armor',

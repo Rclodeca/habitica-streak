@@ -86,8 +86,8 @@ function toggleChip(index: number) {
 }
 
 .icon-frame {
-  width: 112px;
-  height: 112px;
+  width: 150px;
+  height: 150px;
   display: flex;
   align-items: center;
   justify-content: center;

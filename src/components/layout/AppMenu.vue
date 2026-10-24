@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { Check, Menu, Trophy, Wrench } from 'lucide-vue-next';
+import { useDevBossArt } from '../../composables/useDevBossArt';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { THEMES, useThemeStore } from '../../store/themeStore';
 import type { Theme } from '../../store/themeStore';
@@ -14,23 +15,26 @@ const emit = defineEmits<{ 'high-scores': [] }>();
 const themeStore = useThemeStore();
 const characterStore = useCharacterStore();
 const { enqueueDrops } = useItemDropQueue();
+const { cycle: cycleBossArt } = useDevBossArt();
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
 
-// Temporary: the item whose art is being tried out.
-const DEV_ITEM_ID = 'berserkers-war-axe';
+// Temporary art trial: the items whose art is being tried out.
+const DEV_ITEM_IDS = ['berserkers-war-axe', 'shadow-dagger', 'amethyst-scimitar', 'ember-staff', 'molten-battle-axe'];
 
 function openHighScores() {
   open.value = false;
   emit('high-scores');
 }
 
-// Hands over the test item through the normal drop flow, so it auto-equips or
-// asks which item to replace. A no-op if it's already owned.
+// Hands over the trial items through the normal drop flow, so each auto-equips
+// or asks which item to replace (already-owned ones are skipped), and swaps the
+// boss panel to the next trial boss art (the last tap restores the real art).
 function devMode() {
   open.value = false;
-  const item = characterStore.grantItem(DEV_ITEM_ID);
-  if (item) enqueueDrops([item]);
+  const items = DEV_ITEM_IDS.map((id) => characterStore.grantItem(id)).filter((item) => item !== null);
+  if (items.length) enqueueDrops(items);
+  cycleBossArt();
 }
 
 function pickTheme(theme: Theme) {

@@ -998,10 +998,12 @@ $caps-lg: 0.85rem; // panel and popup titles
     box-shadow: 0 0 24px -10px var(--rarity);
   }
 
+  // Rotated 45°, so it overflows its box by ~(√2−1)/2 of its width; the
+  // margins keep that clear of the text around it.
   .icon-frame {
-    width: 92px;
-    height: 92px;
-    margin: 1.1rem 0 1.2rem;
+    width: 130px;
+    height: 130px;
+    margin: 1.9rem 0 2rem;
     transform: rotate(45deg);
     border: 1px solid var(--rarity);
     background: radial-gradient(circle, color-mix(in srgb, var(--rarity) 24%, transparent), rgba(0, 0, 0, 0.45) 75%);

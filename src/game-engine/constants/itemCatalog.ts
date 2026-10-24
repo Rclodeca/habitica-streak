@@ -115,4 +115,9 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'echoing-blade', name: 'Echoing Blade', icon: 'items/echoing-blade', type: 'equipment', rarity: 'relic', unlockLevel: 30, bonuses: [{ stat: 'physicalDamage', percent: 20 }, { stat: 'magicDamage', percent: 20 }], effect: 'echoing-blade', effectText: 'Overkill damage carries into the next boss.' },
   // Exception: all damage types, paid for in health.
   { id: 'glass-crown', name: 'Glass Crown', icon: 'items/glass-crown', type: 'equipment', rarity: 'relic', unlockLevel: 30, bonuses: [{ stat: 'allDamage', percent: 40 }, { stat: 'health', percent: -30 }] },
+  // --- Art trial (Dev mode in AppMenu hands these out): unlockLevel 999 keeps them out of every drop roll. Placeholder stats. ---
+  { id: 'shadow-dagger', name: 'Shadow Dagger', icon: 'items/shadow-dagger', type: 'equipment', rarity: 'uncommon', unlockLevel: 999, bonuses: [{ stat: 'physicalDamage', percent: 7 }, { stat: 'critChance', percent: 4 }, { stat: 'health', percent: 3 }] },
+  { id: 'amethyst-scimitar', name: 'Amethyst Scimitar', icon: 'items/amethyst-scimitar', type: 'equipment', rarity: 'uncommon', unlockLevel: 999, bonuses: [{ stat: 'physicalDamage', percent: 10 }, { stat: 'armor', flat: 75 }] },
+  { id: 'ember-staff', name: 'Ember Staff', icon: 'items/ember-staff', type: 'equipment', rarity: 'rare', unlockLevel: 999, bonuses: [{ stat: 'magicDamage', percent: 30 }, { stat: 'critChance', percent: 6 }] },
+  { id: 'molten-battle-axe', name: 'Molten Battle Axe', icon: 'items/molten-battle-axe', type: 'equipment', rarity: 'rare', unlockLevel: 999, bonuses: [{ stat: 'physicalDamage', percent: 22 }, { stat: 'armor', flat: 150 }] },
 ];
