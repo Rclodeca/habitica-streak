@@ -27,5 +27,6 @@ dist-ssr
 *.sw?
 
 # Raw FreePixel downloads: the license forbids redistributing them, so only
-# the processed sprites under public/sprites are committed.
-assets/
+# the processed sprites under public/sprites are committed. Anchored to the
+# root so src/assets stays tracked.
+/assets/
