@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { Check, Menu, Trophy } from 'lucide-vue-next';
+import { Check, Menu, Trophy, Wrench } from 'lucide-vue-next';
+import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { THEMES, useThemeStore } from '../../store/themeStore';
 import type { Theme } from '../../store/themeStore';
+import { useCharacterStore } from '../../store/characterStore';
 
 // Top-right menu: High Scores and the theme picker. Picking a theme keeps the
 // menu open so themes can be flipped back and forth; anything else, a tap
@@ -10,12 +12,25 @@ import type { Theme } from '../../store/themeStore';
 const emit = defineEmits<{ 'high-scores': [] }>();
 
 const themeStore = useThemeStore();
+const characterStore = useCharacterStore();
+const { enqueueDrops } = useItemDropQueue();
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
+
+// Temporary: the item whose art is being tried out.
+const DEV_ITEM_ID = 'berserkers-war-axe';
 
 function openHighScores() {
   open.value = false;
   emit('high-scores');
+}
+
+// Hands over the test item through the normal drop flow, so it auto-equips or
+// asks which item to replace. A no-op if it's already owned.
+function devMode() {
+  open.value = false;
+  const item = characterStore.grantItem(DEV_ITEM_ID);
+  if (item) enqueueDrops([item]);
 }
 
 function pickTheme(theme: Theme) {
@@ -60,6 +75,8 @@ onBeforeUnmount(() => {
       >
         <Check :size="15" class="tick" :class="{ on: themeStore.theme === option.id }" />{{ option.label }}
       </button>
+      <div class="menu-divider" role="separator" />
+      <button type="button" class="menu-item" role="menuitem" @click="devMode"><Wrench :size="15" />Dev mode</button>
     </div>
   </div>
 </template>
