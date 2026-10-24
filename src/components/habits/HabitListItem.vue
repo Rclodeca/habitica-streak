@@ -10,6 +10,7 @@ import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
 import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
 import StatIcon from '../ui/StatIcon.vue';
+import { MIN_STREAK_SHOWN, streakStyleFor } from './habitDisplay';
 import SkillSigil from './SkillSigil.vue';
 import { WEEKDAY_SHORT } from './weekdays';
 
@@ -46,25 +47,8 @@ const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
 
 const damageTypeColor = computed(() => DAMAGE_TYPE_COLORS[props.habit.damageType]);
 
-// Streaks stay hidden until they reach this many.
-const MIN_STREAK_SHOWN = 3;
 const showStreak = computed(() => props.habit.streakCount >= MIN_STREAK_SHOWN);
-
-const STREAK_TIERS = [
-  { weight: 500, size: 0.75, bright: 0 },
-  { weight: 600, size: 0.82, bright: 35 },
-  { weight: 700, size: 0.92, bright: 70 },
-  { weight: 800, size: 1.05, bright: 100 },
-];
-const streakStyle = computed(() => {
-  const n = props.habit.streakCount;
-  const tier = STREAK_TIERS[n >= 20 ? 3 : n >= 10 ? 2 : n >= 5 ? 1 : 0];
-  return {
-    fontWeight: tier.weight,
-    fontSize: `${tier.size}rem`,
-    color: `color-mix(in srgb, var(--text-h) ${tier.bright}%, var(--text))`,
-  };
-});
+const streakStyle = computed(() => streakStyleFor(props.habit.streakCount));
 const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);
 
 // A Special or Ult skill's sigil travels with the name's last word, so it

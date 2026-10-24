@@ -5,41 +5,71 @@ import { useEventChoice } from '../../composables/useEventChoice';
 import { useModalPriority } from '../../composables/useModalPriority';
 import { TUNING } from '../../game-engine/constants/tuning';
 import { useHabitStore } from '../../store/habitStore';
+import RerollSkillRow from '../habits/RerollSkillRow.vue';
+import { sortByDamageType } from '../habits/habitDisplay';
 import QuestForm from '../quests/QuestForm.vue';
 import ItemHero from '../ui/ItemHero.vue';
 import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
 import { EVENT_ICON } from '../ui/statIcons';
 
-const { pending, choices, revealed, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal } = useEventChoice();
+const { pending, choices, revealed, devReroll, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal } = useEventChoice();
 const { eventChoiceVisible } = useModalPriority();
 const habitStore = useHabitStore();
 
 watchEffect(ensureChoices);
 
-const step = ref<'choose' | 'reroll' | 'quest'>('choose');
+const pickStep = ref<'choose' | 'reroll' | 'quest'>('choose');
 watch(choices, () => {
-  step.value = 'choose';
+  pickStep.value = 'choose';
 });
+// A menu-opened reroll shows the reroll step on its own, whatever a level-up pick is doing.
+const step = computed(() => (devReroll.value ? 'reroll' : pickStep.value));
+watch(devReroll, (on) => {
+  if (on) rerollPickId.value = null;
+});
+function back() {
+  if (devReroll.value) devReroll.value = false;
+  else pickStep.value = 'choose';
+}
+
+// Reroll step: tap a row to pick it, then confirm.
+const rerollPickId = ref<string | null>(null);
+const dailyHabits = computed(() => sortByDamageType(habitStore.habits.filter((habit) => habit.period === 'daily')));
+const weeklyHabits = computed(() => sortByDamageType(habitStore.habits.filter((habit) => habit.period === 'weekly')));
+const rerollPick = computed(() => habitStore.habits.find((habit) => habit.id === rerollPickId.value));
+
+function togglePick(id: string) {
+  rerollPickId.value = rerollPickId.value === id ? null : id;
+}
+
+function confirmReroll() {
+  if (!rerollPick.value) return;
+  chooseReroll(rerollPick.value.id);
+  rerollPickId.value = null;
+}
 
 const enchantFactor = TUNING.DOUBLED_ITEM_MULTIPLIER;
 
 const subtitle = computed(() => {
   if (revealed.value) return '';
-  if (step.value === 'reroll') return 'Pick a skill to re-roll';
+  if (step.value === 'reroll') return 'Pick a skill to re-roll. Its damage type changes; nothing else does.';
   if (step.value === 'quest') return 'Name your deed';
   return pending.value > 1 ? `Choose 1 event · ${pending.value} picks waiting` : 'Choose 1 event';
 });
 
 function onPick(id: EventId) {
-  if (id === 'side-quest') step.value = 'quest';
-  else if (id === 'reroll-skill') step.value = 'reroll';
+  if (id === 'side-quest') pickStep.value = 'quest';
+  else if (id === 'reroll-skill') {
+    rerollPickId.value = null;
+    pickStep.value = 'reroll';
+  }
   else choose(id);
 }
 </script>
 
 <template>
-  <Modal :model-value="eventChoiceVisible" :dismissible="false" :title="revealed ? 'Enchanted!' : 'Level up!'" max-width="640px">
+  <Modal :model-value="eventChoiceVisible || devReroll" :dismissible="false" :title="revealed ? 'Enchanted!' : devReroll ? 'Reroll a skill' : 'Level up!'" max-width="640px">
     <template v-if="revealed">
       <ItemHero :item="revealed" :factor="enchantFactor" />
       <button type="button" class="ok primary-button" @click="dismissReveal">Nice!</button>
@@ -58,18 +88,29 @@ function onPick(id: EventId) {
     </div>
 
     <template v-else-if="step === 'reroll'">
-      <div class="list">
-        <button v-for="habit in habitStore.habits" :key="habit.id" type="button" class="row" @click="chooseReroll(habit.id)">
-          <strong>{{ habit.name }}</strong>
-          <span class="row-meta">{{ habit.period }} · currently {{ habit.damageType }}</span>
-        </button>
+      <div v-for="group in [{ label: 'Daily', habits: dailyHabits }, { label: 'Weekly', habits: weeklyHabits }]" :key="group.label" class="habit-group">
+        <template v-if="group.habits.length">
+          <h3 class="habit-group-title">{{ group.label }}</h3>
+          <ul class="reroll-list">
+            <RerollSkillRow
+              v-for="habit in group.habits"
+              :key="habit.id"
+              :habit="habit"
+              :selected="habit.id === rerollPickId"
+              @pick="togglePick(habit.id)"
+            />
+          </ul>
+        </template>
       </div>
-      <button type="button" class="back" @click="step = 'choose'">← Back</button>
+      <button type="button" class="ok primary-button" :disabled="!rerollPick" @click="confirmReroll">
+        {{ rerollPick ? `Reroll ${rerollPick.name}` : 'Pick a skill' }}
+      </button>
+      <button type="button" class="back" @click="back">← Back</button>
     </template>
 
     <template v-else>
       <QuestForm kind="side" @submit="chooseSideQuest" />
-      <button type="button" class="back" @click="step = 'choose'">← Back</button>
+      <button type="button" class="back" @click="back">← Back</button>
     </template>
     </template>
   </Modal>
@@ -134,31 +175,14 @@ function onPick(id: EventId) {
   text-transform: uppercase;
 }
 
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.habit-group {
+  margin-top: 0.75rem;
 }
 
-.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  text-align: left;
-  background: var(--code-bg);
-  border: 1px solid var(--border);
-}
-
-.row:hover {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-}
-
-.row-meta {
-  color: var(--text);
-  font-size: 0.85rem;
+.reroll-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .ok {

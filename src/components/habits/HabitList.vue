@@ -1,25 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { isDueOn } from '../../game-engine';
-import type { DamageType, Habit } from '../../game-engine';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
 import AddHabitModal from './AddHabitModal.vue';
 import HabitListItem from './HabitListItem.vue';
 import HabitStatsModal from './HabitStatsModal.vue';
+import { sortByDamageType } from './habitDisplay';
 
 const habitStore = useHabitStore();
 const debugClockStore = useDebugClockStore();
 const showAddModal = ref(false);
-
-// Healing first, then physical, then magic, then true damage
-// — stable sort preserves each damage type's original relative order.
-const DAMAGE_TYPE_ORDER: DamageType[] = ['healing', 'physical', 'magic', 'trueDamage'];
-function sortByDamageType(habits: Habit[]): Habit[] {
-  return [...habits].sort(
-    (a, b) => DAMAGE_TYPE_ORDER.indexOf(a.damageType) - DAMAGE_TYPE_ORDER.indexOf(b.damageType),
-  );
-}
 
 const dailyHabits = computed(() => sortByDamageType(habitStore.habits.filter((habit) => habit.period === 'daily')));
 // Set-day skills resting today fold away at the bottom of Daily.

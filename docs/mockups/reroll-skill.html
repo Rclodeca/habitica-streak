@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — reroll a skill (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* The reroll popup reuses the main skills list rows: same name, streak,
+   difficulty pips and damage number, grouped Daily / Weekly. The check is
+   gone (nothing to complete here). Tap a row to pick it, then confirm. */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a; --blood: #c8402f; --ash: #5c554a;
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 900px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.grid { display: flex; flex-wrap: wrap; gap: 34px 26px; justify-content: center; }
+.opt { display: flex; flex-direction: column; gap: 12px; width: 380px; max-width: 100%; }
+.opt h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); }
+.opt h2 b { color: var(--gold); font-weight: 600; margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 16px; line-height: 1.3; }
+
+.screen { padding: 22px 12px; background: rgba(0,0,0,.55); border: 1px solid rgba(200,169,110,.18); border-radius: 22px; }
+.modal { position: relative; padding: 16px 14px 14px; background: linear-gradient(180deg, rgba(27,24,21,.97), rgba(14,13,11,.99)); border: 1px solid var(--line); box-shadow: 0 20px 40px -24px rgba(0,0,0,.95); }
+.modal::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat; }
+.modal h3 { text-align: center; font-size: 12px; letter-spacing: .24em; color: var(--gold-hi); }
+.sub { text-align: center; font-style: italic; color: var(--text); font-size: 15px; margin: 4px 0 6px; }
+
+.group { display: flex; align-items: center; gap: 10px; margin: 12px 0 2px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .32em; text-transform: uppercase; color: var(--text); }
+.group::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-mid), transparent); }
+
+/* Same row as the main list; the leading slot holds a pick marker, not a check. */
+.skill { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 6px 4px 2px; text-align: left; border: 1px solid transparent; transition: background .2s, border-color .2s; }
+.skill:hover { background: rgba(255,255,255,.04); }
+.skill.bad::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: var(--blood); box-shadow: 0 0 8px var(--blood); }
+.skill .mk { flex-shrink: 0; width: 30px; display: grid; place-items: center; }
+.skill .mk i { width: 9px; height: 9px; transform: rotate(45deg); border: 1px solid var(--ash); transition: all .2s; }
+.skill.sel { background: rgba(200,169,110,.1); border-color: var(--line-mid); }
+.skill.sel .mk i { width: 11px; height: 11px; border-color: #f3dda6; background: radial-gradient(circle, #fff3d0 0, #e6c77f 38%, #a8832f 82%); box-shadow: 0 0 12px 1px rgba(230,180,90,.55); }
+.skill .name { flex: 1; min-width: 0; font-weight: 600; color: var(--text-h); }
+.skill .tag { margin-left: .5em; font: 600 8.5px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text); vertical-align: .1em; }
+.skill .meta { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.skill .streak { min-width: 2.2rem; text-align: right; font: 600 11px/1 'Cinzel', serif; color: var(--text); }
+.skill .pips { display: flex; gap: 4px; }
+.skill .pips i { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid var(--ash); }
+.skill .pips i.on { background: var(--gold); border-color: var(--gold); }
+.skill .dmg { width: 48px; text-align: right; font: 600 14.5px/1 'Cinzel', serif; color: var(--c); }
+
+/* Option B: the damage type is named, so the reroll's effect reads. */
+.skill .type { flex-shrink: 0; font: 600 8.5px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--c); }
+
+.foot { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.cta { height: 44px; font: 600 11px/1 'Cinzel', serif; letter-spacing: .26em; text-transform: uppercase; color: var(--gold-hi); border: 1px solid var(--gold); background: rgba(200,169,110,.1); transition: opacity .2s; }
+.cta:disabled { opacity: .35; cursor: default; border-color: var(--line-mid); }
+.back { height: 40px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .26em; text-transform: uppercase; color: var(--text); }
+.warn { text-align: center; font-style: italic; font-size: 14.5px; color: var(--ember); min-height: 1.3em; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Reroll a skill</h1>
+  <p>Tap a row to pick it, then confirm. Rows match the main skills list.</p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+// [name, period, type, pips, streak, dmg, bad, sigil]
+const SKILLS = [
+  ['Meditate', 'daily', 'healing', 1, 3, 338, false, ''],
+  ['Morning run', 'daily', 'physical', 2, 12, 1587, false, 'Special'],
+  ['Doomscrolling after midnight', 'daily', 'physical', 2, 0, 412, true, ''],
+  ['Read 20 pages', 'daily', 'magic', 1, 5, 274, false, ''],
+  ['Cold shower', 'daily', 'true', 1, 2, 201, false, ''],
+  ['Long hike', 'weekly', 'physical', 3, 4, 1380, false, 'Ult'],
+  ['Call family', 'weekly', 'healing', 1, 6, 640, false, ''],
+];
+const TYPE_LABEL = { physical: 'Physical', magic: 'Magic', healing: 'Healing', true: 'True' };
+
+const OPTIONS = [
+  { id: 'a', showType: false, title: 'Main-list rows',
+    note: 'Exactly the main list’s row: name, streak, pips, damage. The check becomes a pick diamond. Damage colour already tells the type.' },
+  { id: 'b', showType: true, title: 'Rows plus type name',
+    note: 'Same rows, with the damage type spelled out beside the number. Clearer for a reroll, a little busier.' },
+];
+
+function rowHtml(opt, s, i, sel) {
+  const [name, , type, pips, streak, dmg, bad, sigil] = s;
+  const pipHtml = [1, 2, 3].map((n) => `<i class="${n <= pips ? 'on' : ''}"></i>`).join('');
+  return `<li><button class="skill ${bad ? 'bad' : ''} ${sel === i ? 'sel' : ''}" data-i="${i}" style="--c:var(--dmg-${type})">
+    <span class="mk"><i></i></span>
+    <span class="name">${name}${sigil ? `<span class="tag">${sigil}</span>` : ''}</span>
+    <span class="meta">
+      <span class="streak">${streak >= 3 ? '✦ ' + streak : ''}</span>
+      <span class="pips">${pipHtml}</span>
+      ${opt.showType ? `<span class="type">${TYPE_LABEL[type]}</span>` : ''}
+    </span>
+    <span class="dmg">${dmg}</span>
+  </button></li>`;
+}
+
+function render() {
+  document.getElementById('grid').innerHTML = OPTIONS.map((opt) => {
+    const sel = opt.sel ?? -1;
+    const group = (period, label) => `<h4 class="group">${label}</h4><ul>${
+      SKILLS.map((s, i) => (s[1] === period ? rowHtml(opt, s, i, sel) : '')).join('')}</ul>`;
+    const picked = sel >= 0 ? SKILLS[sel] : null;
+    return `<section class="opt" data-opt="${opt.id}">
+      <h2 class="engraved"><b>${opt.id.toUpperCase()}</b>${opt.title}</h2>
+      <p>${opt.note}</p>
+      <div class="screen"><div class="modal">
+        <h3 class="engraved">Reroll a skill</h3>
+        <p class="sub">Its damage type changes. Everything else stays.</p>
+        ${group('daily', 'Daily')}${group('weekly', 'Weekly')}
+        <div class="foot">
+          <p class="warn">${picked ? `${picked[0]} will become a new type — it may roll the same.` : ''}</p>
+          <button class="cta" ${picked ? '' : 'disabled'}>${picked ? 'Reroll ' + picked[0] : 'Pick a skill'}</button>
+          <button class="back">← Back</button>
+        </div>
+      </div></div>
+    </section>`;
+  }).join('');
+}
+
+document.getElementById('grid').addEventListener('click', (e) => {
+  const row = e.target.closest('.skill');
+  if (!row) return;
+  const opt = OPTIONS.find((o) => o.id === row.closest('.opt').dataset.opt);
+  opt.sel = opt.sel === +row.dataset.i ? -1 : +row.dataset.i;
+  render();
+});
+
+OPTIONS[0].sel = 1;
+OPTIONS[1].sel = -1;
+render();
+</script>
+</body>
+</html>
