@@ -4,6 +4,7 @@ import {
   createCharacter,
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
+  discardUnknownItems,
   heroClassFor,
   MAX_HERO_NAME_LENGTH,
   migrateCharacter,
@@ -234,6 +235,21 @@ describe('randomizeStat', () => {
       expect(result).toBeGreaterThanOrEqual(100 * (1 - TUNING.STAT_RANDOMIZATION_PCT));
       expect(result).toBeLessThanOrEqual(100 * (1 + TUNING.STAT_RANDOMIZATION_PCT));
     }
+  });
+});
+
+describe('discardUnknownItems', () => {
+  it('drops item ids the catalog no longer has, from owned, equipped and the enchanted slot', () => {
+    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['rusty-blade', 'shadow-dagger'], equippedItemIds: ['rusty-blade', 'shadow-dagger'], doubledItemId: 'shadow-dagger' };
+    const loaded = discardUnknownItems(character);
+    expect(loaded.ownedItemIds).toEqual(['rusty-blade']);
+    expect(loaded.equippedItemIds).toEqual(['rusty-blade']);
+    expect(loaded.doubledItemId).toBeUndefined();
+  });
+
+  it('returns the same character when every item id is known', () => {
+    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'], doubledItemId: 'rusty-blade' };
+    expect(discardUnknownItems(character)).toBe(character);
   });
 });
 

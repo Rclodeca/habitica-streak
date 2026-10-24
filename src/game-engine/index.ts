@@ -25,6 +25,7 @@ export {
   createCharacter,
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
+  discardUnknownItems,
   heroClassFor,
   MAX_HERO_NAME_LENGTH,
   migrateCharacter,

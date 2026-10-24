@@ -1,5 +1,5 @@
 import { TUNING } from './constants/tuning';
-import { assignNewItemUnlockTiers, backfillUnlockTiers } from './items';
+import { assignNewItemUnlockTiers, backfillUnlockTiers, ITEM_CATALOG } from './items';
 import { pickRandom, type Rng } from './rng';
 import type { Character } from './types';
 
@@ -109,6 +109,25 @@ export function migrateCharacter(character: Character, rng: Rng): Character {
   delete (migrated as { expGainRebalanceApplied?: boolean }).expGainRebalanceApplied;
   delete (migrated as { sideOnlyItemIds?: string[] }).sideOnlyItemIds;
   return migrated;
+}
+
+const CATALOG_ITEM_IDS = new Set(ITEM_CATALOG.map((item) => item.id));
+
+/**
+ * Drops item ids the catalog no longer has (the retired Dev mode art-trial
+ * items, or any item removed later) so they can't sit invisibly in a slot.
+ * Returns the same object when every id is still known.
+ */
+export function discardUnknownItems(character: Character): Character {
+  const known = (id: string) => CATALOG_ITEM_IDS.has(id);
+  const doubledUnknown = character.doubledItemId !== undefined && !known(character.doubledItemId);
+  if (character.ownedItemIds.every(known) && character.equippedItemIds.every(known) && !doubledUnknown) return character;
+  return {
+    ...character,
+    ownedItemIds: character.ownedItemIds.filter(known),
+    equippedItemIds: character.equippedItemIds.filter(known),
+    doubledItemId: doubledUnknown ? undefined : character.doubledItemId,
+  };
 }
 
 /**

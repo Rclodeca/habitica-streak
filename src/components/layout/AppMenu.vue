@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { Check, Menu, Trophy, Wrench } from 'lucide-vue-next';
-import { useDevBossArt } from '../../composables/useDevBossArt';
-import { useItemDropQueue } from '../../composables/useItemDropQueue';
+import { Check, Menu, Trophy } from 'lucide-vue-next';
 import { THEMES, useThemeStore } from '../../store/themeStore';
 import type { Theme } from '../../store/themeStore';
-import { useCharacterStore } from '../../store/characterStore';
 
 // Top-right menu: High Scores and the theme picker. Picking a theme keeps the
 // menu open so themes can be flipped back and forth; anything else, a tap
@@ -13,28 +10,12 @@ import { useCharacterStore } from '../../store/characterStore';
 const emit = defineEmits<{ 'high-scores': [] }>();
 
 const themeStore = useThemeStore();
-const characterStore = useCharacterStore();
-const { enqueueDrops } = useItemDropQueue();
-const { cycle: cycleBossArt } = useDevBossArt();
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
-
-// Temporary art trial: the items whose art is being tried out.
-const DEV_ITEM_IDS = ['berserkers-war-axe', 'shadow-dagger', 'amethyst-scimitar', 'ember-staff', 'molten-battle-axe'];
 
 function openHighScores() {
   open.value = false;
   emit('high-scores');
-}
-
-// Hands over the trial items through the normal drop flow, so each auto-equips
-// or asks which item to replace (already-owned ones are skipped), and swaps the
-// boss panel to the next trial boss art (the last tap restores the real art).
-function devMode() {
-  open.value = false;
-  const items = DEV_ITEM_IDS.map((id) => characterStore.grantItem(id)).filter((item) => item !== null);
-  if (items.length) enqueueDrops(items);
-  cycleBossArt();
 }
 
 function pickTheme(theme: Theme) {
@@ -79,8 +60,6 @@ onBeforeUnmount(() => {
       >
         <Check :size="15" class="tick" :class="{ on: themeStore.theme === option.id }" />{{ option.label }}
       </button>
-      <div class="menu-divider" role="separator" />
-      <button type="button" class="menu-item" role="menuitem" @click="devMode"><Wrench :size="15" />Dev mode</button>
     </div>
   </div>
 </template>

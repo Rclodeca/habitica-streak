@@ -51,16 +51,13 @@ function hasPositive(item: ItemDef, stat: BoostableStat): boolean {
 }
 
 describe('ITEM_CATALOG', () => {
-  // The art-trial items (unlockLevel 999, see itemCatalog.ts) sit outside the real catalog's shape.
-  const REAL_ITEMS = ITEM_CATALOG.filter((i) => (i.unlockLevel ?? 0) < 999);
-
   it('has 83 items with unique ids: 35 always-drop, 28 random-gated, 5 at L30, 15 relics', () => {
-    expect(REAL_ITEMS).toHaveLength(83);
-    expect(new Set(ITEM_CATALOG.map((i) => i.id)).size).toBe(ITEM_CATALOG.length);
-    expect(REAL_ITEMS.filter((i) => i.rarity === 'relic')).toHaveLength(15);
-    expect(REAL_ITEMS.filter((i) => i.levelGated)).toHaveLength(28);
-    expect(REAL_ITEMS.filter((i) => i.rarity !== 'relic' && i.unlockLevel === 30)).toHaveLength(5);
-    expect(REAL_ITEMS.filter((i) => i.rarity !== 'relic' && !i.levelGated && !i.unlockLevel)).toHaveLength(35);
+    expect(ITEM_CATALOG).toHaveLength(83);
+    expect(new Set(ITEM_CATALOG.map((i) => i.id)).size).toBe(83);
+    expect(ITEM_CATALOG.filter((i) => i.rarity === 'relic')).toHaveLength(15);
+    expect(ITEM_CATALOG.filter((i) => i.levelGated)).toHaveLength(28);
+    expect(ITEM_CATALOG.filter((i) => i.rarity !== 'relic' && i.unlockLevel === 30)).toHaveLength(5);
+    expect(ITEM_CATALOG.filter((i) => i.rarity !== 'relic' && !i.levelGated && !i.unlockLevel)).toHaveLength(35);
   });
 
   it('never puts a flat bonus on a scaling stat', () => {

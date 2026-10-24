@@ -9,6 +9,7 @@ import {
   applyDamagePoolRebalance,
   clampHealthToMax,
   discardUnequippedItems,
+  discardUnknownItems,
   completeHabit,
   createCharacter,
   createRng,
@@ -31,7 +32,7 @@ export const useCharacterStore = defineStore('character', {
     /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
     initFromSave(saved: Character | null, rng: Rng) {
       this.character = saved
-        ? clampHealthToMax(discardUnequippedItems(applyDamagePoolRebalance(migrateCharacter(saved, rng))))
+        ? clampHealthToMax(discardUnequippedItems(discardUnknownItems(applyDamagePoolRebalance(migrateCharacter(saved, rng)))))
         : createCharacter(rng);
     },
 

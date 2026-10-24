@@ -2,7 +2,7 @@
 
 ## FreePixel art
 
-Every boss sprite, item icon, player hero, and the Dev mode trial art come from [FreePixel](https://freepixel.art/), used under the [FreePixel Asset License](https://freepixel.art/license/): free for personal and commercial games and apps, modification allowed, no attribution required (credited here anyway). The raw asset files themselves must not be redistributed, so only the processed sprites live in the repo. Processing: items are cropped, reduced to a 32px grid with 12 colours and a 1px dark outline; bosses are reduced by averaging 2x2 blocks with 48 colours.
+Every boss sprite, item icon and player hero comes from [FreePixel](https://freepixel.art/), used under the [FreePixel Asset License](https://freepixel.art/license/): free for personal and commercial games and apps, modification allowed, no attribution required (credited here anyway). The raw asset files themselves must not be redistributed, so only the processed sprites live in the repo. Processing: items are cropped, reduced to a 32px grid with 12 colours and a 1px dark outline; bosses are reduced by averaging 2x2 blocks with 48 colours.
 
 ### Boss sprites
 
@@ -114,17 +114,6 @@ Every boss sprite, item icon, player hero, and the Dev mode trial art come from 
 | `items/eagle-eye-lens.png` | `surviv-compass-navigation-direction-finder-088-v6-2026-03-30T00-37-17.png` |
 | `items/serene-lotus-charm.png` | `mushroom-glowing-blue-magical-bioluminescent-cap_20260225_190905.png` |
 | `items/ward-cloak.png` | `rpg-burgundy-wizard-robe-wine-075-v2-2026-03-03T17-02-45.png` |
-
-### Dev mode trial art
-
-| File | FreePixel source |
-|---|---|
-| `bosses/dev-troll.png` | `rpg-axe-troll-battle-axe-088-v2-2026-03-03T17-02-45.png` |
-| `bosses/dev-guardian.png` | `celestial-guardian-golden-armor-ethereal-wings-divine-aura_20260217_154507.png` |
-| `items/shadow-dagger.png` | `8bit-dagger-thief-weapon-005-2026-03-10T18-57-54.png` |
-| `items/amethyst-scimitar.png` | `scimitar.png` |
-| `items/ember-staff.png` | `rpg-fire-staff-red-ember-160-v4-2026-03-03T17-02-45.png` |
-| `items/molten-battle-axe.png` | `enchanted-battle-axe-fire-enchantment-burning-edge-molten_20260217_160437.png` |
 
 ### Player heroes
 

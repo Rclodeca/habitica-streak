@@ -4,7 +4,6 @@ import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusP
 import type { Personality } from '../../game-engine';
 import { useCondensingBoss } from '../../composables/useCondensingBoss';
 import { useDamagePopup } from '../../composables/useDamagePopup';
-import { useDevBossArt } from '../../composables/useDevBossArt';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import HealthBar from '../ui/HealthBar.vue';
@@ -42,10 +41,6 @@ const bossStore = useBossStore();
 const characterStore = useCharacterStore();
 
 const boss = computed(() => bossStore.boss);
-
-// Temporary art trial: Dev mode in AppMenu swaps in trial boss art.
-const { override: devBossArt } = useDevBossArt();
-const bossSprite = computed(() => devBossArt.value ?? PERSONALITY_SPRITE[boss.value.personality]);
 
 const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 
@@ -113,7 +108,7 @@ const statTiles = computed<StatTile[]>(() => {
       <div class="boss-cap" aria-hidden="true" />
       <div class="stage-wrap">
         <div class="sprite-wrapper" :class="{ hit: isHit }">
-          <Sprite :image-name="bossSprite" alt="Boss" />
+          <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
         </div>
         <!-- Outside the stage so its clipping never cuts off a hit. -->
         <div class="hit-layer" aria-hidden="true">
@@ -139,7 +134,7 @@ const statTiles = computed<StatTile[]>(() => {
     <Modal v-model="showDetails" title="Boss" max-width="520px">
       <div class="hero">
         <div class="hero-sprite">
-          <Sprite :image-name="bossSprite" alt="Boss" />
+          <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
         </div>
         <div class="hero-info">
           <span class="hero-tag">Boss #{{ boss.index }}</span>
