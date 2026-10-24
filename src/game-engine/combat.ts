@@ -1,9 +1,10 @@
-import { applyResist, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
+import { applyResist, baseResistStatForIndex, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { computeDamageSplit, dueFraction, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
 import { activeHealBoost, addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
+import { bumpSpellweave, critMultiplierFor, effectDamageMultiplier, effectUsedToday, hasItemEffect, isForcedCrit, stampEffectDay, starfallReady } from './itemEffects';
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
 import type { Rng } from './rng';
@@ -95,7 +96,9 @@ export type HabitDamageBreakdown = {
   /** WEEKLY_BONUS_MULTIPLIER for a weekly habit, 1 (no-op) for a daily one — see `weeklyBonusMultiplier`. */
   weeklyMultiplier: number;
   bonusMultiplier: number;
-  /** baseDamage * itemMultiplier * streakMultiplier * weeklyMultiplier * bonusMultiplier. */
+  /** Conditional item effects right now (see effectDamageMultiplier) — 1 when none apply, or without a boss. */
+  effectMultiplier: number;
+  /** baseDamage * itemMultiplier * streakMultiplier * weeklyMultiplier * bonusMultiplier * effectMultiplier. */
   effectiveDamage: number;
 };
 
@@ -105,9 +108,17 @@ export type HabitDamageBreakdown = {
  * used by the UI to show each multiplier alongside the final number rather
  * than just the final number. Uses `habit.streakCount` as-is (this is a
  * preview of the *current* state, not a simulation of the streak bump that
- * completing it would cause).
+ * completing it would cause). Pass the boss and today's key to include
+ * conditional item effects (Giantslayer, Moonwell, ...); without them the
+ * effect multiplier is 1.
  */
-export function habitDamageBreakdown(character: Character, habit: Habit, allHabitsOfSameType: Habit[]): HabitDamageBreakdown {
+export function habitDamageBreakdown(
+  character: Character,
+  habit: Habit,
+  allHabitsOfSameType: Habit[],
+  boss?: Boss,
+  currentDayKey?: string,
+): HabitDamageBreakdown {
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const baseDamage = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
@@ -115,13 +126,15 @@ export function habitDamageBreakdown(character: Character, habit: Habit, allHabi
   const streakMult = streakMultiplier(habit.streakCount, habit.period);
   const weeklyMult = weeklyBonusMultiplier(habit.period);
   const bonusMultiplier = levelRewardMultiplier(habit);
+  const effectMultiplier = boss && currentDayKey ? effectDamageMultiplier(character, habit, boss, currentDayKey) : 1;
   return {
     baseDamage,
     itemMultiplier,
     streakMultiplier: streakMult,
     weeklyMultiplier: weeklyMult,
     bonusMultiplier,
-    effectiveDamage: baseDamage * itemMultiplier * streakMult * weeklyMult * bonusMultiplier,
+    effectMultiplier,
+    effectiveDamage: baseDamage * itemMultiplier * streakMult * weeklyMult * bonusMultiplier * effectMultiplier,
   };
 }
 
@@ -205,44 +218,78 @@ export function completeHabit(
   const itemMultiplier = itemStatMultiplier(character, statField);
   // An Overdrive activation is an extra use of an already-checked-off habit:
   // it doesn't touch the streak or grant milestone EXP again, and never
-  // gets the Special/Ult bonus — only OVERDRIVE_DAMAGE_FACTOR damage.
-  const { habit: updatedHabit, milestoneExp } = isOverdriveUse
-    ? { habit, milestoneExp: 0 }
-    : completeHabitStreak(habit);
+  // gets the Special/Ult bonus — only OVERDRIVE_DAMAGE_FACTOR damage
+  // (full damage with Dynamo Core).
+  const streakResult = isOverdriveUse ? { habit, milestoneExp: 0 } : completeHabitStreak(habit);
+  const updatedHabit = streakResult.habit;
+  const milestoneExp = hasItemEffect(character, 'banner')
+    ? streakResult.milestoneExp * TUNING.ITEM_EFFECTS.BANNER_MILESTONE_MULTIPLIER
+    : streakResult.milestoneExp;
   const multiplier = streakMultiplier(habit.streakCount, habit.period);
   const weeklyMult = weeklyBonusMultiplier(habit.period);
   const bonusMultiplier = isOverdriveUse ? 1 : levelRewardMultiplier(habit);
-  const overdriveFactor = isOverdriveUse ? TUNING.OVERDRIVE_DAMAGE_FACTOR : 1;
-  const amount = baseDamage * itemMultiplier * multiplier * weeklyMult * bonusMultiplier * overdriveFactor;
+  const overdriveFactor = isOverdriveUse && !hasItemEffect(character, 'dynamo') ? TUNING.OVERDRIVE_DAMAGE_FACTOR : 1;
+  const effectMultiplier = effectDamageMultiplier(character, habit, boss, currentDayKey);
+  const amount = baseDamage * itemMultiplier * multiplier * weeklyMult * bonusMultiplier * overdriveFactor * effectMultiplier;
+  // Counts this use toward Spellweave's stacks for the rest of today (no-op without it).
+  const wovenCharacter = bumpSpellweave(character, currentDayKey);
 
   if (habit.damageType === 'healing') {
-    const woundedAmount = amount * healingMultiplier(character, currentDayKey);
-    const healed = Math.min(character.currentHealth + woundedAmount, effectiveStat(character, 'health'));
-    return { character: { ...character, currentHealth: healed }, boss, updatedHabit, milestoneExp };
+    const maxHealth = effectiveStat(character, 'health');
+    const mending =
+      hasItemEffect(character, 'titans-mending') && character.currentHealth < maxHealth * TUNING.ITEM_EFFECTS.TITANS_MENDING_BELOW_PCT
+        ? TUNING.ITEM_EFFECTS.TITANS_MENDING_MULTIPLIER
+        : 1;
+    const woundedAmount = amount * healingMultiplier(character, currentDayKey) * mending;
+    const healed = Math.min(character.currentHealth + woundedAmount, maxHealth);
+    // Censer of Wrath: the heal (before the max-health cap, so it works at
+    // full health) also hits the boss, as true damage — no crit, no resist.
+    const censerDamage = hasItemEffect(character, 'censer-of-wrath') ? woundedAmount * TUNING.ITEM_EFFECTS.CENSER_DAMAGE_FRACTION : 0;
+    const newBoss = censerDamage > 0 ? { ...boss, health: Math.max(0, boss.health - censerDamage) } : boss;
+    return {
+      character: { ...wovenCharacter, currentHealth: healed },
+      boss: newBoss,
+      updatedHabit,
+      milestoneExp,
+      damageDealt: censerDamage > 0 ? censerDamage : undefined,
+    };
   }
 
-  const wasCrit = rng() < effectiveCritChance(character, currentDayKey);
-  const critAmount = wasCrit ? amount * TUNING.CRIT_MULTIPLIER : amount;
+  // Rolled unconditionally (before any forced crit) so rng() consumption stays
+  // independent of which effects are equipped.
+  const rolledCrit = rng() < effectiveCritChance(character, currentDayKey);
+  const starfall = starfallReady(character, habit, currentDayKey);
+  const wasCrit = rolledCrit || isForcedCrit(character, habit, boss, currentDayKey);
+  const critAmount = wasCrit ? amount * critMultiplierFor(character, habit) : amount;
   // True damage ignores armor/magicResist entirely — it's not physical or
   // magic, so neither mitigation stat (nor armorPen/magicPen) applies to it.
+  // Hunter's Eye crits ignore them too.
   let dealt = critAmount;
-  if (habit.damageType !== 'trueDamage') {
-    const resistStat = habit.damageType === 'physical' ? boss.armor : boss.magicResist;
+  if (habit.damageType !== 'trueDamage' && !(wasCrit && hasItemEffect(character, 'hunters-eye'))) {
+    const bossResist = habit.damageType === 'physical' ? boss.armor : boss.magicResist;
+    // Worldbreaker: an armored boss's extra armor doesn't count against physical hits.
+    const resistStat =
+      habit.damageType === 'physical' && hasItemEffect(character, 'worldbreaker') ? Math.min(bossResist, baseResistStatForIndex(boss.index)) : bossResist;
     const penStat = habit.damageType === 'physical' ? 'armorPen' : 'magicPen';
     const effectiveResistStat = effectiveResistAfterPen(resistStat, itemBonusPercent(character, penStat));
     dealt = applyResist(critAmount, effectiveResistStat);
   }
-  const newBoss = { ...boss, health: Math.max(0, boss.health - dealt) };
+  const newBoss: Boss = {
+    ...boss,
+    health: Math.max(0, boss.health - dealt),
+    playerHasHit: true,
+    ...(dealt > boss.health && { overkill: dealt - boss.health }),
+  };
 
   const lifestealPct = itemBonusPercent(character, 'lifesteal');
-  const healed = dealt * (lifestealPct / 100);
-  const reflected = dealt * boss.reflectPct;
+  const maxHealth = effectiveStat(character, 'health');
+  const bloodthornHeal = wasCrit && hasItemEffect(character, 'bloodthorn') ? maxHealth * (TUNING.ITEM_EFFECTS.BLOODTHORN_CRIT_HEAL_PCT / 100) : 0;
+  const healed = dealt * (lifestealPct / 100) + bloodthornHeal;
+  const reflected = hasItemEffect(character, 'null-mirror') ? 0 : dealt * boss.reflectPct;
   const netHealthChange = healed - reflected;
-  const newHealth = Math.min(
-    Math.max(character.currentHealth + netHealthChange, 0),
-    effectiveStat(character, 'health'),
-  );
-  const newCharacter = netHealthChange !== 0 ? { ...character, currentHealth: newHealth } : character;
+  const newHealth = Math.min(Math.max(character.currentHealth + netHealthChange, 0), maxHealth);
+  const stampedCharacter = starfall ? stampEffectDay(wovenCharacter, 'starfall', currentDayKey) : wovenCharacter;
+  const newCharacter = netHealthChange !== 0 ? { ...stampedCharacter, currentHealth: newHealth } : stampedCharacter;
 
   return {
     character: newCharacter,
@@ -341,15 +388,22 @@ export function missHabit(
     attack * TUNING.MISS_DAMAGE_FACTOR * (DIFFICULTY_WEIGHT[habit.difficulty] / 1.5) *
     (wasCrit ? TUNING.CRIT_MULTIPLIER : 1) * weeklyMultiplier;
   const playerResistStat = attackType === 'physical' ? itemFlatBonus(character, 'armor') : itemFlatBonus(character, 'magicResist');
-  const mitigatedDamage = applyResist(damage, playerResistStat);
+  // Dawnguard Helm: the first hit each day is softened.
+  const dawnguard = hasItemEffect(character, 'dawnguard') && !effectUsedToday(character, 'dawnguard', currentDayKey);
+  const mitigatedDamage = applyResist(damage, playerResistStat) * (dawnguard ? TUNING.ITEM_EFFECTS.DAWNGUARD_FACTOR : 1);
   const newHealth = Math.max(0, character.currentHealth - mitigatedDamage);
-  const healedBoss = Math.min(boss.maxHealth, boss.health + mitigatedDamage * boss.lifestealPct);
+  const bossLifestealPct = hasItemEffect(character, 'bloodbound') ? 0 : boss.lifestealPct;
+  const healedBoss = Math.min(boss.maxHealth, boss.health + mitigatedDamage * bossLifestealPct);
   const bossLifestealHealed = healedBoss - boss.health;
   const newBoss = healedBoss !== boss.health ? { ...boss, health: healedBoss } : boss;
 
   let woundsApplied: WoundsStatusEffect | undefined;
-  let newCharacter: Character = { ...character, currentHealth: newHealth };
-  if (woundsRollSucceeded && boss.woundsAbility && !activeWoundsEffect(character, currentDayKey)) {
+  const hitCharacter = dawnguard ? stampEffectDay(character, 'dawnguard', currentDayKey) : character;
+  let newCharacter: Character = { ...hitCharacter, currentHealth: newHealth };
+  // Aegis of the Unbroken: the Wounds roll above still happens (rng
+  // consumption stays the same), it just can't take hold.
+  const woundImmune = hasItemEffect(character, 'wound-immune');
+  if (woundsRollSucceeded && boss.woundsAbility && !woundImmune && !activeWoundsEffect(character, currentDayKey)) {
     woundsApplied = {
       type: 'wounds',
       appliedDayKey: currentDayKey,
@@ -417,22 +471,33 @@ export function resolveBossDefeatIfDead(
   character: Character,
   boss: Boss,
   rng: Rng,
-): { character: Character; boss: Boss; defeated: boolean; levelsGained: number; itemsDropped: ItemDef[] } {
+): { character: Character; boss: Boss; defeated: boolean; levelsGained: number; itemsDropped: ItemDef[]; itemHealed?: number } {
   if (Math.round(boss.health) > 0) {
     return { character, boss, defeated: false, levelsGained: 0, itemsDropped: [] };
   }
   const { character: leveled, levelsGained } = addExpAndResolveLevelUps(character, bossExpReward(boss.index));
+  // Soul Lantern: each fallen boss restores health (capped at max).
+  const maxHealth = effectiveStat(leveled, 'health');
+  const lanternHealth = hasItemEffect(leveled, 'soul-lantern')
+    ? Math.min(leveled.currentHealth + maxHealth * (TUNING.ITEM_EFFECTS.SOUL_LANTERN_HEAL_PCT / 100), maxHealth)
+    : leveled.currentHealth;
+  const itemHealed = lanternHealth - leveled.currentHealth;
   const itemsDropped = rollItemDrops(leveled, boss.index, rng);
   const withItems: Character = {
     ...leveled,
+    currentHealth: lanternHealth,
     ownedItemIds: [...leveled.ownedItemIds, ...itemsDropped.map((item) => item.id)],
   };
   // Base (pre-item) health anchors the next boss's attack — see
   // bossAttackAnchorHealth — so equipping health items doesn't just chase
   // the cap upward and cancel itself out.
   const baseMaxHealth = bossAttackAnchorHealth(boss.index + 1, withItems.starterStats.health, withItems.level);
-  const nextBoss = generateBoss(boss.index + 1, rng, boss.difficultyModifier, baseMaxHealth);
-  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped };
+  const generated = generateBoss(boss.index + 1, rng, boss.difficultyModifier, baseMaxHealth);
+  // Echoing Blade: the killing blow's overkill carries into the next boss —
+  // that boss only, and never down past 1 health, so kills can't chain.
+  const carried = hasItemEffect(withItems, 'echoing-blade') ? Math.min(boss.overkill ?? 0, generated.health - 1) : 0;
+  const nextBoss = carried > 0 ? { ...generated, health: generated.health - carried } : generated;
+  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped, ...(itemHealed > 0 && { itemHealed }) };
 }
 
 /**

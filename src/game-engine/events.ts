@@ -4,14 +4,14 @@
 
 import { TUNING } from './constants/tuning';
 import { rerollDamageType } from './habits';
-import { availableSideOnlyItems, doublableItems, unownedDroppableItems } from './items';
+import { availableRelics, doublableItems, unownedDroppableItems } from './items';
 import type { ItemDef } from './items';
 import { effectiveStat } from './leveling';
 import { assignSpecialIfEligible, assignUltIfEligible, grantOverdrive } from './levelRewards';
 import { shuffle, type Rng } from './rng';
 import type { Character, CritBoostStatusEffect, Habit, HealBoostStatusEffect, Quest } from './types';
 
-export type EventId = 'side-quest' | 'special' | 'ult' | 'overdrive' | 'item-slots' | 'reroll-skill' | 'heal' | 'item-drop' | 'heal-boost' | 'crit-boost' | 'double-item';
+export type EventId = 'side-quest' | 'special' | 'ult' | 'overdrive' | 'item-slots' | 'item-slots-2' | 'reroll-skill' | 'heal' | 'item-drop' | 'heal-boost' | 'crit-boost' | 'double-item';
 
 export interface EventDef {
   id: EventId;
@@ -33,7 +33,7 @@ export const EVENT_DEFS: readonly EventDef[] = [
     description: 'Something rare awaits.',
     minLevel: 1,
     oneTime: false,
-    isEligible: (character, _habits, quests) => availableSideOnlyItems(character, quests).length > 0,
+    isEligible: (character, _habits, quests) => availableRelics(character, quests).length > 0,
   },
   {
     id: 'special',
@@ -66,6 +66,14 @@ export const EVENT_DEFS: readonly EventDef[] = [
     minLevel: 7,
     oneTime: true,
     isEligible: () => true,
+  },
+  {
+    id: 'item-slots-2',
+    title: 'More item slots',
+    description: 'Your equipment slots increase from 6 to 8.',
+    minLevel: 20,
+    oneTime: true,
+    isEligible: (character) => character.takenEventIds?.includes('item-slots') ?? false,
   },
   {
     id: 'reroll-skill',

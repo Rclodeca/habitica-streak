@@ -17,6 +17,7 @@ import {
   ITEM_CATALOG,
   itemBonusPercent,
   itemFlatBonus,
+  MAX_EQUIP_SLOTS,
   maxEquipSlots,
   statAtLevel,
 } from '../../game-engine';
@@ -112,19 +113,22 @@ const expectedTrueDamage = computed(() =>
   expectedMediumDailyDamage(character.value, 'trueDamage', habitStore.habitsOfType('trueDamage', 'daily')),
 );
 
-// Sized to the character's current slot cap (4, or 6 after the item-slots
-// event), in whatever order they were equipped — empty ones
-// render as blank grid cells rather than being compacted away, so the grid
-// never visually shifts as items are gained/replaced.
+// Sized to the character's current slot cap (4, 6 or 8 — see maxEquipSlots),
+// in whatever order they were equipped — empty ones render as blank grid
+// cells rather than being compacted away, so the grid never visually shifts
+// as items are gained/replaced. Slots not yet unlocked show only in the
+// details popup's Equipment list: drawn here too, 8 cells would shrink every
+// cell well below a tap target in this narrow panel.
 const slotCount = computed(() => maxEquipSlots(character.value));
+const lockedSlotCount = computed(() => MAX_EQUIP_SLOTS - slotCount.value);
 const equippedSlots = computed(() =>
   Array.from({ length: slotCount.value }, (_, i) => {
     const itemId = character.value.equippedItemIds[i];
     return itemId ? ITEM_CATALOG.find((item) => item.id === itemId) ?? null : null;
   }),
 );
-// 2x2 below level 10, 3 wide x 2 tall once the 6th/5th slots unlock.
-const gridCols = computed(() => (slotCount.value > 4 ? 3 : 2));
+// 2x2 at 4 slots, 3 wide x 2 tall at 6, 4 wide x 2 tall at 8.
+const gridCols = computed(() => slotCount.value / 2);
 
 // Which slot's stats callout is pinned open by a tap/click (persists until
 // tapped again, another slot is tapped, or any tap lands outside the slots)
@@ -330,9 +334,11 @@ onBeforeUnmount(() => {
                   <StatIcon :name="BOOST_STAT_ICON[part.stat]" />{{ part.text }} <span class="gear-bonus-label">{{ part.label }}</span>
                 </span>
               </span>
+              <span v-if="item.effectText" class="gear-effect">{{ item.effectText }}</span>
             </div>
           </li>
           <li v-for="n in emptySlotCount" :key="`empty-${n}`" class="gear-row empty">Empty slot</li>
+          <li v-for="n in lockedSlotCount" :key="`locked-${n}`" class="gear-row empty locked">Locked</li>
         </ul>
       </section>
 
@@ -513,6 +519,10 @@ onBeforeUnmount(() => {
   --rarity: var(--rarity-epic);
 }
 
+.rarity-relic {
+  --rarity: var(--side-quest-color);
+}
+
 .hero {
   display: flex;
   align-items: center;
@@ -581,6 +591,10 @@ onBeforeUnmount(() => {
   border-left-color: var(--border);
 }
 
+.gear-row.locked {
+  opacity: 0.5;
+}
+
 .gear-icon {
   flex-shrink: 0;
   width: 44px;
@@ -631,6 +645,12 @@ onBeforeUnmount(() => {
   color: var(--accent-solid);
   font-size: 0.7rem;
   font-weight: 600;
+}
+
+.gear-effect {
+  color: var(--rarity);
+  font-size: 0.75rem;
+  font-style: italic;
 }
 
 .gear-bonuses {

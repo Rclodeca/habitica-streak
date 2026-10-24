@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { dayOfWeekIndex, habitDamageBreakdown, isDueOn, nextDueDay, overdriveUsesRemaining, periodKeyFor } from '../../game-engine';
+import { dailyPeriodKey, dayOfWeekIndex, habitDamageBreakdown, isDueOn, nextDueDay, overdriveUsesRemaining, periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
+import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
@@ -21,6 +22,7 @@ const { checkOffHabit, activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
 const debugClockStore = useDebugClockStore();
 const characterStore = useCharacterStore();
+const bossStore = useBossStore();
 const habitStore = useHabitStore();
 
 const currentPeriodKey = computed(() => periodKeyFor(props.habit.period, debugClockStore.now()));
@@ -37,7 +39,7 @@ const canOverdrive = computed(
 
 const breakdown = computed(() => {
   const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.period);
-  return habitDamageBreakdown(characterStore.character, props.habit, siblings);
+  return habitDamageBreakdown(characterStore.character, props.habit, siblings, bossStore.boss, dailyPeriodKey(debugClockStore.now()));
 });
 
 const effectiveDamage = computed(() => breakdown.value.effectiveDamage);

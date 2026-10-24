@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import {
+  dailyPeriodKey,
   habitDamageBreakdown,
+  hasItemEffect,
   isDueOn,
   overdriveDamagePreview,
   overdriveUsesRemaining,
@@ -11,6 +13,7 @@ import type { DamageType, Habit } from '../../game-engine';
 import { TUNING } from '../../game-engine/constants/tuning';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
+import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
@@ -26,6 +29,7 @@ const props = defineProps<{ modelValue: boolean; habit: Habit }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
 const characterStore = useCharacterStore();
+const bossStore = useBossStore();
 const habitStore = useHabitStore();
 const debugClockStore = useDebugClockStore();
 const { activateOverdrive } = useCombatActions();
@@ -33,7 +37,7 @@ const { enqueueDrops } = useItemDropQueue();
 
 const breakdown = computed(() => {
   const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.period);
-  return habitDamageBreakdown(characterStore.character, props.habit, siblings);
+  return habitDamageBreakdown(characterStore.character, props.habit, siblings, bossStore.boss, dailyPeriodKey(debugClockStore.now()));
 });
 
 const baseDamage = computed(() => breakdown.value.baseDamage);
@@ -41,6 +45,7 @@ const itemMultiplier = computed(() => breakdown.value.itemMultiplier);
 const multiplier = computed(() => breakdown.value.streakMultiplier);
 const weeklyMultiplier = computed(() => breakdown.value.weeklyMultiplier);
 const bonusMultiplier = computed(() => breakdown.value.bonusMultiplier);
+const effectMultiplier = computed(() => breakdown.value.effectMultiplier);
 const effectiveDamage = computed(() => breakdown.value.effectiveDamage);
 const DAMAGE_TYPES: Record<DamageType, { label: string; icon: StatIconName }> = {
   physical: { label: 'Physical', icon: 'physical' },
@@ -60,6 +65,7 @@ const multipliers = computed(() => {
     { label: 'Streak', icon: 'streak', note: String(props.habit.streakCount), value: multiplier.value },
   ];
   if (itemMultiplier.value !== 1) rows.push({ label: 'Gear', icon: 'gear', value: itemMultiplier.value });
+  if (effectMultiplier.value !== 1) rows.push({ label: 'Effects', icon: 'itemDoubled', value: effectMultiplier.value });
   if (props.habit.period === 'weekly') rows.push({ label: 'Weekly', icon: 'weekly', value: weeklyMultiplier.value });
   return rows;
 });
@@ -72,10 +78,12 @@ function formatMultiplier(value: number): string {
   return `×${value.toFixed(2).replace(/0$/, '')}`;
 }
 // Overdrive never gets the Special/Ult bonus, so its preview excludes
-// bonusMultiplier, but still gets the weekly bonus like any other use.
-const overdriveDamage = computed(() =>
-  overdriveDamagePreview(baseDamage.value * itemMultiplier.value * multiplier.value * weeklyMultiplier.value),
-);
+// bonusMultiplier, but still gets the weekly bonus and item effects like any
+// other use (and full damage with Dynamo Core).
+const overdriveDamage = computed(() => {
+  const full = baseDamage.value * itemMultiplier.value * multiplier.value * weeklyMultiplier.value * effectMultiplier.value;
+  return hasItemEffect(characterStore.character, 'dynamo') ? full : overdriveDamagePreview(full);
+});
 
 const currentPeriodKey = computed(() => periodKeyFor(props.habit.period, debugClockStore.now()));
 const isCompletedThisPeriod = computed(() => props.habit.lastCompletedPeriodKey === currentPeriodKey.value);

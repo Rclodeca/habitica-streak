@@ -29,6 +29,7 @@
 
 import {
   addExpAndResolveLevelUps,
+  availableRelics,
   bossExpReward,
   completeHabit,
   createRng,
@@ -45,7 +46,7 @@ import {
   overdriveUsesRemaining,
   periodKeyFor,
   questMissDamage,
-  questSlotExp,
+  questRewardExp,
   questWeekFor,
   recordQuestCompletion,
   resolveBossDefeatIfDead,
@@ -159,6 +160,10 @@ export function useCombatActions() {
     habitStore.updateHabit(updatedHabit);
 
     if (habit.damageType === 'healing') {
+      // Censer of Wrath: the heal also hit the boss (as true damage).
+      if (result.damageDealt) {
+        activityLogStore.addEntry({ kind: 'skill-damage', habitName: habit.name, amount: result.damageDealt, isTrueDamage: true });
+      }
       activityLogStore.addEntry({
         kind: 'heal',
         habitName: habit.name,
@@ -196,6 +201,7 @@ export function useCombatActions() {
     const defeatResult = resolveBossDefeatIfDead(characterStore.character, bossStore.boss, rng);
     if (defeatResult.defeated) {
       activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: bossStore.boss.index, amount: bossExpReward(bossStore.boss.index) });
+      if (defeatResult.itemHealed) activityLogStore.addEntry({ kind: 'item-heal', itemName: 'Soul Lantern', amount: defeatResult.itemHealed });
       logLevelUpIfAny(beforeDefeat, defeatResult.character);
       characterStore.setCharacter(defeatResult.character);
       bossStore.setBoss(defeatResult.boss);
@@ -417,7 +423,7 @@ export function useCombatActions() {
    * and an "I actually did this" override from the missed-deadline gate (see
    * useQuestMissGate); the two cases resolve identically.
    *
-   * Regular: grants the weekly-curve EXP for the next slot (questSlotExp, at
+   * Regular: grants the weekly-curve EXP for the next slot (questRewardExp, at
    * the level held right now), bumps this calendar week's completion count,
    * and resolves any level-ups. Side: grants its reward item through the item
    * drop popup and nothing else — no EXP, and the weekly count is untouched.
@@ -429,7 +435,12 @@ export function useCombatActions() {
     if (!quest) return null;
 
     if (quest.kind === 'side') {
-      const item = quest.rewardItemId ? characterStore.grantItem(quest.rewardItemId) : null;
+      // A side quest from before relics may promise an item that has since
+      // dropped from a boss (nothing kept it out of the drop pool anymore);
+      // pay an available relic instead so the deed is never unrewarded.
+      const promised = quest.rewardItemId ? characterStore.grantItem(quest.rewardItemId) : null;
+      const fallback = promised ? [] : availableRelics(characterStore.character, questStore.quests.filter((q) => q.id !== questId));
+      const item = promised ?? (fallback.length > 0 ? characterStore.grantItem(fallback[Math.floor(rng() * fallback.length)].id) : null);
       if (item) enqueueDrops([item]);
       activityLogStore.addEntry({ kind: 'quest-completed', description: quest.description, amount: 0, itemName: item?.name });
       questStore.removeQuest(questId);
@@ -439,7 +450,7 @@ export function useCombatActions() {
     const weekKey = weeklyPeriodKey(debugClockStore.now());
     const beforeLevelUp = characterStore.character;
     const week = questWeekFor(beforeLevelUp.questWeek, weekKey);
-    const amount = questSlotExp(beforeLevelUp.level, quest.difficulty, week.completed);
+    const amount = questRewardExp(beforeLevelUp, quest.difficulty, week.completed);
     const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, amount);
     logLevelUpIfAny(beforeLevelUp, character);
     characterStore.setCharacter({ ...character, questWeek: recordQuestCompletion(beforeLevelUp.questWeek, weekKey) });

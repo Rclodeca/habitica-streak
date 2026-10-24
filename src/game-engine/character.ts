@@ -1,5 +1,5 @@
 import { TUNING } from './constants/tuning';
-import { assignNewItemUnlockTiers, assignSideOnlyItems } from './items';
+import { assignNewItemUnlockTiers, backfillUnlockTiers } from './items';
 import { pickRandom, type Rng } from './rng';
 import type { Character } from './types';
 
@@ -33,9 +33,6 @@ export function createCharacter(rng: Rng): Character {
     takenEventIds: [],
     pendingEventPicks: 0,
     questsUnlocked: false,
-    // Rolled after everything above so adding it never perturbs the rng()
-    // sequence an existing seeded test depends on.
-    sideOnlyItemIds: assignSideOnlyItems(rng),
     // Already at the post-rebalance baseline (BASE_STATS is already the
     // reduced value) — must be set here, not left undefined, or this fresh
     // character would get double-cut by applyDamagePoolRebalance the next
@@ -61,9 +58,11 @@ export function nameCharacter(character: Character, rawName: string): Character 
  * `createCharacter` rolls every other stat; idempotent.
  *
  * Also backfills `newItemUnlockTiers` for a run that predates level-gated
- * items — without it none of the 19 gated items can ever drop for that run —
+ * items (or predates some of them) — without a tier a gated item can never
+ * drop for that run —
  * and drops the stray `starterStats.expGain` / `expGainRebalanceApplied` an
- * older save carries from before the expGain skill type was removed.
+ * older save carries from before the expGain skill type was removed, and the
+ * `sideOnlyItemIds` pool from before relics.
  */
 export function migrateCharacter(character: Character, rng: Rng): Character {
   const { trueDamage } = character.starterStats as Partial<Character['starterStats']>;
@@ -71,11 +70,14 @@ export function migrateCharacter(character: Character, rng: Rng): Character {
     'expGain' in character.starterStats || 'expGainRebalanceApplied' in (character as unknown as Record<string, unknown>);
   const needsStats = trueDamage === undefined;
   const needsTiers = character.newItemUnlockTiers === undefined;
-  // A run that predates side quests has no side-only items, so the side-quest
-  // event could never be offered until the next death. Flag some now — only
-  // from items not already owned, so nothing the player holds is affected.
-  const needsSideOnly = character.sideOnlyItemIds === undefined;
-  if (!needsStats && !needsTiers && !needsSideOnly && !hasLegacyExpGain) return character;
+  // Gated items added to the catalog after this run started need a tier too,
+  // or they could never drop for it.
+  const backfilledTiers = character.newItemUnlockTiers && backfillUnlockTiers(character.newItemUnlockTiers, rng);
+  const needsTierBackfill = backfilledTiers !== character.newItemUnlockTiers;
+  // The pre-relic side-only item pool is gone; drop the stray field (a pending
+  // side quest that promised one of those items still pays it).
+  const hasLegacySideOnly = 'sideOnlyItemIds' in (character as unknown as Record<string, unknown>);
+  if (!needsStats && !needsTiers && !needsTierBackfill && !hasLegacySideOnly && !hasLegacyExpGain) return character;
   const starterStats = {
     ...character.starterStats,
     trueDamage: trueDamage ?? randomizeStat(TUNING.BASE_STATS.trueDamage, rng),
@@ -83,11 +85,11 @@ export function migrateCharacter(character: Character, rng: Rng): Character {
   const migrated = {
     ...character,
     starterStats,
-    newItemUnlockTiers: character.newItemUnlockTiers ?? assignNewItemUnlockTiers(rng),
-    sideOnlyItemIds: character.sideOnlyItemIds ?? assignSideOnlyItems(rng, character.ownedItemIds),
+    newItemUnlockTiers: backfilledTiers ?? assignNewItemUnlockTiers(rng),
   };
   delete (starterStats as { expGain?: number }).expGain;
   delete (migrated as { expGainRebalanceApplied?: boolean }).expGainRebalanceApplied;
+  delete (migrated as { sideOnlyItemIds?: string[] }).sideOnlyItemIds;
   return migrated;
 }
 
@@ -95,11 +97,19 @@ export function migrateCharacter(character: Character, rng: Rng): Character {
  * Items only exist while equipped: anything owned but not equipped is
  * discarded (and so returns to the drop pool). Covers saves from before that
  * rule, and drops still waiting in the in-memory popup queue when the page
- * was closed. Returns the same object when there is nothing to discard.
+ * was closed — a relic among those is un-earned too, so it can be offered
+ * again rather than lost to a reload (a relic the player chose to drop has
+ * already left ownedItemIds and stays earned). Returns the same object when
+ * there is nothing to discard.
  */
 export function discardUnequippedItems(character: Character): Character {
-  if (character.ownedItemIds.every((id) => character.equippedItemIds.includes(id))) return character;
-  return { ...character, ownedItemIds: character.ownedItemIds.filter((id) => character.equippedItemIds.includes(id)) };
+  const unequipped = character.ownedItemIds.filter((id) => !character.equippedItemIds.includes(id));
+  if (unequipped.length === 0) return character;
+  return {
+    ...character,
+    ownedItemIds: character.ownedItemIds.filter((id) => character.equippedItemIds.includes(id)),
+    ...(character.earnedRelicIds && { earnedRelicIds: character.earnedRelicIds.filter((id) => !unequipped.includes(id)) }),
+  };
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, expToNextLevel, statAtLevel } from './leveling';
+import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, expToNextLevel, itemStatMultiplier, statAtLevel } from './leveling';
 import { TUNING } from './constants/tuning';
 import type { Character } from './types';
 
@@ -194,7 +194,7 @@ describe('effectiveStat', () => {
       equippedItemIds: ['rusty-blade', 'steel-sword'],
     });
     const base = statAtLevel(character.starterStats.physicalDamage, character.level);
-    expect(effectiveStat(character, 'physicalDamage')).toBeCloseTo(base * 1.09, 10);
+    expect(effectiveStat(character, 'physicalDamage')).toBeCloseTo(base * 1.08, 10);
   });
 });
 
@@ -254,7 +254,14 @@ describe('effectiveCritChance', () => {
   });
 });
 
-describe('effectiveStat — flat item bonus', () => {
+describe('effectiveStat — drawbacks and all damage', () => {
+  it("Sage's Codex makes a level-up heal 40% instead of 20%", () => {
+    const character = makeCharacter({ currentHealth: 1, equippedItemIds: ['sages-codex'] });
+    const result = addExpAndResolveLevelUps(character, 25);
+    const maxHealth = effectiveStat(result.character, 'health');
+    expect(result.character.currentHealth).toBeCloseTo(1 + maxHealth * (TUNING.ITEM_EFFECTS.SAGES_INSIGHT_LEVEL_UP_HEAL_PCT / 100), 10);
+  });
+
   function makeCharacter(overrides: Partial<Character> = {}): Character {
     return {
       level: 1,
@@ -269,15 +276,17 @@ describe('effectiveStat — flat item bonus', () => {
     };
   }
 
-  it('adds a flat health bonus before the percent health multiplier', () => {
-    // juggernaut-carapace: +300 flat armor, +200 flat health (no percent health on this one)
-    const character = makeCharacter({ equippedItemIds: ['juggernaut-carapace'] });
-    expect(effectiveStat(character, 'health')).toBeCloseTo(50 + 200, 5);
+  it('applies allDamage to the three damage stats only', () => {
+    const character = makeCharacter({ equippedItemIds: ['glass-crown'] }); // +40% all damage, -30% max health
+    expect(itemStatMultiplier(character, 'physicalDamage')).toBeCloseTo(1.4, 10);
+    expect(itemStatMultiplier(character, 'magicDamage')).toBeCloseTo(1.4, 10);
+    expect(itemStatMultiplier(character, 'trueDamage')).toBeCloseTo(1.4, 10);
+    expect(itemStatMultiplier(character, 'healing')).toBe(1);
+    expect(effectiveStat(character, 'health')).toBeCloseTo(50 * 0.7, 10);
   });
 
-  it('applies the percent health multiplier on top of the flat-boosted base', () => {
-    // bulwark-plate: +10% health, +500 flat health
-    const character = makeCharacter({ equippedItemIds: ['bulwark-plate'] });
-    expect(effectiveStat(character, 'health')).toBeCloseTo((50 + 500) * 1.1, 5);
+  it('keeps max health positive with every health drawback equipped at once', () => {
+    const character = makeCharacter({ equippedItemIds: ['glass-crown', 'starfall-staff', 'void-crystal', 'hexed-ring'] });
+    expect(effectiveStat(character, 'health')).toBeGreaterThan(0);
   });
 });

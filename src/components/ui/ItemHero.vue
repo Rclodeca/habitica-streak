@@ -47,6 +47,7 @@ function toggleChip(index: number) {
       </button>
     </div>
     <p v-else class="consumable">{{ describeItemBonus(item) }}</p>
+    <p v-if="item.effectText" class="effect">{{ item.effectText }}</p>
   </div>
 </template>
 
@@ -65,6 +66,10 @@ function toggleChip(index: number) {
 
 .rarity-epic {
   --rarity: var(--rarity-epic);
+}
+
+.rarity-relic {
+  --rarity: var(--side-quest-color);
 }
 
 .hero {
@@ -170,5 +175,12 @@ function toggleChip(index: number) {
   margin: 0;
   color: var(--text);
   font-size: 0.85rem;
+}
+
+.effect {
+  margin: 0;
+  color: var(--rarity);
+  font-size: 0.85rem;
+  font-style: italic;
 }
 </style>

@@ -1,5 +1,5 @@
 import { TUNING } from './constants/tuning';
-import { itemBonusPercent, itemFlatBonus } from './items';
+import { hasItemEffect, itemBonusPercent, itemFlatBonus } from './items';
 import { daysBetweenDayKeys } from './time';
 import type { Character, CritBoostStatusEffect, HealBoostStatusEffect } from './types';
 
@@ -46,7 +46,9 @@ export function addExpAndResolveLevelUps(
   let currentHealth = character.currentHealth;
   if (levelsGained > 0) {
     const maxHealth = effectiveStat({ ...character, level }, 'health');
-    currentHealth = Math.min(currentHealth + maxHealth * (TUNING.LEVEL_UP_HEAL_PCT / 100) * levelsGained, maxHealth);
+    // Sage's Codex raises the per-level heal.
+    const healPct = hasItemEffect(character, 'sages-insight') ? TUNING.ITEM_EFFECTS.SAGES_INSIGHT_LEVEL_UP_HEAL_PCT : TUNING.LEVEL_UP_HEAL_PCT;
+    currentHealth = Math.min(currentHealth + maxHealth * (healPct / 100) * levelsGained, maxHealth);
   }
 
   return { character: { ...character, level, exp, currentHealth }, levelsGained };
@@ -56,12 +58,17 @@ export function statAtLevel(starterStatValue: number, level: number): number {
   return starterStatValue * Math.pow(1 + TUNING.LEVEL_STAT_GROWTH_RATE, level - 1);
 }
 
-/** The character's equipped-item bonus for `stat`, expressed as a multiplier (e.g. 1.06 for a +6% item). */
+/**
+ * The character's equipped-item bonus for `stat`, expressed as a multiplier
+ * (e.g. 1.06 for a +6% item). The three damage stats also get any
+ * `allDamage` bonus; drawbacks (negative percents) pull it below 1.
+ */
 export function itemStatMultiplier(
   character: Character,
   stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health' | 'trueDamage',
 ): number {
-  return 1 + itemBonusPercent(character, stat) / 100;
+  const allDamage = stat === 'healing' || stat === 'health' ? 0 : itemBonusPercent(character, 'allDamage');
+  return 1 + (itemBonusPercent(character, stat) + allDamage) / 100;
 }
 
 /** statAtLevel(...) scaled by the character's equipped-item bonus for `stat`. */
@@ -71,6 +78,16 @@ export function effectiveStat(
 ): number {
   const baseWithFlat = statAtLevel(character.starterStats[stat], character.level) + itemFlatBonus(character, stat);
   return baseWithFlat * itemStatMultiplier(character, stat);
+}
+
+/**
+ * The character with currentHealth capped at its (item-adjusted) max health —
+ * equipping a drawback, dropping a health item, or a catalog rebalance can
+ * leave it above. The same character when it's already within max.
+ */
+export function clampHealthToMax(character: Character): Character {
+  const maxHealth = effectiveStat(character, 'health');
+  return character.currentHealth > maxHealth ? { ...character, currentHealth: maxHealth } : character;
 }
 
 /**

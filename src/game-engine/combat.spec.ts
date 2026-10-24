@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyResist, bossExpReward } from './boss';
+import { applyResist, baseResistStatForIndex, bossExpReward } from './boss';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { MILESTONE_EXP } from './constants/milestones';
 import { TUNING } from './constants/tuning';
@@ -231,7 +231,7 @@ describe('completeHabit', () => {
 
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
-    const expectedHeal = (result.damageDealt ?? 0) * 0.05; // vampiric-fang bonusPercent: 5
+    const expectedHeal = (result.damageDealt ?? 0) * 0.03; // vampiric-fang: +3% lifesteal
     expect(result.character.currentHealth).toBeCloseTo(1 + expectedHeal, 10);
   });
 
@@ -285,7 +285,7 @@ describe('completeHabit', () => {
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const dealt = result.damageDealt ?? 0;
-    const expectedHealthChange = dealt * 0.05 - dealt * 0.2; // vampiric-fang 5% lifesteal vs 20% reflect
+    const expectedHealthChange = dealt * 0.03 - dealt * 0.2; // vampiric-fang 3% lifesteal vs 20% reflect
     expect(result.character.currentHealth).toBeCloseTo(50 + expectedHealthChange, 10);
   });
 
@@ -360,20 +360,8 @@ describe('completeHabit', () => {
     expect(goodHealed).toBeCloseTo(expectedGoodAmount, 10);
   });
 
-  it('adds a flat item bonus into the stat pool before the streak multiplier, so the flat amount is also multiplied by streak', () => {
-    const character = makeCharacter({ equippedItemIds: ['berserkers-war-axe'] }); // +200 flat physicalDamage, +5% lifesteal
-    const habit = makeHabit({ damageType: 'physical', streakCount: 9 }); // damage uses streak 9, then bumps to 10
-    const boss = makeBoss({ armor: 0, health: 10000 }); // armor 0 -> no reduction, easier to reason about
-
-    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
-
-    const statValue = statAtLevel(character.starterStats.physicalDamage, character.level) + itemFlatBonus(character, 'physicalDamage');
-    const expectedDealt = statValue * streakMultiplier(9);
-    expect(result.damageDealt).toBeCloseTo(expectedDealt, 10);
-  });
-
   it('reduces the boss resist stat by the equipped armorPen percent before applying it, for a physical habit', () => {
-    const character = makeCharacter({ equippedItemIds: ['serrated-ripper'] }); // +150 flat physicalDamage, +20% armorPen
+    const character = makeCharacter({ equippedItemIds: ['serrated-ripper'] }); // +24% physicalDamage, +20% armorPen
     const habit = makeHabit({ damageType: 'physical', streakCount: 0 });
     const boss = makeBoss({ armor: 1000 });
 
@@ -387,10 +375,9 @@ describe('completeHabit', () => {
   });
 
   it('sums armorPen across multiple equipped items before applying the cap', () => {
-    // serrated-ripper (+150 flat physicalDamage, 20% armorPen) + piercing-fang-gauntlets (30% armorPen, +10%
-    // physicalDamage, +200 flat health) + duelists-signet (+100 flat health, +50 flat physicalDamage, 20%
-    // armorPen, +2% lifesteal) = 70% total armorPen, still under the 90% cap.
-    const character = makeCharacter({ equippedItemIds: ['serrated-ripper', 'piercing-fang-gauntlets', 'duelists-signet'] });
+    // serrated-ripper (20% armorPen) + piercing-fang-gauntlets (35% armorPen) + headsmans-mark (20% armorPen)
+    // = 75% total armorPen, still under the 90% cap.
+    const character = makeCharacter({ equippedItemIds: ['serrated-ripper', 'piercing-fang-gauntlets', 'headsmans-mark'] });
     const habit = makeHabit({ damageType: 'physical', streakCount: 0 });
     const boss = makeBoss({ armor: 1000 });
 
@@ -404,7 +391,7 @@ describe('completeHabit', () => {
   });
 
   it('applies magicPen (not armorPen) for a magic habit', () => {
-    const character = makeCharacter({ equippedItemIds: ['chaos-conduit'] }); // +30% magicDamage, +20% magicPen
+    const character = makeCharacter({ equippedItemIds: ['chaos-conduit'] }); // +34% magicDamage, +20% magicPen
     const habit = makeHabit({ damageType: 'magic', streakCount: 0 });
     const boss = makeBoss({ magicResist: 1000 });
 
@@ -441,14 +428,14 @@ describe('missHabit', () => {
   it('mitigates physical miss damage through equipped armor, using the same resist formula as boss armor', () => {
     // currentHealth set comfortably above any damage this test computes, so the health delta below
     // reflects the resist formula directly rather than being clamped by missHabit's health-floor.
-    const character = makeCharacter({ currentHealth: 100000, equippedItemIds: ['juggernaut-carapace'] }); // +300 flat armor
+    const character = makeCharacter({ currentHealth: 100000, equippedItemIds: ['juggernaut-carapace'] }); // +450 flat armor
     const habit = makeHabit({ difficulty: 'medium' });
     const boss = makeBoss({ physicalAttack: 1000, critChance: 0 });
     const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; also beats critChance 0 and any woundsAbility roll
     const result = missHabit(character, habit, boss, DAY_KEY, forcePhysicalNoCrit);
 
     const rawDamage = bossMissDamage(boss.physicalAttack); // medium difficulty, no crit, no weekly multiplier
-    const expectedMitigated = applyResist(rawDamage, 300);
+    const expectedMitigated = applyResist(rawDamage, 450);
     expect(character.currentHealth - result.character.currentHealth).toBeCloseTo(expectedMitigated, 5);
   });
 
@@ -465,14 +452,14 @@ describe('missHabit', () => {
   });
 
   it('boss lifesteal heals off the mitigated damage, not the raw pre-mitigation amount', () => {
-    const character = makeCharacter({ equippedItemIds: ['juggernaut-carapace'] }); // +300 flat armor
+    const character = makeCharacter({ equippedItemIds: ['juggernaut-carapace'] }); // +450 flat armor
     const habit = makeHabit({ difficulty: 'medium' });
     const boss = makeBoss({ physicalAttack: 1000, critChance: 0, lifestealPct: 1, maxHealth: 100000, health: 100 });
     const forcePhysicalNoCrit = () => 0.4;
     const result = missHabit(character, habit, boss, DAY_KEY, forcePhysicalNoCrit);
 
     const rawDamage = bossMissDamage(boss.physicalAttack);
-    const expectedMitigated = applyResist(rawDamage, 300);
+    const expectedMitigated = applyResist(rawDamage, 450);
     // lifestealPct 1 (100%) means the boss heals for exactly the mitigated amount, not the larger raw amount.
     expect(result.bossLifestealHealed).toBeCloseTo(expectedMitigated, 5);
   });
@@ -1163,5 +1150,223 @@ describe('expectedMediumDailyDamage', () => {
       expectedMediumDailyDamage(character, 'physical', [plain]),
       10,
     );
+  });
+});
+
+describe('completeHabit — item effects', () => {
+  const E = TUNING.ITEM_EFFECTS;
+  const NO_RESIST = { armor: 0, magicResist: 0 };
+  function hit(equipped: string[], habit: Partial<Habit>, boss: Partial<Boss>, rng = noCritRng, character: Partial<Character> = {}) {
+    return completeHabit(
+      makeCharacter({ equippedItemIds: equipped, ...character }),
+      makeHabit(habit),
+      [makeHabit(habit)],
+      makeBoss({ ...NO_RESIST, maxHealth: 100000, health: 100000, ...boss }),
+      DAY_KEY,
+      rng,
+    );
+  }
+
+  it('Godslayer deals ×1.3 while the boss is above 75% health', () => {
+    const full = hit(['godslayer-greatblade'], {}, { health: 100000 }).damageDealt ?? 0;
+    const half = hit(['godslayer-greatblade'], {}, { health: 50000 }).damageDealt ?? 0;
+    expect(full / half).toBeCloseTo(E.GIANTSLAYER_MULTIPLIER, 10);
+  });
+
+  it("Headsman's Mark deals ×1.5 to a boss below 25% health", () => {
+    const low = hit(['headsmans-mark'], {}, { health: 20000 }).damageDealt ?? 0;
+    const half = hit(['headsmans-mark'], {}, { health: 50000 }).damageDealt ?? 0;
+    expect(low / half).toBeCloseTo(E.HEADSMAN_MULTIPLIER, 10);
+  });
+
+  it('Moonwell makes a weekly skill hit ×1.5 and leaves dailies alone', () => {
+    const weeklyWith = hit(['moonwell'], { period: 'weekly' }, {}).damageDealt ?? 0;
+    const weeklyWithout = hit([], { period: 'weekly' }, {}).damageDealt ?? 0;
+    expect(weeklyWith / weeklyWithout).toBeCloseTo(E.MOONWELL_MULTIPLIER, 10);
+    expect(hit(['moonwell'], {}, {}).damageDealt).toBeCloseTo(hit([], {}, {}).damageDealt ?? 0, 10);
+  });
+
+  it('Spellweave grows magic damage with each skill used today and counts this one', () => {
+    const fresh = hit(['runeforged-spellblade'], { damageType: 'magic' }, {});
+    const third = hit(['runeforged-spellblade'], { damageType: 'magic' }, {}, noCritRng, { spellweave: { dayKey: DAY_KEY, count: 2 } });
+    expect((third.damageDealt ?? 0) / (fresh.damageDealt ?? 0)).toBeCloseTo(1 + 2 * E.SPELLWEAVE_PER_SKILL, 10);
+    expect(third.character.spellweave).toEqual({ dayKey: DAY_KEY, count: 3 });
+    const staleDay = hit(['runeforged-spellblade'], { damageType: 'magic' }, {}, noCritRng, { spellweave: { dayKey: '2025-12-31', count: 4 } });
+    expect(staleDay.damageDealt).toBeCloseTo(fresh.damageDealt ?? 0, 10);
+  });
+
+  it('Temperance Seal makes a resisted bad skill hit ×1.5', () => {
+    const bad = hit(['temperance-seal'], { isBad: true }, {}).damageDealt ?? 0;
+    const good = hit(['temperance-seal'], {}, {}).damageDealt ?? 0;
+    expect(bad / good).toBeCloseTo(E.TEMPERANCE_MULTIPLIER, 10);
+  });
+
+  it("Voidcaller's Scepter makes magic crits deal ×3", () => {
+    const crit = hit(['voidcallers-scepter'], { damageType: 'magic' }, {}, alwaysCritRng).damageDealt ?? 0;
+    const plain = hit(['voidcallers-scepter'], { damageType: 'magic' }, {}).damageDealt ?? 0;
+    expect(crit / plain).toBeCloseTo(E.VOID_CRIT_MULTIPLIER, 10);
+  });
+
+  it('First Blood crits the first hit on a boss, and only the first', () => {
+    const first = hit(['first-blood'], {}, {});
+    expect(first.wasCrit).toBe(true);
+    expect(first.boss.playerHasHit).toBe(true);
+    const second = completeHabit(first.character, makeHabit(), [makeHabit()], first.boss, DAY_KEY, noCritRng);
+    expect(second.wasCrit).toBe(false);
+  });
+
+  it("Starfall crits the day's first magic skill and stamps the day", () => {
+    const first = hit(['starfall-staff'], { damageType: 'magic' }, { playerHasHit: true });
+    expect(first.wasCrit).toBe(true);
+    expect(first.character.effectDayKeys?.starfall).toBe(DAY_KEY);
+    const second = completeHabit(first.character, makeHabit({ damageType: 'magic' }), [makeHabit({ damageType: 'magic' })], first.boss, DAY_KEY, noCritRng);
+    expect(second.wasCrit).toBe(false);
+    expect(hit(['starfall-staff'], { damageType: 'physical' }, { playerHasHit: true }).character.effectDayKeys).toBeUndefined();
+  });
+
+  it("Hunter's Eye crits ignore armor", () => {
+    const armored = hit(['hunters-eye'], {}, { armor: 1000 }, alwaysCritRng).damageDealt ?? 0;
+    const bare = hit(['hunters-eye'], {}, { armor: 0 }, alwaysCritRng).damageDealt ?? 0;
+    expect(armored).toBeCloseTo(bare, 10);
+    expect(hit(['hunters-eye'], {}, { armor: 1000 }).damageDealt ?? 0).toBeLessThan(hit(['hunters-eye'], {}, { armor: 0 }).damageDealt ?? 0);
+  });
+
+  it("Worldbreaker caps a boss's armor at the normal armor for its index", () => {
+    const base = baseResistStatForIndex(30);
+    const vsArmored = hit(['worldbreaker-maul'], {}, { index: 30, armor: base * 10 }).damageDealt ?? 0;
+    const vsNormal = hit(['worldbreaker-maul'], {}, { index: 30, armor: base }).damageDealt ?? 0;
+    expect(vsArmored).toBeCloseTo(vsNormal, 10);
+    expect(hit([], {}, { index: 30, armor: base * 10 }).damageDealt ?? 0).toBeLessThan(hit([], {}, { index: 30, armor: base }).damageDealt ?? 0);
+  });
+
+  it('Dynamo Core makes an Overdrive use deal full damage', () => {
+    const habit = makeHabit({ isOverdrive: true });
+    const boss = makeBoss({ ...NO_RESIST, maxHealth: 100000, health: 100000 });
+    const character = makeCharacter({ equippedItemIds: ['dynamo-core'] });
+    const normal = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng).damageDealt ?? 0;
+    const overdrive = overdriveHabit(character, habit, [habit], boss, DAY_KEY, DAY_KEY, noCritRng).damageDealt ?? 0;
+    expect(overdrive).toBeCloseTo(normal, 10);
+    const without = overdriveHabit(makeCharacter(), habit, [habit], boss, DAY_KEY, DAY_KEY, noCritRng).damageDealt ?? 0;
+    expect(without / (completeHabit(makeCharacter(), habit, [habit], boss, DAY_KEY, noCritRng).damageDealt ?? 1)).toBeCloseTo(TUNING.OVERDRIVE_DAMAGE_FACTOR, 10);
+  });
+
+  it('Banner of Endurance doubles streak-milestone EXP', () => {
+    expect(hit(['banner-of-endurance'], { streakCount: 4 }, {}).milestoneExp).toBe(MILESTONE_EXP[5] * E.BANNER_MILESTONE_MULTIPLIER);
+    expect(hit([], { streakCount: 4 }, {}).milestoneExp).toBe(MILESTONE_EXP[5]);
+  });
+
+  it('Null Mirror blocks boss reflect', () => {
+    const result = hit(['null-mirror'], {}, { reflectPct: 0.2 });
+    expect(result.reflectedDamage).toBeUndefined();
+    expect(result.character.currentHealth).toBe(50);
+  });
+
+  it('Bloodthorn Blade crits also heal 5% of max health', () => {
+    const result = hit(['bloodthorn-blade'], {}, {}, alwaysCritRng, { currentHealth: 1 });
+    const character = makeCharacter({ equippedItemIds: ['bloodthorn-blade'] });
+    const expected = 1 + (result.damageDealt ?? 0) * 0.03 + effectiveStat(character, 'health') * (E.BLOODTHORN_CRIT_HEAL_PCT / 100);
+    expect(result.character.currentHealth).toBeCloseTo(expected, 10);
+  });
+
+  it("Titan's Lifeblood heals ×1.5 while below half health", () => {
+    const low = hit(['titans-lifeblood'], { damageType: 'healing' }, {}, noCritRng, { currentHealth: 10 });
+    const high = hit(['titans-lifeblood'], { damageType: 'healing' }, {}, noCritRng, { currentHealth: 40 });
+    expect((low.character.currentHealth - 10) / (high.character.currentHealth - 40)).toBeCloseTo(E.TITANS_MENDING_MULTIPLIER, 10);
+  });
+
+  it('Censer of Wrath makes a heal also hit the boss for half, even at full health', () => {
+    const character = makeCharacter({ equippedItemIds: ['censer-of-wrath'] });
+    const habit = makeHabit({ damageType: 'healing' });
+    const boss = makeBoss({ health: 100 });
+    const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
+    const healAmount = statAtLevel(character.starterStats.healing, 1) * itemStatMultiplier(character, 'healing');
+    expect(result.damageDealt).toBeCloseTo(healAmount * E.CENSER_DAMAGE_FRACTION, 10);
+    expect(result.boss.health).toBeCloseTo(100 - healAmount * E.CENSER_DAMAGE_FRACTION, 10);
+  });
+
+  it('records overkill on a killing blow', () => {
+    const result = hit([], {}, { health: 5 });
+    expect(result.boss.health).toBe(0);
+    expect(result.boss.overkill).toBeCloseTo((result.damageDealt ?? 0) - 5, 10);
+  });
+
+  it('habitDamageBreakdown folds the effect multiplier into its preview', () => {
+    const character = makeCharacter({ equippedItemIds: ['godslayer-greatblade'] });
+    const habit = makeHabit();
+    const boss = makeBoss({ ...NO_RESIST });
+    const breakdown = habitDamageBreakdown(character, habit, [habit], boss, DAY_KEY);
+    expect(breakdown.effectMultiplier).toBe(E.GIANTSLAYER_MULTIPLIER);
+    expect(breakdown.effectiveDamage).toBeCloseTo(completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng).damageDealt ?? 0, 10);
+  });
+});
+
+describe('missHabit — item effects', () => {
+  const E = TUNING.ITEM_EFFECTS;
+  const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; beats critChance 0; < hitChance 1 for Wounds
+  function countingRng(value: number) {
+    const rng = () => {
+      rng.calls += 1;
+      return value;
+    };
+    rng.calls = 0;
+    return rng;
+  }
+
+  it('Aegis of the Unbroken blocks Wounds without changing rng consumption', () => {
+    const boss = makeBoss({ critChance: 0, woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 } });
+    const withAegis = countingRng(0.4);
+    const without = countingRng(0.4);
+    const blocked = missHabit(makeCharacter({ currentHealth: 1000, equippedItemIds: ['aegis-of-the-unbroken'] }), makeHabit(), boss, DAY_KEY, withAegis);
+    const applied = missHabit(makeCharacter({ currentHealth: 1000 }), makeHabit(), boss, DAY_KEY, without);
+    expect(blocked.woundsApplied).toBeUndefined();
+    expect(applied.woundsApplied).toBeDefined();
+    expect(withAegis.calls).toBe(without.calls);
+  });
+
+  it('Bloodbound Carapace stops boss lifesteal', () => {
+    const boss = makeBoss({ critChance: 0, lifestealPct: 1, maxHealth: 1000, health: 100 });
+    const result = missHabit(makeCharacter({ currentHealth: 1000, equippedItemIds: ['bloodbound-carapace'] }), makeHabit(), boss, DAY_KEY, forcePhysicalNoCrit);
+    expect(result.bossLifestealHealed).toBeUndefined();
+    expect(result.boss.health).toBe(100);
+  });
+
+  it('Dawnguard Helm halves the first hit each day only', () => {
+    const boss = makeBoss({ critChance: 0, physicalAttack: 1000 });
+    const character = makeCharacter({ currentHealth: 100000, equippedItemIds: ['dawnguard-helm'] });
+    const first = missHabit(character, makeHabit(), boss, DAY_KEY, forcePhysicalNoCrit);
+    const second = missHabit(first.character, makeHabit(), boss, DAY_KEY, forcePhysicalNoCrit);
+    const firstDamage = character.currentHealth - first.character.currentHealth;
+    const secondDamage = first.character.currentHealth - second.character.currentHealth;
+    expect(firstDamage / secondDamage).toBeCloseTo(E.DAWNGUARD_FACTOR, 10);
+    const nextDay = missHabit(second.character, makeHabit(), boss, '2026-01-02', forcePhysicalNoCrit);
+    expect((second.character.currentHealth - nextDay.character.currentHealth) / secondDamage).toBeCloseTo(E.DAWNGUARD_FACTOR, 10);
+  });
+});
+
+describe('resolveBossDefeatIfDead — item effects', () => {
+  const E = TUNING.ITEM_EFFECTS;
+
+  it('Soul Lantern heals 15% of max health when a boss falls', () => {
+    const character = makeCharacter({ currentHealth: 10, equippedItemIds: ['soul-lantern'] });
+    const result = resolveBossDefeatIfDead(character, makeBoss({ health: 0 }), createRng(1));
+    const lantern = (effectiveStat(result.character, 'health') * E.SOUL_LANTERN_HEAL_PCT) / 100;
+    const without = resolveBossDefeatIfDead(makeCharacter({ currentHealth: 10 }), makeBoss({ health: 0 }), createRng(1));
+    expect(result.itemHealed).toBeCloseTo(lantern, 10);
+    expect(result.character.currentHealth).toBeCloseTo(without.character.currentHealth + lantern, 5);
+    expect(without.itemHealed).toBeUndefined();
+  });
+
+  it('Echoing Blade carries overkill into the next boss', () => {
+    const withBlade = resolveBossDefeatIfDead(makeCharacter({ equippedItemIds: ['echoing-blade'] }), makeBoss({ health: 0, overkill: 50 }), createRng(1));
+    const without = resolveBossDefeatIfDead(makeCharacter(), makeBoss({ health: 0, overkill: 50 }), createRng(1));
+    expect(withBlade.boss.health).toBeCloseTo(withBlade.boss.maxHealth - 50, 10);
+    expect(without.boss.health).toBe(without.boss.maxHealth);
+  });
+
+  it('Echoing Blade never kills the next boss outright, however big the overkill', () => {
+    const result = resolveBossDefeatIfDead(makeCharacter({ equippedItemIds: ['echoing-blade'] }), makeBoss({ health: 0, overkill: 1e12 }), createRng(1));
+    expect(result.defeated).toBe(true);
+    expect(result.boss.index).toBe(2);
+    expect(result.boss.health).toBe(1);
   });
 });

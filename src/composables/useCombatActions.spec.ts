@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { availableSideOnlyItems, createRng, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, questSlotExp, weeklyPeriodKey } from '../game-engine';
+import { availableRelics, createRng, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, questSlotExp, weeklyPeriodKey } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
@@ -66,6 +66,25 @@ describe('useCombatActions', () => {
     expect(characterStore.character).toEqual(characterSnapshot);
     expect(bossStore.boss).toEqual(bossSnapshot);
     expect(habitAfterSecondCall).toEqual(habitSnapshot);
+  });
+
+  it('a heal with Censer of Wrath also logs the damage it dealt to the boss', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const activityLogStore = useActivityLogStore();
+    const { checkOffHabit } = useCombatActions();
+
+    const habit = { ...habitStore.addHabit('Stretch', 'daily', 'medium', false, createRng()), damageType: 'healing' as const };
+    habitStore.updateHabit(habit);
+    characterStore.setCharacter({ ...characterStore.character, ownedItemIds: ['censer-of-wrath'], equippedItemIds: ['censer-of-wrath'] });
+    const bossHealthBefore = bossStore.boss.health;
+
+    checkOffHabit(habit.id);
+
+    expect(bossStore.boss.health).toBeLessThan(bossHealthBefore);
+    expect(activityLogStore.entries.map((e) => e.kind)).toEqual(expect.arrayContaining(['heal', 'skill-damage']));
+    expect(activityLogStore.entries.find((e) => e.kind === 'skill-damage')).toMatchObject({ isTrueDamage: true });
   });
 
   it('checkOffHabit returns the items dropped when completing a habit defeats the boss', () => {
@@ -483,7 +502,7 @@ describe('useCombatActions', () => {
     const { completeQuest } = useCombatActions();
     const { current, dismiss } = useItemDropQueue();
 
-    const itemId = characterStore.character.sideOnlyItemIds![0];
+    const itemId = 'ember-heart';
     const quest = questStore.addQuest('Slay it', 'hard', '2099-01-01', 'side', itemId);
     const { exp, questWeek } = characterStore.character;
 
@@ -497,22 +516,54 @@ describe('useCombatActions', () => {
     expect(current.value?.id).toBe(itemId); // goes through the item-drop popup path
     expect(questStore.quests).toEqual([]);
     expect(activityLogStore.entries[0]).toMatchObject({ kind: 'quest-completed', amount: 0, itemName: result?.item?.name });
+    expect(characterStore.character.earnedRelicIds).toEqual([itemId]);
     dismiss();
   });
 
-  it('a missed side quest returns its item to the unassigned side-only pool', () => {
+  it('a side quest from before relics still pays the item it promised', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { completeQuest } = useCombatActions();
+    const { dismiss } = useItemDropQueue();
+
+    const quest = questStore.addQuest('Old oath', 'easy', '2099-01-01', 'side', 'godslayer-greatblade');
+    const result = completeQuest(quest.id);
+
+    expect(result?.item?.id).toBe('godslayer-greatblade');
+    expect(characterStore.character.ownedItemIds).toContain('godslayer-greatblade');
+    expect(characterStore.character.earnedRelicIds ?? []).toEqual([]);
+    dismiss();
+  });
+
+  it('a pre-relic side quest whose promised item already dropped pays an available relic instead', () => {
+    const characterStore = useCharacterStore();
+    const questStore = useQuestStore();
+    const { completeQuest } = useCombatActions();
+    const { dismiss } = useItemDropQueue();
+    characterStore.setCharacter({ ...characterStore.character, ownedItemIds: ['godslayer-greatblade'], equippedItemIds: ['godslayer-greatblade'] });
+
+    const quest = questStore.addQuest('Old oath', 'easy', '2099-01-01', 'side', 'godslayer-greatblade');
+    const result = completeQuest(quest.id);
+
+    expect(result?.item?.rarity).toBe('relic');
+    expect(characterStore.character.ownedItemIds).toContain(result?.item?.id);
+    expect(characterStore.character.earnedRelicIds).toEqual([result?.item?.id]);
+    dismiss();
+  });
+
+  it('a missed side quest returns its relic to the pool', () => {
     const characterStore = useCharacterStore();
     const questStore = useQuestStore();
     const { failQuest } = useCombatActions();
 
-    const itemId = characterStore.character.sideOnlyItemIds![0];
+    const itemId = 'ember-heart';
     const quest = questStore.addQuest('Slay it', 'easy', '2026-02-01', 'side', itemId);
-    expect(availableSideOnlyItems(characterStore.character, questStore.quests).map((i) => i.id)).not.toContain(itemId);
+    expect(availableRelics(characterStore.character, questStore.quests).map((i) => i.id)).not.toContain(itemId);
 
     failQuest(quest.id);
 
     expect(characterStore.character.ownedItemIds).not.toContain(itemId);
-    expect(availableSideOnlyItems(characterStore.character, questStore.quests).map((i) => i.id)).toContain(itemId);
+    expect(availableRelics(characterStore.character, questStore.quests).map((i) => i.id)).toContain(itemId);
   });
 
   it('completeQuest is a no-op for an id that is not in the quest store', () => {

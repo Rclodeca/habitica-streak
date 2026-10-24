@@ -80,6 +80,40 @@
 | `items/warded-longsword.png` | `gear/weapon/shop/shop_weapon_special_mammothRiderSpear.png` |
 | `items/stalwart-sages-ring.png` | `gear/armoire/shop/shop_weapon_armoire_ironCrook.png` |
 | `items/titans-lifeblood.png` | `gear/armoire/shop/shop_weapon_armoire_wandOfHearts.png` |
+| `items/bone-needle.png` | `gear/armoire/shop/shop_weapon_armoire_needleOfBookbinding.png` |
+| `items/silver-stiletto.png` | `gear/armoire/shop/shop_weapon_armoire_resplendentRapier.png` |
+| `items/truthseekers-bow.png` | `gear/armoire/shop/shop_weapon_armoire_jeweledArcherBow.png` |
+| `items/iron-buckler.png` | `gear/armoire/shop/shop_shield_armoire_gladiatorShield.png` |
+| `items/ward-cloak.png` | `gear/armoire/shop/shop_armor_armoire_secretsCloak.png` |
+| `items/hexed-ring.png` | `gear/armoire/shop/shop_weapon_armoire_batWand.png` |
+| `items/cinder-crown.png` | `gear/armoire/shop/shop_head_armoire_crownOfHearts.png` |
+| `items/penitents-hauberk.png` | `gear/armoire/shop/shop_armor_armoire_gildedKnightsPlate.png` |
+| `items/ascetics-beads.png` | `gear/armoire/shop/shop_weapon_armoire_bambooCane.png` |
+| `items/brawlers-ironhide.png` | `gear/armoire/shop/shop_armor_armoire_ogreArmor.png` |
+| `items/spellturner-mantle.png` | `gear/armoire/shop/shop_armor_armoire_crystalCrescentRobes.png` |
+| `items/bloodbound-carapace.png` | `gear/armoire/shop/shop_armor_armoire_vermilionArcherArmor.png` |
+| `items/dawnguard-helm.png` | `gear/armoire/shop/shop_head_armoire_gildedKnightsHelm.png` |
+| `items/sages-codex.png` | `gear/armoire/shop/shop_shield_armoire_unfinishedTome.png` |
+| `items/starfall-staff.png` | `gear/armoire/shop/shop_weapon_armoire_goldWingStaff.png` |
+| `items/worldbreaker-maul.png` | `gear/armoire/shop/shop_weapon_armoire_blacksmithsHammer.png` |
+| `items/colossus-plate.png` | `gear/armoire/shop/shop_armor_armoire_stormKnightArmor.png` |
+| `items/archons-halo.png` | `gear/armoire/shop/shop_head_armoire_goldenLaurels.png` |
+| `items/sunpiercer-bow.png` | `gear/armoire/shop/shop_weapon_armoire_vermilionArcherBow.png` |
+| `items/ember-heart.png` | `gear/armoire/shop/shop_shield_armoire_darkAutumnFlame.png` |
+| `items/soul-lantern.png` | `gear/armoire/shop/shop_weapon_armoire_skullLantern.png` |
+| `items/first-blood.png` | `gear/armoire/shop/shop_weapon_armoire_corsairsBlade.png` |
+| `items/censer-of-wrath.png` | `gear/armoire/shop/shop_weapon_armoire_vernalTaper.png` |
+| `items/temperance-seal.png` | `gear/armoire/shop/shop_shield_armoire_alchemistsScale.png` |
+| `items/quill-of-oaths.png` | `gear/armoire/shop/shop_shield_armoire_mightyQuill.png` |
+| `items/magpie-charm.png` | `gear/armoire/shop/shop_shield_armoire_treasureMap.png` |
+| `items/headsmans-mark.png` | `gear/armoire/shop/shop_weapon_armoire_stormKnightAxe.png` |
+| `items/hunters-eye.png` | `gear/armoire/shop/shop_shield_armoire_perchingFalcon.png` |
+| `items/moonwell.png` | `gear/armoire/shop/shop_weapon_armoire_lunarSceptre.png` |
+| `items/dynamo-core.png` | `gear/armoire/shop/shop_shield_armoire_polishedPocketwatch.png` |
+| `items/banner-of-endurance.png` | `gear/armoire/shop/shop_weapon_armoire_heraldsBuisine.png` |
+| `items/null-mirror.png` | `gear/armoire/shop/shop_shield_armoire_midnightShield.png` |
+| `items/echoing-blade.png` | `gear/armoire/shop/shop_weapon_armoire_mythmakerSword.png` |
+| `items/glass-crown.png` | `gear/armoire/shop/shop_head_armoire_crownOfDiamonds.png` |
 
 ## Player sprite layers
 

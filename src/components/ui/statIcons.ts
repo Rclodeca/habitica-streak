@@ -79,6 +79,7 @@ export const BOOST_STAT_ICON: Record<BoostableStat, StatIconName> = {
   magicPen: 'magicPen',
   armor: 'armor',
   magicResist: 'magicResist',
+  allDamage: 'hit',
 };
 
 export const EVENT_ICON: Record<EventId, StatIconName> = {
@@ -87,6 +88,7 @@ export const EVENT_ICON: Record<EventId, StatIconName> = {
   ult: 'ult',
   overdrive: 'streak',
   'item-slots': 'slots',
+  'item-slots-2': 'slots',
   'reroll-skill': 'reroll',
   heal: 'healing',
   'item-drop': 'gift',

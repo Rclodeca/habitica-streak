@@ -81,9 +81,15 @@ export interface Character {
   // on the character, so a death starts a fresh count along with everything
   // else in the run.
   questWeek?: QuestWeek;
-  // Rare items flagged at character creation as obtainable only through side
-  // quests this run (see assignSideOnlyItems); undefined = none.
-  sideOnlyItemIds?: string[];
+  // Relics already paid out by a side quest this run (see availableRelics) —
+  // kept even if the relic is later dropped, so it is never offered again
+  // this run. undefined = none; a death starts a fresh run with none.
+  earnedRelicIds?: string[];
+  // The day key each once-a-day item effect last fired on (Dawnguard's halved
+  // hit, Starfall's crit, Ember Heart's heal) — see itemEffects.ts.
+  effectDayKeys?: { dawnguard?: string; starfall?: string; emberHeart?: string };
+  // Skills used today while Spellweave is equipped (see spellweaveStacks).
+  spellweave?: { dayKey: string; count: number };
   // Consecutive level-up picks where the side-quest event was eligible but
   // not offered — drives the guarantee in rollEventChoices.
   sideQuestPicksMissed?: number;
@@ -144,6 +150,10 @@ export interface Boss {
   // Optional so an existing save still loads; undefined means this boss has
   // no Wounds ability (90% of bosses) — see generateBoss/TUNING.WOUNDS_ABILITY_CHANCE.
   woundsAbility?: WoundsAbility;
+  // Set once the player first damages this boss (First Blood reads it).
+  playerHasHit?: boolean;
+  // Damage past 0 health on the killing blow (Echoing Blade carries it over).
+  overkill?: number;
 }
 
 /** A boss's Wounds ability: rolled once at generation, then fixed for the boss's lifetime — see generateBoss. */

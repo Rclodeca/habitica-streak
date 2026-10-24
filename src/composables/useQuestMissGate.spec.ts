@@ -100,7 +100,7 @@ describe('useQuestMissGate', () => {
     const questStore = useQuestStore();
     useBossStore();
 
-    const itemId = characterStore.character.sideOnlyItemIds![0];
+    const itemId = 'ember-heart';
     const quest = questStore.addQuest('Slay it', 'medium', '2026-01-01', 'side', itemId);
     const expBefore = characterStore.character.exp;
 

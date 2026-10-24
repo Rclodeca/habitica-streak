@@ -77,6 +77,10 @@ const isCurrentEquipped = computed(
   --rarity: var(--rarity-epic);
 }
 
+.rarity-relic {
+  --rarity: var(--side-quest-color);
+}
+
 .replace-list {
   list-style: none;
   margin: 0.75rem 0 0;

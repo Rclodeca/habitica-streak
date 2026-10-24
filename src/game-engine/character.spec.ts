@@ -152,24 +152,25 @@ describe('migrateCharacter', () => {
 
     expect(migrateCharacter(character, createRng(9)).newItemUnlockTiers).toEqual(newItemUnlockTiers);
   });
+
+  it('backfills unlock tiers for gated items added after the run started, keeping the old assignments', () => {
+    const character = createCharacter(createRng(7));
+    const tiers = character.newItemUnlockTiers ?? {};
+    const oldIds = Object.keys(tiers).slice(0, 19);
+    const partial = Object.fromEntries(oldIds.map((id) => [id, tiers[id]]));
+
+    const migrated = migrateCharacter({ ...character, newItemUnlockTiers: partial }, createRng(8));
+
+    expect(Object.keys(migrated.newItemUnlockTiers ?? {}).sort()).toEqual(Object.keys(tiers).sort());
+    for (const id of oldIds) expect(migrated.newItemUnlockTiers?.[id]).toBe(partial[id]);
+  });
 });
 
 describe('createCharacter — quests v2 / run state', () => {
-  it('starts with TUNING.SIDE_QUEST_ITEM_COUNT distinct side-only rare/epic items', () => {
-    const { sideOnlyItemIds } = createCharacter(createRng(1));
-    expect(sideOnlyItemIds).toHaveLength(TUNING.SIDE_QUEST_ITEM_COUNT);
-    expect(new Set(sideOnlyItemIds).size).toBe(TUNING.SIDE_QUEST_ITEM_COUNT);
-    for (const id of sideOnlyItemIds ?? []) {
-      const item = ITEM_CATALOG.find((i) => i.id === id);
-      expect(['rare', 'epic']).toContain(item?.rarity);
-      expect(item?.levelGated).toBeUndefined();
-      expect(item?.type).toBe('equipment');
-    }
-  });
-
-  it('rolls a fresh side-only set per character (a death re-rolls it)', () => {
-    const sets = new Set(Array.from({ length: 30 }, (_, seed) => (createCharacter(createRng(seed)).sideOnlyItemIds ?? []).join(',')));
-    expect(sets.size).toBeGreaterThan(1);
+  it('starts with no relics earned and no side-only item pool', () => {
+    const character = createCharacter(createRng(1));
+    expect(character.earnedRelicIds ?? []).toEqual([]);
+    expect('sideOnlyItemIds' in character).toBe(false);
   });
 
   it('has no expGain starter stat or rebalance flag', () => {
@@ -181,20 +182,14 @@ describe('createCharacter — quests v2 / run state', () => {
 });
 
 describe('migrateCharacter — side-only items', () => {
-  it('backfills side-only items on a save that predates side quests, never picking one the player owns', () => {
+  it('drops the pre-relic side-only item pool from an old save, leaving owned items alone', () => {
     const character = createCharacter(createRng(3));
-    const rareOwned = ITEM_CATALOG.filter((i) => (i.rarity === 'rare' || i.rarity === 'epic') && i.type === 'equipment' && !i.levelGated).map((i) => i.id);
-    const preSideQuests: Character = { ...character, sideOnlyItemIds: undefined, ownedItemIds: rareOwned.slice(2), equippedItemIds: [] };
+    const legacy = { ...character, sideOnlyItemIds: ['godslayer-greatblade', 'stormcaller-staff'], ownedItemIds: ['stormcaller-staff'], equippedItemIds: ['stormcaller-staff'] } as Character;
 
-    const migrated = migrateCharacter(preSideQuests, createRng(4));
+    const migrated = migrateCharacter(legacy, createRng(4));
 
-    expect(migrated.sideOnlyItemIds).toHaveLength(2);
-    for (const id of migrated.sideOnlyItemIds ?? []) expect(preSideQuests.ownedItemIds).not.toContain(id);
-  });
-
-  it('leaves existing side-only items alone', () => {
-    const character = createCharacter(createRng(3));
-    expect(migrateCharacter(character, createRng(4))).toBe(character);
+    expect('sideOnlyItemIds' in migrated).toBe(false);
+    expect(migrated.ownedItemIds).toEqual(['stormcaller-staff']);
   });
 });
 
@@ -245,6 +240,13 @@ describe('discardUnequippedItems', () => {
   it('drops owned items that are not equipped', () => {
     const character = { ...createCharacter(createRng(1)), ownedItemIds: ['a', 'b', 'c'], equippedItemIds: ['b'] };
     expect(discardUnequippedItems(character).ownedItemIds).toEqual(['b']);
+  });
+
+  it('returns a relic still waiting in the drop popup to the pool, un-earning it', () => {
+    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['ember-heart', 'rusty-blade'], equippedItemIds: ['rusty-blade'], earnedRelicIds: ['ember-heart', 'soul-lantern'] };
+    const loaded = discardUnequippedItems(character);
+    expect(loaded.ownedItemIds).toEqual(['rusty-blade']);
+    expect(loaded.earnedRelicIds).toEqual(['soul-lantern']);
   });
 
   it('returns the same object when everything owned is equipped', () => {

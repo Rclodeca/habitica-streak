@@ -182,9 +182,6 @@ export const TUNING = {
   // calendar week; slots past the end pay 0 (hard ceiling: sum is 232).
   QUEST_SLOT_WEIGHTS: [100, 60, 35, 20, 10, 5, 2],
   QUEST_DIFFICULTY_MULT: { easy: 0.7, medium: 1, hard: 1.3 },
-  // Rare/epic items flagged at character creation as obtainable only through
-  // side quests for that run.
-  SIDE_QUEST_ITEM_COUNT: 2,
   // Level-up picks that can pass with the side-quest event eligible but not
   // offered before it is forced into the next pick.
   SIDE_QUEST_GUARANTEE_LEVELS: 5,
@@ -288,4 +285,29 @@ export const TUNING = {
   // Overdrive-capable.
   OVERDRIVE_MAX_EXTRA_USES: 2,
   OVERDRIVE_DAMAGE_FACTOR: 0.5,
+  // Epic signature and relic effects (see itemEffects.ts and the item's
+  // `effect` in constants/itemCatalog.ts). *_PCT thresholds are boss/player
+  // health fractions; *_HEAL_PCT values are percents of max health.
+  ITEM_EFFECTS: {
+    GIANTSLAYER_ABOVE_PCT: 0.75,
+    GIANTSLAYER_MULTIPLIER: 1.3,
+    HEADSMAN_BELOW_PCT: 0.25,
+    HEADSMAN_MULTIPLIER: 1.5,
+    VOID_CRIT_MULTIPLIER: 3,
+    BLOODTHORN_CRIT_HEAL_PCT: 5,
+    SPELLWEAVE_PER_SKILL: 0.05,
+    SPELLWEAVE_MAX_STACKS: 5,
+    TITANS_MENDING_BELOW_PCT: 0.5,
+    TITANS_MENDING_MULTIPLIER: 1.5,
+    CENSER_DAMAGE_FRACTION: 0.5,
+    TEMPERANCE_MULTIPLIER: 1.5,
+    MOONWELL_MULTIPLIER: 1.5,
+    BANNER_MILESTONE_MULTIPLIER: 2,
+    DAWNGUARD_FACTOR: 0.5,
+    SAGES_INSIGHT_LEVEL_UP_HEAL_PCT: 40,
+    EMBER_HEART_HEAL_PCT: 5,
+    SOUL_LANTERN_HEAL_PCT: 15,
+    QUILL_EXP_MULTIPLIER: 1.5,
+    MAGPIE_BOSS_INDEX_BONUS: 10,
+  },
 } as const;

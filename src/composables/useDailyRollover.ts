@@ -23,8 +23,10 @@
 // counts when the app first opens on Wednesday after a Tuesday rest day. If
 // it only rested since, there's nothing to resolve and it's just stamped.
 
-import { dailyPeriodKey, daysBetweenDayKeys, isDueOn, periodKeyFor } from '../game-engine';
+import { applyDailyRegen, dailyPeriodKey, daysBetweenDayKeys, isDueOn, periodKeyFor } from '../game-engine';
 import type { Habit, Period } from '../game-engine';
+import { useActivityLogStore } from '../store/activityLogStore';
+import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
 import { useQuestStore } from '../store/questStore';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
@@ -88,6 +90,14 @@ export function useDailyRollover(now: Date = new Date()): void {
   }
 
   const todayKey = dailyPeriodKey(now);
+  // Ember Heart's once-a-day heal (a no-op without it, or if it already ran today).
+  const characterStore = useCharacterStore();
+  const regen = applyDailyRegen(characterStore.character, todayKey);
+  if (regen.character !== characterStore.character) {
+    characterStore.setCharacter(regen.character);
+    if (regen.healed > 0) useActivityLogStore().addEntry({ kind: 'item-heal', itemName: 'Ember Heart', amount: regen.healed });
+  }
+
   for (const quest of questStore.quests) {
     if (daysBetweenDayKeys(quest.dueDateKey, todayKey) > 0) {
       queueQuestMiss(quest);

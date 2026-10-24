@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRng } from '../game-engine';
+import { availableRelics, createRng } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
+import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
@@ -56,6 +57,13 @@ describe('useEventChoice', () => {
     expect(events.choices.value.map((c) => c.id)).not.toContain('special');
   });
 
+  it('logs the new slot count when a slots event is taken', () => {
+    const { characterStore, events } = setup(20, 1);
+    characterStore.setCharacter({ ...characterStore.character, takenEventIds: ['item-slots'] });
+    events.choose('item-slots-2');
+    expect(useActivityLogStore().entries[0]).toMatchObject({ kind: 'item-slots-gained', slots: 8 });
+  });
+
   it('item-slots takes effect on the character', () => {
     const { characterStore, events } = setup(7, 1);
     events.choose('item-slots');
@@ -106,20 +114,20 @@ describe('useEventChoice', () => {
     expect(events.revealed.value).toBeNull();
   });
 
-  it('side-quest creates a side quest promised an unclaimed side-only item and spends the pick', () => {
+  it('side-quest creates a side quest promised an available relic and spends the pick', () => {
     const { characterStore, events } = setup(1, 1);
-    const sideOnly = characterStore.character.sideOnlyItemIds ?? [];
+    const relics = availableRelics(characterStore.character, []).map((i) => i.id);
     events.chooseSideQuest('Clean garage', 'hard', '2099-01-01');
 
     const quests = useQuestStore().quests;
     expect(quests).toHaveLength(1);
     expect(quests[0]).toMatchObject({ kind: 'side', difficulty: 'hard', dueDateKey: '2099-01-01' });
-    expect(sideOnly).toContain(quests[0].rewardItemId);
+    expect(relics).toContain(quests[0].rewardItemId);
     expect(characterStore.character.pendingEventPicks).toBe(0);
     expect(characterStore.character.takenEventIds).toEqual([]);
   });
 
-  it('a second side quest is promised the other side-only item, never the same one', () => {
+  it('a second side quest is promised a different relic, never the same one', () => {
     const { characterStore, events } = setup(1, 2);
     events.chooseSideQuest('One', 'easy', '2099-01-01');
     characterStore.setCharacter({ ...characterStore.character, pendingEventPicks: 1 });
@@ -130,17 +138,17 @@ describe('useEventChoice', () => {
     expect(new Set(rewards).size).toBe(2);
   });
 
-  it('resets the guarantee count when side-quest is offered, even if the pick claims the last unclaimed side-only item', () => {
+  it('resets the guarantee count when side-quest is offered, even if the pick claims the last available relic', () => {
     const characterStore = useCharacterStore();
     const habitStore = useHabitStore();
     habitStore.addHabit('Daily good', 'daily', 'medium', false, createRng(1));
-    const onlyItem = (characterStore.character.sideOnlyItemIds ?? [])[0];
+    const [onlyItem, ...rest] = availableRelics({ ...characterStore.character, level: 1 }, []).map((i) => i.id);
     characterStore.setCharacter({
       ...characterStore.character,
       level: 1,
       pendingEventPicks: 1,
       takenEventIds: [],
-      sideOnlyItemIds: [onlyItem],
+      earnedRelicIds: rest,
       sideQuestPicksMissed: TUNING.SIDE_QUEST_GUARANTEE_LEVELS,
     });
     const events = useEventChoice();

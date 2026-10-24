@@ -14,11 +14,12 @@ import {
   applyRerollSkillEvent,
   applySpecialEvent,
   applyUltEvent,
-  availableSideOnlyItems,
+  availableRelics,
   consumeEventPick,
   createRng,
   dailyPeriodKey,
   eligibleEvents,
+  maxEquipSlots,
   recordSideQuestOffer,
   rollEventChoices,
 } from '../game-engine';
@@ -59,7 +60,7 @@ export function useEventChoice() {
     const character = characterStore.character;
     const offered = (options.value ?? []).map((e) => e.id);
     // Being offered already proves it was eligible; checking again only matters when it wasn't offered, because
-    // the pick itself (e.g. promising the last side-only item) can make it ineligible by now.
+    // the pick itself (e.g. promising the last available relic) can make it ineligible by now.
     const sideQuestEligible =
       offered.includes('side-quest') || eligibleEvents(character, habitStore.habits, questStore.quests).some((e) => e.id === 'side-quest');
     characterStore.setCharacter(recordSideQuestOffer(consumeEventPick(character, id), offered, sideQuestEligible));
@@ -105,7 +106,9 @@ export function useEventChoice() {
     } else if (id === 'item-drop') {
       enqueueDrops(characterStore.grantItemDrops(bossStore.boss.index, rng, 1));
     } else {
-      activityLogStore.addEntry({ kind: 'item-slots-gained' });
+      // item-slots / item-slots-2: the cap once this pick is recorded.
+      const takenEventIds = [...(characterStore.character.takenEventIds ?? []), id];
+      activityLogStore.addEntry({ kind: 'item-slots-gained', slots: maxEquipSlots({ takenEventIds }) });
     }
     finish(id);
   }
@@ -118,9 +121,9 @@ export function useEventChoice() {
     finish('reroll-skill');
   }
 
-  /** Creates the side quest, promising it one of this run's still-unclaimed side-only items at random. */
+  /** Creates the side quest, promising it one of the currently available relics at random. */
   function chooseSideQuest(description: string, difficulty: Difficulty, dueDateKey: string) {
-    const rewards = availableSideOnlyItems(characterStore.character, questStore.quests);
+    const rewards = availableRelics(characterStore.character, questStore.quests);
     const reward = rewards[Math.floor(rng() * rewards.length)];
     questStore.addQuest(description, difficulty, dueDateKey, 'side', reward?.id);
     finish('side-quest');

@@ -67,6 +67,14 @@ describe('eligibleEvents', () => {
     expect(ids(eligibleEvents(makeCharacter({ level: 7 }), habits))).toContain('item-slots');
   });
 
+  it('offers the second item-slots event only from level 20, once the first is taken', () => {
+    const habits = [makeHabit({ id: 'd' })];
+    expect(ids(eligibleEvents(makeCharacter({ level: 25 }), habits))).not.toContain('item-slots-2');
+    expect(ids(eligibleEvents(makeCharacter({ level: 19, takenEventIds: ['item-slots'] }), habits))).not.toContain('item-slots-2');
+    expect(ids(eligibleEvents(makeCharacter({ level: 20, takenEventIds: ['item-slots'] }), habits))).toContain('item-slots-2');
+    expect(ids(eligibleEvents(makeCharacter({ level: 20, takenEventIds: ['item-slots', 'item-slots-2'] }), habits))).not.toContain('item-slots-2');
+  });
+
   it('hides one-time events once taken, but keeps repeatable ones', () => {
     const habits = [makeHabit({ id: 'd' })];
     const character = makeCharacter({ level: 7, takenEventIds: ['special', 'item-slots', 'overdrive', 'side-quest'] });
@@ -103,25 +111,23 @@ describe('rollEventChoices', () => {
 });
 
 describe('side-quest event', () => {
-  const sideOnly = (c: Character) => c.sideOnlyItemIds ?? [];
+  const relicIdsAt = (level: number) => ITEM_CATALOG.filter((i) => i.rarity === 'relic' && (i.unlockLevel ?? 1) <= level).map((i) => i.id);
 
-  it('is ineligible when the run has no side-only items', () => {
-    expect(ids(eligibleEvents(makeCharacter({ sideOnlyItemIds: [] }), []))).not.toContain('side-quest');
-    expect(ids(eligibleEvents(makeCharacter({ sideOnlyItemIds: undefined }), []))).not.toContain('side-quest');
+  it('is ineligible once every relic unlocked at this level is earned, and eligible again at the next unlock', () => {
+    const earnedAllL1 = { earnedRelicIds: relicIdsAt(1) };
+    expect(ids(eligibleEvents(makeCharacter({ level: 1, ...earnedAllL1 }), []))).not.toContain('side-quest');
+    expect(ids(eligibleEvents(makeCharacter({ level: 15, ...earnedAllL1 }), []))).toContain('side-quest');
   });
 
-  it('is ineligible once every side-only item is owned or promised to a pending side quest', () => {
-    const base = makeCharacter();
-    const [first, second] = sideOnly(base);
-    const ownedAll = makeCharacter({ ownedItemIds: [first, second] });
-    expect(ids(eligibleEvents(ownedAll, []))).not.toContain('side-quest');
-
-    const quests = [createQuest('a', 'easy', '2099-01-01', 'side', first), createQuest('b', 'easy', '2099-01-01', 'side', second)];
-    expect(ids(eligibleEvents(base, [], quests))).not.toContain('side-quest');
-    expect(ids(eligibleEvents(base, [], quests.slice(0, 1)))).toContain('side-quest');
+  it('is ineligible once every available relic is owned or promised to a pending side quest', () => {
+    const l1 = relicIdsAt(1);
+    expect(ids(eligibleEvents(makeCharacter({ level: 1, ownedItemIds: l1 }), []))).not.toContain('side-quest');
+    const quests = l1.map((id, i) => createQuest(`q${i}`, 'easy', '2099-01-01', 'side', id));
+    expect(ids(eligibleEvents(makeCharacter({ level: 1 }), [], quests))).not.toContain('side-quest');
+    expect(ids(eligibleEvents(makeCharacter({ level: 1 }), [], quests.slice(1)))).toContain('side-quest');
   });
 
-  it('a regular quest does not promise a side-only item', () => {
+  it('a regular quest does not promise a relic', () => {
     expect(ids(eligibleEvents(makeCharacter(), [], [createQuest('a', 'easy', '2099-01-01')]))).toContain('side-quest');
   });
 

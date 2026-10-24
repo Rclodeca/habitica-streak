@@ -70,6 +70,9 @@ const activityLogStore = useActivityLogStore();
         <template v-else-if="entry.kind === 'event-heal'">
           <StatIcon name="healing" class="log-icon" /> Restored <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP
         </template>
+        <template v-else-if="entry.kind === 'item-heal'">
+          <StatIcon name="healing" class="log-icon" /> {{ entry.itemName }} <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP
+        </template>
         <template v-else-if="entry.kind === 'item-doubled'">
           <StatIcon name="itemDoubled" class="log-icon" /> "{{ entry.itemName }}" now has double stats!
         </template>
@@ -80,7 +83,7 @@ const activityLogStore = useActivityLogStore();
           <StatIcon name="critBoost" class="log-icon" /> Crit chance boosted for {{ entry.days }} days
         </template>
         <template v-else-if="entry.kind === 'item-slots-gained'">
-          <StatIcon name="slots" class="log-icon" /> Item slots increased to 6!
+          <StatIcon name="slots" class="log-icon" /> Item slots increased to {{ entry.slots ?? 6 }}!
         </template>
         <template v-else-if="entry.kind === 'skill-rerolled'">
           <StatIcon name="reroll" class="log-icon" /> "{{ entry.habitName }}" was re-rolled to {{ entry.damageType }}

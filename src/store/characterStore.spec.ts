@@ -6,13 +6,24 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createCharacter, createRng } from '../game-engine';
+import { availableRelics, createCharacter, createRng, effectiveStat } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
 import { useCharacterStore } from './characterStore';
 
 describe('characterStore equip/discard', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+  });
+
+  it('keeps a granted relic earned for the run even after it is discarded', () => {
+    const store = useCharacterStore();
+    store.character = { ...store.character, level: 1, ownedItemIds: [], equippedItemIds: [] };
+
+    store.grantItem('ember-heart');
+    store.discardItem('ember-heart');
+
+    expect(store.character.earnedRelicIds).toEqual(['ember-heart']);
+    expect(availableRelics(store.character, []).map((i) => i.id)).not.toContain('ember-heart');
   });
 
   it('equips an owned item', () => {
@@ -94,6 +105,26 @@ describe('characterStore equip/discard', () => {
     expect(store.character.doubledItemId).toBeUndefined();
   });
 
+  it('equipping a max-health drawback at full health brings current health down to the new max', () => {
+    const store = useCharacterStore();
+    store.character = { ...store.character, ownedItemIds: ['glass-crown'], equippedItemIds: [] };
+    store.character = { ...store.character, currentHealth: effectiveStat(store.character, 'health') };
+
+    store.equipItem('glass-crown');
+
+    expect(store.character.currentHealth).toBeCloseTo(effectiveStat(store.character, 'health'), 10);
+  });
+
+  it('discarding a max-health item brings current health down to the new max', () => {
+    const store = useCharacterStore();
+    store.character = { ...store.character, ownedItemIds: ['plate-armor'], equippedItemIds: ['plate-armor'] };
+    store.character = { ...store.character, currentHealth: effectiveStat(store.character, 'health') };
+
+    store.discardItem('plate-armor');
+
+    expect(store.character.currentHealth).toBeCloseTo(effectiveStat(store.character, 'health'), 10);
+  });
+
   it('does nothing when discarding an item that is not owned', () => {
     const store = useCharacterStore();
     const before = store.character;
@@ -107,6 +138,15 @@ describe('characterStore equip/discard', () => {
 describe('characterStore.initFromSave', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+  });
+
+  it('loads a save whose current health exceeds its (now lower) max health at the new max', () => {
+    const store = useCharacterStore();
+    const saved = { ...createCharacter(createRng(1)), ownedItemIds: ['glass-crown'], equippedItemIds: ['glass-crown'], currentHealth: 99999 };
+
+    store.initFromSave(saved, createRng(2));
+
+    expect(store.character.currentHealth).toBeCloseTo(effectiveStat(store.character, 'health'), 10);
   });
 
   it('migrates a save from before trueDamage existed instead of leaving it undefined', () => {

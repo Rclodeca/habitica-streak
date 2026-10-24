@@ -10,6 +10,7 @@ import {
   migrateQuest,
   migrateQuestUnlock,
   questMissDamage,
+  questRewardExp,
   questRewardTier,
   questsOpen,
   questSlotExp,
@@ -249,5 +250,14 @@ describe('quests unlock', () => {
   it('migrateQuestUnlock leaves a settled flag alone', () => {
     const character = { ...fresh(), level: 5 };
     expect(migrateQuestUnlock(character, true)).toBe(character);
+  });
+});
+
+describe('questRewardExp', () => {
+  it('pays questSlotExp, ×1.5 with Quill of Oaths', () => {
+    const plain = createCharacter(createRng(1));
+    const quill = { ...plain, equippedItemIds: ['quill-of-oaths'], ownedItemIds: ['quill-of-oaths'] };
+    expect(questRewardExp(plain, 'medium', 0)).toBeCloseTo(questSlotExp(plain.level, 'medium', 0), 10);
+    expect(questRewardExp(quill, 'hard', 1)).toBeCloseTo(questSlotExp(quill.level, 'hard', 1) * TUNING.ITEM_EFFECTS.QUILL_EXP_MULTIPLIER, 10);
   });
 });

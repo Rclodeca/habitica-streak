@@ -33,6 +33,7 @@ export {
 
 export {
   addExpAndResolveLevelUps,
+  clampHealthToMax,
   activeCritBoost,
   activeHealBoost,
   effectiveCritChance,
@@ -112,11 +113,21 @@ export {
   weeklyBonusMultiplier,
 } from './combat';
 
-export type { BoostableStat, ItemBonus, ItemDef, ItemRarity } from './items';
+export {
+  applyDailyRegen,
+  bumpSpellweave,
+  critMultiplierFor,
+  effectDamageMultiplier,
+  hasItemEffect,
+  isForcedCrit,
+  spellweaveStacks,
+} from './itemEffects';
+
+export type { BoostableStat, DropRarity, ItemBonus, ItemDef, ItemEffectId, ItemRarity } from './items';
 export {
   assignNewItemUnlockTiers,
-  assignSideOnlyItems,
-  availableSideOnlyItems,
+  availableRelics,
+  backfillUnlockTiers,
   bodySpriteFor,
   describeItemBonus,
   describeItemBonusParts,
@@ -125,7 +136,9 @@ export {
   ITEM_CATALOG,
   itemBonusPercent,
   itemFlatBonus,
+  MAX_EQUIP_SLOTS,
   maxEquipSlots,
+  recordRelicEarned,
   rollItemDrops,
 } from './items';
 
@@ -135,6 +148,7 @@ export {
   migrateQuest,
   migrateQuestUnlock,
   questMissDamage,
+  questRewardExp,
   questRewardTier,
   questsOpen,
   questSlotExp,

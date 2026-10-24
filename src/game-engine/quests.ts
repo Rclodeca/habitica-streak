@@ -1,5 +1,6 @@
 import { TUNING } from './constants/tuning';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
+import { hasItemEffect } from './items';
 import { expToNextLevel } from './leveling';
 import type { Rng } from './rng';
 import type { Boss, Character, Difficulty, Quest, QuestKind, QuestWeek } from './types';
@@ -73,6 +74,12 @@ export function questSlotExp(
   if (weight === 0) return 0;
   const scale = 100 / cumulativeSlotWeight(onCurve, weights);
   return questWeeklyTargetExp(level, fraction) * (weight / 100) * scale * TUNING.QUEST_DIFFICULTY_MULT[difficulty];
+}
+
+/** questSlotExp at the character's level, ×QUILL_EXP_MULTIPLIER with Quill of Oaths equipped. */
+export function questRewardExp(character: Character, difficulty: Difficulty, completedThisWeek: number): number {
+  const exp = questSlotExp(character.level, difficulty, completedThisWeek);
+  return hasItemEffect(character, 'quill-of-oaths') ? exp * TUNING.ITEM_EFFECTS.QUILL_EXP_MULTIPLIER : exp;
 }
 
 /** The week counter as of `weekKey`: a stale (or missing) counter starts over at 0. */

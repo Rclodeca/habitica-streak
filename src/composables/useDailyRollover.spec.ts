@@ -8,6 +8,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createRng, dailyPeriodKey, dayOfWeekIndex, ITEM_CATALOG, periodKeyFor } from '../game-engine';
+import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
@@ -25,6 +26,28 @@ describe('useDailyRollover', () => {
     // `pending` in useMissedSkillsGate is a module-scope singleton — clear
     // it so a miss queued in one test doesn't leak into the next.
     useMissedSkillsGate().acknowledge();
+  });
+
+  it('Ember Heart heals once per day at rollover and logs it', () => {
+    const characterStore = useCharacterStore();
+    const activityLogStore = useActivityLogStore();
+    characterStore.setCharacter({ ...characterStore.character, currentHealth: 10, ownedItemIds: ['ember-heart'], equippedItemIds: ['ember-heart'] });
+
+    useDailyRollover(new Date());
+    const healedOnce = characterStore.character.currentHealth;
+    useDailyRollover(new Date());
+
+    expect(healedOnce).toBeGreaterThan(10);
+    expect(characterStore.character.currentHealth).toBe(healedOnce);
+    expect(activityLogStore.entries.filter((e) => e.kind === 'item-heal')).toHaveLength(1);
+    expect(activityLogStore.entries[0]).toMatchObject({ kind: 'item-heal', itemName: 'Ember Heart' });
+  });
+
+  it('leaves the character untouched at rollover without Ember Heart', () => {
+    const characterStore = useCharacterStore();
+    const before = characterStore.character;
+    useDailyRollover(new Date());
+    expect(characterStore.character).toBe(before);
   });
 
   it('queues a miss (without applying damage) for a daily habit not completed in the preceding period', () => {
@@ -260,10 +283,10 @@ describe('useDailyRollover — quests', () => {
 
   it('queues a miss for a past-due side quest too, offering its item as the override reward', () => {
     const questStore = useQuestStore();
-    const characterStore = useCharacterStore();
+    useCharacterStore();
     const now = new Date();
     const yesterday = dailyPeriodKey(new Date(now.getTime() - 24 * 60 * 60 * 1000));
-    const itemId = characterStore.character.sideOnlyItemIds![0];
+    const itemId = 'ember-heart';
     const quest = questStore.addQuest('Slay it', 'hard', yesterday, 'side', itemId);
 
     useDailyRollover(now);

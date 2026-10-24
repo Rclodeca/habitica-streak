@@ -7,6 +7,7 @@ import {
   addExpAndResolveLevelUps,
   ITEM_CATALOG,
   applyDamagePoolRebalance,
+  clampHealthToMax,
   discardUnequippedItems,
   completeHabit,
   createCharacter,
@@ -16,6 +17,7 @@ import {
   missHabit,
   nameCharacter,
   resolvePlayerDeathIfDead,
+  recordRelicEarned,
   rollItemDrops,
   unlockQuests,
 } from '../game-engine';
@@ -29,7 +31,7 @@ export const useCharacterStore = defineStore('character', {
     /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
     initFromSave(saved: Character | null, rng: Rng) {
       this.character = saved
-        ? discardUnequippedItems(applyDamagePoolRebalance(migrateCharacter(saved, rng)))
+        ? clampHealthToMax(discardUnequippedItems(applyDamagePoolRebalance(migrateCharacter(saved, rng))))
         : createCharacter(rng);
     },
 
@@ -40,11 +42,11 @@ export const useCharacterStore = defineStore('character', {
       return dropped;
     },
 
-    /** Adds one specific catalog item to owned items (a side-quest reward) and returns it; null if unknown or already owned. */
+    /** Adds one specific catalog item to owned items (a side-quest reward) and returns it; null if unknown or already owned. A relic is also recorded as earned for the run. */
     grantItem(itemId: string): ItemDef | null {
       const item = ITEM_CATALOG.find((i) => i.id === itemId);
       if (!item || this.character.ownedItemIds.includes(itemId)) return null;
-      this.character = { ...this.character, ownedItemIds: [...this.character.ownedItemIds, itemId] };
+      this.character = recordRelicEarned({ ...this.character, ownedItemIds: [...this.character.ownedItemIds, itemId] }, itemId);
       return item;
     },
 
@@ -69,19 +71,19 @@ export const useCharacterStore = defineStore('character', {
       if (!ownedItemIds.includes(itemId)) return;
       if (equippedItemIds.includes(itemId)) return;
       if (equippedItemIds.length >= maxEquipSlots(this.character)) return;
-      this.character = { ...this.character, equippedItemIds: [...equippedItemIds, itemId] };
+      this.character = clampHealthToMax({ ...this.character, equippedItemIds: [...equippedItemIds, itemId] });
     },
 
     /** Discards an item for good — it leaves the character and returns to the drop pool. No-op if not owned. */
     discardItem(itemId: string) {
       const { ownedItemIds, equippedItemIds } = this.character;
       if (!ownedItemIds.includes(itemId)) return;
-      this.character = {
+      this.character = clampHealthToMax({
         ...this.character,
         ownedItemIds: ownedItemIds.filter((id) => id !== itemId),
         equippedItemIds: equippedItemIds.filter((id) => id !== itemId),
         doubledItemId: this.character.doubledItemId === itemId ? undefined : this.character.doubledItemId,
-      };
+      });
     },
 
     /** Grants EXP and resolves any resulting level-ups. Returns levels gained. */
