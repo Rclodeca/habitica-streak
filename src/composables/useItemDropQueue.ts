@@ -15,13 +15,18 @@ import { computed, ref } from 'vue';
 import { maxEquipSlots } from '../game-engine';
 import type { ItemDef } from '../game-engine';
 import { useCharacterStore } from '../store/characterStore';
+import { useDeathScreen } from './useDeathScreen';
 
 const queue = ref<ItemDef[]>([]);
 
 export function useItemDropQueue() {
   const characterStore = useCharacterStore();
+  const { isDead } = useDeathScreen();
 
-  const current = computed<ItemDef | null>(() => queue.value[0] ?? null);
+  // Hidden while the death screen is up: a boss kill and a death can land in
+  // the same pass, and the drop popup would otherwise paint over the death
+  // screen. The run is over, so `clear()` (called on restart) discards them.
+  const current = computed<ItemDef | null>(() => (isDead.value ? null : queue.value[0] ?? null));
   const isFull = computed(() => characterStore.character.equippedItemIds.length >= maxEquipSlots(characterStore.character));
 
   function processFront() {
@@ -56,5 +61,9 @@ export function useItemDropQueue() {
     processFront();
   }
 
-  return { current, isFull, enqueueDrops, dismiss, replace };
+  function clear() {
+    queue.value = [];
+  }
+
+  return { current, isFull, enqueueDrops, dismiss, replace, clear };
 }

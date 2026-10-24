@@ -84,7 +84,7 @@ export function useCombatActions() {
   const { triggerDeath, dismiss: dismissDeathScreen } = useDeathScreen();
   const { recordFallen } = useFallenHero();
   const { showReviveNotice } = useReviveNotice();
-  const { enqueueDrops } = useItemDropQueue();
+  const { enqueueDrops, clear: clearItemDrops } = useItemDropQueue();
 
   /**
    * Writes a `level-up` log entry if `after` is at a higher level than
@@ -414,6 +414,8 @@ export function useCombatActions() {
       characterStore.setCharacter(questStore.quests.length > 0 ? unlockQuests(deathResult.character) : deathResult.character);
       bossStore.setBoss(deathResult.boss);
       habitStore.setHabits(deathResult.habits);
+      // Drops from a boss kill on the fatal pass belong to the dead run.
+      clearItemDrops();
     }
     dismissDeathScreen();
   }
