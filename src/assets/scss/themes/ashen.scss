@@ -120,6 +120,9 @@ $caps-lg: 0.85rem; // panel and popup titles
   --bg: #0b0a09;
   --border: #3a332a;
   --code-bg: #161411;
+  // The frame's shade at the foot of the boss's stage, where BossPanel's fog
+  // band meets it (desktop panel here; phones and the details box below).
+  --stage-fog: rgb(17, 15, 13);
   --accent: #e6cf9a;
   --accent-solid: #c8a96e;
   --accent-bg: rgba(200, 169, 110, 0.08);
@@ -263,17 +266,14 @@ $caps-lg: 0.85rem; // panel and popup titles
 
   // ---------- Boss: rises out of fog and embers ----------
 
-  .boss-panel .sprite-wrapper {
-    width: 100%;
-    height: 182px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    overflow: hidden;
+  .boss-panel .sprite-wrapper,
+  .hero-sprite:has(> .sprite) {
     background:
       radial-gradient(ellipse 55% 58% at 50% 60%, rgba(215, 205, 185, 0.17), transparent 72%),
       radial-gradient(ellipse 85% 32% at 50% 100%, rgba(224, 120, 58, 0.2), transparent 70%);
+  }
 
+  .boss-panel .sprite-wrapper {
     &::before {
       @include embers;
     }
@@ -290,18 +290,24 @@ $caps-lg: 0.85rem; // panel and popup titles
     }
   }
 
-  .boss-panel .stage-wrap {
-    width: 100%;
+  // The boss details' stage gets the embers, not the panel's drifting fog
+  // (its own fog band sits there).
+  .hero-sprite:has(> .sprite)::before {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    @include embers;
   }
 
-  .boss-panel .sprite {
+  .hero:has(> .hero-sprite > .sprite) {
+    --stage-fog: rgb(15, 14, 11);
+  }
+
+  .boss-panel .sprite,
+  .hero-sprite > .sprite {
     position: relative;
-    width: 146px;
-    height: 146px;
-    margin-bottom: 6px;
-    object-fit: contain;
-    image-rendering: pixelated;
-    filter: drop-shadow(0 0 16px rgba(0, 0, 0, 0.9)) brightness(1.06);
+    filter: drop-shadow(2px 0 0 #2a120c) drop-shadow(-2px 0 0 #2a120c) drop-shadow(0 2px 0 #2a120c) drop-shadow(0 -2px 0 #2a120c)
+      drop-shadow(0 0 12px rgba(224, 120, 58, 0.35)) brightness(1.06);
   }
 
   .boss-panel .summary-info h2 {
@@ -1472,6 +1478,10 @@ $caps-lg: 0.85rem; // panel and popup titles
       height: 100%;
     }
 
+    .boss-panel {
+      --stage-fog: rgb(15, 14, 12);
+    }
+
     // Placed by useCondensingBoss, which leaves its numbers room itself.
     .boss-panel .health-bar {
       margin-top: 0;
@@ -1583,6 +1593,7 @@ $caps-lg: 0.85rem; // panel and popup titles
 @media (prefers-reduced-motion: reduce) {
   :root[data-theme='ashen'] .boss-panel .sprite-wrapper::before,
   :root[data-theme='ashen'] .boss-panel .sprite-wrapper::after,
+  :root[data-theme='ashen'] .hero-sprite:has(> .sprite)::before,
   :root[data-theme='ashen'] .new-hero .bonfire::before {
     animation: none;
   }

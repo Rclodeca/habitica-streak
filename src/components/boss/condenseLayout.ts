@@ -6,10 +6,12 @@
 // The stage (the boss scene) shrinks in height evenly over the whole collapse,
 // so the boss shrinks steadily, and narrows until it's square by SPLIT, then
 // stays square down to the hero strip's portrait. Until SPLIT the name and HP
-// bar sit under the stage, sliding toward the spot where they'll rise; after,
-// they rise beside the stage, tracking its right edge — so text never crosses
-// the stage and never leaves the frame. Mocked up and frame-audited in
-// docs/mockups/boss-condense.html.
+// bar ride the fog band at the bottom of the stage (BossPanel draws it), at
+// the boss's feet, sliding toward the spot where they'll rise; by SPLIT
+// they're clear of the stage and rise beside it, tracking its right edge — so
+// text only ever crosses the fog and never leaves the frame. Mocked up and
+// frame-audited in docs/mockups/boss-condense.html; the full-bleed look in
+// docs/mockups/boss-art-size.html (D).
 
 export interface Box {
   x: number;
@@ -41,11 +43,14 @@ export interface CompactTargets {
 
 /** The uncondensed boss panel on phones. */
 export const FULL_LAYOUT = {
-  height: 248,
-  stageH: 150,
-  sprite: 118,
-  /** Name sits this far under the stage. */
-  nameGap: 10,
+  height: 256,
+  stageH: 230,
+  /** The boss's file size: 2 screen px per art pixel. */
+  sprite: 200,
+  /** Name top sits this far above the stage's bottom edge, on its fog band. */
+  nameOverlap: 62,
+  /** The fog band's height as a share of the stage (BossPanel's .stage-wrap::after). */
+  fogBand: 0.45,
   /** HP bar top, relative to the name's top (plus CompactTargets.hpRise). */
   hpGap: 26,
   /** Stat line top, relative to the name's top. */
@@ -83,19 +88,20 @@ export function condenseLayout(p: number, width: number, nameWidth: number, comp
   const gap = compact.name.x - (P.x + P.w);
   const besideX = sx + sw + gap;
   const riseX = P.x + lerp(F.stageH, P.h, SPLIT) + gap;
-  const belowY = lerp(0, P.y, SPLIT) + lerp(F.stageH, P.h, SPLIT) + F.nameGap;
+  const splitY = lerp(0, P.y, SPLIT) + lerp(F.stageH, P.h, SPLIT) - F.nameOverlap;
 
   const below = p <= SPLIT;
   const slide = ease(p / SPLIT);
   const nameX = below ? lerp((width - nameWidth) / 2, riseX, slide) : besideX;
-  const nameY = below ? lerp(F.stageH + F.nameGap, belowY, p / SPLIT) : lerp(belowY, compact.name.y, (p - SPLIT) / (1 - SPLIT));
+  const nameY = below ? sy + sh - F.nameOverlap : lerp(splitY, compact.name.y, (p - SPLIT) / (1 - SPLIT));
   const hpX = below ? lerp(F.pad, riseX, slide) : besideX;
   const hpY = nameY + lerp(F.hpGap + compact.hpRise, compact.hp.y - compact.name.y, t);
   const hpRight = lerp(F.pad, width - (compact.hp.x + compact.hp.w), t);
 
   return {
     stage: { x: sx, y: sy, w: sw, h: sh },
-    sprite: Math.min(F.sprite, sh - 8, sw - 6),
+    // One steady rate from full size to the portrait's, so it never shrinks in a rush.
+    sprite: Math.min(lerp(F.sprite, Math.min(P.h - 8, P.w - 6), p), sh - 8, sw - 6),
     name: { x: nameX, y: nameY, scale: lerp(1, compact.nameScale, t) },
     hp: { x: hpX, y: hpY, w: width - hpX - hpRight },
     // The full panel's stat line is gone within the first ~10% of the collapse,

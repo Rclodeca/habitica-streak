@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — boss modal (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* The boss details modal (tap the boss panel). Today the boss is a 96px
+   thumbnail, under 1 screen px per art pixel. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a; --blood: #c8402f;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, h4, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1400px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 14px; }
+.pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 30px; }
+.pick button { min-height: 44px; padding: 0 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+.pick button.on { color: var(--gold-hi); border-color: var(--gold); background: rgba(200,169,110,.08); }
+
+.opt { margin-bottom: 44px; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; max-width: 760px; }
+.pair { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; }
+.pair figure { margin: 0; }
+.pair figcaption { margin-top: 6px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); text-align: center; }
+
+.ticks { position: relative; }
+.ticks::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .8; z-index: 4;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat; }
+
+.modal { padding: 14px 18px 18px; background: linear-gradient(180deg, rgba(27,24,21,.97), rgba(14,13,11,.99)); border: 1px solid var(--line); }
+.phone { width: 343px; }
+.desk { width: 520px; }
+.title { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; font-size: 13px; letter-spacing: .24em; color: var(--gold-hi); }
+.title::before, .title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid), transparent); }
+.title span { position: relative; }
+.close { position: absolute; right: 16px; top: 12px; font: 400 20px/1 sans-serif; color: var(--text); }
+
+/* Hero block, as live. */
+.hero { display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid color-mix(in srgb, var(--blood) 45%, transparent); background: linear-gradient(180deg, rgba(200,169,110,.05), rgba(0,0,0,.3)); box-shadow: 0 0 18px -8px var(--blood); }
+.hero-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hero-tag { font-size: 10px; letter-spacing: .2em; color: var(--blood); }
+.hero-name { font-size: 14px; letter-spacing: .16em; color: var(--text-h); }
+.num { margin-top: 4px; font: 600 11px/1 'Cinzel', serif; letter-spacing: .12em; color: var(--text); text-align: right; }
+.hp { height: 8px; margin-top: 5px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.32); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.hp i { display: block; width: 64%; height: 100%; background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 10px rgba(195,58,46,.35); }
+
+.boss { position: relative; z-index: 1; display: block; image-rendering: pixelated; }
+.rim .boss { filter:
+  drop-shadow(2px 0 0 #2a120c) drop-shadow(-2px 0 0 #2a120c) drop-shadow(0 2px 0 #2a120c) drop-shadow(0 -2px 0 #2a120c)
+  drop-shadow(0 0 12px rgba(224,120,58,.35)) brightness(1.06); }
+
+/* Stats, as live. */
+.group-label { display: flex; align-items: center; gap: 12px; margin: 18px 0 8px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; color: var(--text); }
+.group-label::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.tile { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; background: rgba(0,0,0,.3); border: 1px solid var(--line); }
+.tile-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); }
+.tile-label .badge { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; color: var(--k); background: color-mix(in srgb, var(--k) 16%, transparent); }
+.tile-value { font: 500 20px/1.2 'Cinzel', serif; color: var(--text-h); }
+.tile-note { font-size: 13px; color: var(--text); }
+.stat-note { margin-top: 10px; font-size: 13px; color: var(--text); }
+
+/* A: today. */
+.today .hero-sprite { padding: 4px; background: radial-gradient(circle, rgba(200,64,47,.22), transparent 70%); border-radius: 12px; }
+.today .boss { width: 96px; height: 96px; }
+
+/* B: like the character modal — no box, outlined, at the hero's size. */
+.side .boss { width: 150px; height: 150px; }
+.side .hero-sprite { flex-shrink: 0; display: flex; justify-content: center; width: 124px; }
+
+/* C: the panel's full-bleed stage across the top of the modal. */
+.bleed .hero { display: block; position: relative; padding: 0; overflow: hidden; }
+.bleed .hero-sprite { position: relative; height: 226px; display: flex; align-items: flex-end; justify-content: center;
+  background:
+    radial-gradient(ellipse 55% 58% at 50% 60%, rgba(215,205,185,.17), transparent 72%),
+    radial-gradient(ellipse 85% 32% at 50% 100%, rgba(224,120,58,.2), transparent 70%); }
+.bleed .hero-sprite::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(1.5px 1.5px at 18% 70%, rgba(240,150,80,.9), transparent),
+    radial-gradient(1.5px 1.5px at 30% 40%, rgba(240,150,80,.6), transparent),
+    radial-gradient(1px 1px at 72% 55%, rgba(240,150,80,.8), transparent),
+    radial-gradient(1.5px 1.5px at 84% 30%, rgba(240,150,80,.5), transparent),
+    radial-gradient(1px 1px at 60% 20%, rgba(240,150,80,.6), transparent); }
+.bleed .hero-sprite::after { content: ''; position: absolute; inset: auto 0 0; height: 96px; z-index: 2; background: linear-gradient(0deg, rgba(14,13,11,.97) 22%, transparent); }
+.bleed .boss { width: 200px; height: 200px; margin-bottom: 6px; }
+.bleed .hero-info { position: relative; z-index: 3; margin: -70px 14px 0; padding-bottom: 14px; text-align: center; }
+.bleed .hero-name { font-size: 16px; }
+.bleed .hero-tag, .bleed .hero-name { text-shadow: 0 0 6px #000, 0 0 12px #000; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Boss modal</h1>
+  <p>Tap the boss panel. Phone width and desktop.</p>
+  <div class="pick" id="pick"></div>
+  <div id="root"></div>
+</div>
+
+<script>
+const BOSSES = [['brute', 'Savage Brute'], ['armored', 'Iron Guardian'], ['brute5x', 'Apex Destroyer'], ['arcane5x', 'Voidcaller'], ['warded', 'Arcane Warden'], ['tank', 'Colossus']];
+let boss = BOSSES[0];
+
+const K = { physical: '#d0604f', magic: '#ab8dd8', armor: '#a8a092', mr: '#8d9bd1', crit: '#d6a24f' };
+const G = {
+  physical: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  magic: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/>',
+  armor: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  mr: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 22V2"/>',
+  crit: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+};
+const ic = (k) => `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${G[k]}</svg>`;
+const TILES = [['physical', 'Physical attack', '113'], ['magic', 'Magic attack', '64'], ['armor', 'Armor', '201', '28.7% less damage'], ['mr', 'Magic resist', '170', '25.4% less damage'], ['crit', 'Crit chance', '5%']];
+
+const OPTIONS = [
+  { id: 'A', cls: 'today', title: 'Today', note: 'For reference. The boss is a 96px thumbnail.' },
+  { id: 'B', cls: 'side rim', title: 'Like the character modal', note: 'Same layout as the hero’s: no box, the ember outline, at the size the hero now shows on your screen.' },
+  { id: 'C', cls: 'bleed rim', title: 'Full-bleed stage', note: 'The panel’s D stage across the top of the modal: fog, embers, the boss at 2x, and the tag, name and HP bar on the fog at its feet.' },
+];
+
+const modal = (size) => `<figure><div class="modal ticks ${size}">
+  <h3 class="title engraved"><span>Boss</span></h3><span class="close">×</span>
+  <div class="hero">
+    <div class="hero-sprite"><img class="boss" src="../../public/sprites/bosses/${boss[0]}.png" alt="" /></div>
+    <div class="hero-info"><span class="hero-tag engraved">Boss #4</span><span class="hero-name engraved">${boss[1]}</span>
+      <span class="num">687 / 1070</span><div class="hp"><i></i></div></div>
+  </div>
+  <h4 class="group-label">STATS</h4>
+  <div class="tiles">${TILES.map(([k, l, v, n]) => `<div class="tile" style="--k:${K[k]}"><span class="tile-label"><span class="badge">${ic(k)}</span>${l}</span><span class="tile-value">${v}</span>${n ? `<span class="tile-note">${n}</span>` : ''}</div>`).join('')}</div>
+  <p class="stat-note">Attack is what a missed medium daily deals. Easy ~0.67x, hard ~1.33x; a crit or missed weekly doubles it. Armor and magic resist show the reduction your attacks face after your pen items.</p>
+</div><figcaption>${size === 'phone' ? 'Phone' : 'Desktop'}</figcaption></figure>`;
+
+function render() {
+  document.getElementById('pick').innerHTML = BOSSES.map((b) => `<button type="button" class="${b === boss ? 'on' : ''}" data-b="${b[0]}">${b[1]}</button>`).join('');
+  document.getElementById('root').innerHTML = OPTIONS.map((o) => `<section class="opt ${o.cls}">
+    <h2 class="engraved"><b>${o.id}</b>${o.title}</h2><p>${o.note}</p>
+    <div class="pair">${modal('phone')}${modal('desk')}</div></section>`).join('');
+}
+document.getElementById('pick').addEventListener('click', (e) => {
+  const b = BOSSES.find((x) => x[0] === e.target.dataset?.b);
+  if (b) { boss = b; render(); }
+});
+render();
+</script>
+</body>
+</html>

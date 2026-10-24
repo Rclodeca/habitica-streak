@@ -184,11 +184,20 @@ const statTiles = computed<StatTile[]>(() => {
   cursor: pointer;
 }
 
+/* The name tops out FULL_LAYOUT.nameOverlap (62px) above the stage's bottom
+   edge, on its fog band; 0.6rem is .summary-row's gap. */
 .summary-info {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  margin-top: calc(-62px - 0.6rem);
+}
+
+/* Above the stage's fog band. */
+.summary-info > * {
+  position: relative;
+  z-index: 2;
 }
 
 .summary-info h2 {
@@ -212,11 +221,11 @@ const statTiles = computed<StatTile[]>(() => {
   color: var(--text-h);
 }
 
+/* The panel's stage again, across the top of the box, with the tag, name and
+   HP bar on the fog at the boss's feet. */
 .hero {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  position: relative;
+  overflow: hidden;
   background: var(--code-bg);
   border: 1px solid color-mix(in srgb, var(--damage-color) 50%, transparent);
   border-radius: 12px;
@@ -224,21 +233,42 @@ const statTiles = computed<StatTile[]>(() => {
 }
 
 .hero-sprite {
-  flex-shrink: 0;
+  position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 0.25rem;
-  background: radial-gradient(circle, color-mix(in srgb, var(--damage-color) 22%, transparent), transparent 70%);
-  border-radius: 12px;
+  height: 226px;
+  overflow: hidden;
+  background: radial-gradient(ellipse 55% 58% at 50% 60%, color-mix(in srgb, var(--damage-color) 18%, transparent), transparent 72%);
+}
+
+.hero-sprite::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: auto 0 0;
+  height: 45%;
+  pointer-events: none;
+  background: linear-gradient(0deg, var(--stage-fog, var(--code-bg)) 18%, transparent);
 }
 
 .hero-info {
-  flex: 1;
-  min-width: 0;
+  position: relative;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  margin: -58px 1rem 0;
+  padding-bottom: 1rem;
+  text-align: center;
+}
+
+/* Read over the boss's feet. */
+.hero-tag,
+.hero-name {
+  text-shadow:
+    0 0 6px #000,
+    0 0 12px #000;
 }
 
 .hero-tag {
@@ -308,13 +338,54 @@ const statTiles = computed<StatTile[]>(() => {
   color: var(--text);
 }
 
+/* Full-bleed: the stage runs to the panel's edges (its padding is 1rem, see
+   main.scss). Phones place it themselves, see the media query below. */
 .stage-wrap {
   position: relative;
+  width: calc(100% + 2rem);
+  margin: -1rem -1rem 0;
 }
 
+/* The fog band the name and HP bar sit on (FULL_LAYOUT.fogBand). On phones it
+   fades out as the bar condenses (--p, see useCondensingBoss), once they've
+   slid clear of the stage. */
+.stage-wrap::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 0;
+  height: 45%;
+  pointer-events: none;
+  background: linear-gradient(0deg, var(--stage-fog, var(--code-bg)) 18%, transparent);
+  opacity: clamp(0, (0.55 - var(--p, 0)) / 0.15, 1);
+}
+
+/* FULL_LAYOUT.stageH tall. */
 .sprite-wrapper {
   position: relative;
-  display: inline-block;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 230px;
+  overflow: hidden;
+  border-radius: 13px 13px 0 0;
+}
+
+/* At its file size, 2 screen px per art pixel like the gear icons, with their
+   dark rim and a glow, in the boss's damage colour. Phones size it inline. */
+.sprite-wrapper :deep(.sprite),
+.hero-sprite :deep(.sprite) {
+  --rim: color-mix(in srgb, var(--damage-color) 20%, #000);
+  width: 200px;
+  height: 200px;
+  margin-bottom: 6px;
+  image-rendering: pixelated;
+  filter:
+    drop-shadow(2px 0 0 var(--rim))
+    drop-shadow(-2px 0 0 var(--rim))
+    drop-shadow(0 2px 0 var(--rim))
+    drop-shadow(0 -2px 0 var(--rim))
+    drop-shadow(0 0 12px color-mix(in srgb, var(--damage-color) 35%, transparent));
 }
 
 .sprite-wrapper.hit :deep(.sprite) {
@@ -324,7 +395,7 @@ const statTiles = computed<StatTile[]>(() => {
 /* Above the name and HP bar, which hits can rise past on the phone bar. */
 .hit-layer {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   inset: 0;
   pointer-events: none;
 }
@@ -403,7 +474,15 @@ const statTiles = computed<StatTile[]>(() => {
     margin: 0;
   }
 
+  .summary-info {
+    margin-top: 0;
+  }
+
+  /* Border included, so it fits the stage exactly (and ends exactly on the
+     hero portrait, which the stage copies) rather than poking out past the
+     fog band. */
   .sprite-wrapper {
+    box-sizing: border-box;
     display: flex;
     align-items: flex-end;
     justify-content: center;

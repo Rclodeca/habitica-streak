@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — boss art size (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* The boss panel, uncondensed, at phone width and in the desktop side column.
+   Boss art is 100 art pixels on a 200px file. Today it draws at 146px on
+   desktop and 118px on phones, ~1.2-1.5 screen px per art pixel. B-E draw it
+   at its file size, exactly 2 screen px per art pixel, like the gear. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1400px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 14px; }
+.pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 30px; }
+.pick button { min-height: 44px; padding: 0 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+.pick button.on { color: var(--gold-hi); border-color: var(--gold); background: rgba(200,169,110,.08); }
+
+.opt { margin-bottom: 44px; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; max-width: 760px; }
+.pair { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; }
+.pair figure { margin: 0; }
+.pair figcaption { margin-top: 6px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); text-align: center; }
+
+/* The Ashen panel frame. */
+.panel { position: relative; padding: 16px; background: linear-gradient(180deg, rgb(27,24,21), rgb(14,13,11)); border: 1px solid var(--line); box-shadow: 0 24px 50px -24px rgba(0,0,0,.95); }
+.panel::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75; z-index: 3;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 12px no-repeat; }
+.phone { width: 343px; }
+.desk { width: 280px; }
+
+/* The stage: fog glow, a few embers, fog at the feet. */
+.stage { position: relative; height: var(--stage-h); display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+  background:
+    radial-gradient(ellipse 55% 58% at 50% 60%, rgba(215,205,185,.17), transparent 72%),
+    radial-gradient(ellipse 85% 32% at 50% 100%, rgba(224,120,58,.2), transparent 70%); }
+.stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(1.5px 1.5px at 18% 70%, rgba(240,150,80,.9), transparent),
+    radial-gradient(1.5px 1.5px at 30% 40%, rgba(240,150,80,.6), transparent),
+    radial-gradient(1px 1px at 72% 55%, rgba(240,150,80,.8), transparent),
+    radial-gradient(1.5px 1.5px at 84% 30%, rgba(240,150,80,.5), transparent),
+    radial-gradient(1px 1px at 60% 20%, rgba(240,150,80,.6), transparent); }
+.stage::after { content: ''; position: absolute; left: -10%; right: -10%; bottom: -6px; height: 54px; z-index: 2;
+  background: radial-gradient(ellipse 50% 70% at 50% 100%, rgba(205,195,175,.22), transparent 70%); filter: blur(5px); }
+.boss { position: relative; z-index: 1; display: block; width: var(--boss); height: var(--boss); margin-bottom: 6px; image-rendering: pixelated;
+  filter: drop-shadow(0 0 16px rgba(0,0,0,.9)) brightness(1.06); }
+
+.info { display: flex; flex-direction: column; align-items: stretch; text-align: center; margin-top: 10px; }
+.name { font-size: 15px; letter-spacing: .16em; color: var(--text-h); text-shadow: 0 0 14px rgba(0,0,0,.9); }
+.num { margin-top: 6px; font: 600 11px/1 'Cinzel', serif; letter-spacing: .12em; color: var(--text); text-align: right; }
+.hp { height: 8px; margin: 5px 0 8px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.32); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.hp i { display: block; width: 64%; height: 100%; background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 10px rgba(195,58,46,.35); }
+.stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 14px; font-weight: 700; color: var(--text-h); }
+.stats span { display: inline-flex; align-items: center; gap: 4px; }
+.stats svg { color: var(--k); }
+
+/* A: today. */
+.today .phone { --stage-h: 150px; --boss: 118px; }
+.today .desk { --stage-h: 182px; --boss: 146px; }
+
+/* B-E: whole-pixel 2x. */
+.x2 .panel { --stage-h: 214px; --boss: 200px; }
+
+/* C, D, E: the hero's rim and glow, in the boss's ember tone. */
+.rim .boss { filter:
+  drop-shadow(2px 0 0 #2a120c) drop-shadow(-2px 0 0 #2a120c) drop-shadow(0 2px 0 #2a120c) drop-shadow(0 -2px 0 #2a120c)
+  drop-shadow(0 0 12px rgba(224,120,58,.35)) brightness(1.06); }
+
+/* D: full-bleed — the stage runs to the frame, name and HP sit on the fog. */
+.bleed .panel { padding: 0 0 14px; }
+.bleed .stage { --stage-h: 230px; border-bottom: 1px solid var(--line); }
+.bleed .stage::after { height: 90px; background: linear-gradient(0deg, rgba(14,13,11,.96) 18%, transparent); filter: none; }
+.bleed .info { position: relative; z-index: 3; margin: -62px 16px 0; }
+
+/* E: blood moon — a big ember disc behind the boss, like a boss intro. */
+.moon .stage::before { inset: auto; left: 50%; top: 14px; width: 168px; height: 168px; transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,64,40,.42), rgba(140,36,24,.22) 55%, transparent 70%);
+  box-shadow: 0 0 60px -10px rgba(224,90,50,.35); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Boss art size</h1>
+  <p>The boss panel before it condenses, at phone width and in the desktop side column.</p>
+  <div class="pick" id="pick"></div>
+  <div id="root"></div>
+</div>
+
+<script>
+const BOSSES = [['brute', 'Savage Brute'], ['armored', 'Iron Guardian'], ['brute5x', 'Apex Destroyer'], ['arcane5x', 'Voidcaller'], ['warded', 'Arcane Warden'], ['tank', 'Colossus']];
+let boss = BOSSES[0];
+
+const K = { physical: '#d0604f', magic: '#ab8dd8', armor: '#a8a092', mr: '#8d9bd1', crit: '#d6a24f' };
+const G = {
+  physical: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  magic: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/>',
+  armor: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  mr: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 22V2"/>',
+  crit: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+};
+const ic = (k) => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${G[k]}</svg>`;
+const STATS = [['physical', '113'], ['magic', '64'], ['armor', '201'], ['mr', '170'], ['crit', '5%']];
+
+const OPTIONS = [
+  { id: 'A', cls: 'today', title: 'Today', note: 'For reference. 146px on desktop, 118px on phones, both uneven scales.' },
+  { id: 'B', cls: 'x2', title: 'Crisp 2x', note: 'The boss at its file size, 200px, every art pixel an even 2x2 block. The stage grows about 30px on desktop and 64px on phones, so the phone panel starts taller before it condenses.' },
+  { id: 'C', cls: 'x2 rim', title: 'Outlined', note: 'B plus the hero’s dark rim and glow, in the boss’s ember tone, so hero, gear and boss all read as one set.' },
+  { id: 'D', cls: 'x2 rim bleed', title: 'Full-bleed stage', note: 'The stage runs edge to edge in the frame and the name and HP bar sit on the fog at the boss’s feet. Bigger boss without the panel growing as much.' },
+  { id: 'E', cls: 'x2 rim moon', title: 'Blood moon', note: 'C with a large ember disc behind the boss, like a boss intro. The most dramatic.' },
+];
+
+const panel = (size) => `<figure><div class="panel ${size}">
+  <div class="stage"><img class="boss" src="../../public/sprites/bosses/${boss[0]}.png" alt="" /></div>
+  <div class="info"><h3 class="name engraved">${boss[1]}</h3><span class="num">687 / 1070</span><div class="hp"><i></i></div>
+  <p class="stats">${STATS.map(([k, v]) => `<span style="--k:${K[k]}">${ic(k)}${v}</span>`).join('')}</p></div>
+</div><figcaption>${size === 'phone' ? 'Phone' : 'Desktop side column'}</figcaption></figure>`;
+
+function render() {
+  document.getElementById('pick').innerHTML = BOSSES.map((b) => `<button type="button" class="${b === boss ? 'on' : ''}" data-b="${b[0]}">${b[1]}</button>`).join('');
+  document.getElementById('root').innerHTML = OPTIONS.map((o) => `<section class="opt ${o.cls}">
+    <h2 class="engraved"><b>${o.id}</b>${o.title}</h2><p>${o.note}</p>
+    <div class="pair">${panel('phone')}${panel('desk')}</div></section>`).join('');
+}
+document.getElementById('pick').addEventListener('click', (e) => {
+  const b = BOSSES.find((x) => x[0] === e.target.dataset?.b);
+  if (b) { boss = b; render(); }
+});
+render();
+</script>
+</body>
+</html>

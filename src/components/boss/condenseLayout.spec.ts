@@ -41,7 +41,7 @@ describe('condenseLayout', () => {
     const { L } = rects(0);
     expect(L.stage).toEqual({ x: 0, y: 0, w: WIDTH, h: FULL_LAYOUT.stageH });
     expect(L.sprite).toBe(FULL_LAYOUT.sprite);
-    expect(L.name).toEqual({ x: (WIDTH - NAME_WIDTH) / 2, y: FULL_LAYOUT.stageH + FULL_LAYOUT.nameGap, scale: 1 });
+    expect(L.name).toEqual({ x: (WIDTH - NAME_WIDTH) / 2, y: FULL_LAYOUT.stageH - FULL_LAYOUT.nameOverlap, scale: 1 });
     expect(L.hp.x).toBe(FULL_LAYOUT.pad);
     expect(L.hp.w).toBe(WIDTH - FULL_LAYOUT.pad * 2);
     expect(L.stats.opacity).toBe(1);
@@ -71,11 +71,15 @@ describe('condenseLayout', () => {
     expect(L.stats.y + L.stats.h).toBeLessThanOrEqual(ROOMY.height);
   });
 
-  it('never lets the name or HP bar cross the stage', () => {
+  it('only lets the name and HP bar cross the stage on its fog band, and never once they rise', () => {
     for (const p of STEPS) {
       const { L, name, hp } = rects(p);
-      expect(overlaps(name, L.stage), `name at p=${p}`).toBe(false);
-      expect(overlaps(hp, L.stage), `hp at p=${p}`).toBe(false);
+      const bandTop = L.stage.y + L.stage.h * (1 - FULL_LAYOUT.fogBand);
+      for (const [label, box] of [['name', name], ['hp', hp]] as const) {
+        if (!overlaps(box, L.stage)) continue;
+        expect(p, `${label} crosses the stage at p=${p}`).toBeLessThan(0.4);
+        expect(box.y, `${label} above the fog at p=${p}`).toBeGreaterThanOrEqual(bandTop);
+      }
     }
   });
 
