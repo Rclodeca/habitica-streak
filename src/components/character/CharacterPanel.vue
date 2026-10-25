@@ -21,7 +21,6 @@ import {
   statAtLevel,
 } from '../../game-engine';
 import { TUNING } from '../../game-engine/constants/tuning';
-import { useHeroStrip } from '../../composables/useCondensingBoss';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
@@ -199,15 +198,9 @@ const emptySlotCount = computed(() => slotCount.value - equippedItems.value.leng
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
 
-// On phones this panel is the condensed hero strip pinned under the boss bar,
-// whose geometry the boss copies (see useCondensingBoss).
-const heroStrip = useHeroStrip();
-function registerHeroStrip(el: unknown) {
-  heroStrip.value = el instanceof HTMLElement ? el : null;
-}
-
-// The strip keeps its stat line to one row: whatever wraps past the first is
-// hidden (it's all in the details popup), so the pinned header never grows.
+// On phones this panel is a condensed hero strip, and it keeps its stat line
+// to one row: whatever wraps past the first is hidden (it's all in the
+// details popup), so the strip never grows.
 const PHONE = '(max-width: 820px)';
 const statLine = ref<HTMLElement | null>(null);
 let phone: MediaQueryList | null = null;
@@ -243,7 +236,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section :ref="registerHeroStrip" class="panel character-panel">
+  <section class="panel character-panel">
     <div class="top-row">
       <div class="sprite-wrapper" :class="{ hit: isHit }">
         <PlayerSprite :character="character" />
@@ -901,13 +894,10 @@ onBeforeUnmount(() => {
   animation: damage-float-fade 0.9s ease-out forwards;
 }
 
-/* Phones: a condensed strip (portrait, name, HP, EXP and the stat line)
-   pinned under the condensing boss bar; useCondensingBoss sets its sticky
-   top. Gear and the stat breakdown live behind the tap, in the details popup. */
+/* Phones: a condensed strip (portrait, name, HP, EXP and the stat line).
+   Gear and the stat breakdown live behind the tap, in the details popup. */
 @media (max-width: 820px) {
   .character-panel {
-    position: sticky;
-    z-index: 4;
     display: grid;
     grid-template-columns: 52px minmax(0, 1fr);
     align-items: center;

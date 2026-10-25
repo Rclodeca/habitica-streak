@@ -47,7 +47,7 @@
   --soon-color: #f59e0b;
   --side-quest-color: #fbbf24;
   --overdrive-color: #f97316;
-  /* The small framed portraits in the pinned phone header. */
+  /* The small framed portraits on phones: the hero strip and the boss bar. */
   --portrait-border: var(--border);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;

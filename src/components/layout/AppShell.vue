@@ -143,9 +143,8 @@ const showHighScores = ref(false);
     grid-template-columns: 1fr;
   }
 
-  /* The boss and hero panels pin to the top on phones (see
-     useCondensingBoss). A sticky element only sticks within its parent, so
-     they become rows of the page-long grid instead of living in this column. */
+  /* The boss and hero panels become rows of the single-column grid, spaced
+     like every other section. */
   .side {
     display: contents;
   }

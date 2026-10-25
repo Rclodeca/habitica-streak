@@ -2,10 +2,11 @@
 import { computed, ref } from 'vue';
 import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
 import type { Personality } from '../../game-engine';
-import { useCondensingBoss } from '../../composables/useCondensingBoss';
 import { useDamagePopup } from '../../composables/useDamagePopup';
+import { useScrolledPast } from '../../composables/useScrolledPast';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
+import BossBar from './BossBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
@@ -44,9 +45,11 @@ const boss = computed(() => bossStore.boss);
 
 const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
 
-// On phones the panel condenses into a pinned bar as the page scrolls.
+// On phones the panel scrolls away with the page, and BossBar drops in once
+// it's gone.
 const panel = ref<HTMLElement | null>(null);
-useCondensingBoss(panel);
+const bar = ref<InstanceType<typeof BossBar> | null>(null);
+const scrolledPast = useScrolledPast(panel, () => (bar.value?.$el as HTMLElement | undefined)?.offsetHeight ?? 0);
 
 // A condensed, always-visible emoji stat line (effective numbers only) sits
 // under the HP bar; the full stats live in a modal behind the same tap. See CharacterPanel.vue for the same pattern.
@@ -100,12 +103,7 @@ const statTiles = computed<StatTile[]>(() => {
 
 <template>
   <section ref="panel" class="panel boss-panel">
-    <!-- Phones only: frames the condensing panel. It scrolls with the panel, so
-         it also takes taps on the parts of the panel the bar doesn't cover. -->
-    <div class="panel boss-frame" aria-hidden="true" @click="showDetails = true" />
     <button type="button" class="summary-row" @click="showDetails = true">
-      <!-- Phones only: the frame's top edge, kept on screen with the bar (themes draw it). -->
-      <div class="boss-cap" aria-hidden="true" />
       <div class="stage-wrap">
         <div class="sprite-wrapper" :class="{ hit: isHit }">
           <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
@@ -130,6 +128,18 @@ const statTiles = computed<StatTile[]>(() => {
         </p>
       </div>
     </button>
+
+    <Teleport to="body">
+      <BossBar
+        ref="bar"
+        :sprite="PERSONALITY_SPRITE[boss.personality]"
+        :name="PERSONALITY_NAME[boss.personality]"
+        :current="boss.health"
+        :max="boss.maxHealth"
+        :shown="scrolledPast"
+        @open="showDetails = true"
+      />
+    </Teleport>
 
     <Modal v-model="showDetails" title="Boss" max-width="520px">
       <div class="hero">
@@ -184,8 +194,8 @@ const statTiles = computed<StatTile[]>(() => {
   cursor: pointer;
 }
 
-/* The name tops out FULL_LAYOUT.nameOverlap (62px) above the stage's bottom
-   edge, on its fog band; 0.6rem is .summary-row's gap. */
+/* The name tops out 62px above the stage's bottom edge, on its fog band;
+   0.6rem is .summary-row's gap. */
 .summary-info {
   width: 100%;
   display: flex;
@@ -339,16 +349,14 @@ const statTiles = computed<StatTile[]>(() => {
 }
 
 /* Full-bleed: the stage runs to the panel's edges (its padding is 1rem, see
-   main.scss). Phones place it themselves, see the media query below. */
+   main.scss). */
 .stage-wrap {
   position: relative;
   width: calc(100% + 2rem);
   margin: -1rem -1rem 0;
 }
 
-/* The fog band the name and HP bar sit on (FULL_LAYOUT.fogBand). On phones it
-   fades out as the bar condenses (--p, see useCondensingBoss), once they've
-   slid clear of the stage. */
+/* The fog band the name and HP bar sit on. */
 .stage-wrap::after {
   content: '';
   position: absolute;
@@ -357,10 +365,8 @@ const statTiles = computed<StatTile[]>(() => {
   height: 45%;
   pointer-events: none;
   background: linear-gradient(0deg, var(--stage-fog, var(--code-bg)) 18%, transparent);
-  opacity: clamp(0, (0.55 - var(--p, 0)) / 0.15, 1);
 }
 
-/* FULL_LAYOUT.stageH tall. */
 .sprite-wrapper {
   position: relative;
   display: flex;
@@ -372,7 +378,7 @@ const statTiles = computed<StatTile[]>(() => {
 }
 
 /* At its file size, 2 screen px per art pixel like the gear icons, with their
-   dark rim and a glow, in the boss's damage colour. Phones size it inline. */
+   dark rim and a glow, in the boss's damage colour. */
 .sprite-wrapper :deep(.sprite),
 .hero-sprite :deep(.sprite) {
   --rim: color-mix(in srgb, var(--damage-color) 20%, #000);
@@ -392,7 +398,7 @@ const statTiles = computed<StatTile[]>(() => {
   animation: sprite-shake 0.3s ease;
 }
 
-/* Above the name and HP bar, which hits can rise past on the phone bar. */
+/* Above the name and HP bar. */
 .hit-layer {
   position: absolute;
   z-index: 3;
@@ -400,19 +406,13 @@ const statTiles = computed<StatTile[]>(() => {
   pointer-events: none;
 }
 
-.boss-frame,
-.boss-cap {
-  display: none;
-}
-
 /* Big, outlined and held before it fades, so it reads over the sprite's busy
-   pixels. Centered on the stage; the condensed phone bar moves it (and
-   shortens its rise) through the --pop-* properties (useCondensingBoss). */
+   pixels. Centered on the stage. */
 .damage-popup {
   position: absolute;
-  top: var(--pop-top, 35%);
-  left: var(--pop-left, 50%);
-  translate: var(--pop-shift, -50% 0);
+  top: 35%;
+  left: 50%;
+  translate: -50% 0;
   color: var(--hp-color);
   font-weight: 800;
   font-size: 1.25rem;
@@ -424,96 +424,6 @@ const statTiles = computed<StatTile[]>(() => {
     0 1px 3px rgba(0, 0, 0, 0.8);
   pointer-events: none;
   animation: damage-float-fade 1.2s ease-out forwards;
-}
-
-/* Phones: the panel condenses into a bar pinned to the top as the page
-   scrolls (useCondensingBoss sets the height, sticky top, --compact-h and
-   each piece's position). It keeps a fixed height and is framed by
-   .boss-frame, so the section itself draws nothing. */
-@media (max-width: 820px) {
-  .boss-panel {
-    position: sticky;
-    z-index: 5;
-    padding: 0;
-    background: none;
-    border: 0;
-    box-shadow: none;
-    /* Nothing may spill past the bottom edge mid-collapse. */
-    clip-path: inset(-10px -10px 0 -10px);
-  }
-
-  .boss-frame {
-    display: block;
-    position: absolute;
-    inset: 0;
-    padding: 0;
-  }
-
-  /* The bar the pieces sit on. It's sticky too, so the browser holds it at
-     the top of the screen while the panel scrolls up beneath it — JS that
-     chased the scroll instead landed a frame late on phones, and the boss
-     jittered. */
-  .summary-row {
-    position: sticky;
-    top: 0;
-    display: block;
-    height: var(--compact-h, 0px);
-  }
-
-  .boss-cap {
-    position: absolute;
-    top: 0;
-    left: 1px;
-    right: 1px;
-    height: calc(var(--compact-h, 0px) - 1px);
-  }
-
-  .stage-wrap,
-  .summary-info > * {
-    position: absolute;
-    margin: 0;
-  }
-
-  .summary-info {
-    margin-top: 0;
-  }
-
-  /* Border included, so it fits the stage exactly (and ends exactly on the
-     hero portrait, which the stage copies) rather than poking out past the
-     fog band. */
-  .sprite-wrapper {
-    box-sizing: border-box;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    /* Grows into the hero portrait's border as it condenses. */
-    border: 1px solid color-mix(in srgb, var(--portrait-border) calc(var(--p, 0) * 100%), transparent);
-    border-radius: calc(13px - var(--p, 0) * 5px);
-  }
-
-  .sprite-wrapper :deep(.sprite) {
-    margin-bottom: 3px;
-    object-fit: contain;
-    image-rendering: pixelated;
-  }
-
-  .summary-info h2 {
-    white-space: nowrap;
-    transform-origin: left top;
-  }
-
-  /* Once condensed the stat line is clipped to whole rows (useCondensingBoss);
-     whatever doesn't fit under the HP bar is cut off, and rows stay packed at
-     the top when there's room to spare. */
-  .stat-summary {
-    left: 14px;
-    right: 14px;
-    overflow: hidden;
-    align-content: flex-start;
-  }
 }
 
 @keyframes sprite-shake {
@@ -554,7 +464,7 @@ const statTiles = computed<StatTile[]>(() => {
   }
   100% {
     opacity: 0;
-    transform: translateY(var(--pop-rise, -36px)) scale(1);
+    transform: translateY(-36px) scale(1);
   }
 }
 </style>
