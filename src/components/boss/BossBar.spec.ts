@@ -35,10 +35,11 @@ describe('BossBar', () => {
     expect(wrapper.attributes('inert')).toBeUndefined();
   });
 
-  it('asks for the boss details when tapped', async () => {
+  it('is plain status, not a button', async () => {
     const wrapper = mount(BossBar, { props: { ...props, shown: true } });
+    expect(wrapper.element.tagName).toBe('DIV');
     await wrapper.trigger('click');
-    expect(wrapper.emitted('open')).toHaveLength(1);
+    expect(wrapper.emitted('open')).toBeUndefined();
   });
 
   it('pops each hit the boss takes', async () => {

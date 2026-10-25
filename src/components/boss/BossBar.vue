@@ -5,13 +5,14 @@ import type { CelebrationPhase } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import HealthBar from '../ui/HealthBar.vue';
 import Sprite from '../ui/Sprite.vue';
+import { DRAWN_FACING_LEFT } from '../character/heroArt';
 
-// Phones only: once the boss panel has scrolled off the top, this bar drops
-// in so every hit stays in view while ticking skills (BossPanel decides when,
-// see useScrolledPast). Laid out like the fight: the hero on the left, HP as
+// Once the fight stage has scrolled off the top, at every width, this bar
+// drops in so every hit stays in view while ticking skills (FightStage decides
+// when, see useScrolledPast). It is status only, not tappable: the details
+// open from the stage. Laid out like the fight: the hero on the left, HP as
 // a ring around their portrait with the level on it, and the boss taking the
-// rest of the row, its HP draining toward its portrait on the right. Desktop
-// keeps both in the pinned side column.
+// rest of the row, its HP draining toward its portrait on the right.
 // A kill plays here in miniature (see useCelebration): the portrait sinks and
 // "Slain" takes the HP numbers' place, then the next boss rises.
 const props = defineProps<{
@@ -27,13 +28,7 @@ const props = defineProps<{
   phase?: CelebrationPhase;
 }>();
 
-defineEmits<{ open: [] }>();
-
 const baseUrl = import.meta.env.BASE_URL;
-
-// The warrior and cleric art faces left; turned around, they face the boss.
-// The ranger is drawn facing right already.
-const DRAWN_FACING_LEFT: Record<HeroClass, boolean> = { warrior: true, cleric: true, ranger: false };
 
 // Below this share of HP the ring pulses, since it has no numbers to read.
 const LOW_HEALTH_SHARE = 0.25;
@@ -50,7 +45,7 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
 </script>
 
 <template>
-  <button type="button" class="boss-bar" :class="{ shown }" :inert="!shown || undefined" @click="$emit('open')">
+  <div class="boss-bar" :class="{ shown }" :inert="!shown || undefined">
     <span class="ring" :class="{ hit: heroHit, low: heroLow }">
       <svg class="ring-track" viewBox="0 0 44 44" aria-hidden="true">
         <circle class="track" cx="22" cy="22" :r="RING_RADIUS" />
@@ -76,7 +71,7 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
     <span class="hit-layer" aria-hidden="true">
       <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
     </span>
-  </button>
+  </div>
 </template>
 
 <style scoped>
@@ -90,15 +85,10 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
   display: flex;
   align-items: center;
   gap: 11px;
-  margin: 0;
   padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 1rem 0.7rem;
   background: var(--bg);
-  border: 0;
   border-bottom: 1px solid var(--border);
-  border-radius: 0;
   box-shadow: 0 14px 24px -14px rgba(0, 0, 0, 0.6);
-  color: inherit;
-  text-align: left;
   transform: translateY(calc(-100% - 24px));
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
@@ -299,9 +289,11 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
   animation: bar-hit 1s ease-out forwards;
 }
 
+/* Full width, its content held to the app's column (#app's 1280px less its
+   2rem padding each side). */
 @media (min-width: 821px) {
   .boss-bar {
-    display: none;
+    padding-inline: max(1rem, calc((100vw - 1216px) / 2));
   }
 }
 
