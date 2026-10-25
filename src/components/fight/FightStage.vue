@@ -55,3 +55,39 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
     </Teleport>
   </section>
 </template>
+
+<style scoped>
+/* Frameless: on phones the stage runs edge to edge (its fog, in Ashen), with
+   the fighters held to a centred box no wider than a large phone. */
+.fight-stage {
+  position: relative;
+}
+
+.stage-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Drawn at 390px wide; on narrower phones --u shrinks the art in proportion
+   while text and the blocks' insets keep their px. The split is where the
+   boss's and hero's tap areas meet, in a step that follows the diagonal. */
+.stage-inner {
+  position: relative;
+  width: min(100%, 430px);
+  height: 300px;
+  margin-inline: auto;
+  container-type: inline-size;
+  --u: min(1px, calc(100cqw / 390));
+  --split-x: 50%;
+  --split-yl: 122px;
+  --split-yr: 212px;
+}
+
+@media (max-width: 820px) {
+  .fight-stage {
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+  }
+}
+</style>

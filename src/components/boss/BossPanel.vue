@@ -23,7 +23,8 @@ const boss = computed(() => displayedBoss.value ?? bossStore.boss);
 const { popups, isHit } = useDamagePopup(() => boss.value.health);
 
 // A condensed, always-visible emoji stat line (effective numbers only) sits
-// under the HP bar; the full stats live in a modal behind the same tap. See CharacterPanel.vue for the same pattern.
+// under the HP bar; the full stats live in a modal behind the boss's half of
+// the stage. See CharacterPanel.vue for the same pattern.
 const showDetails = ref(false);
 
 const physicalAttack = computed(() => bossMissDamage(boss.value.physicalAttack));
@@ -73,40 +74,41 @@ const statTiles = computed<StatTile[]>(() => {
 </script>
 
 <template>
-  <section class="panel boss-panel">
-    <button type="button" class="summary-row" @click="showDetails = true">
-      <div class="stage-wrap">
-        <div class="sprite-wrapper" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
-          <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
-          <template v-if="phase === 'dying'">
-            <span class="death-flash" aria-hidden="true" />
-            <span class="death-sparks" aria-hidden="true" />
-          </template>
-        </div>
-        <!-- Outside the stage so its clipping never cuts off a hit. -->
-        <div class="hit-layer" aria-hidden="true">
-          <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
-        </div>
-        <div v-if="phase === 'dying'" class="slain-stamp" role="status">
-          <strong class="slain-word">Slain</strong>
-          <span class="slain-name">{{ PERSONALITY_NAME[boss.personality] }}</span>
-        </div>
+  <!-- The boss's half of the fight stage (FightStage): no box of its own, so
+       each piece sits straight on the stage. -->
+  <div class="boss-panel">
+    <div class="boss-plat" aria-hidden="true" />
+    <div class="boss-figure" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
+      <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
+      <template v-if="phase === 'dying'">
+        <span class="death-flash" aria-hidden="true" />
+        <span class="death-sparks" aria-hidden="true" />
+      </template>
+      <div class="hit-layer" aria-hidden="true">
+        <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       </div>
-      <div class="summary-info">
-        <h2 class="boss-name">{{ PERSONALITY_NAME[boss.personality] }}</h2>
-        <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
-        <p class="stat-summary">
-          <span><StatIcon name="physical" /> {{ physicalAttack.toFixed(0) }}</span>
-          <span><StatIcon name="magic" /> {{ magicAttack.toFixed(0) }}</span>
-          <span><StatIcon name="armor" /> {{ boss.armor.toFixed(0) }}</span>
-          <span><StatIcon name="magicResist" /> {{ boss.magicResist.toFixed(0) }}</span>
-          <span><StatIcon name="crit" /> {{ (boss.critChance * 100).toFixed(0) }}%</span>
-          <span v-if="boss.reflectPct > 0"><StatIcon name="reflect" /> {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
-          <span v-if="boss.lifestealPct > 0"><StatIcon name="lifesteal" /> {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
-          <span v-if="boss.woundsAbility"><StatIcon name="wounds" /> {{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</span>
-        </p>
-      </div>
-    </button>
+    </div>
+    <div class="boss-block">
+      <h2 class="boss-name">{{ PERSONALITY_NAME[boss.personality] }}</h2>
+      <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
+      <span class="hp-numbers">{{ Math.round(boss.health) }} / {{ Math.round(boss.maxHealth) }}</span>
+      <p class="stat-summary">
+        <span><StatIcon name="physical" /> {{ physicalAttack.toFixed(0) }}</span>
+        <span><StatIcon name="magic" /> {{ magicAttack.toFixed(0) }}</span>
+        <span><StatIcon name="armor" /> {{ boss.armor.toFixed(0) }}</span>
+        <span><StatIcon name="magicResist" /> {{ boss.magicResist.toFixed(0) }}</span>
+        <span><StatIcon name="crit" /> {{ (boss.critChance * 100).toFixed(0) }}%</span>
+        <span v-if="boss.reflectPct > 0"><StatIcon name="reflect" /> {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
+        <span v-if="boss.lifestealPct > 0"><StatIcon name="lifesteal" /> {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
+        <span v-if="boss.woundsAbility"><StatIcon name="wounds" /> {{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</span>
+      </p>
+    </div>
+    <div v-if="phase === 'dying'" class="slain-stamp" role="status">
+      <strong class="slain-word">Slain</strong>
+      <span class="slain-name">{{ PERSONALITY_NAME[boss.personality] }}</span>
+    </div>
+    <!-- The whole half is one button, clipped to its side of the stage's step. -->
+    <button type="button" class="tap tap-boss" aria-label="Boss details" @click="showDetails = true" />
 
     <Modal v-model="showDetails" title="Boss" max-width="520px">
       <div class="hero">
@@ -135,67 +137,117 @@ const statTiles = computed<StatTile[]>(() => {
         </p>
       </section>
     </Modal>
-  </section>
+  </div>
 </template>
 
 <style scoped>
+/* The boss's half of the stage, positioned within FightStage's .stage-inner
+   on its phone geometry (--u scales the art on narrow phones). */
 .boss-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: contents;
+  --boss-w: calc(190 * var(--u));
 }
 
-.summary-row {
+.boss-plat {
+  position: absolute;
+  right: calc(16 * var(--u));
+  top: calc(168 * var(--u));
+  width: calc(186 * var(--u));
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--text) 12%, transparent), transparent 72%);
+}
+
+/* No z-index, so its hits and the plain sprite stack with the blocks. */
+.boss-figure {
+  position: absolute;
+  top: 0;
+  right: calc(10 * var(--u));
+  width: var(--boss-w);
+}
+
+/* Floats on the stage to the boss's left, over its own block of fog. */
+.boss-block {
+  position: absolute;
+  z-index: 4;
+  top: 10px;
+  left: 16px;
+  width: 196px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  text-align: center;
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
+  gap: 5px;
+  text-shadow:
+    0 0 8px #000,
+    0 1px 2px #000;
+}
+
+/* Never cut: a long name wraps to a second line. */
+.boss-name {
   margin: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-h);
 }
 
-/* The name tops out 62px above the stage's bottom edge, on its fog band;
-   0.6rem is .summary-row's gap. */
-.summary-info {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-top: calc(-62px - 0.6rem);
+.boss-block :deep(.health-bar) {
+  height: 10px;
 }
 
-/* Above the stage's fog band. */
-.summary-info > * {
-  position: relative;
-  z-index: 2;
+.boss-block :deep(.health-bar-label) {
+  display: none;
 }
 
-.summary-info h2 {
-  margin: 0;
+.hp-numbers {
+  align-self: flex-end;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--text);
 }
 
 .stat-summary span {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  white-space: nowrap;
 }
 
+/* Wraps freely when the boss has reflect, lifesteal or wounds. */
 .stat-summary {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem 0.75rem;
+  gap: 2px 8px;
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--text-h);
+}
+
+/* A transparent button over the whole stage, clipped to the boss's side of
+   the step, so the two halves meet with no gap and no overlap. */
+.tap {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tap-boss {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% var(--split-yr),
+    var(--split-x) var(--split-yr),
+    var(--split-x) var(--split-yl),
+    0 var(--split-yl)
+  );
 }
 
 /* The panel's stage again, across the top of the box, with the tag, name and
@@ -315,43 +367,11 @@ const statTiles = computed<StatTile[]>(() => {
   color: var(--text);
 }
 
-/* Full-bleed: the stage runs to the panel's edges (its padding is 1rem, see
-   main.scss). */
-.stage-wrap {
-  position: relative;
-  width: calc(100% + 2rem);
-  margin: -1rem -1rem 0;
-}
-
-/* The fog band the name and HP bar sit on. */
-.stage-wrap::after {
-  content: '';
-  position: absolute;
-  z-index: 1;
-  inset: auto 0 0;
-  height: 45%;
-  pointer-events: none;
-  background: linear-gradient(0deg, var(--stage-fog, var(--code-bg)) 18%, transparent);
-}
-
-.sprite-wrapper {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  height: 230px;
-  overflow: hidden;
-  border-radius: 13px 13px 0 0;
-}
-
-/* At its file size, 2 screen px per art pixel like the gear icons, with their
-   dark rim and a glow, in the boss's damage colour. */
-.sprite-wrapper :deep(.sprite),
+/* 2 screen px per art pixel like the gear icons, with their dark rim and a
+   glow, in the boss's damage colour. */
+.boss-figure :deep(.sprite),
 .hero-sprite :deep(.sprite) {
   --rim: color-mix(in srgb, var(--damage-color) 20%, #000);
-  width: 200px;
-  height: 200px;
-  margin-bottom: 6px;
   image-rendering: pixelated;
   filter:
     drop-shadow(2px 0 0 var(--rim))
@@ -361,20 +381,31 @@ const statTiles = computed<StatTile[]>(() => {
     drop-shadow(0 0 12px color-mix(in srgb, var(--damage-color) 35%, transparent));
 }
 
-.sprite-wrapper.hit :deep(.sprite) {
+.boss-figure :deep(.sprite) {
+  width: 100%;
+  height: auto;
+}
+
+.hero-sprite :deep(.sprite) {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 6px;
+}
+
+.boss-figure.hit :deep(.sprite) {
   animation: sprite-shake 0.3s ease;
 }
 
-/* Above the name and HP bar. */
+/* Over the blocks, under the tap areas. */
 .hit-layer {
   position: absolute;
-  z-index: 3;
+  z-index: 5;
   inset: 0;
   pointer-events: none;
 }
 
 /* Big, outlined and held before it fades, so it reads over the sprite's busy
-   pixels. Centered on the stage. */
+   pixels. Centered on the boss. */
 .damage-popup {
   position: absolute;
   top: 35%;
@@ -395,12 +426,12 @@ const statTiles = computed<StatTile[]>(() => {
 
 /* ---------- A kill: flash, fall into the fog, "Slain" ---------- */
 
-.sprite-wrapper.dying :deep(.sprite) {
+.boss-figure.dying :deep(.sprite) {
   transform-origin: 50% 100%;
   animation: boss-fall 1.1s cubic-bezier(0.5, 0, 0.8, 0.4) both;
 }
 
-.sprite-wrapper.arriving :deep(.sprite) {
+.boss-figure.arriving :deep(.sprite) {
   animation: boss-arrive 0.8s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
@@ -432,11 +463,14 @@ const statTiles = computed<StatTile[]>(() => {
   animation: death-sparks 1.6s ease-out 0.2s;
 }
 
-/* Over the stage, clear of the name and HP bar on its fog band. */
+/* Across the whole stage, level with the middle of the boss. */
 .slain-stamp {
   position: absolute;
-  z-index: 4;
-  inset: 0 0 62px;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--boss-w);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -543,12 +577,12 @@ const statTiles = computed<StatTile[]>(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sprite-wrapper.dying :deep(.sprite) {
+  .boss-figure.dying :deep(.sprite) {
     animation: none;
     opacity: 0;
   }
 
-  .sprite-wrapper.arriving :deep(.sprite),
+  .boss-figure.arriving :deep(.sprite),
   .death-flash,
   .death-sparks,
   .slain-stamp {
