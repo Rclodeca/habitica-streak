@@ -2,6 +2,7 @@
 
 import { enableAutoUnmount, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PERSONALITY_NAME } from '../../game-engine';
 import { useBossStore } from '../../store/bossStore';
@@ -26,6 +27,7 @@ describe('FightStage', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   const mountStage = () => mount(FightStage, { global: { stubs: { teleport: true } } });
@@ -34,6 +36,25 @@ describe('FightStage', () => {
     const wrapper = mountStage();
     expect(wrapper.find('.stage-inner .boss-panel').exists()).toBe(true);
     expect(wrapper.find('.stage-inner .character-panel').exists()).toBe(true);
+  });
+
+  it('hands the stage where its blocks end, so the tap areas can step around text that grew', async () => {
+    // jsdom has no layout: place the stage and its two blocks as larger
+    // system text would, the hero's block reaching up past the 212px step.
+    const rects: Record<string, Partial<DOMRect>> = {
+      'stage-inner': { top: 100, bottom: 400, height: 300 },
+      'boss-block': { top: 110, bottom: 233, height: 123 },
+      'hero-block': { top: 305, bottom: 386, height: 81 },
+    };
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const key = Object.keys(rects).find((k) => this.classList.contains(k));
+      return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, ...(key ? rects[key] : {}) } as DOMRect;
+    });
+    const wrapper = mountStage();
+    await nextTick();
+    const style = wrapper.find('.stage-inner').attributes('style');
+    expect(style).toContain('--boss-bottom: 133px');
+    expect(style).toContain('--hero-top: 205px');
   });
 
   it('feeds the drop-down bar the boss and the hero, parked until the stage scrolls away', () => {

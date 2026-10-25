@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { effectiveStat, heroClassFor, PERSONALITY_NAME } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
 import { useScrolledPast } from '../../composables/useScrolledPast';
@@ -28,12 +28,37 @@ const heroLevel = computed(() => heldLevel.value ?? hero.value.level);
 const stage = ref<HTMLElement | null>(null);
 const bar = ref<InstanceType<typeof BossBar> | null>(null);
 const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement | undefined)?.offsetHeight ?? 0);
+
+// Where the boss's and hero's blocks end on the stage, measured as drawn:
+// their text grows with the system's text size, so the tap areas' step reads
+// these to keep each block wholly on its own side (see .stage-inner's CSS).
+const inner = ref<HTMLElement | null>(null);
+const blockEdges = ref<Record<string, string>>({});
+let blockObserver: ResizeObserver | null = null;
+
+function measureBlocks() {
+  const el = inner.value;
+  const box = el?.getBoundingClientRect();
+  const boss = el?.querySelector('.boss-block')?.getBoundingClientRect();
+  const heroBlock = el?.querySelector('.hero-block')?.getBoundingClientRect();
+  if (!box || !boss || !heroBlock || box.height === 0) return;
+  blockEdges.value = { '--boss-bottom': `${boss.bottom - box.top}px`, '--hero-top': `${heroBlock.top - box.top}px` };
+}
+
+onMounted(() => {
+  blockObserver = new ResizeObserver(() => requestAnimationFrame(measureBlocks));
+  for (const el of [inner.value, inner.value?.querySelector('.boss-block'), inner.value?.querySelector('.hero-block')]) {
+    if (el) blockObserver.observe(el);
+  }
+  measureBlocks();
+});
+onBeforeUnmount(() => blockObserver?.disconnect());
 </script>
 
 <template>
   <section ref="stage" class="fight-stage">
     <div class="stage-bg" aria-hidden="true" />
-    <div class="stage-inner">
+    <div ref="inner" class="stage-inner" :style="blockEdges">
       <BossPanel />
       <CharacterPanel />
     </div>
@@ -74,7 +99,8 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
    art, so they never cover it). The split is where the boss's and hero's tap
    areas meet, in a step that follows the diagonal; its left step rides the
    top of the hero, so a boss block that wraps deeper on a narrow phone stays
-   on the boss's side. */
+   on the boss's side. Each step also gives way, 4px clear, to a block that
+   reaches past it (--boss-bottom, --hero-top: measured, larger text). */
 .stage-inner {
   position: relative;
   width: min(100%, 430px);
@@ -83,8 +109,8 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
   container-type: inline-size;
   --u: min(1px, calc(100cqw / 390));
   --split-x: 50%;
-  --split-yl: calc(300px - 178 * var(--u));
-  --split-yr: 212px;
+  --split-yl: max(calc(300px - 178 * var(--u)), calc(var(--boss-bottom, 0px) + 4px));
+  --split-yr: min(212px, calc(var(--hero-top, 999px) - 4px));
   /* A second step, for the banner; on phones it folds into the first. */
   --split-x2: var(--split-x);
   --split-ym: var(--split-yr);
@@ -111,7 +137,7 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
     --split-yl: 0px;
     --split-yr: 212px;
     --split-x2: max(var(--split-x), calc(7% + 450px));
-    --split-ym: 186px;
+    --split-ym: min(186px, calc(var(--hero-top, 999px) - 4px));
   }
 }
 </style>
