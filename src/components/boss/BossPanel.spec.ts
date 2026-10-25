@@ -38,6 +38,14 @@ describe('BossPanel', () => {
     expect(wrapper.find('.boss-panel').classes()).not.toContain('pressed');
   });
 
+  it('keeps the chevron with the last word of the boss name, so it never wraps alone', () => {
+    const store = useBossStore();
+    store.boss = { ...store.boss, personality: 'warded5x' };
+    const wrapper = mount(BossPanel);
+    expect(wrapper.find('.boss-name').text()).toBe('Ethereal Sovereign');
+    expect(wrapper.find('.boss-name > .name-tail').text()).toBe('Sovereign');
+  });
+
   it('shows the HP numbers under the HP bar', () => {
     const store = useBossStore();
     store.boss = { ...store.boss, health: 474.2, maxHealth: 620 };

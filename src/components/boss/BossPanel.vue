@@ -22,6 +22,12 @@ const { phase, displayedBoss } = useCelebration();
 const boss = computed(() => displayedBoss.value ?? bossStore.boss);
 
 const { popups, isHit } = useDamagePopup(() => boss.value.health);
+
+// The name's last word carries the tap cue's chevron, so a name that only
+// just fits its line never leaves the chevron alone on the next.
+const bossName = computed(() => PERSONALITY_NAME[boss.value.personality]);
+const nameHead = computed(() => bossName.value.slice(0, bossName.value.lastIndexOf(' ') + 1));
+const nameTail = computed(() => bossName.value.slice(bossName.value.lastIndexOf(' ') + 1));
 const { pressed, pressHandlers } = usePress();
 
 // A condensed, always-visible emoji stat line (effective numbers only) sits
@@ -91,7 +97,7 @@ const statTiles = computed<StatTile[]>(() => {
       </div>
     </div>
     <div class="boss-block">
-      <h2 class="boss-name">{{ PERSONALITY_NAME[boss.personality] }}</h2>
+      <h2 class="boss-name">{{ nameHead }}<span class="name-tail">{{ nameTail }}</span></h2>
       <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
       <span class="hp-numbers">{{ Math.round(boss.health) }} / {{ Math.round(boss.maxHealth) }}</span>
       <p class="stat-summary">
@@ -195,8 +201,12 @@ const statTiles = computed<StatTile[]>(() => {
   transition: color 0.3s ease;
 }
 
+.name-tail {
+  white-space: nowrap;
+}
+
 /* The tap cue: a small chevron after the name. */
-.boss-name::after {
+.name-tail::after {
   content: '';
   display: inline-block;
   width: 6px;
