@@ -2,7 +2,7 @@
 // The player's hero art: one of three FreePixel heroes (see CREDITS.md),
 // picked from the run's rolled starting stats by heroClassFor — a warrior
 // for a physical lean, a cleric for a magic lean, a ranger for an even
-// split. Equipped gear shows in the item slots, not on the sprite.
+// split. Equipped gear shows in the details' Equipment list, not on the sprite.
 
 import { computed } from 'vue';
 import { heroClassFor } from '../../game-engine';

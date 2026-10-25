@@ -14,6 +14,7 @@ import {
   effectiveStat,
   expectedMediumDailyDamage,
   expToNextLevel,
+  heroClassFor,
   ITEM_CATALOG,
   itemBonusPercent,
   itemFlatBonus,
@@ -32,12 +33,13 @@ import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
 import { BOOST_STAT_ICON } from '../ui/statIcons';
 import type { StatIconName } from '../ui/statIcons';
+import { DRAWN_FACING_LEFT, HERO_PLACEMENT } from './heroArt';
 import PlayerSprite from './PlayerSprite.vue';
 
-// A condensed, always-visible emoji stat line (Buffed numbers) sits next to
-// the title; the Base/Buffed breakdown plus what a new medium daily would
-// deal lives in a modal behind the same tap. See BossPanel.vue for the same
-// pattern.
+// A condensed, always-visible emoji stat line (Buffed numbers) sits under
+// the bars; the Base/Buffed breakdown, the gear, and what a new medium daily
+// would deal live in a modal behind the hero's half of the stage. See
+// BossPanel.vue for the same pattern.
 const showDetails = ref(false);
 
 const characterStore = useCharacterStore();
@@ -50,6 +52,14 @@ const character = computed(() => characterStore.character);
 // Named on NewHeroScreen; only a hero still waiting on that screen is unnamed.
 const heroName = computed(() => character.value.name ?? 'Character');
 const maxHealth = computed(() => effectiveStat(character.value, 'health'));
+
+// Turned to face the boss across the stage, and stood on its platform by the
+// art's visual center (see heroArt.ts).
+const heroClass = computed(() => heroClassFor(character.value));
+const placement = computed(() => {
+  const { width, left, bottom } = HERO_PLACEMENT[heroClass.value];
+  return { '--hero-w': width, '--hero-x': left, '--hero-y': bottom };
+});
 
 // Until a level-up's beat plays (useCelebration — after any kill it came
 // from), the panel holds the old level with a full EXP bar, then ticks over.
@@ -120,9 +130,8 @@ const expectedTrueDamage = computed(() =>
 );
 
 // Sized to the character's current slot cap (4, 6 or 8 — see maxEquipSlots),
-// in whatever order they were equipped — empty ones render as blank grid
-// cells rather than being compacted away, so the grid never visually shifts
-// as items are gained/replaced. Slots not yet unlocked aren't shown anywhere.
+// in whatever order they were equipped; the details' Equipment list shows
+// the empty ones after the gear. Slots not yet unlocked aren't shown anywhere.
 const slotCount = computed(() => maxEquipSlots(character.value));
 const equippedSlots = computed(() =>
   Array.from({ length: slotCount.value }, (_, i) => {
@@ -130,23 +139,6 @@ const equippedSlots = computed(() =>
     return itemId ? ITEM_CATALOG.find((item) => item.id === itemId) ?? null : null;
   }),
 );
-// 2x2 at 4 slots, 3 wide x 2 tall at 6, 4 wide x 2 tall at 8.
-const gridCols = computed(() => slotCount.value / 2);
-
-// Which slot's stats callout is pinned open by a tap/click (persists until
-// tapped again, another slot is tapped, or any tap lands outside the slots)
-// — separate from the CSS-only :hover reveal, which only fires for mouse
-// users.
-const pinnedSlot = ref<number | null>(null);
-function togglePin(i: number) {
-  pinnedSlot.value = pinnedSlot.value === i ? null : i;
-}
-function unpinOnOutsideTap(event: Event) {
-  if (!(event.target as Element | null)?.closest('.item-slot')) pinnedSlot.value = null;
-}
-onMounted(() => document.addEventListener('click', unpinOnOutsideTap));
-onBeforeUnmount(() => document.removeEventListener('click', unpinOnOutsideTap));
-
 interface StatTile {
   icon: StatIconName;
   label: string;
@@ -206,18 +198,15 @@ const emptySlotCount = computed(() => slotCount.value - equippedItems.value.leng
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
 
-// On phones this panel is a condensed hero strip, and it keeps its stat line
-// to one row: whatever wraps past the first is hidden (it's all in the
-// details popup), so the strip never grows.
-const PHONE = '(max-width: 820px)';
+// The stat line keeps to one row at every width: whatever wraps past the
+// first is hidden whole (it's all in the details popup), so the hero's block
+// never grows into the boss's half of the stage.
 const statLine = ref<HTMLElement | null>(null);
-let phone: MediaQueryList | null = null;
 let statLineObserver: ResizeObserver | null = null;
 
 function clipStatLine() {
   const items = Array.from(statLine.value?.children ?? []) as HTMLElement[];
   for (const item of items) item.style.display = '';
-  if (!phone?.matches) return;
   // Measure every item before hiding any, so hiding can't reflow the rest.
   const shown = items.filter((item) => item.getClientRects().length > 0);
   const tops = shown.map((item) => item.getBoundingClientRect().top);
@@ -228,8 +217,6 @@ function clipStatLine() {
 }
 
 onMounted(() => {
-  phone = window.matchMedia?.(PHONE) ?? null;
-  phone?.addEventListener('change', clipStatLine);
   // Sizes change with the width, the theme and the numbers themselves.
   statLineObserver = new ResizeObserver(() => requestAnimationFrame(clipStatLine));
   if (statLine.value) statLineObserver.observe(statLine.value);
@@ -238,51 +225,30 @@ onMounted(() => {
 });
 onUpdated(clipStatLine);
 onBeforeUnmount(() => {
-  phone?.removeEventListener('change', clipStatLine);
   statLineObserver?.disconnect();
 });
 </script>
 
 <template>
-  <section class="panel character-panel" :class="{ leveling }">
-    <div class="top-row">
-      <div class="sprite-wrapper" :class="{ hit: isHit }">
-        <PlayerSprite :character="character" />
-        <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
-        <span v-if="leveling" class="level-ring" aria-hidden="true" />
-      </div>
-      <div class="item-grid" :style="{ gridTemplateColumns: `repeat(${gridCols}, 1fr)`, maxWidth: `${gridCols * 46 + (gridCols - 1) * 4}px` }">
-        <div
-          v-for="(item, i) in equippedSlots"
-          :key="i"
-          class="item-slot"
-          :class="[
-            item ? `rarity-${item.rarity}` : 'empty',
-            { pinned: pinnedSlot === i, 'right-edge': (i + 1) % gridCols === 0, enchanted: !!item && itemDoubleFactor(character, item.id) > 1 },
-          ]"
-          @click="item && togglePin(i)"
-        >
-          <template v-if="item">
-            <span class="item-art">
-              <img class="item-icon" :src="`${baseUrl}sprites/${item.icon}.png`" :alt="item.name" />
-            </span>
-            <div class="item-tooltip">{{ item.name }} — <span class="item-stats">{{ describeItemBonus(item, itemDoubleFactor(character, item.id)) }}</span></div>
-          </template>
-        </div>
-      </div>
+  <!-- The hero's half of the fight stage (FightStage), facing the boss's. -->
+  <div class="character-panel" :class="{ leveling }">
+    <div class="hero-plat" aria-hidden="true" />
+    <div class="hero-figure" :class="{ hit: isHit, mirrored: DRAWN_FACING_LEFT[heroClass] }" :style="placement">
+      <PlayerSprite :character="character" />
+      <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
+      <span v-if="leveling" class="level-ring" aria-hidden="true" />
     </div>
-
-    <button type="button" class="title-button" @click="showDetails = true">
+    <div class="hero-block">
       <h2 class="name-line">
-        {{ heroName }} — Lv. <span class="level-number">{{ displayLevel }}</span>
+        <span class="hero-name">{{ heroName }}</span>
+        <span class="level-number">{{ displayLevel }}</span>
         <span v-if="leveling" class="level-up-popup" role="status">Level up</span>
       </h2>
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
+      <span class="hp-numbers">{{ Math.round(character.currentHealth) }} / {{ Math.round(maxHealth) }}</span>
       <!-- Keyed by level so the bar snaps empty on a level-up instead of draining back. -->
       <ExpBar :key="displayLevel" :current="displayExp" :max="expNeeded" />
       <p ref="statLine" class="stat-summary">
-        <!-- The EXP bar's numbers again, for themes that set them in this line instead. -->
-        <span class="exp-numbers" aria-hidden="true">{{ Math.round(displayExp) }} / {{ Math.round(expNeeded) }}</span>
         <span><StatIcon name="physical" />{{ physicalDamage.toFixed(0) }}</span>
         <span><StatIcon name="magic" />{{ magicDamage.toFixed(0) }}</span>
         <span><StatIcon name="healing" />{{ healing.toFixed(0) }}</span>
@@ -297,7 +263,9 @@ onBeforeUnmount(() => {
         <span v-if="healBoost"><StatIcon name="healBoost" />+{{ (healBoost.bonus * 100).toFixed(0) }}% heal · {{ healBoostDaysLeft }}d</span>
         <span v-if="woundsEffect"><StatIcon name="wounds" />{{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
       </p>
-    </button>
+    </div>
+    <!-- The whole half is one button, clipped to its side of the stage's step. -->
+    <button type="button" class="tap tap-hero" :aria-label="`${heroName} details`" @click="showDetails = true" />
 
     <Modal v-model="showDetails" :title="heroName" max-width="520px">
       <div class="hero">
@@ -375,174 +343,149 @@ onBeforeUnmount(() => {
         <p class="stat-note">Habits of the same type share a pool.</p>
       </section>
     </Modal>
-  </section>
+  </div>
 </template>
 
 <style scoped>
+/* The hero's half of the stage, positioned within FightStage's .stage-inner
+   on its phone geometry (--u scales the art on narrow phones). */
 .character-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: contents;
 }
 
-.character-panel h2 {
-  margin: 0;
+.hero-plat {
+  position: absolute;
+  left: calc(4 * var(--u));
+  bottom: 4px;
+  width: calc(152 * var(--u));
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--text) 12%, transparent), transparent 72%);
 }
 
-.top-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
+/* The whole hero, smaller than the boss and standing on its platform; the
+   per-class --hero-* numbers come from HERO_PLACEMENT. No z-index, so its
+   hits stack with the blocks. */
+.hero-figure {
+  position: absolute;
+  left: calc(var(--hero-x) * var(--u));
+  bottom: calc(var(--hero-y) * 1px);
+  width: calc(var(--hero-w) * var(--u));
 }
 
-.title-button {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+.hero-figure :deep(.player-sprite),
+.hero-figure :deep(.hero) {
   width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
+  height: auto;
+}
+
+/* `scale` composes with the hit shake's transform. */
+.hero-figure.mirrored :deep(.hero) {
+  scale: -1 1;
+}
+
+.hero-figure.hit :deep(.player-sprite) {
+  animation: sprite-shake 0.3s ease;
+}
+
+/* Floats on the stage to the hero's right. */
+.hero-block {
+  position: absolute;
+  z-index: 4;
+  bottom: 14px;
+  right: 16px;
+  width: 176px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-shadow:
+    0 0 8px #000,
+    0 1px 2px #000;
+}
+
+/* A long name is cut with "…"; the level always shows. */
+.name-line {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
   margin: 0;
-  font: inherit;
-  color: inherit;
-  text-align: center;
-  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-h);
+}
+
+.hero-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hero-block :deep(.health-bar) {
+  height: 6px;
+}
+
+.hero-block :deep(.exp-bar) {
+  height: 4px;
+}
+
+.hero-block :deep(.health-bar-label),
+.hero-block :deep(.exp-bar-label) {
+  display: none;
+}
+
+.hp-numbers {
+  align-self: flex-end;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--text);
 }
 
 .stat-summary span {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  white-space: nowrap;
 }
 
+/* One row only: clipStatLine hides whichever chips wrap past it. */
 .stat-summary {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem 0.75rem;
+  gap: 2px 8px;
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--text-h);
 }
 
-.stat-summary .exp-numbers {
-  display: none;
-}
-
-/* Cells target ~46px squares (so 2 rows match the 96px sprite, see
-   Sprite.vue); max-width is set inline from the column count, and the grid
-   shrinks below that on narrow panels. */
-.item-grid {
-  display: grid;
-  gap: 4px;
-  flex: 1;
-  align-self: center;
-}
-
-/* The gear list's recessed slot (.gear-icon), scaled down to the cell. */
-.item-slot {
-  position: relative;
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--rarity) 55%, transparent);
-  border-radius: 4px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--rarity) 22%, transparent), rgba(0, 0, 0, 0.55) 72%);
-  box-shadow:
-    inset 0 0 0 2px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 3px color-mix(in srgb, var(--rarity) 22%, transparent),
-    0 0 10px -5px var(--rarity);
-  cursor: pointer;
-}
-
-.item-slot.empty {
-  --rarity: transparent;
-  border: 1px dashed var(--border);
-  cursor: default;
-}
-
-.item-slot.enchanted {
-  border-color: var(--accent-solid);
-}
-
-.item-slot.enchanted .item-stats {
-  color: var(--accent-solid);
-}
-
-/* Clips the art's transparent padding; the slot itself mustn't clip, its
-   tooltip overflows it. */
-.item-art {
+/* A transparent button over the whole stage, clipped to the hero's side of
+   the step (BossPanel's .tap-boss is the rest). */
+.tap {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  container-type: inline-size;
+  z-index: 6;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 1 screen px per art pixel (half the gear list's 2x), which puts the item at
-   34px. Cells too small for that (8 slots in the desktop column) fit it
-   instead, at 36 art pixels across the cell. Same rim and glow as the list. */
-.item-icon {
-  --rim: color-mix(in srgb, var(--rarity) 55%, #000);
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 80px;
-  height: 80px;
-  width: min(80px, 222cqw);
-  height: min(80px, 222cqw);
-  transform: translate(-50%, -50%);
-  image-rendering: pixelated;
-  pointer-events: none;
-  filter:
-    drop-shadow(1px 0 0 var(--rim))
-    drop-shadow(-1px 0 0 var(--rim))
-    drop-shadow(0 1px 0 var(--rim))
-    drop-shadow(0 -1px 0 var(--rim))
-    drop-shadow(0 0 3px color-mix(in srgb, var(--rarity) 45%, transparent));
-}
-
-.item-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 6px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: normal;
-  max-width: min(220px, 90vw);
-  box-shadow: var(--shadow);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-  z-index: 10;
-}
-
-/* Right-column slots sit near the panel's right edge — the grid itself is
-   already right-aligned within the panel (see .top-row) — so a
-   center-anchored tooltip risks clipping off the right edge of a narrow
-   phone screen. Anchor those to their own right edge instead. */
-.item-slot.right-edge .item-tooltip {
-  left: auto;
-  right: 0;
-  transform: none;
-}
-
-.item-slot.pinned .item-tooltip {
-  opacity: 1;
-}
-
-/* Gated to real hover devices: on touch screens :hover sticks after a tap,
-   which would keep the tooltip open even after tapping elsewhere. */
-@media (hover: hover) {
-  .item-slot:hover .item-tooltip {
-    opacity: 1;
-  }
+.tap-hero {
+  clip-path: polygon(
+    0 var(--split-yl),
+    var(--split-x) var(--split-yl),
+    var(--split-x) var(--split-yr),
+    100% var(--split-yr),
+    100% 100%,
+    0 100%
+  );
 }
 
 .rarity-common {
@@ -886,17 +829,10 @@ onBeforeUnmount(() => {
   color: var(--text);
 }
 
-.sprite-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.sprite-wrapper.hit :deep(.player-sprite) {
-  animation: sprite-shake 0.3s ease;
-}
-
+/* Over the blocks, under the tap areas. */
 .damage-popup {
   position: absolute;
+  z-index: 5;
   top: 35%;
   left: 50%;
   color: var(--hp-color);
@@ -922,10 +858,6 @@ onBeforeUnmount(() => {
   animation: level-ring 1s ease-out;
 }
 
-.name-line {
-  position: relative;
-}
-
 /* At the end of the name line, clear of the portrait. */
 .level-up-popup {
   position: absolute;
@@ -947,6 +879,8 @@ onBeforeUnmount(() => {
 
 .level-number {
   display: inline-block;
+  flex-shrink: 0;
+  margin-left: 0.4em;
 }
 
 .leveling .level-number {
@@ -1008,52 +942,6 @@ onBeforeUnmount(() => {
     animation: none;
     opacity: 1;
     transform: translateY(-50%);
-  }
-}
-
-/* Phones: a condensed strip (portrait, name, HP, EXP and the stat line).
-   Gear and the stat breakdown live behind the tap, in the details popup. */
-@media (max-width: 820px) {
-  .character-panel {
-    display: grid;
-    grid-template-columns: 52px minmax(0, 1fr);
-    align-items: center;
-    column-gap: 11px;
-  }
-
-  .top-row {
-    display: contents;
-  }
-
-  .item-grid {
-    display: none;
-  }
-
-  .stat-summary {
-    justify-content: flex-start;
-  }
-
-  .character-panel .sprite-wrapper {
-    display: grid;
-    place-items: end center;
-    width: 52px;
-    height: 52px;
-    border: 1px solid var(--portrait-border);
-    border-radius: 8px;
-  }
-
-  .sprite-wrapper .player-sprite {
-    width: 50px;
-    height: 50px;
-  }
-
-  .title-button {
-    gap: 0.35rem;
-    text-align: left;
-  }
-
-  .character-panel h2 {
-    font-size: 0.95rem;
   }
 }
 
