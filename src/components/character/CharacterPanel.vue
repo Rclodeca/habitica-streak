@@ -552,7 +552,9 @@ onBeforeUnmount(() => {
   clip-path: polygon(
     0 var(--split-yl),
     var(--split-x) var(--split-yl),
-    var(--split-x) var(--split-yr),
+    var(--split-x) var(--split-ym),
+    var(--split-x2) var(--split-ym),
+    var(--split-x2) var(--split-yr),
     100% var(--split-yr),
     100% 100%,
     0 100%

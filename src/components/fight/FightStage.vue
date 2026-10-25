@@ -85,6 +85,9 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
   --split-x: 50%;
   --split-yl: calc(300px - 178 * var(--u));
   --split-yr: 212px;
+  /* A second step, for the banner; on phones it folds into the first. */
+  --split-x2: var(--split-x);
+  --split-ym: var(--split-yr);
 }
 
 @media (max-width: 820px) {
@@ -96,7 +99,9 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
 
 /* Desktop and tablet: a wide banner across the content, the same diagonal
    stretched out with each fighter 7% in from its edge. The boss's tap area is
-   the rectangle from its block's left edge to the right, down to 212px. */
+   the rectangle from its block's left edge to the right, down to 212px, less
+   a notch under its block for the hero's name where the two blocks overlap
+   on narrower screens (none once the hero's block ends left of the boss's). */
 @media (min-width: 821px) {
   .stage-inner {
     width: 100%;
@@ -105,6 +110,8 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
     --split-x: calc(93% - 516px);
     --split-yl: 0px;
     --split-yr: 212px;
+    --split-x2: max(var(--split-x), calc(7% + 450px));
+    --split-ym: 186px;
   }
 }
 </style>

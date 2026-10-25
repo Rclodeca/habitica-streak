@@ -301,7 +301,9 @@ const statTiles = computed<StatTile[]>(() => {
     0 0,
     100% 0,
     100% var(--split-yr),
-    var(--split-x) var(--split-yr),
+    var(--split-x2) var(--split-yr),
+    var(--split-x2) var(--split-ym),
+    var(--split-x) var(--split-ym),
     var(--split-x) var(--split-yl),
     0 var(--split-yl)
   );
