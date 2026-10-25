@@ -18,6 +18,12 @@ $ember: #e0783a;
 $frame-top: rgb(27, 24, 21);
 $frame-bottom: rgb(14, 13, 11);
 
+// The boss sprite's dark rim and ember glow, on the stage and in its details.
+$boss-sprite-filter: drop-shadow(2px 0 0 #2a120c) drop-shadow(-2px 0 0 #2a120c) drop-shadow(0 2px 0 #2a120c)
+  drop-shadow(0 -2px 0 #2a120c) drop-shadow(0 0 12px rgba(224, 120, 58, 0.35)) brightness(1.06);
+// The hero, backlit against the fog.
+$hero-sprite-filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.95)) brightness(0.8) contrast(1.05);
+
 // Engraved caps sizes. Cinzel's capitals stand about 0.72em tall, so nothing
 // goes below $caps-xs — an 11px font, 8px capitals on a phone — under which
 // the tracked caps stop reading as words.
@@ -264,34 +270,153 @@ $caps-lg: 0.85rem; // panel and popup titles
     background: $line;
   }
 
+  // ---------- The fight stage: fog and embers, no frame ----------
+  // FightStage's backdrop fades into the page at the top and bottom. The boss
+  // and hero stand on platforms on it, their names, bars and stats engraved
+  // straight on the fog.
+
+  .fight-stage .stage-bg {
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 45% 55% at 68% 55%, rgba(215, 205, 185, 0.15), transparent 72%),
+      radial-gradient(ellipse 90% 30% at 50% 100%, rgba(224, 120, 58, 0.18), transparent 70%);
+    -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent);
+    mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent);
+
+    &::before {
+      content: '';
+      position: absolute;
+      pointer-events: none;
+      @include embers;
+    }
+
+    // Ground fog, softened by its long falloff rather than a blur filter.
+    &::after {
+      content: '';
+      position: absolute;
+      left: -10%;
+      right: -10%;
+      bottom: 0;
+      height: 60px;
+      pointer-events: none;
+      background: radial-gradient(
+        ellipse 54% 80% at 50% 100%,
+        rgba(205, 195, 175, 0.2),
+        rgba(205, 195, 175, 0.09) 40%,
+        rgba(205, 195, 175, 0.03) 60%,
+        transparent 76%
+      );
+      animation: ashen-fog 9s ease-in-out infinite alternate;
+    }
+  }
+
+  // Round by nature, so it keeps its ellipse.
+  .boss-plat,
+  .hero-plat {
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(205, 195, 175, 0.16), rgba(205, 195, 175, 0.04) 60%, transparent 72%);
+    border-top: 1px solid rgba(200, 169, 110, 0.14);
+    transition:
+      background 0.3s ease-out,
+      border-color 0.3s ease-out;
+  }
+
+  .hero-figure .hero {
+    filter: $hero-sprite-filter;
+  }
+
+  .fight-stage .boss-name {
+    @include engraved(0.8rem, 0.16em);
+    color: var(--text-h);
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+  }
+
+  .fight-stage .name-line {
+    @include engraved(0.75rem, 0.16em);
+    color: var(--text-h);
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+  }
+
+  .fight-stage .level-number,
+  .fight-stage .boss-name::after,
+  .fight-stage .name-line::after {
+    color: var(--accent-solid);
+  }
+
+  .fight-stage .hp-numbers {
+    @include engraved($caps-xs, 0.12em);
+    line-height: 1;
+    color: var(--text);
+  }
+
+  // The mock's heights, borders included; the numbers sit in the block, not
+  // on the bars, so the bars need no room around them.
+  .fight-stage .health-bar,
+  .fight-stage .exp-bar {
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  .fight-stage .boss-block .health-bar {
+    height: 11px;
+  }
+
+  .fight-stage .hero-block .health-bar {
+    height: 6px;
+  }
+
+  .fight-stage .exp-bar {
+    height: 3px;
+  }
+
+  .fight-stage .stat-summary {
+    text-shadow:
+      0 0 8px #000,
+      0 1px 2px #000;
+  }
+
+  // Held, or focused from the keyboard: the figure brightens, its platform
+  // glows gold and its name lights up — at once, then fading out.
+  .boss-panel.pressed .boss-figure .sprite,
+  .boss-panel:has(.tap:focus-visible) .boss-figure .sprite {
+    filter: $boss-sprite-filter brightness(1.4);
+  }
+
+  .character-panel.pressed .hero-figure .hero,
+  .character-panel:has(.tap:focus-visible) .hero-figure .hero {
+    filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.95)) brightness(1.15) contrast(1.05);
+  }
+
+  .boss-panel.pressed .boss-plat,
+  .boss-panel:has(.tap:focus-visible) .boss-plat,
+  .character-panel.pressed .hero-plat,
+  .character-panel:has(.tap:focus-visible) .hero-plat {
+    background: radial-gradient(ellipse at center, rgba(230, 199, 127, 0.42), rgba(200, 169, 110, 0.12) 60%, transparent 72%);
+    border-top-color: rgba(230, 199, 127, 0.75);
+  }
+
+  .boss-panel.pressed .boss-name,
+  .boss-panel:has(.tap:focus-visible) .boss-name,
+  .character-panel.pressed .name-line,
+  .character-panel:has(.tap:focus-visible) .name-line {
+    color: var(--accent);
+  }
+
+  .boss-panel.pressed .boss-plat,
+  .character-panel.pressed .hero-plat {
+    transition-duration: 0s;
+  }
+
   // ---------- Boss: rises out of fog and embers ----------
 
-  .boss-panel .sprite-wrapper,
   .hero-sprite:has(> .sprite) {
     background:
       radial-gradient(ellipse 55% 58% at 50% 60%, rgba(215, 205, 185, 0.17), transparent 72%),
       radial-gradient(ellipse 85% 32% at 50% 100%, rgba(224, 120, 58, 0.2), transparent 70%);
   }
 
-  .boss-panel .sprite-wrapper {
-    &::before {
-      @include embers;
-    }
-
-    &::after {
-      left: -10%;
-      right: -10%;
-      bottom: -6px;
-      height: 54px;
-      z-index: 1;
-      background: radial-gradient(ellipse 50% 70% at 50% 100%, rgba(205, 195, 175, 0.22), transparent 70%);
-      filter: blur(5px);
-      animation: ashen-fog 9s ease-in-out infinite alternate;
-    }
-  }
-
-  // The boss details' stage gets the embers, not the panel's drifting fog
-  // (its own fog band sits there).
+  // The boss details' stage gets the embers, not the fight stage's drifting
+  // fog (its own fog band sits there).
   .hero-sprite:has(> .sprite)::before {
     content: '';
     position: absolute;
@@ -306,14 +431,7 @@ $caps-lg: 0.85rem; // panel and popup titles
   .boss-panel .sprite,
   .hero-sprite > .sprite {
     position: relative;
-    filter: drop-shadow(2px 0 0 #2a120c) drop-shadow(-2px 0 0 #2a120c) drop-shadow(0 2px 0 #2a120c) drop-shadow(0 -2px 0 #2a120c)
-      drop-shadow(0 0 12px rgba(224, 120, 58, 0.35)) brightness(1.06);
-  }
-
-  .boss-panel .summary-info h2 {
-    @include engraved(0.95rem, 0.16em);
-    color: var(--text-h);
-    text-shadow: 0 0 14px rgba(0, 0, 0, 0.9);
+    filter: $boss-sprite-filter;
   }
 
   .damage-popup {
@@ -374,36 +492,6 @@ $caps-lg: 0.85rem; // panel and popup titles
     box-shadow:
       0 0 20px rgba(230, 199, 127, 0.7),
       inset 0 0 14px rgba(230, 199, 127, 0.5);
-  }
-
-  // The slot is the gear list's well (CharacterPanel), with its gold ticks.
-  .item-slot:not(.empty)::before {
-    @include corner-brackets(-1px, top bottom, 5px);
-    opacity: 0.9;
-  }
-
-  .item-slot.enchanted {
-    box-shadow:
-      inset 0 0 0 2px rgba(0, 0, 0, 0.55),
-      0 0 14px -3px rgba(230, 199, 127, 0.55);
-  }
-
-  .item-tooltip {
-    background: #0e0d0b;
-    border-color: $line-mid;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
-    color: var(--text-h);
-    font-size: 0.8rem;
-  }
-
-  .item-tooltip .item-stats {
-    font-style: italic;
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .item-slot.enchanted .item-stats {
-    color: var(--accent);
   }
 
   // ---------- Bars: thin, HP numbers set above, EXP below ----------
@@ -1591,45 +1679,6 @@ $caps-lg: 0.85rem; // panel and popup titles
     }
   }
 
-  // ---------- Phones: the hero strip ----------
-  // The hero strip scrolls with the page and skips its section diamond.
-
-  @media (max-width: 820px) {
-    .layout section.character-panel::after {
-      content: none;
-    }
-
-    // The hero's stat line hugs the EXP bar, as the boss's hugs its HP bar:
-    // the EXP numbers move into its first row, floated right so the stats
-    // wrap around them, which takes inline flow rather than flex.
-    .character-panel .exp-bar {
-      margin-bottom: 0;
-    }
-
-    .character-panel .exp-bar-label {
-      display: none;
-    }
-
-    // Cancels the strip's gap above and the last row's gap below, and pulls
-    // each row's leading gap out past the left edge.
-    .character-panel .stat-summary {
-      display: block;
-      margin: -0.35rem 0 -0.5rem -0.75rem;
-    }
-
-    .character-panel .stat-summary > span {
-      vertical-align: top;
-      margin: 0 0 0.5rem 0.75rem;
-    }
-
-    .character-panel .stat-summary > .exp-numbers {
-      display: block;
-      float: right;
-      @include engraved($caps-xs, 0.12em);
-      color: var(--text);
-    }
-  }
-
   // ---------- "You died": a band of black across the screen ----------
 
   .modal-backdrop:has(.death) {
@@ -1703,11 +1752,16 @@ $caps-lg: 0.85rem; // panel and popup titles
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-theme='ashen'] .boss-panel .sprite-wrapper::before,
-  :root[data-theme='ashen'] .boss-panel .sprite-wrapper::after,
+  :root[data-theme='ashen'] .fight-stage .stage-bg::before,
+  :root[data-theme='ashen'] .fight-stage .stage-bg::after,
   :root[data-theme='ashen'] .hero-sprite:has(> .sprite)::before,
   :root[data-theme='ashen'] .new-hero .bonfire::before {
     animation: none;
+  }
+
+  :root[data-theme='ashen'] .boss-plat,
+  :root[data-theme='ashen'] .hero-plat {
+    transition: none;
   }
 }
 
