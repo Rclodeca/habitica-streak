@@ -70,8 +70,11 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
 }
 
 /* Drawn at 390px wide; on narrower phones --u shrinks the art in proportion
-   while text and the blocks' insets keep their px. The split is where the
-   boss's and hero's tap areas meet, in a step that follows the diagonal. */
+   while text and the blocks' insets keep their px (the blocks narrow with the
+   art, so they never cover it). The split is where the boss's and hero's tap
+   areas meet, in a step that follows the diagonal; its left step rides the
+   top of the hero, so a boss block that wraps deeper on a narrow phone stays
+   on the boss's side. */
 .stage-inner {
   position: relative;
   width: min(100%, 430px);
@@ -80,7 +83,7 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
   container-type: inline-size;
   --u: min(1px, calc(100cqw / 390));
   --split-x: 50%;
-  --split-yl: 122px;
+  --split-yl: calc(300px - 178 * var(--u));
   --split-yr: 212px;
 }
 

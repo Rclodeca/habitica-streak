@@ -175,13 +175,14 @@ const statTiles = computed<StatTile[]>(() => {
   width: var(--boss-w);
 }
 
-/* Floats on the stage to the boss's left, over its own block of fog. */
+/* Floats on the stage to the boss's left, over its own block of fog; its
+   right edge keeps to the boss's art as that shrinks (196px at 390). */
 .boss-block {
   position: absolute;
   z-index: 4;
   top: 10px;
   left: 16px;
-  width: 196px;
+  width: calc(212 * var(--u) - 16px);
   display: flex;
   flex-direction: column;
   gap: 5px;
