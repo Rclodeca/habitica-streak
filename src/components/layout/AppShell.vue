@@ -69,15 +69,15 @@ const showHighScores = ref(false);
       <SkipDayButton v-if="isDev" />
       <PopupPreview v-if="isDev" />
       <div class="layout">
-        <aside class="side">
-          <FightStage />
-        </aside>
+        <FightStage />
         <main class="main">
-          <ProgressSummary />
+          <ProgressSummary class="progress" />
           <HabitList />
+        </main>
+        <aside class="side">
           <QuestSection />
           <ActivityLog />
-        </main>
+        </aside>
       </div>
     </template>
   </div>
@@ -119,35 +119,46 @@ const showHighScores = ref(false);
 
 .layout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 1.25rem;
   align-items: start;
 }
 
-.side {
-  position: sticky;
-  top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
+/* The fight runs across the page as a banner, then skills on the left and
+   quests and the log on the right. Nothing sticks: the banner scrolls away
+   and the drop-down bar takes over. */
+.layout > .fight-stage {
+  grid-column: 1 / -1;
 }
 
-.main {
+.main,
+.side {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
 }
 
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+/* Phones: one column, every section a row of the grid spaced like the rest.
+   The progress rings are desktop and tablet only. */
 @media (max-width: 820px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  /* The boss and hero panels become rows of the single-column grid, spaced
-     like every other section. */
+  .main,
   .side {
     display: contents;
+  }
+
+  .progress {
+    display: none;
   }
 }
 </style>

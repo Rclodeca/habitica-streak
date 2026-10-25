@@ -90,4 +90,18 @@ const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement
     margin-inline: calc(50% - 50vw);
   }
 }
+
+/* Desktop and tablet: a wide banner across the content, the same diagonal
+   stretched out with each fighter 7% in from its edge. The boss's tap area is
+   the rectangle from its block's left edge to the right, down to 212px. */
+@media (min-width: 821px) {
+  .stage-inner {
+    width: 100%;
+    height: 290px;
+    --u: 1px;
+    --split-x: calc(93% - 516px);
+    --split-yl: 0px;
+    --split-yr: 212px;
+  }
+}
 </style>

@@ -473,6 +473,26 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
+/* The banner's hero sits 7% in from the left, each class offset from the
+   warrior's spot as on phone. */
+@media (min-width: 821px) {
+  .hero-plat {
+    left: calc(7% - 19px);
+    width: 152px;
+  }
+
+  .hero-figure {
+    left: calc(7% + (var(--hero-x) - 23) * 1px);
+  }
+
+  .hero-block {
+    bottom: 18px;
+    right: auto;
+    left: calc(7% + 200px);
+    width: 250px;
+  }
+}
+
 /* One row only: clipStatLine hides whichever chips wrap past it. */
 .stat-summary {
   display: flex;

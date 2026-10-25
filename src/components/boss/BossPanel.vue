@@ -231,6 +231,29 @@ const statTiles = computed<StatTile[]>(() => {
   white-space: nowrap;
 }
 
+@media (min-width: 821px) {
+  .boss-panel {
+    --boss-w: 210px;
+  }
+
+  .boss-plat {
+    right: calc(7% + 4px);
+    top: 186px;
+    width: 206px;
+  }
+
+  .boss-figure {
+    right: 7%;
+  }
+
+  .boss-block {
+    top: 30px;
+    left: auto;
+    right: calc(7% + 236px);
+    width: 280px;
+  }
+}
+
 /* Wraps freely when the boss has reflect, lifesteal or wounds. */
 .stat-summary {
   display: flex;
