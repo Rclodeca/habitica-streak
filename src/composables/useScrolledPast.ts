@@ -1,5 +1,5 @@
 // True once `el` has scrolled up off the screen, behind a bar `cover()` px
-// tall pinned to its top edge — BossPanel drops its phone bar in then. Only
+// tall pinned to its top edge — FightStage drops its bar in then. Only
 // flips a flag (checked once a frame while scrolling); nothing here moves
 // with the scroll.
 

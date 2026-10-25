@@ -1,20 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import {
-  bossMissDamage,
-  damageReductionPct,
-  effectiveResistAfterPen,
-  effectiveStat,
-  heroClassFor,
-  itemBonusPercent,
-  PERSONALITY_NAME,
-} from '../../game-engine';
+import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
-import { useScrolledPast } from '../../composables/useScrolledPast';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
-import BossBar from './BossBar.vue';
 import { PERSONALITY_SPRITE } from './bossSprites';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
@@ -27,19 +17,10 @@ const characterStore = useCharacterStore();
 
 // While a kill plays out, the slain boss stays on the stage (at 0 HP, so the
 // killing blow's hit still shows) until the next one rises in its place.
-const { phase, displayedBoss, heldLevel } = useCelebration();
+const { phase, displayedBoss } = useCelebration();
 const boss = computed(() => displayedBoss.value ?? bossStore.boss);
 
 const { popups, isHit } = useDamagePopup(() => boss.value.health);
-
-// On phones the panel scrolls away with the page, and BossBar drops in once
-// it's gone, carrying the hero's HP and level too (the level held back like
-// the hero panel's until a level-up's beat plays).
-const hero = computed(() => characterStore.character);
-const heroLevel = computed(() => heldLevel.value ?? hero.value.level);
-const panel = ref<HTMLElement | null>(null);
-const bar = ref<InstanceType<typeof BossBar> | null>(null);
-const scrolledPast = useScrolledPast(panel, () => (bar.value?.$el as HTMLElement | undefined)?.offsetHeight ?? 0);
 
 // A condensed, always-visible emoji stat line (effective numbers only) sits
 // under the HP bar; the full stats live in a modal behind the same tap. See CharacterPanel.vue for the same pattern.
@@ -92,7 +73,7 @@ const statTiles = computed<StatTile[]>(() => {
 </script>
 
 <template>
-  <section ref="panel" class="panel boss-panel">
+  <section class="panel boss-panel">
     <button type="button" class="summary-row" @click="showDetails = true">
       <div class="stage-wrap">
         <div class="sprite-wrapper" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
@@ -126,22 +107,6 @@ const statTiles = computed<StatTile[]>(() => {
         </p>
       </div>
     </button>
-
-    <Teleport to="body">
-      <BossBar
-        ref="bar"
-        :sprite="PERSONALITY_SPRITE[boss.personality]"
-        :name="PERSONALITY_NAME[boss.personality]"
-        :current="boss.health"
-        :max="boss.maxHealth"
-        :hero-class="heroClassFor(hero)"
-        :hero-current="hero.currentHealth"
-        :hero-max="effectiveStat(hero, 'health')"
-        :hero-level="heroLevel"
-        :shown="scrolledPast"
-        :phase="phase"
-      />
-    </Teleport>
 
     <Modal v-model="showDetails" title="Boss" max-width="520px">
       <div class="hero">

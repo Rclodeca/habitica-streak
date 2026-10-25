@@ -3,9 +3,8 @@ import { computed, ref } from 'vue';
 import { ArrowLeft } from 'lucide-vue-next';
 import AppMenu from './AppMenu.vue';
 import NewHeroScreen from './NewHeroScreen.vue';
-import BossPanel from '../boss/BossPanel.vue';
-import CharacterPanel from '../character/CharacterPanel.vue';
 import PopupPreview from '../debug/PopupPreview.vue';
+import FightStage from '../fight/FightStage.vue';
 import SkipDayButton from '../debug/SkipDayButton.vue';
 import HabitList from '../habits/HabitList.vue';
 import HighScorePage from '../highscores/HighScorePage.vue';
@@ -29,7 +28,7 @@ const characterStore = useCharacterStore();
 
 const isDev = import.meta.env.DEV;
 
-// Follows the boss panel, which keeps a slain boss up until the next arrives.
+// Follows the fight stage, which keeps a slain boss up until the next arrives.
 const { displayedBoss } = useCelebration();
 const bossIndex = computed(() => (displayedBoss.value ?? bossStore.boss).index);
 
@@ -71,8 +70,7 @@ const showHighScores = ref(false);
       <PopupPreview v-if="isDev" />
       <div class="layout">
         <aside class="side">
-          <BossPanel />
-          <CharacterPanel />
+          <FightStage />
         </aside>
         <main class="main">
           <ProgressSummary />
