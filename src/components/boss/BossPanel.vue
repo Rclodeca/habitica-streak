@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
+import { usePress } from '../../composables/usePress';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import { PERSONALITY_SPRITE } from './bossSprites';
@@ -21,6 +22,7 @@ const { phase, displayedBoss } = useCelebration();
 const boss = computed(() => displayedBoss.value ?? bossStore.boss);
 
 const { popups, isHit } = useDamagePopup(() => boss.value.health);
+const { pressed, pressHandlers } = usePress();
 
 // A condensed, always-visible emoji stat line (effective numbers only) sits
 // under the HP bar; the full stats live in a modal behind the boss's half of
@@ -76,7 +78,7 @@ const statTiles = computed<StatTile[]>(() => {
 <template>
   <!-- The boss's half of the fight stage (FightStage): no box of its own, so
        each piece sits straight on the stage. -->
-  <div class="boss-panel">
+  <div class="boss-panel" :class="{ pressed }">
     <div class="boss-plat" aria-hidden="true" />
     <div class="boss-figure" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
       <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
@@ -108,7 +110,7 @@ const statTiles = computed<StatTile[]>(() => {
       <span class="slain-name">{{ PERSONALITY_NAME[boss.personality] }}</span>
     </div>
     <!-- The whole half is one button, clipped to its side of the stage's step. -->
-    <button type="button" class="tap tap-boss" aria-label="Boss details" @click="showDetails = true" />
+    <button type="button" class="tap tap-boss" aria-label="Boss details" v-on="pressHandlers" @click="showDetails = true" />
 
     <Modal v-model="showDetails" title="Boss" max-width="520px">
       <div class="hero">
@@ -156,6 +158,7 @@ const statTiles = computed<StatTile[]>(() => {
   height: 26px;
   border-radius: 50%;
   background: radial-gradient(ellipse at center, color-mix(in srgb, var(--text) 12%, transparent), transparent 72%);
+  transition: background 0.3s ease;
 }
 
 /* No z-index, so its hits and the plain sprite stack with the blocks. */
@@ -181,13 +184,29 @@ const statTiles = computed<StatTile[]>(() => {
     0 1px 2px #000;
 }
 
-/* Never cut: a long name wraps to a second line. */
+/* Never cut: a long name wraps to a second line, the chevron after its last
+   word. */
 .boss-name {
   margin: 0;
   font-size: 0.85rem;
   font-weight: 600;
   line-height: 1.2;
   color: var(--text-h);
+  transition: color 0.3s ease;
+}
+
+/* The tap cue: a small chevron after the name. */
+.boss-name::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 9px;
+  vertical-align: 1px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  color: var(--text);
 }
 
 .boss-block :deep(.health-bar) {
@@ -237,6 +256,10 @@ const statTiles = computed<StatTile[]>(() => {
   border-radius: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+.tap:focus-visible {
+  outline: none;
 }
 
 .tap-boss {
@@ -384,6 +407,36 @@ const statTiles = computed<StatTile[]>(() => {
 .boss-figure :deep(.sprite) {
   width: 100%;
   height: auto;
+  transition: filter 0.3s ease;
+}
+
+/* Held (or focused from the keyboard): the boss brightens, its platform and
+   name light up. On at once, so even a quick tap shows it, then fades. */
+.pressed .boss-figure :deep(.sprite),
+.boss-panel:has(.tap:focus-visible) .boss-figure :deep(.sprite) {
+  filter:
+    drop-shadow(2px 0 0 var(--rim))
+    drop-shadow(-2px 0 0 var(--rim))
+    drop-shadow(0 2px 0 var(--rim))
+    drop-shadow(0 -2px 0 var(--rim))
+    drop-shadow(0 0 12px color-mix(in srgb, var(--damage-color) 35%, transparent))
+    brightness(1.25);
+}
+
+.pressed .boss-plat,
+.boss-panel:has(.tap:focus-visible) .boss-plat {
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 30%, transparent), transparent 72%);
+}
+
+.pressed .boss-name,
+.boss-panel:has(.tap:focus-visible) .boss-name {
+  color: var(--accent);
+}
+
+.pressed .boss-plat,
+.pressed .boss-name,
+.pressed .boss-figure :deep(.sprite) {
+  transition-duration: 0s;
 }
 
 .hero-sprite :deep(.sprite) {
@@ -577,6 +630,12 @@ const statTiles = computed<StatTile[]>(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .boss-plat,
+  .boss-name,
+  .boss-figure :deep(.sprite) {
+    transition: none;
+  }
+
   .boss-figure.dying :deep(.sprite) {
     animation: none;
     opacity: 0;

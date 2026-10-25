@@ -24,6 +24,7 @@ import {
 import { TUNING } from '../../game-engine/constants/tuning';
 import { useCelebration } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
+import { usePress } from '../../composables/usePress';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
@@ -197,6 +198,7 @@ const equippedItems = computed(() => equippedSlots.value.flatMap((item) => (item
 const emptySlotCount = computed(() => slotCount.value - equippedItems.value.length);
 
 const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
+const { pressed, pressHandlers } = usePress();
 
 // The stat line keeps to one row at every width: whatever wraps past the
 // first is hidden whole (it's all in the details popup), so the hero's block
@@ -231,7 +233,7 @@ onBeforeUnmount(() => {
 
 <template>
   <!-- The hero's half of the fight stage (FightStage), facing the boss's. -->
-  <div class="character-panel" :class="{ leveling }">
+  <div class="character-panel" :class="{ leveling, pressed }">
     <div class="hero-plat" aria-hidden="true" />
     <div class="hero-figure" :class="{ hit: isHit, mirrored: DRAWN_FACING_LEFT[heroClass] }" :style="placement">
       <PlayerSprite :character="character" />
@@ -265,7 +267,7 @@ onBeforeUnmount(() => {
       </p>
     </div>
     <!-- The whole half is one button, clipped to its side of the stage's step. -->
-    <button type="button" class="tap tap-hero" :aria-label="`${heroName} details`" @click="showDetails = true" />
+    <button type="button" class="tap tap-hero" :aria-label="`${heroName} details`" v-on="pressHandlers" @click="showDetails = true" />
 
     <Modal v-model="showDetails" :title="heroName" max-width="520px">
       <div class="hero">
@@ -361,6 +363,7 @@ onBeforeUnmount(() => {
   height: 26px;
   border-radius: 50%;
   background: radial-gradient(ellipse at center, color-mix(in srgb, var(--text) 12%, transparent), transparent 72%);
+  transition: background 0.3s ease;
 }
 
 /* The whole hero, smaller than the boss and standing on its platform; the
@@ -377,6 +380,10 @@ onBeforeUnmount(() => {
 .hero-figure :deep(.hero) {
   width: 100%;
   height: auto;
+}
+
+.hero-figure :deep(.hero) {
+  transition: filter 0.3s ease;
 }
 
 /* `scale` composes with the hit shake's transform. */
@@ -414,6 +421,22 @@ onBeforeUnmount(() => {
   font-weight: 600;
   line-height: 1.2;
   color: var(--text-h);
+  transition: color 0.3s ease;
+}
+
+/* The tap cue: a small chevron after the level. */
+.name-line::after {
+  content: '';
+  flex-shrink: 0;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 9px;
+  vertical-align: 1px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  color: var(--text);
 }
 
 .hero-name {
@@ -475,6 +498,33 @@ onBeforeUnmount(() => {
   border-radius: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+.tap:focus-visible {
+  outline: none;
+}
+
+/* Held (or focused from the keyboard): the hero brightens, its platform and
+   name light up. On at once, so even a quick tap shows it, then fades. */
+.pressed .hero-figure :deep(.hero),
+.character-panel:has(.tap:focus-visible) .hero-figure :deep(.hero) {
+  filter: brightness(1.25);
+}
+
+.pressed .hero-plat,
+.character-panel:has(.tap:focus-visible) .hero-plat {
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 30%, transparent), transparent 72%);
+}
+
+.pressed .name-line,
+.character-panel:has(.tap:focus-visible) .name-line {
+  color: var(--accent);
+}
+
+.pressed .hero-plat,
+.pressed .name-line,
+.pressed .hero-figure :deep(.hero) {
+  transition-duration: 0s;
 }
 
 .tap-hero {
@@ -932,6 +982,12 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-plat,
+  .name-line,
+  .hero-figure :deep(.hero) {
+    transition: none;
+  }
+
   .level-ring,
   .leveling .level-number,
   .leveling .exp-bar {

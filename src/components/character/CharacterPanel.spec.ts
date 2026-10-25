@@ -46,6 +46,14 @@ describe('CharacterPanel', () => {
     expect(wrapper.findComponent(Modal).props('modelValue')).toBe(true);
   });
 
+  it('lights the hero while its tap area is held', async () => {
+    const wrapper = mount(CharacterPanel);
+    await wrapper.find('.tap-hero').trigger('pointerdown');
+    expect(wrapper.find('.character-panel').classes()).toContain('pressed');
+    await wrapper.find('.tap-hero').trigger('pointerup');
+    expect(wrapper.find('.character-panel').classes()).not.toContain('pressed');
+  });
+
   it('keeps the level outside the part of the name that gets cut', () => {
     useCharacterStore().character.name = 'Bartholomew Long';
     const wrapper = mount(CharacterPanel);

@@ -30,6 +30,14 @@ describe('BossPanel', () => {
     expect(wrapper.findComponent(Modal).props('modelValue')).toBe(true);
   });
 
+  it('lights the boss while its tap area is held', async () => {
+    const wrapper = mount(BossPanel);
+    await wrapper.find('.tap-boss').trigger('pointerdown');
+    expect(wrapper.find('.boss-panel').classes()).toContain('pressed');
+    await wrapper.find('.tap-boss').trigger('pointerup');
+    expect(wrapper.find('.boss-panel').classes()).not.toContain('pressed');
+  });
+
   it('shows the HP numbers under the HP bar', () => {
     const store = useBossStore();
     store.boss = { ...store.boss, health: 474.2, maxHealth: 620 };
