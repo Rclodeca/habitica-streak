@@ -123,4 +123,4 @@ Picked per run from the rolled starting stats (`heroClassFor` in `character.ts`)
 |---|---|
 | `player/warrior.png` | `starter-hero-warrior-sword-shield-plate-armor-idle-standing_20260217_212146.png` |
 | `player/cleric.png` | `starter-hero-cleric-holy-mace-armor-divine-cast-heal-aura_20260217_213000.png` |
-| `player/ranger.png` | `starter-hero-ranger-bow-cloak-nature-attack1-arrow-shot_20260217_212727.png` |
+| `player/ranger.png` | `starter-hero-ranger-bow-cloak-nature-hurt-taking-damage_20260217_212747.png` |
