@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — fight header (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Four ways to stage the fight at the top of the phone screen, each in a
+   390x844 frame with the skills list under it. Check a skill to see the hit
+   land while the list stays in view. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  --steel: #a8a092; --arcane: #8d9bd1; --crit: #d6a24f; --streak: #e0783a;
+  --bg: #070606;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), var(--bg); font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1760px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 14px; }
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; margin-bottom: 30px; }
+.pick { display: flex; align-items: center; gap: 6px; }
+.pick > span { font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); margin-right: 4px; }
+.pick button { min-height: 44px; padding: 0 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+.pick button.on { color: var(--gold-hi); border-color: var(--gold); background: rgba(200,169,110,.08); }
+
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px 34px; }
+.opt { width: 390px; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; min-height: 60px; }
+
+/* The phone: a real 390x844 screen, safe area included. */
+.phone { position: relative; width: 390px; height: 844px; overflow-y: auto; overflow-x: hidden; border-radius: 44px; border: 1px solid #2a2620; box-shadow: 0 0 0 6px #110f0d, 0 30px 60px -20px #000;
+  background: radial-gradient(ellipse 80% 30% at 50% 0, rgba(200,169,110,.08), transparent 70%), var(--bg); scrollbar-width: none; }
+.phone::-webkit-scrollbar { display: none; }
+.status { height: 47px; display: flex; align-items: center; padding: 6px 30px 0; font: 600 14px/1 -apple-system, system-ui, sans-serif; color: #ddd; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 4px 16px 12px; }
+.topbar span { font-size: 12px; color: var(--gold-hi); }
+.menu { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line-mid); color: var(--gold); }
+
+/* Icons + stat rows */
+.ico { display: inline-flex; color: var(--k); }
+.stats { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 14px; font-weight: 700; color: var(--text-h); font-variant-numeric: lining-nums; line-height: 1.2; }
+.stats span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.stats.sm { font-size: 13px; gap: 2px 8px; }
+body[data-stats="boss"] .hero-stats, body[data-stats="pct"] .hero-stats { display: none; }
+
+/* Bars: HP with a pale trail that catches up after the hit. */
+.bar { position: relative; height: 8px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.32); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.bar i { position: absolute; top: 0; bottom: 0; left: 0; }
+.bar.rtl i { left: auto; right: 0; }
+.bar .ghost { background: rgba(240,222,190,.75); transition: width .55s ease-in .45s; }
+.bar .fill { background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 10px rgba(195,58,46,.35); transition: width .15s ease-out; }
+.bar.thick { height: 11px; }
+.bar.thin { height: 6px; }
+.exp { height: 3px; margin-top: 3px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.2); }
+.exp i { display: block; height: 100%; width: 56%; background: linear-gradient(90deg, #8a6a2c, #e6c77f); box-shadow: 0 0 8px rgba(230,199,127,.4); }
+.num { font: 600 11px/1 'Cinzel', serif; letter-spacing: .12em; color: var(--text); }
+.nm { font-size: 12px; color: var(--text-h); letter-spacing: .16em; text-shadow: 0 0 12px rgba(0,0,0,.9); white-space: nowrap; }
+.nm b { color: var(--gold); font-weight: 600; }
+
+/* The stage: fog, embers, ground fog. Frameless by default, fading into the page. */
+.fight { position: relative; margin-bottom: 20px; }
+.stage { position: relative; height: var(--h); overflow: hidden; }
+.bg { position: absolute; inset: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 18% 40%, rgba(240,150,80,.9), transparent),
+    radial-gradient(1.5px 1.5px at 40% 22%, rgba(240,150,80,.6), transparent),
+    radial-gradient(1px 1px at 72% 35%, rgba(240,150,80,.8), transparent),
+    radial-gradient(1.5px 1.5px at 88% 18%, rgba(240,150,80,.5), transparent),
+    radial-gradient(1px 1px at 56% 12%, rgba(240,150,80,.6), transparent),
+    radial-gradient(ellipse 45% 55% at 68% 55%, rgba(215,205,185,.15), transparent 72%),
+    radial-gradient(ellipse 90% 30% at 50% 100%, rgba(224,120,58,.18), transparent 70%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent); mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent); }
+.bg::after { content: ''; position: absolute; left: -10%; right: -10%; bottom: 0; height: 60px; background: radial-gradient(ellipse 50% 70% at 50% 100%, rgba(205,195,175,.2), transparent 70%); filter: blur(5px); }
+.divider { position: relative; height: 1px; margin: 6px 16px 18px; background: linear-gradient(90deg, transparent, var(--line-mid) 20%, var(--line-mid) 80%, transparent); }
+.divider::after { content: ''; position: absolute; left: 50%; top: -4px; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg); border: 1px solid var(--gold); background: var(--bg); }
+
+/* Frame toggle: the old hairline panel around the whole fight. */
+body[data-frame="on"] .fight { margin: 0 16px 18px; border: 1px solid var(--line); background: linear-gradient(180deg, rgb(27,24,21), rgb(14,13,11)); }
+body[data-frame="on"] .fight::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75; z-index: 9;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 12px no-repeat; }
+body[data-frame="on"] .bg { -webkit-mask-image: none; mask-image: none; }
+body[data-frame="on"] .divider { display: none; }
+
+/* Sprites */
+.who { position: absolute; width: var(--w); z-index: 2; }
+.who img { display: block; width: 100%; image-rendering: pixelated; filter: drop-shadow(0 0 14px rgba(0,0,0,.9)) brightness(1.06); }
+.who.lunge { animation: lunge .32s ease-out; }
+.who.hurt img { animation: hurt .4s ease-out; }
+@keyframes lunge { 40% { transform: translate(var(--lx, 0), var(--ly, 0)) scale(1.04); } }
+@keyframes hurt { 0% { filter: brightness(3) saturate(0); transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(4px); filter: brightness(1.6); } 75% { transform: translateX(-2px); } }
+.pop { position: absolute; left: 50%; top: 22%; z-index: 8; pointer-events: none; transform: translateX(-50%); font: 600 24px/1 'Cinzel', serif; color: var(--c); text-shadow: 0 0 10px rgba(0,0,0,.95), 0 2px 0 #000; animation: pop 1s ease-out forwards; white-space: nowrap; }
+.pop.crit { font-size: 32px; }
+@keyframes pop { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.6); } 15% { opacity: 1; transform: translate(-50%, -4px) scale(1.15); } 30% { transform: translate(-50%, -8px) scale(1); } 100% { opacity: 0; transform: translate(-50%, -40px); } }
+.slash { position: absolute; z-index: 7; left: 50%; top: 40%; width: 120%; height: 3px; pointer-events: none; transform: translate(-50%, -50%) rotate(-28deg); background: linear-gradient(90deg, transparent, var(--c), #fff, var(--c), transparent); box-shadow: 0 0 14px var(--c); animation: slash .35s ease-out forwards; }
+@keyframes slash { 0% { opacity: 0; clip-path: inset(0 100% 0 0); } 30% { opacity: 1; } 100% { opacity: 0; clip-path: inset(0 0 0 0); } }
+.plat { position: absolute; height: 26px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(205,195,175,.16), rgba(205,195,175,.04) 60%, transparent 72%); border-top: 1px solid rgba(200,169,110,.14); }
+
+/* ---------- A: Duel ---------- */
+.L-duel .duelbars { position: relative; z-index: 3; display: grid; grid-template-columns: 41% 30px 1fr; gap: 0 6px; align-items: start; padding: 4px 16px 0; }
+.L-duel .ds { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.L-duel .boss-s { align-items: stretch; text-align: right; }
+.L-duel .boss-s .stats { justify-content: flex-end; }
+.L-duel .row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.L-duel .vs { margin-top: 13px; justify-self: center; width: 24px; height: 24px; display: grid; place-items: center; transform: rotate(45deg); border: 1px solid var(--gold); background: #0d0b09; box-shadow: 0 0 12px rgba(200,169,110,.25); }
+.L-duel .vs span { transform: rotate(-45deg); font: 600 10px/1 'Cinzel', serif; color: var(--gold-hi); }
+.L-duel .stage { margin-top: -14px; }
+
+/* ---------- B: Diagonal ---------- */
+.card { position: absolute; z-index: 4; width: 200px; padding: 9px 11px 10px; display: flex; flex-direction: column; gap: 5px; background: linear-gradient(180deg, rgba(27,24,21,.92), rgba(14,13,11,.92)); border: 1px solid var(--line); }
+.card::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 9px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 9px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 9px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 9px no-repeat; }
+.card .row { display: flex; justify-content: space-between; align-items: baseline; }
+body[data-frame="on"] .L-diag .card { border-color: rgba(200,169,110,.14); }
+
+/* ---------- C: Side view ---------- */
+.L-side .feet { position: absolute; z-index: 4; bottom: 12px; display: flex; flex-direction: column; gap: 3px; }
+.L-side .info { display: grid; grid-template-columns: 38% 1fr; gap: 0 14px; padding: 6px 16px 0; }
+.L-side .info > div { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.L-side .info .row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+
+/* ---------- D: Over the shoulder (Souls) ---------- */
+.L-souls .hud { position: absolute; z-index: 4; top: 10px; left: 16px; width: 168px; display: flex; flex-direction: column; gap: 4px; }
+.L-souls .hud .row { display: flex; justify-content: space-between; align-items: baseline; }
+.L-souls .who.hero img { filter: drop-shadow(0 0 18px rgba(0,0,0,.95)) brightness(.78) contrast(1.05); }
+.L-souls .who.hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg) 4%, transparent 38%); pointer-events: none; }
+.L-souls .bossline { padding: 2px 16px 0; display: flex; flex-direction: column; gap: 5px; }
+.L-souls .bossline .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.L-souls .bossline .nm { font-size: 13px; }
+
+/* ---------- Skills ---------- */
+.skills { position: relative; margin: 0 16px 24px; padding: 14px 14px 6px; background: linear-gradient(180deg, rgb(27,24,21), rgb(14,13,11)); border: 1px solid var(--line); }
+.skills::before { content: ''; position: absolute; left: 50%; top: -5px; width: 9px; height: 9px; transform: translateX(-50%) rotate(45deg); border: 1px solid var(--gold); background: var(--bg); }
+.sk-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.sk-head h3 { font-size: 13px; color: var(--text-h); }
+.newbtn { min-height: 38px; padding: 0 12px; font-size: 10px; color: var(--gold-hi); background: transparent; border: 1px solid var(--line-mid); }
+.skills ul { list-style: none; margin: 0; padding: 0; }
+.skill { position: relative; display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 4px 0 8px; border-top: 1px solid rgba(200,169,110,.09); }
+.skill.bad::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: var(--dmg-physical); box-shadow: 0 0 8px var(--dmg-physical); }
+.dia { appearance: none; flex: none; width: 17px; height: 17px; margin: 0 4px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0,0,0,.4); cursor: pointer; }
+.dia:checked { background: radial-gradient(circle, #fff3d0 0, #e6c77f 40%, #8a6a2c 85%); box-shadow: 0 0 12px rgba(230,199,127,.6); }
+.skill.bad .dia { border-color: var(--dmg-physical); }
+.skill.bad .dia:checked { background: radial-gradient(circle, #ffd6c8 0, #d0604f 38%, #7c1d15 82%); box-shadow: 0 0 12px 1px rgba(200,64,47,.55); }
+.skill .name { flex: 1; font-weight: 600; font-size: 17px; color: var(--text-h); }
+.skill .dia:checked ~ .name { color: var(--text); text-decoration: line-through; text-decoration-color: rgba(200,169,110,.45); }
+.skill .streak { display: inline-flex; align-items: center; gap: 2px; font: 600 11px/1 'Cinzel', serif; color: var(--streak); }
+.skill .dmg { min-width: 34px; text-align: right; font: 600 13px/1 'Cinzel', serif; color: var(--c); }
+.grp { font: 600 9px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text); padding: 12px 8px 8px; }
+</style>
+</head>
+<body data-stats="both" data-frame="off">
+<div class="page">
+  <h1 class="engraved">The fight</h1>
+  <p>Check a skill to see the hit land. The bad one makes the boss hit back.</p>
+  <div class="controls">
+    <div class="pick" data-key="stats"><span>Stats</span><button data-v="both" class="on">Both</button><button data-v="boss">Boss only</button><button data-v="pct">Boss, defense as %</button></div>
+    <div class="pick" data-key="frame"><span>Frame</span><button data-v="off" class="on">None</button><button data-v="on">Hairline</button></div>
+    <div class="pick"><button id="reset">Reset</button></div>
+  </div>
+  <div class="grid" id="root"></div>
+</div>
+
+<script>
+const S = '../../public/sprites/';
+const BOSS_IMG = `${S}bosses/warded3x.png`;
+const HERO_IMG = `${S}player/warrior.png`;
+const BOSS_MAX = 620, HERO_MAX = 1232;
+
+const P = {
+  sword: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  shieldHalf: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 22V2"/>',
+  crosshair: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+  heart: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  zap: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  menu: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
+};
+const ic = (name, k, size = 13) => `<i class="ico" style="--k:${k}"><svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${P[name]}</svg></i>`;
+const chip = (name, k, v) => `<span>${ic(name, k)}${v}</span>`;
+
+const statsHtml = {
+  hero: () => [chip('sword', 'var(--dmg-physical)', 572), chip('wand', 'var(--dmg-magic)', 553), chip('heart', 'var(--dmg-healing)', 262), chip('zap', 'var(--dmg-true)', 499), chip('crosshair', 'var(--crit)', '5%')].join(''),
+  boss: (mode) => [
+    chip('sword', 'var(--dmg-physical)', 63), chip('wand', 'var(--dmg-magic)', 56),
+    mode === 'pct' ? chip('shield', 'var(--steel)', '−32%') : chip('shield', 'var(--steel)', 188),
+    mode === 'pct' ? chip('shieldHalf', 'var(--arcane)', '−28%') : chip('shieldHalf', 'var(--arcane)', 121),
+    chip('crosshair', 'var(--crit)', '2%'),
+  ].join(''),
+};
+
+const bar = (who, cls = '') => `<div class="bar ${cls}" data-r="${who}-hp"><i class="ghost"></i><i class="fill"></i></div>`;
+const sprite = (who, style) => `<div class="who ${who}" data-r="${who}" style="${style}"><img src="${who === 'boss' ? BOSS_IMG : HERO_IMG}" alt="" /></div>`;
+const heroName = `<span class="nm engraved">Ash <b>4</b></span>`;
+const bossName = `<span class="nm engraved">Frost Sentinel</span>`;
+const hNum = `<span class="num" data-r="hero-num"></span>`;
+const bNum = `<span class="num" data-r="boss-num"></span>`;
+
+const LAYOUTS = [
+  {
+    id: 'A', title: 'Duel', note: 'Fighting-game bars across the top, you on the left, the boss on the right with the wider bar. The two face off on one stage underneath.',
+    html: () => `<div class="fight L-duel">
+      <div class="duelbars">
+        <div class="ds"><div class="row">${heroName}${hNum}</div>${bar('hero')}<div class="exp"><i></i></div><div class="stats sm hero-stats"></div></div>
+        <div class="vs"><span>1</span></div>
+        <div class="ds boss-s"><div class="row" style="justify-content:flex-end">${bossName}</div>${bar('boss', 'rtl thick')}${bNum}<div class="stats sm boss-stats"></div></div>
+      </div>
+      <div class="stage" style="--h:206px"><div class="bg"></div>
+        ${sprite('hero', 'left:26px;bottom:8px;--w:112px;--lx:16px')}
+        ${sprite('boss', 'right:6px;bottom:0;--w:200px;--lx:-16px')}
+      </div></div>`,
+  },
+  {
+    id: 'B', title: 'Diagonal', note: 'Boss up and back with its card top left, you in front with yours bottom right. The hairline frame moves onto the two cards instead of the whole fight.',
+    html: () => `<div class="fight L-diag"><div class="stage" style="--h:304px"><div class="bg"></div>
+        <div class="card" style="top:10px;left:16px"><div class="row">${bossName}</div>${bar('boss')}<div class="row"><span></span>${bNum}</div><div class="stats sm boss-stats"></div></div>
+        <div class="plat" style="right:16px;top:168px;width:186px"></div>
+        ${sprite('boss', 'right:10px;top:0;--w:190px;--lx:-12px;--ly:12px')}
+        <div class="plat" style="left:6px;bottom:6px;width:150px"></div>
+        ${sprite('hero', 'left:22px;bottom:12px;--w:124px;--lx:14px;--ly:-12px')}
+        <div class="card" style="bottom:14px;right:16px;width:186px"><div class="row">${heroName}${hNum}</div>${bar('hero', 'thin')}<div class="exp"><i></i></div><div class="stats sm hero-stats"></div></div>
+      </div></div>`,
+  },
+  {
+    id: 'C', title: 'Side view', note: 'One wide stage, both fighters on the same ground with their HP at their feet. Names and stats sit under each, so what you compare lines up with who it belongs to.',
+    html: () => `<div class="fight L-side"><div class="stage" style="--h:226px"><div class="bg"></div>
+        ${sprite('hero', 'left:30px;bottom:34px;--w:108px;--lx:16px')}
+        ${sprite('boss', 'right:14px;bottom:26px;--w:196px;--lx:-16px')}
+        <div class="feet" style="left:16px;width:136px">${bar('hero', 'thin')}<div class="exp"><i></i></div></div>
+        <div class="feet" style="right:16px;width:196px">${bar('boss', 'thick')}</div>
+      </div>
+      <div class="info">
+        <div><div class="row">${heroName}${hNum}</div><div class="stats sm hero-stats"></div></div>
+        <div><div class="row">${bossName}${bNum}</div><div class="stats sm boss-stats"></div></div>
+      </div></div>`,
+  },
+  {
+    id: 'D', title: 'Over the shoulder', note: 'Souls-style. You in the foreground, cropped and backlit, with a small HUD top left. The boss gets the long bar along the bottom of the stage, right above the skills.',
+    html: () => `<div class="fight L-souls"><div class="stage" style="--h:236px"><div class="bg"></div>
+        <div class="hud"><div class="row">${heroName}${hNum}</div>${bar('hero', 'thin')}<div class="exp"><i></i></div><div class="stats sm hero-stats" style="margin-top:3px"></div></div>
+        ${sprite('boss', 'right:34px;bottom:14px;--w:190px;--lx:-10px;--ly:10px')}
+        ${sprite('hero', 'left:-4px;bottom:-58px;--w:184px;--lx:14px;--ly:-10px')}
+      </div>
+      <div class="bossline"><div class="row">${bossName}${bNum}</div>${bar('boss', 'thick')}<div class="stats sm boss-stats"></div></div></div>`,
+  },
+];
+
+const SKILLS = [
+  { g: 'Daily' },
+  { name: 'Morning run', type: 'physical', dmg: 96, streak: 6 },
+  { name: 'Read 20 pages', type: 'magic', dmg: 74, streak: 3 },
+  { name: 'Deep work block', type: 'magic', dmg: 138, crit: true },
+  { name: 'Meditate', type: 'healing', dmg: 41, streak: 12 },
+  { name: 'Cold shower', type: 'true', dmg: 52 },
+  { name: 'Doomscrolling', type: 'physical', dmg: 63, bad: true },
+  { g: 'Weekly' },
+  { name: 'Meal prep', type: 'physical', dmg: 210, streak: 2 },
+  { name: 'Call family', type: 'healing', dmg: 88 },
+];
+const color = (t) => `var(--dmg-${t})`;
+const skillsHtml = () => `<section class="skills"><div class="sk-head"><h3 class="engraved">Skills</h3><button class="newbtn engraved">+ New habit</button></div><ul>${SKILLS.map((s, i) => s.g
+  ? `<li class="grp">${s.g}</li>`
+  : `<li class="skill${s.bad ? ' bad' : ''}"><input type="checkbox" class="dia" data-i="${i}" aria-label="Complete ${s.name}" /><span class="name">${s.name}</span>${s.streak ? `<span class="streak">${ic('flame', 'var(--streak)', 11)}${s.streak}</span>` : ''}<span class="dmg" style="--c:${s.bad ? 'var(--dmg-physical)' : color(s.type)}">${s.bad ? '−' : s.type === 'healing' ? '+' : ''}${s.dmg}</span></li>`).join('')}</ul></section>`;
+
+const root = document.getElementById('root');
+root.innerHTML = LAYOUTS.map((l) => `<div class="opt"><h2 class="engraved"><b>${l.id}</b>${l.title}</h2><p>${l.note}</p>
+  <div class="phone" data-phone><div class="status">9:41</div><div class="topbar"><span class="engraved">Boss #1</span><span class="menu">${ic('menu', 'var(--gold)', 18)}</span></div>
+  ${l.html()}${skillsHtml()}</div></div>`).join('');
+
+function renderStats() {
+  const mode = document.body.dataset.stats;
+  root.querySelectorAll('.hero-stats').forEach((el) => { el.innerHTML = statsHtml.hero(); });
+  root.querySelectorAll('.boss-stats').forEach((el) => { el.innerHTML = statsHtml.boss(mode); });
+}
+
+const START = { boss: 474, hero: 980 };
+function setHp(phone, who, hp, instant) {
+  const max = who === 'boss' ? BOSS_MAX : HERO_MAX;
+  phone.state[who] = hp;
+  const pct = `${(hp / max) * 100}%`;
+  const barEl = phone.querySelector(`[data-r="${who}-hp"]`);
+  const fill = barEl.querySelector('.fill'), ghost = barEl.querySelector('.ghost');
+  if (instant) { fill.style.transition = ghost.style.transition = 'none'; requestAnimationFrame(() => { fill.style.transition = ghost.style.transition = ''; }); }
+  fill.style.width = pct;
+  // Healing grows the trail first so the gain reads as a gain.
+  ghost.style.width = pct;
+  phone.querySelector(`[data-r="${who}-num"]`).textContent = `${Math.round(hp)} / ${max}`;
+}
+function resetPhone(phone) {
+  phone.state = { ...START };
+  setHp(phone, 'boss', START.boss, true);
+  setHp(phone, 'hero', START.hero, true);
+  phone.querySelectorAll('.dia').forEach((d) => { d.checked = false; });
+}
+
+function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function popAt(el, text, c, crit) {
+  const p = document.createElement('span');
+  p.className = `pop${crit ? ' crit' : ''}`; p.style.setProperty('--c', c); p.textContent = text;
+  el.appendChild(p); setTimeout(() => p.remove(), 1000);
+}
+function slashAt(el, c) {
+  const s = document.createElement('span');
+  s.className = 'slash'; s.style.setProperty('--c', c);
+  el.appendChild(s); setTimeout(() => s.remove(), 360);
+}
+
+function strike(phone, skill) {
+  const boss = phone.querySelector('[data-r="boss"]'), hero = phone.querySelector('[data-r="hero"]');
+  if (skill.bad) {
+    replay(boss, 'lunge');
+    setTimeout(() => { replay(hero, 'hurt'); slashAt(hero, '#c33a2e'); popAt(hero, `−${skill.dmg}`, 'var(--dmg-physical)'); setHp(phone, 'hero', Math.max(0, phone.state.hero - skill.dmg)); }, 130);
+    return;
+  }
+  if (skill.type === 'healing') {
+    popAt(hero, `+${skill.dmg}`, 'var(--dmg-healing)');
+    setHp(phone, 'hero', Math.min(HERO_MAX, phone.state.hero + skill.dmg));
+    return;
+  }
+  replay(hero, 'lunge');
+  setTimeout(() => {
+    replay(boss, 'hurt'); slashAt(boss, color(skill.type));
+    const dmg = skill.crit ? skill.dmg * 2 : skill.dmg;
+    popAt(boss, skill.crit ? `${dmg}!` : `${dmg}`, color(skill.type), skill.crit);
+    let hp = phone.state.boss - dmg;
+    setHp(phone, 'boss', Math.max(0, hp));
+    if (hp <= 0) setTimeout(() => setHp(phone, 'boss', BOSS_MAX, true), 1300);
+  }, 130);
+}
+
+root.querySelectorAll('[data-phone]').forEach((phone) => {
+  resetPhone(phone);
+  phone.addEventListener('change', (e) => {
+    if (e.target.matches('.dia') && e.target.checked) strike(phone, SKILLS[+e.target.dataset.i]);
+  });
+});
+
+document.querySelectorAll('.pick[data-key]').forEach((pick) => pick.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  pick.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+  document.body.dataset[pick.dataset.key] = b.dataset.v;
+  renderStats();
+}));
+document.getElementById('reset').addEventListener('click', () => root.querySelectorAll('[data-phone]').forEach(resetPhone));
+renderStats();
+</script>
+</body>
+</html>
