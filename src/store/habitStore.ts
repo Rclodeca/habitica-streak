@@ -63,6 +63,21 @@ export const useHabitStore = defineStore('habit', {
       this.updateHabit(updated);
     },
 
+    /**
+     * Temporary repair: clears the "done" check on every daily completed in
+     * `dayKey`, leaving streaks and every other field alone. Returns how many
+     * it cleared.
+     */
+    uncheckDailiesCompletedIn(dayKey: string): number {
+      let cleared = 0;
+      this.habits = this.habits.map((habit) => {
+        if (habit.period !== 'daily' || habit.lastCompletedPeriodKey !== dayKey) return habit;
+        cleared++;
+        return { ...habit, lastCompletedPeriodKey: null };
+      });
+      return cleared;
+    },
+
     /** Replaces the whole habit list wholesale, e.g. after player-death resolution. */
     setHabits(habits: Habit[]) {
       this.habits = habits;

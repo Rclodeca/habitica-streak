@@ -36,3 +36,36 @@ describe('habitStore.setHabitDays', () => {
     expect('days' in store.habits[0]).toBe(false);
   });
 });
+
+describe('habitStore.uncheckDailiesCompletedIn', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it("clears only the daily checks for that day and leaves everything else as it was", () => {
+    const store = useHabitStore();
+    const done = store.addHabit('Gym', 'daily', 'hard', false, createRng(1));
+    const earlier = store.addHabit('Read', 'daily', 'easy', false, createRng(2));
+    const weekly = store.addHabit('Hike', 'weekly', 'hard', false, createRng(3));
+    store.updateHabit({ ...done, streakCount: 6, lastCompletedPeriodKey: '2026-10-25', lastCheckedPeriodKey: '2026-10-25' });
+    store.updateHabit({ ...earlier, streakCount: 2, lastCompletedPeriodKey: '2026-10-24', lastCheckedPeriodKey: '2026-10-24' });
+    store.updateHabit({ ...weekly, streakCount: 4, lastCompletedPeriodKey: '2026-10-25', lastCheckedPeriodKey: '2026-10-25' });
+    const [doneBefore, earlierBefore, weeklyBefore] = store.habits;
+
+    const cleared = store.uncheckDailiesCompletedIn('2026-10-25');
+
+    expect(cleared).toBe(1);
+    expect(store.habits[0]).toEqual({ ...doneBefore, lastCompletedPeriodKey: null });
+    expect(store.habits[1]).toEqual(earlierBefore);
+    expect(store.habits[2]).toEqual(weeklyBefore);
+  });
+
+  it('does nothing when no daily was checked that day', () => {
+    const store = useHabitStore();
+    store.addHabit('Gym', 'daily', 'hard', false, createRng(1));
+    const before = store.habits;
+
+    expect(store.uncheckDailiesCompletedIn('2026-10-25')).toBe(0);
+    expect(store.habits).toEqual(before);
+  });
+});
