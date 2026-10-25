@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
-import { useDamagePopup } from '../../composables/useDamagePopup';
+import { useHitFeed } from '../../composables/useHitFeed';
 import { usePress } from '../../composables/usePress';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
@@ -21,7 +21,9 @@ const characterStore = useCharacterStore();
 const { phase, displayedBoss } = useCelebration();
 const boss = computed(() => displayedBoss.value ?? bossStore.boss);
 
-const { popups, isHit } = useDamagePopup(() => boss.value.health);
+// Held back while a blow is on its way, so the bar drops as it lands (FightStage plays the hits).
+const { shownHp } = useHitFeed();
+const shownHealth = computed(() => shownHp(boss.value.index, boss.value.health, boss.value.maxHealth));
 
 // The name's last word carries the tap cue's chevron, so a name that only
 // just fits its line never leaves the chevron alone on the next.
@@ -88,21 +90,18 @@ const statTiles = computed<StatTile[]>(() => {
     <div class="boss-plat" aria-hidden="true" />
     <div
       class="boss-figure"
-      :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving', mirrored: BOSS_FACING_RIGHT[boss.personality] }"
+      :class="{ dying: phase === 'dying', arriving: phase === 'arriving', mirrored: BOSS_FACING_RIGHT[boss.personality] }"
     >
       <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
       <template v-if="phase === 'dying'">
         <span class="death-flash" aria-hidden="true" />
         <span class="death-sparks" aria-hidden="true" />
       </template>
-      <div class="hit-layer" aria-hidden="true">
-        <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
-      </div>
     </div>
     <div class="boss-block">
       <h2 class="boss-name">{{ nameHead }}<span class="name-tail">{{ nameTail }}</span></h2>
-      <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
-      <span class="hp-numbers">{{ Math.round(boss.health) }} / {{ Math.round(boss.maxHealth) }}</span>
+      <HealthBar :current="shownHealth" :max="boss.maxHealth" variant="boss" />
+      <span class="hp-numbers">{{ Math.round(shownHealth) }} / {{ Math.round(boss.maxHealth) }}</span>
       <p class="stat-summary">
         <span><StatIcon name="physical" /> {{ physicalAttack.toFixed(0) }}</span>
         <span><StatIcon name="magic" /> {{ magicAttack.toFixed(0) }}</span>
@@ -170,7 +169,7 @@ const statTiles = computed<StatTile[]>(() => {
   transition: background 0.3s ease;
 }
 
-/* No z-index, so its hits and the plain sprite stack with the blocks. */
+/* No z-index, so its kill effects and the plain sprite stack with the blocks. */
 .boss-figure {
   position: absolute;
   top: 0;
@@ -490,38 +489,6 @@ const statTiles = computed<StatTile[]>(() => {
   scale: -1 1;
 }
 
-.boss-figure.hit :deep(.sprite) {
-  animation: sprite-shake 0.3s ease;
-}
-
-/* Over the blocks, under the tap areas. */
-.hit-layer {
-  position: absolute;
-  z-index: 5;
-  inset: 0;
-  pointer-events: none;
-}
-
-/* Big, outlined and held before it fades, so it reads over the sprite's busy
-   pixels. Centered on the boss. */
-.damage-popup {
-  position: absolute;
-  top: 35%;
-  left: 50%;
-  translate: -50% 0;
-  color: var(--hp-color);
-  font-weight: 800;
-  font-size: 1.25rem;
-  line-height: 1;
-  white-space: nowrap;
-  text-shadow:
-    0 0 2px #000,
-    0 0 2px #000,
-    0 1px 3px rgba(0, 0, 0, 0.8);
-  pointer-events: none;
-  animation: damage-float-fade 1.2s ease-out forwards;
-}
-
 /* ---------- A kill: flash, fall into the fog, "Slain" ---------- */
 
 .boss-figure.dying :deep(.sprite) {
@@ -691,48 +658,6 @@ const statTiles = computed<StatTile[]>(() => {
   .death-sparks,
   .slain-stamp {
     animation: none;
-  }
-}
-
-@keyframes sprite-shake {
-  10%,
-  90% {
-    transform: translateX(-2px);
-  }
-  20%,
-  80% {
-    transform: translateX(3px);
-  }
-  30%,
-  50%,
-  70% {
-    transform: translateX(-4px);
-  }
-  40%,
-  60% {
-    transform: translateX(4px);
-  }
-}
-
-/* Pops in, holds, then rises as it fades. */
-@keyframes damage-float-fade {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.7);
-  }
-  12% {
-    opacity: 1;
-    transform: translateY(0) scale(1.15);
-  }
-  24% {
-    transform: translateY(-4px) scale(1);
-  }
-  65% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-36px) scale(1);
   }
 }
 </style>

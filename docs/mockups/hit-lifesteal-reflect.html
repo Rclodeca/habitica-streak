@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — lifesteal and reflect on hits (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Option A from hit-types.html (each damage type arrives its own way), plus
+   what plays after the hit lands when lifesteal or reflect is in play. Two
+   variants of those follow-ups, side by side. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  /* Rosier than physical red, so a stolen "+N" doesn't read as a hit. */
+  --lifesteal: #d9566a; --reflect: #c4bcac;
+  --bg: #070606;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { --k: 1; margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), var(--bg); font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+body[data-k="slow"] { --k: 4; }
+h1, h2, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1320px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 14px; }
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; margin-bottom: 30px; }
+.pick { display: flex; align-items: center; gap: 6px; }
+.pick > span { font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); margin-right: 4px; }
+.pick button, .acts button { min-height: 44px; padding: 0 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+.pick button.on { color: var(--gold-hi); border-color: var(--gold); background: rgba(200,169,110,.08); }
+
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 44px 34px; }
+.opt { width: 390px; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 10px; min-height: 40px; }
+.legend { list-style: none; margin: 12px 0 0; padding: 0; font-size: 15px; color: var(--text); }
+.legend li { padding: 3px 0; border-top: 1px solid rgba(200,169,110,.09); }
+.legend b { display: inline-block; width: 92px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--c); }
+
+.acts { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.acts button { flex: 1; padding: 0 6px; color: var(--c, var(--text)); border-color: color-mix(in srgb, var(--c, var(--gold)) 40%, transparent); }
+.acts button:active { background: rgba(200,169,110,.1); }
+.acts > span { width: 44px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); }
+.acts .all { --c: var(--gold-hi); }
+
+/* Bars: HP with a pale trail that catches up after the hit. */
+.bar { position: relative; height: 8px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.32); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.bar i { position: absolute; top: 0; bottom: 0; left: 0; }
+.bar .ghost { background: rgba(240,222,190,.75); transition: width calc(.55s * var(--k)) ease-in calc(.45s * var(--k)); }
+.bar .fill { background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 10px rgba(195,58,46,.35); transition: width calc(.15s * var(--k)) ease-out; }
+.bar.thick { height: 11px; }
+.bar.thin { height: 6px; }
+.exp { height: 3px; margin-top: 3px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.2); }
+.exp i { display: block; height: 100%; width: 56%; background: linear-gradient(90deg, #8a6a2c, #e6c77f); }
+.num { font: 600 11px/1 'Cinzel', serif; letter-spacing: .12em; color: var(--text); text-shadow: 0 0 8px #000; }
+.nm { font-size: 12px; color: var(--text-h); letter-spacing: .16em; text-shadow: 0 0 12px rgba(0,0,0,.9); white-space: nowrap; }
+.nm b { color: var(--gold); font-weight: 600; }
+.blk { position: absolute; z-index: 4; display: flex; flex-direction: column; gap: 5px; }
+.blk .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+
+/* The stage, as approved: fog, embers, frameless. */
+.stage { position: relative; height: 300px; overflow: hidden; }
+.bg { position: absolute; inset: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 18% 40%, rgba(240,150,80,.9), transparent),
+    radial-gradient(1.5px 1.5px at 40% 22%, rgba(240,150,80,.6), transparent),
+    radial-gradient(1px 1px at 72% 35%, rgba(240,150,80,.8), transparent),
+    radial-gradient(1.5px 1.5px at 88% 18%, rgba(240,150,80,.5), transparent),
+    radial-gradient(ellipse 45% 55% at 68% 55%, rgba(215,205,185,.15), transparent 72%),
+    radial-gradient(ellipse 90% 30% at 50% 100%, rgba(224,120,58,.18), transparent 70%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent); mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent); }
+.plat { position: absolute; height: 26px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(205,195,175,.16), rgba(205,195,175,.04) 60%, transparent 72%); border-top: 1px solid rgba(200,169,110,.14); }
+.who { position: absolute; width: var(--w); z-index: 2; }
+.who img { display: block; width: 100%; image-rendering: pixelated; filter: drop-shadow(0 0 14px rgba(0,0,0,.9)) brightness(1.06); }
+.who.hero img { filter: drop-shadow(0 0 18px rgba(0,0,0,.95)) brightness(.8) contrast(1.05); }
+.who.mf img { scale: -1 1; }
+
+/* ---------- Effect pieces (all transform/opacity, no blur) ---------- */
+.fx { position: absolute; z-index: 7; display: block; pointer-events: none; }
+.streak { background: linear-gradient(90deg, transparent, var(--c), #fff, var(--c), transparent); box-shadow: 0 0 12px var(--c); }
+.spark { border-radius: 2px; background: linear-gradient(#fff, var(--c)); }
+.orb { border-radius: 50%; background: radial-gradient(circle, #fff 0 25%, var(--c) 55%, transparent 72%); box-shadow: 0 0 16px 3px rgba(171,141,216,.55); }
+.ring { border-radius: 50%; border: 2px solid var(--c); box-shadow: 0 0 10px var(--c), inset 0 0 10px var(--c); }
+.mote { border-radius: 50%; background: #f0ffe6; box-shadow: 0 0 8px 2px var(--c); }
+.beam { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c, #f1e9d6) 55%, transparent) 30%, #fff 50%, color-mix(in srgb, var(--c, #f1e9d6) 55%, transparent) 70%, transparent); box-shadow: 0 0 26px color-mix(in srgb, var(--c, #f1e9d6) 55%, transparent); }
+.wash { inset: 0; background: radial-gradient(ellipse 55% 75% at var(--x) var(--y), #fff, transparent 75%); }
+/* Lifesteal: blood drops, and the thread variant's line and pulses. */
+.drop { border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: radial-gradient(circle at 40% 35%, #ffd0d6 0 15%, var(--lifesteal) 45%, #7d1b2a 80%); box-shadow: 0 0 8px 1px rgba(217,86,106,.7); }
+.thread { height: 2px; transform-origin: 0 50%; background: linear-gradient(90deg, rgba(217,86,106,.15), var(--lifesteal) 50%, rgba(217,86,106,.15)); box-shadow: 0 0 8px rgba(217,86,106,.6); }
+.pulse { border-radius: 50%; background: radial-gradient(circle, #fff 0 25%, var(--dmg-healing) 55%, transparent 72%); }
+/* Reflect: a steel ward pane, and the shard it throws back. */
+.pane { border: 1px solid rgba(240,236,226,.85); background: linear-gradient(115deg, rgba(196,188,172,.08), rgba(240,236,226,.55) 45%, rgba(196,188,172,.1) 55%, rgba(196,188,172,.25)); box-shadow: 0 0 14px rgba(196,188,172,.6); }
+.shard { background: linear-gradient(135deg, #fff, var(--reflect) 60%, #6f685c); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.pop { position: absolute; z-index: 8; pointer-events: none; font: 600 24px/1 'Cinzel', serif; color: var(--c); text-shadow: 0 0 10px rgba(0,0,0,.95), 0 2px 0 #000; white-space: nowrap; }
+.pop.crit { font-size: 32px; }
+.pop.sm { font-size: 19px; }
+</style>
+</head>
+<body data-k="1" data-crit="off" data-ls="on" data-rf="on">
+<div class="page">
+  <h1 class="engraved">Lifesteal and reflect</h1>
+  <p>Option A hits, then what follows. Turn either off to see the other alone.</p>
+  <div class="controls">
+    <div class="pick" data-key="ls"><span>Lifesteal</span><button data-v="on" class="on">On</button><button data-v="off">Off</button></div>
+    <div class="pick" data-key="rf"><span>Reflect</span><button data-v="on" class="on">On</button><button data-v="off">Off</button></div>
+    <div class="pick" data-key="crit"><span>Crit</span><button data-v="off" class="on">Off</button><button data-v="on">On</button></div>
+    <div class="pick" data-key="k"><span>Speed</span><button data-v="1" class="on">Normal</button><button data-v="slow">Slow</button></div>
+  </div>
+  <div class="grid" id="root"></div>
+</div>
+
+<script>
+const S = '../../public/sprites/';
+const BOSS_MAX = 620, HERO_MAX = 1232;
+const AMOUNT = { physical: 96, magic: 74, true: 52, 'boss-physical': 63, 'boss-magic': 56 };
+// Mock percentages: your lifesteal item, the boss's reflect, the boss's lifesteal.
+const LS = .15, RF = .1, BOSS_LS = .15;
+const COLOR = { physical: 'var(--dmg-physical)', magic: 'var(--dmg-magic)', true: 'var(--dmg-true)', heal: 'var(--dmg-healing)' };
+const VIOLET = ['brightness(1.7) sepia(1) hue-rotate(215deg) saturate(2.6)', 'brightness(1) sepia(0) hue-rotate(360deg) saturate(1)'];
+const WHITE = ['brightness(3) saturate(0)', 'brightness(1) saturate(1)'];
+const HOT = ['brightness(4) saturate(0) contrast(1.6)', 'brightness(1) saturate(1) contrast(1)'];
+const CRIMSON = 'rgba(217,86,106,.95)';
+
+// ---------- Timing: everything scales with Slow ----------
+const K = () => (document.body.dataset.k === 'slow' ? 4 : 1);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms * K()));
+// Temporary pieces remove themselves; `keep` animates a sprite in place.
+function anim(el, frames, ms, o = {}) {
+  const a = el.animate(frames, { duration: ms * K(), delay: (o.delay || 0) * K(), easing: o.ease || 'ease-out', fill: o.keep ? 'none' : 'both' });
+  if (!o.keep) a.onfinish = () => el.remove();
+  return a;
+}
+function fx(stage, cls, x, y, w, h, c) {
+  const e = document.createElement('i');
+  e.className = `fx ${cls}`;
+  Object.assign(e.style, { left: `${x - w / 2}px`, top: `${y - h / 2}px`, width: `${w}px`, height: `${h}px` });
+  if (c) e.style.setProperty('--c', c);
+  stage.appendChild(e);
+  return e;
+}
+function fighter(stage, who) {
+  const el = stage.querySelector(`[data-r="${who}"]`), s = stage.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const x = r.left - s.left, y = r.top - s.top;
+  return { el, img: el.querySelector('img'), x, y, w: r.width, h: r.height, cx: x + r.width / 2, cy: y + r.height * .5, feet: y + r.height * .93 };
+}
+const toward = (a, t) => { const dx = t.cx - a.cx, dy = t.cy - a.cy, L = Math.hypot(dx, dy); return { ux: dx / L, uy: dy / L, deg: Math.atan2(dy, dx) * 180 / Math.PI, len: L }; };
+// Keyframes along a lifted curve from (sx,sy) to (ex,ey).
+function arcFrames(sx, sy, ex, ey, lift, extra = () => ({})) {
+  return Array.from({ length: 9 }, (_, i) => {
+    const p = i / 8, mx = (sx + ex) / 2, my = (sy + ey) / 2 - lift;
+    const x = (1 - p) ** 2 * sx + 2 * (1 - p) * p * mx + p * p * ex, y = (1 - p) ** 2 * sy + 2 * (1 - p) * p * my + p * p * ey;
+    return { transform: `translate(${x - sx}px, ${y - sy}px)`, offset: p, ...extra(p) };
+  });
+}
+
+// ---------- Shared moves ----------
+function lunge(a, t, d = 14) {
+  const { ux, uy } = toward(a, t);
+  anim(a.el, [{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${ux * d}px, ${uy * d}px) scale(1.04)`, offset: .4 }, { transform: 'translate(0,0) scale(1)' }], 320, { keep: true });
+}
+// The target's flash, shake and (on a crit) a hit-stop plus a stage jolt.
+function impact(o, t, { tint = WHITE, amp = 5 } = {}) {
+  const hold = o.crit ? 90 : 0, ms = 400 + hold;
+  anim(t.el, [{ filter: tint[0] }, ...(hold ? [{ filter: tint[0], offset: hold / ms }] : []), { filter: tint[1] }], ms, { keep: true });
+  if (amp) {
+    const a = o.crit ? amp * 1.6 : amp;
+    anim(t.img, [0, -a, .8 * a, -.4 * a, 0].map((v) => ({ transform: `translateX(${v}px)` })), 400, { keep: true, delay: hold });
+  }
+  if (o.crit) anim(o.stage, [0, -3, 3, -2, 0].map((v) => ({ transform: `translate(${v}px, ${-v / 2}px)` })), 300, { keep: true, delay: hold });
+}
+function glow(f, c, ms) {
+  anim(f.el, [{ filter: 'drop-shadow(0 0 0px transparent) brightness(1)' }, { filter: `drop-shadow(0 0 14px ${c}) brightness(1.35)`, offset: .4 }, { filter: 'drop-shadow(0 0 0px transparent) brightness(1)' }], ms, { keep: true });
+}
+function wobble(t) {
+  anim(t.el, [{ transform: 'scale(1) skewX(0)' }, { transform: 'scale(1.05, .96) skewX(-3deg)', offset: .25 }, { transform: 'scale(.97, 1.03) skewX(2deg)', offset: .55 }, { transform: 'scale(1) skewX(0)' }], 460, { keep: true });
+}
+function nudge(t, dx, dy, ms = 360, delay = 0) {
+  anim(t.el, [{ transform: 'translate(0,0)' }, { transform: `translate(${dx}px, ${dy}px)`, offset: .3 }, { transform: 'translate(0,0)' }], ms, { keep: true, delay });
+}
+function streak(o, x, y, w, h, deg, c, ms = 320, delay = 0) {
+  const s = fx(o.stage, 'streak', x, y, w, h, c);
+  s.style.transform = `rotate(${deg}deg)`;
+  anim(s, [{ opacity: 0, clipPath: 'inset(0 100% 0 0)' }, { opacity: 1, offset: .3 }, { opacity: 0, clipPath: 'inset(0 0 0 0)' }], ms, { delay });
+}
+function sparks(o, x, y, n, c, dist, len = 10) {
+  for (let i = 0; i < n; i++) {
+    const s = fx(o.stage, 'spark', x, y, 3, len, c);
+    const ang = (360 / n) * i + Math.random() * 30, d = dist * (.6 + Math.random() * .6);
+    anim(s, [{ opacity: 1, transform: `rotate(${ang}deg) translateY(0) scaleY(1.2)` }, { opacity: 0, transform: `rotate(${ang}deg) translateY(${-d}px) scaleY(.3)` }], 380, { ease: 'cubic-bezier(.2,.7,.3,1)' });
+  }
+}
+function ring(o, x, y, w, h, c, ms = 450, delay = 0) {
+  const r = fx(o.stage, 'ring', x, y, w, h, c);
+  anim(r, [{ opacity: 1, transform: 'scale(.15)' }, { opacity: 0, transform: 'scale(1)' }], ms, { delay });
+}
+function beam(o, t, c, w = 32, ms = 440) {
+  const bottom = t.y + t.h * .82, b = fx(o.stage, 'beam', t.cx, bottom / 2, w, bottom, c);
+  anim(b, [{ opacity: 0, transform: 'scaleX(.15)', clipPath: 'inset(0 0 100% 0)' }, { opacity: 1, transform: 'scaleX(1)', clipPath: 'inset(0 0 0 0)', offset: .22 }, { opacity: 0, transform: 'scaleX(.05)', clipPath: 'inset(0 0 0 0)' }], ms);
+}
+function flashStage(o, cls, peak, ms, vars = {}) {
+  const e = document.createElement('i');
+  e.className = `fx ${cls}`;
+  Object.entries(vars).forEach(([k, v]) => e.style.setProperty(k, v));
+  o.stage.appendChild(e);
+  anim(e, [{ opacity: peak }, { opacity: 0 }], ms);
+}
+function popup(o, f, text, c, { dx = 0, dy = 0, cls = o.crit ? 'crit' : '' } = {}) {
+  const p = document.createElement('span');
+  p.className = `pop ${cls}`; p.style.setProperty('--c', c); p.textContent = text;
+  Object.assign(p.style, { left: `${f.cx + dx}px`, top: `${f.y + f.h * .16 + dy}px` });
+  o.stage.appendChild(p);
+  anim(p, [{ opacity: 0, transform: 'translate(-50%, 6px) scale(.6)' }, { opacity: 1, transform: 'translate(-50%, -4px) scale(1.15)', offset: .15 }, { opacity: 1, transform: 'translate(-50%, -8px) scale(1)', offset: .3 }, { opacity: 0, transform: 'translate(-50%, -40px) scale(1)' }], 1000);
+}
+
+// ---------- Option A hits (unchanged from hit-types.html) ----------
+const A = {
+  physical: async (o) => {
+    const { a, t } = o;
+    lunge(a, t, 22);
+    await wait(130);
+    const y = t.cy - t.h * .05;
+    streak(o, t.cx, y, t.w * 1.05, 4, -32, o.c, 300);
+    streak(o, t.cx, y, t.w * 1.05, 4, 32, o.c, 300, 80);
+    sparks(o, t.cx, y, 8, o.c, 46);
+    impact(o, t, { amp: 6 });
+    o.land();
+  },
+  magic: async (o) => {
+    const { a, t } = o;
+    glow(a, 'rgba(171,141,216,.95)', 520);
+    await wait(180);
+    const sx = a.cx + (t.cx - a.cx) * .2, sy = a.cy + (t.cy - a.cy) * .2, flight = 300;
+    [0, 1, 2].forEach((i) => {
+      const b = fx(o.stage, 'orb', sx, sy, 18 - i * 5, 18 - i * 5, o.c), op = 1 - i * .3;
+      anim(b, [{ opacity: op, transform: 'translate(0,0)' }, { opacity: op, transform: `translate(${t.cx - sx}px, ${t.cy - sy}px)` }], flight, { delay: i * 35, ease: 'cubic-bezier(.5,0,.9,.6)' });
+    });
+    await wait(flight);
+    ring(o, t.cx, t.cy, t.w * .9, t.w * .9, o.c, 460);
+    ring(o, t.cx, t.cy, t.w * .5, t.w * .5, o.c, 460, 90);
+    sparks(o, t.cx, t.cy, 6, o.c, 34, 4);
+    impact(o, t, { tint: VIOLET, amp: 0 });
+    wobble(t);
+    o.land();
+  },
+  true: async (o) => {
+    const { a, t } = o;
+    glow(a, 'rgba(241,233,214,.9)', 360);
+    await wait(150);
+    beam(o, t);
+    await wait(90);
+    flashStage(o, 'wash', .35, 240, { '--x': `${t.cx}px`, '--y': `${t.cy}px` });
+    impact(o, t, { tint: HOT, amp: 0 });
+    nudge(t, 0, 5, 380);
+    ring(o, t.cx, t.feet, t.w * 1.2, 26, o.c, 500);
+    o.land();
+  },
+};
+
+// ---------- The two follow-up variants ----------
+// steal(o, from, to): blood leaves `from` and reaches `to`, then calls o.healed().
+// reflect(o): the boss turns part of your blow back on you, then calls o.reflected().
+const V1 = {
+  steal: async (o, from, to, onArrive) => {
+    const sx = from.cx, sy = from.cy - from.h * .05, ex = to.cx, ey = to.cy, flight = 480;
+    for (let i = 0; i < 4; i++) {
+      const d = fx(o.stage, 'drop', sx + (i - 1.5) * 8, sy + (i % 2) * 6, 7, 9);
+      anim(d, arcFrames(sx + (i - 1.5) * 8, sy + (i % 2) * 6, ex, ey, 46 + i * 10, (p) => ({ opacity: p > .9 ? 0 : 1 })), flight, { delay: i * 50, ease: 'ease-in-out' });
+    }
+    await wait(flight + 100);
+    glow(to, CRIMSON, 520);
+    onArrive();
+  },
+  reflect: async (o) => {
+    const { boss, hero } = o, { ux, uy, deg } = toward(boss, hero);
+    // A ward pane flashes on the boss's side facing you.
+    const px = boss.cx + ux * boss.w * .3, py = boss.cy + uy * boss.w * .3;
+    const pane = fx(o.stage, 'pane', px, py, 16, 64);
+    pane.style.rotate = `${deg}deg`;
+    anim(pane, [{ opacity: 0, transform: 'scale(.3, .2)' }, { opacity: 1, transform: 'scale(1)', offset: .25 }, { opacity: 0, transform: 'scale(1.1)' }], 420);
+    await wait(90);
+    const sh = fx(o.stage, 'shard', px, py, 11, 11), flight = 220;
+    anim(sh, [{ transform: 'translate(0,0) rotate(0)' }, { transform: `translate(${hero.cx - px}px, ${hero.cy - py}px) rotate(360deg)` }], flight, { ease: 'ease-in' });
+    await wait(flight);
+    sparks(o, hero.cx, hero.cy, 5, 'var(--reflect)', 26, 6);
+    impact({ ...o, crit: false }, hero, { amp: 3 });
+    o.reflected();
+  },
+};
+const V2 = {
+  steal: async (o, from, to, onArrive) => {
+    const sx = from.cx, sy = from.cy, ex = to.cx, ey = to.cy, { deg, len } = toward(from, to), ms = 620;
+    const th = fx(o.stage, 'thread', sx + len / 2, sy, len, 2);
+    Object.assign(th.style, { left: `${sx}px`, transform: `rotate(${deg}deg)` });
+    anim(th, [{ opacity: 0, clipPath: 'inset(0 100% 0 0)' }, { opacity: 1, clipPath: 'inset(0 0 0 0)', offset: .25 }, { opacity: 1, offset: .75 }, { opacity: 0, clipPath: 'inset(0 0 0 100%)' }], ms);
+    for (let i = 0; i < 3; i++) {
+      const p = fx(o.stage, 'pulse', sx, sy, 9, 9);
+      anim(p, [{ opacity: 0, transform: 'translate(0,0)' }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .85 }, { opacity: 0, transform: `translate(${ex - sx}px, ${ey - sy}px)` }], 360, { delay: 120 + i * 80, ease: 'ease-in' });
+    }
+    await wait(480);
+    glow(to, 'rgba(146,191,136,.95)', 520);
+    onArrive();
+  },
+  // Your own blow comes back as a smaller, steel copy of itself.
+  reflect: async (o) => {
+    const { boss, hero, type } = o, steel = 'var(--reflect)';
+    ring(o, boss.cx, boss.cy, boss.w * 1.05, boss.w * 1.05, steel, 420);
+    await wait(200);
+    if (type === 'physical') {
+      streak(o, hero.cx, hero.cy, hero.w * .75, 3, -32, steel, 260);
+      streak(o, hero.cx, hero.cy, hero.w * .75, 3, 32, steel, 260, 60);
+    } else if (type === 'magic') {
+      ring(o, hero.cx, hero.cy, hero.w * .6, hero.w * .6, steel, 400);
+    } else {
+      beam(o, hero, steel, 18, 340);
+      await wait(70);
+    }
+    impact({ ...o, crit: false }, hero, { amp: 3 });
+    o.reflected();
+  },
+};
+
+const OPTIONS = [
+  { id: '1', title: 'Carried back', v: V1, note: 'Blood drops arc back to you. The boss throws up a steel pane and a shard flies back.',
+    legend: [['lifesteal', 'Lifesteal', 'Drops arc from the wound to you'], ['reflect', 'Reflect', 'Steel pane flashes, shard flies back'], ['lifesteal', 'Boss lifesteal', 'Drops arc from you to the boss']] },
+  { id: '2', title: 'Thread and echo', v: V2, note: 'A red thread draws life along it. Reflect sends a steel copy of your own blow back.',
+    legend: [['lifesteal', 'Lifesteal', 'Thread from the boss, pulses to you'], ['reflect', 'Reflect', 'Steel ring, then your hit, smaller, on you'], ['lifesteal', 'Boss lifesteal', 'Thread from you, pulses to the boss']] },
+];
+
+// ---------- Stage, HP, buttons ----------
+const bar = (who, cls) => `<div class="bar ${cls}" data-r="${who}-hp"><i class="ghost"></i><i class="fill"></i></div>`;
+const stageHtml = () => `<div class="stage"><div class="bg"></div>
+  <div class="blk" style="top:10px;left:16px;width:196px"><div class="row"><span class="nm engraved" style="font-size:13px">Frost Sentinel</span></div>${bar('boss', 'thick')}<div class="row"><span></span><span class="num" data-r="boss-num"></span></div></div>
+  <div class="plat" style="right:16px;top:168px;width:186px"></div>
+  <div class="who boss" data-r="boss" style="right:10px;top:0;--w:190px"><img src="${S}bosses/warded3x.png" alt="" /></div>
+  <div class="plat" style="left:4px;bottom:4px;width:152px"></div>
+  <div class="who hero mf" data-r="hero" style="left:23px;bottom:8px;--w:160px"><img src="${S}player/warrior.png" alt="" /></div>
+  <div class="blk" style="bottom:14px;right:16px;width:176px"><div class="row"><span class="nm engraved">Ash <b>4</b></span><span class="num" data-r="hero-num"></span></div>${bar('hero', 'thin')}<div class="exp"><i></i></div></div>
+</div>`;
+const btn = (k, label, c) => `<button data-k="${k}" style="--c:${c}">${label}</button>`;
+
+const root = document.getElementById('root');
+root.innerHTML = OPTIONS.map((opt, i) => `<div class="opt" data-o="${i}"><h2 class="engraved"><b>${opt.id}</b>${opt.title}</h2><p>${opt.note}</p>
+  ${stageHtml()}
+  <div class="acts">${btn('physical', 'Physical', COLOR.physical)}${btn('magic', 'Magic', COLOR.magic)}${btn('true', 'True', COLOR.true)}</div>
+  <div class="acts"><span>Boss</span>${btn('boss-physical', 'Physical', COLOR.physical)}${btn('boss-magic', 'Magic', COLOR.magic)}<button data-k="all" class="all">Play all</button></div>
+  <ul class="legend">${opt.legend.map(([c, k, v]) => `<li style="--c:var(--${c})"><b>${k}</b>${v}</li>`).join('')}</ul></div>`).join('');
+
+function setHp(card, who, hp, instant) {
+  const max = who === 'boss' ? BOSS_MAX : HERO_MAX;
+  card.hp[who] = Math.max(0, Math.min(max, hp));
+  const b = card.querySelector(`[data-r="${who}-hp"]`), fill = b.querySelector('.fill'), ghost = b.querySelector('.ghost');
+  if (instant) { fill.style.transition = ghost.style.transition = 'none'; requestAnimationFrame(() => { fill.style.transition = ghost.style.transition = ''; }); }
+  fill.style.width = ghost.style.width = `${(card.hp[who] / max) * 100}%`;
+  card.querySelector(`[data-r="${who}-num"]`).textContent = `${Math.round(card.hp[who])} / ${max}`;
+}
+
+async function strike(card, kind) {
+  const opt = OPTIONS[+card.dataset.o], stage = card.querySelector('.stage');
+  const hero = fighter(stage, 'hero'), boss = fighter(stage, 'boss');
+  const fromBoss = kind.startsWith('boss-'), type = fromBoss ? kind.slice(5) : kind;
+  const crit = document.body.dataset.crit === 'on', lsOn = document.body.dataset.ls === 'on', rfOn = document.body.dataset.rf === 'on';
+  const amount = crit ? AMOUNT[kind] * 2 : AMOUNT[kind];
+  const o = { stage, crit, type, hero, boss, a: fromBoss ? boss : hero, t: fromBoss ? hero : boss,
+    // The boss's physical cut on the hero stays the red from today's mock.
+    c: fromBoss && type === 'physical' ? '#c33a2e' : COLOR[type] };
+  o.land = () => {
+    if (fromBoss) {
+      popup(o, hero, `−${amount}`, COLOR[type]);
+      setHp(card, 'hero', card.hp.hero - amount);
+      if (card.hp.hero < 250) setTimeout(() => setHp(card, 'hero', HERO_MAX, true), 2000 * K());
+      return;
+    }
+    popup(o, boss, crit ? `${amount}!` : `${amount}`, COLOR[type]);
+    setHp(card, 'boss', card.hp.boss - amount);
+    if (card.hp.boss <= 0) setTimeout(() => setHp(card, 'boss', BOSS_MAX, true), 2000 * K());
+  };
+  await A[type](o);
+
+  if (fromBoss) {
+    if (!lsOn) return;
+    const healed = Math.round(amount * BOSS_LS);
+    await wait(120);
+    opt.v.steal(o, hero, boss, () => { popup(o, boss, `+${healed}`, 'var(--dmg-healing)', { cls: 'sm', dx: 30 }); setHp(card, 'boss', card.hp.boss + healed); });
+    return;
+  }
+  // Both on: the reflect comes back first, the drops land just after, and
+  // their numbers sit either side of your head so they don't stack.
+  if (rfOn) {
+    const back = Math.round(amount * RF);
+    o.reflected = () => { popup(o, hero, `−${back}`, 'var(--reflect)', { cls: 'sm', dx: -26 }); setHp(card, 'hero', card.hp.hero - back); };
+    opt.v.reflect(o);
+  }
+  if (lsOn) {
+    const healed = Math.round(amount * LS);
+    await wait(rfOn ? 240 : 100);
+    opt.v.steal(o, boss, hero, () => { popup(o, hero, `+${healed}`, 'var(--dmg-healing)', { cls: 'sm', dx: 30, dy: 10 }); setHp(card, 'hero', card.hp.hero + healed); });
+  }
+}
+async function playAll(card) {
+  for (const k of ['physical', 'magic', 'true', 'boss-physical', 'boss-magic']) { strike(card, k); await wait(1700); }
+}
+
+root.querySelectorAll('.opt').forEach((card) => {
+  card.hp = {};
+  setHp(card, 'boss', 474, true);
+  setHp(card, 'hero', 980, true);
+  card.addEventListener('click', (e) => {
+    const b = e.target.closest('.acts button'); if (!b) return;
+    if (b.dataset.k === 'all') playAll(card); else strike(card, b.dataset.k);
+  });
+});
+document.querySelectorAll('.pick[data-key]').forEach((pick) => pick.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  pick.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+  document.body.dataset[pick.dataset.key] = b.dataset.v;
+}));
+</script>
+</body>
+</html>

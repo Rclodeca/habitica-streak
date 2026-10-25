@@ -5,10 +5,12 @@ import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PERSONALITY_NAME } from '../../game-engine';
+import { holdHp, playHit } from '../../composables/useHitFeed';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import BossBar from '../boss/BossBar.vue';
 import FightStage from './FightStage.vue';
+import { IMPACT_MS } from './hitFx';
 
 enableAutoUnmount(afterEach);
 
@@ -75,5 +77,26 @@ describe('FightStage', () => {
     expect(bar.props('name')).toBe(PERSONALITY_NAME[boss.personality]);
     expect(bar.props('heroLevel')).toBe(useCharacterStore().character.level);
     expect(bar.props('shown')).toBe(false);
+  });
+
+  it('plays hits while it is up, and stops when it goes', () => {
+    const hit = { kind: 'strike', by: 'hero', type: 'magic', amount: 74, crit: false, hp: -74, bossIndex: useBossStore().boss.index } as const;
+    const wrapper = mountStage();
+    expect(wrapper.find('.stage-inner .fx-layer').exists()).toBe(true);
+    expect(playHit(hit)).toBe(IMPACT_MS.magic);
+    wrapper.unmount();
+    expect(playHit(hit)).toBe(0);
+  });
+
+  it('feeds the drop-down bar the HP as shown, held back while a blow is on its way', async () => {
+    const boss = useBossStore().boss;
+    const hero = useCharacterStore().character;
+    const wrapper = mountStage();
+    holdHp(boss.index, -40);
+    holdHp('hero', -25);
+    await nextTick();
+    const bar = wrapper.findComponent(BossBar);
+    expect(bar.props('current')).toBe(Math.min(boss.maxHealth, boss.health + 40));
+    expect(bar.props('heroCurrent')).toBe(Math.min(bar.props('heroMax'), hero.currentHealth + 25));
   });
 });

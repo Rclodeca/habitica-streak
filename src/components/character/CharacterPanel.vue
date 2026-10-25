@@ -23,7 +23,7 @@ import {
 } from '../../game-engine';
 import { TUNING } from '../../game-engine/constants/tuning';
 import { useCelebration } from '../../composables/useCelebration';
-import { useDamagePopup } from '../../composables/useDamagePopup';
+import { useHitFeed } from '../../composables/useHitFeed';
 import { usePress } from '../../composables/usePress';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
@@ -197,7 +197,9 @@ const newHabitTiles = computed(() => [
 const equippedItems = computed(() => equippedSlots.value.flatMap((item) => (item ? [item] : [])));
 const emptySlotCount = computed(() => slotCount.value - equippedItems.value.length);
 
-const { popups, isHit } = useDamagePopup(() => characterStore.character.currentHealth);
+// Held back while a blow is on its way, so the bar moves as it lands (FightStage plays the hits).
+const { shownHp } = useHitFeed();
+const shownHealth = computed(() => shownHp('hero', character.value.currentHealth, maxHealth.value));
 const { pressed, pressHandlers } = usePress();
 
 // The stat line keeps to one row at every width: whatever wraps past the
@@ -235,9 +237,8 @@ onBeforeUnmount(() => {
   <!-- The hero's half of the fight stage (FightStage), facing the boss's. -->
   <div class="character-panel" :class="{ leveling, pressed }">
     <div class="hero-plat" aria-hidden="true" />
-    <div class="hero-figure" :class="{ hit: isHit, mirrored: DRAWN_FACING_LEFT[heroClass] }" :style="placement">
+    <div class="hero-figure" :class="{ mirrored: DRAWN_FACING_LEFT[heroClass] }" :style="placement">
       <PlayerSprite :character="character" />
-      <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
       <span v-if="leveling" class="level-ring" aria-hidden="true" />
     </div>
     <div class="hero-block">
@@ -246,8 +247,8 @@ onBeforeUnmount(() => {
         <span class="level-number">{{ displayLevel }}</span>
         <span v-if="leveling" class="level-up-popup" role="status">Level up</span>
       </h2>
-      <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
-      <span class="hp-numbers">{{ Math.round(character.currentHealth) }} / {{ Math.round(maxHealth) }}</span>
+      <HealthBar :current="shownHealth" :max="maxHealth" variant="player" />
+      <span class="hp-numbers">{{ Math.round(shownHealth) }} / {{ Math.round(maxHealth) }}</span>
       <!-- Keyed by level so the bar snaps empty on a level-up instead of draining back. -->
       <ExpBar :key="displayLevel" :current="displayExp" :max="expNeeded" />
       <p ref="statLine" class="stat-summary">
@@ -368,7 +369,7 @@ onBeforeUnmount(() => {
 
 /* The whole hero, smaller than the boss and standing on its platform; the
    per-class --hero-* numbers come from HERO_PLACEMENT. No z-index, so its
-   hits stack with the blocks. */
+   level ring stacks with the blocks. */
 .hero-figure {
   position: absolute;
   left: calc(var(--hero-x) * var(--u));
@@ -389,10 +390,6 @@ onBeforeUnmount(() => {
 /* `scale` composes with the hit shake's transform. */
 .hero-figure.mirrored :deep(.hero) {
   scale: -1 1;
-}
-
-.hero-figure.hit :deep(.player-sprite) {
-  animation: sprite-shake 0.3s ease;
 }
 
 /* Floats on the stage to the hero's right. Its left edge sits at the mock's
@@ -903,26 +900,6 @@ onBeforeUnmount(() => {
   color: var(--text);
 }
 
-/* Over the blocks, under the tap areas. Outlined like the boss's, so it reads
-   over the sprite's busy pixels, and rising from about head height. */
-.damage-popup {
-  position: absolute;
-  z-index: 5;
-  top: 18%;
-  left: 50%;
-  color: var(--hp-color);
-  font-weight: 800;
-  font-size: 1.1rem;
-  line-height: 1;
-  white-space: nowrap;
-  text-shadow:
-    0 0 2px #000,
-    0 0 2px #000,
-    0 1px 3px rgba(0, 0, 0, 0.8);
-  pointer-events: none;
-  animation: damage-float-fade 0.9s ease-out forwards;
-}
-
 /* ---------- A level-up: ring, "Level up", the number ticks over ---------- */
 
 .level-ring {
@@ -1028,37 +1005,6 @@ onBeforeUnmount(() => {
     animation: none;
     opacity: 1;
     transform: translateY(-50%);
-  }
-}
-
-@keyframes sprite-shake {
-  10%,
-  90% {
-    transform: translateX(-2px);
-  }
-  20%,
-  80% {
-    transform: translateX(3px);
-  }
-  30%,
-  50%,
-  70% {
-    transform: translateX(-4px);
-  }
-  40%,
-  60% {
-    transform: translateX(4px);
-  }
-}
-
-@keyframes damage-float-fade {
-  0% {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -30px);
   }
 }
 </style>

@@ -67,6 +67,7 @@ import { useQuestStore } from '../store/questStore';
 import { useCelebration } from './useCelebration';
 import { useDeathScreen } from './useDeathScreen';
 import { useFallenHero } from './useFallenHero';
+import { playHit } from './useHitFeed';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
 
@@ -153,6 +154,7 @@ export function useCombatActions() {
 
     const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.period);
     const healthBefore = characterStore.character.currentHealth;
+    const bossBefore = bossStore.boss;
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
     // Always the daily key (never the habit's own period key) — Wounds
     // duration always runs in days, even for a weekly habit. See
@@ -169,6 +171,33 @@ export function useCombatActions() {
     characterStore.setCharacter(result.character);
     bossStore.setBoss(result.boss);
     habitStore.updateHabit(updatedHabit);
+
+    // The blow, sent to the stage; a kill's fall waits until it lands.
+    const healthAfter = result.character.currentHealth;
+    const bossHpChange = result.boss.health - bossBefore.health;
+    let landsInMs = 0;
+    if (habit.damageType === 'healing') {
+      landsInMs = playHit({ kind: 'heal', amount: healthAfter - healthBefore, hp: healthAfter - healthBefore });
+      if (result.damageDealt) {
+        landsInMs = playHit({
+          kind: 'strike', by: 'hero', type: 'trueDamage', amount: result.damageDealt, crit: false, hp: bossHpChange, bossIndex: bossBefore.index,
+        });
+      }
+    } else if (result.damageDealt !== undefined) {
+      // Shown reflect first, then lifesteal, together making the one change the engine made.
+      const reflectHp = result.reflectedDamage ? Math.max(0, healthBefore - result.reflectedDamage) - healthBefore : 0;
+      landsInMs = playHit({
+        kind: 'strike',
+        by: 'hero',
+        type: habit.damageType,
+        amount: result.damageDealt,
+        crit: result.wasCrit ?? false,
+        hp: bossHpChange,
+        bossIndex: bossBefore.index,
+        ...(result.reflectedDamage ? { reflect: { amount: result.reflectedDamage, hp: reflectHp } } : {}),
+        ...(result.lifestealHealed ? { lifesteal: { amount: result.lifestealHealed, hp: healthAfter - healthBefore - reflectHp } } : {}),
+      });
+    }
 
     if (habit.damageType === 'healing') {
       // Censer of Wrath: the heal also hit the boss (as true damage).
@@ -217,7 +246,7 @@ export function useCombatActions() {
     if (defeatResult.itemHealed) activityLogStore.addEntry({ kind: 'item-heal', itemName: 'Soul Lantern', amount: defeatResult.itemHealed });
     // Queued before the level-up beat below so the panels swap to the slain
     // boss in the same render the store swaps to the next one.
-    celebrateBossKill(slain, defeatResult.boss);
+    celebrateBossKill(slain, defeatResult.boss, landsInMs);
     logLevelUpIfAny(beforeDefeat, defeatResult.character);
     characterStore.setCharacter(defeatResult.character);
     bossStore.setBoss(defeatResult.boss);
@@ -243,8 +272,9 @@ export function useCombatActions() {
     if (!habit) return;
 
     const healthBefore = characterStore.character.currentHealth;
+    const bossBefore = bossStore.boss;
     const currentDayKey = dailyPeriodKey(debugClockStore.now());
-    const result = missHabit(characterStore.character, habit, bossStore.boss, currentDayKey, rng);
+    const result = missHabit(characterStore.character, habit, bossBefore, currentDayKey, rng);
 
     const updatedHabit: Habit = stampPeriodKey
       ? { ...result.updatedHabit, lastCompletedPeriodKey: stampPeriodKey, lastCheckedPeriodKey: stampPeriodKey }
@@ -253,6 +283,18 @@ export function useCombatActions() {
     characterStore.setCharacter(result.character);
     bossStore.setBoss(result.boss);
     habitStore.updateHabit(updatedHabit);
+
+    const dealt = healthBefore - result.character.currentHealth;
+    playHit({
+      kind: 'strike',
+      by: 'boss',
+      type: result.attackType,
+      amount: dealt,
+      crit: result.wasCrit,
+      hp: -dealt,
+      bossIndex: bossBefore.index,
+      ...(result.bossLifestealHealed ? { lifesteal: { amount: result.bossLifestealHealed, hp: result.bossLifestealHealed } } : {}),
+    });
 
     // Sub-effect entries pushed before the main one so the main "hit" entry
     // — the headline of this action — lands on top (newest).
@@ -270,7 +312,7 @@ export function useCombatActions() {
     activityLogStore.addEntry({
       kind: 'hit',
       habitName: habit.name,
-      amount: healthBefore - result.character.currentHealth,
+      amount: dealt,
       attackType: result.attackType,
     });
 
@@ -494,6 +536,7 @@ export function useCombatActions() {
     const amount = questMissDamage(quest, bossStore.boss, rng);
     const newHealth = Math.max(0, healthBefore - amount);
     characterStore.setCharacter({ ...characterStore.character, currentHealth: newHealth });
+    playHit({ kind: 'hurt', amount: healthBefore - newHealth, hp: newHealth - healthBefore });
 
     activityLogStore.addEntry({ kind: 'quest-failed', description: quest.description, amount });
     questStore.removeQuest(questId);

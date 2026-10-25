@@ -23,6 +23,9 @@ export type CelebrationPhase = 'idle' | 'struck' | 'dying' | 'arriving' | 'level
 interface BossBeat {
   slain: Boss;
   next: Boss;
+  // When the killing blow lands on the stage (a bolt is still in flight
+  // when the kill resolves), so 'struck' waits for it.
+  landsAt: number;
 }
 
 // 'struck' lets the killing blow's hit land before the fall starts.
@@ -43,16 +46,17 @@ function phaseMs(name: Exclude<CelebrationPhase, 'idle'>): number {
   return (reduced ? REDUCED_PHASE_MS : PHASE_MS)[name];
 }
 
-function enter(name: Exclude<CelebrationPhase, 'idle'>, then: () => void) {
+function enter(name: Exclude<CelebrationPhase, 'idle'>, then: () => void, extraMs = 0) {
   phase.value = name;
-  timer = setTimeout(then, phaseMs(name));
+  timer = setTimeout(then, phaseMs(name) + extraMs);
 }
 
 function playNext() {
   const beat = bossBeats.value.shift();
   if (beat) {
     playing.value = beat;
-    enter('struck', () => enter('dying', () => enter('arriving', playNext)));
+    const untilLanded = Math.max(0, beat.landsAt - Date.now());
+    enter('struck', () => enter('dying', () => enter('arriving', playNext)), untilLanded);
     return;
   }
   playing.value = null;
@@ -76,9 +80,11 @@ export function useCelebration() {
   /**
    * Starts at once: the panels must swap to `slain` in the same render the
    * store swaps to the next boss, or the killing blow never shows.
+   * `landsInMs` is how long until that blow lands on the stage (playHit's
+   * answer); the fall waits for it.
    */
-  function celebrateBossKill(slain: Boss, next: Boss) {
-    bossBeats.value.push({ slain, next });
+  function celebrateBossKill(slain: Boss, next: Boss, landsInMs = 0) {
+    bossBeats.value.push({ slain, next, landsAt: Date.now() + landsInMs });
     if (phase.value === 'idle') playNext();
   }
 

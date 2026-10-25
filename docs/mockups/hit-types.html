@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — hit animations per damage type (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Three ways to give each damage type its own hit, on the approved stage from
+   fight-header-crop.html. Each option has its own buttons; Slow plays at 1/4
+   speed and Crit doubles the hit on every type but heals. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  --bg: #070606;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { --k: 1; margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), var(--bg); font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+body[data-k="slow"] { --k: 4; }
+h1, h2, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1320px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 14px; }
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; margin-bottom: 30px; }
+.pick { display: flex; align-items: center; gap: 6px; }
+.pick > span { font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); margin-right: 4px; }
+.pick button, .acts button { min-height: 44px; padding: 0 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+.pick button.on { color: var(--gold-hi); border-color: var(--gold); background: rgba(200,169,110,.08); }
+
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 44px 34px; }
+.opt { width: 390px; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 10px; min-height: 40px; }
+.legend { list-style: none; margin: 12px 0 0; padding: 0; font-size: 15px; color: var(--text); }
+.legend li { padding: 3px 0; border-top: 1px solid rgba(200,169,110,.09); }
+.legend b { display: inline-block; width: 74px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--c); }
+
+.acts { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.acts button { flex: 1; padding: 0 6px; color: var(--c, var(--text)); border-color: color-mix(in srgb, var(--c, var(--gold)) 40%, transparent); }
+.acts button:active { background: rgba(200,169,110,.1); }
+.acts > span { width: 44px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); }
+.acts .all { --c: var(--gold-hi); }
+
+/* Bars: HP with a pale trail that catches up after the hit. */
+.bar { position: relative; height: 8px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.32); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.bar i { position: absolute; top: 0; bottom: 0; left: 0; }
+.bar .ghost { background: rgba(240,222,190,.75); transition: width calc(.55s * var(--k)) ease-in calc(.45s * var(--k)); }
+.bar .fill { background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 10px rgba(195,58,46,.35); transition: width calc(.15s * var(--k)) ease-out; }
+.bar.thick { height: 11px; }
+.bar.thin { height: 6px; }
+.exp { height: 3px; margin-top: 3px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.2); }
+.exp i { display: block; height: 100%; width: 56%; background: linear-gradient(90deg, #8a6a2c, #e6c77f); }
+.num { font: 600 11px/1 'Cinzel', serif; letter-spacing: .12em; color: var(--text); text-shadow: 0 0 8px #000; }
+.nm { font-size: 12px; color: var(--text-h); letter-spacing: .16em; text-shadow: 0 0 12px rgba(0,0,0,.9); white-space: nowrap; }
+.nm b { color: var(--gold); font-weight: 600; }
+.blk { position: absolute; z-index: 4; display: flex; flex-direction: column; gap: 5px; }
+.blk .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+
+/* The stage, as approved: fog, embers, frameless. */
+.stage { position: relative; height: 300px; overflow: hidden; }
+.bg { position: absolute; inset: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 18% 40%, rgba(240,150,80,.9), transparent),
+    radial-gradient(1.5px 1.5px at 40% 22%, rgba(240,150,80,.6), transparent),
+    radial-gradient(1px 1px at 72% 35%, rgba(240,150,80,.8), transparent),
+    radial-gradient(1.5px 1.5px at 88% 18%, rgba(240,150,80,.5), transparent),
+    radial-gradient(ellipse 45% 55% at 68% 55%, rgba(215,205,185,.15), transparent 72%),
+    radial-gradient(ellipse 90% 30% at 50% 100%, rgba(224,120,58,.18), transparent 70%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent); mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent); }
+.plat { position: absolute; height: 26px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(205,195,175,.16), rgba(205,195,175,.04) 60%, transparent 72%); border-top: 1px solid rgba(200,169,110,.14); }
+.who { position: absolute; width: var(--w); z-index: 2; }
+.who img { display: block; width: 100%; image-rendering: pixelated; filter: drop-shadow(0 0 14px rgba(0,0,0,.9)) brightness(1.06); }
+.who.hero img { filter: drop-shadow(0 0 18px rgba(0,0,0,.95)) brightness(.8) contrast(1.05); }
+.who.mf img { scale: -1 1; }
+
+/* ---------- Effect pieces (all transform/opacity, no blur) ---------- */
+.fx { position: absolute; z-index: 7; display: block; pointer-events: none; }
+.streak { background: linear-gradient(90deg, transparent, var(--c), #fff, var(--c), transparent); box-shadow: 0 0 12px var(--c); }
+.spark { border-radius: 2px; background: linear-gradient(#fff, var(--c)); }
+.orb { border-radius: 50%; background: radial-gradient(circle, #fff 0 25%, var(--c) 55%, transparent 72%); box-shadow: 0 0 16px 3px rgba(171,141,216,.55); }
+.ring { border-radius: 50%; border: 2px solid var(--c); box-shadow: 0 0 10px var(--c), inset 0 0 10px var(--c); }
+.rune { border-radius: 50%; border: 2px dashed var(--c); box-shadow: 0 0 12px var(--c); }
+.rune::after { content: ''; position: absolute; inset: 18%; border-radius: 50%; border: 1px solid var(--c); transform: rotate(45deg); }
+.mote { border-radius: 50%; background: #f0ffe6; box-shadow: 0 0 8px 2px var(--c); }
+.disc { border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, rgba(255,236,210,.7) 38%, transparent 70%); }
+.beam { background: linear-gradient(90deg, transparent, rgba(241,233,214,.55) 30%, #fff 50%, rgba(241,233,214,.55) 70%, transparent); box-shadow: 0 0 26px rgba(241,233,214,.55); }
+.column { background: linear-gradient(0deg, rgba(146,191,136,.5), rgba(146,191,136,.15) 60%, transparent); transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent); mask-image: linear-gradient(90deg, transparent, #000 35%, #000 65%, transparent); }
+.puff { border-radius: 50%; background: radial-gradient(ellipse, rgba(205,195,175,.4), transparent 70%); }
+.plus { font: 600 16px/1 'Cinzel', serif; color: var(--c); text-shadow: 0 0 8px var(--c), 0 1px 0 #000; display: grid; place-items: center; }
+.arc { border-radius: 50%; border: 3px solid transparent; border-top-color: var(--c); border-right-color: color-mix(in srgb, var(--c) 35%, transparent); }
+.wash { inset: 0; background: radial-gradient(ellipse 55% 75% at var(--x) var(--y), #fff, transparent 75%); }
+.dim { inset: 0; background: radial-gradient(circle at var(--x) var(--y), transparent 60px, rgba(0,0,0,.65) 200px); }
+.half { z-index: 3; image-rendering: pixelated; }
+.pop { position: absolute; z-index: 8; pointer-events: none; font: 600 24px/1 'Cinzel', serif; color: var(--c); text-shadow: 0 0 10px rgba(0,0,0,.95), 0 2px 0 #000; white-space: nowrap; }
+.pop.crit { font-size: 32px; }
+</style>
+</head>
+<body data-k="1" data-crit="off">
+<div class="page">
+  <h1 class="engraved">Hits — one per damage type</h1>
+  <p>Tap a type under any option. Slow plays at a quarter speed.</p>
+  <div class="controls">
+    <div class="pick" data-key="k"><span>Speed</span><button data-v="1" class="on">Normal</button><button data-v="slow">Slow</button></div>
+    <div class="pick" data-key="crit"><span>Crit</span><button data-v="off" class="on">Off</button><button data-v="on">On</button></div>
+  </div>
+  <div class="grid" id="root"></div>
+</div>
+
+<script>
+const S = '../../public/sprites/';
+const BOSS_MAX = 620, HERO_MAX = 1232;
+const AMOUNT = { physical: 96, magic: 74, true: 52, heal: 41, 'boss-physical': 63, 'boss-magic': 56 };
+const COLOR = { physical: 'var(--dmg-physical)', magic: 'var(--dmg-magic)', true: 'var(--dmg-true)', heal: 'var(--dmg-healing)' };
+const VIOLET = ['brightness(1.7) sepia(1) hue-rotate(215deg) saturate(2.6)', 'brightness(1) sepia(0) hue-rotate(360deg) saturate(1)'];
+const WHITE = ['brightness(3) saturate(0)', 'brightness(1) saturate(1)'];
+const HOT = ['brightness(4) saturate(0) contrast(1.6)', 'brightness(1) saturate(1) contrast(1)'];
+
+// ---------- Timing: everything scales with Slow ----------
+const K = () => (document.body.dataset.k === 'slow' ? 4 : 1);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms * K()));
+// Temporary pieces remove themselves; `keep` animates a sprite in place.
+function anim(el, frames, ms, o = {}) {
+  const a = el.animate(frames, { duration: ms * K(), delay: (o.delay || 0) * K(), easing: o.ease || 'ease-out', fill: o.keep ? 'none' : 'both' });
+  if (!o.keep) a.onfinish = () => el.remove();
+  return a;
+}
+function fx(stage, cls, x, y, w, h, c) {
+  const e = document.createElement('i');
+  e.className = `fx ${cls}`;
+  Object.assign(e.style, { left: `${x - w / 2}px`, top: `${y - h / 2}px`, width: `${w}px`, height: `${h}px` });
+  if (c) e.style.setProperty('--c', c);
+  stage.appendChild(e);
+  return e;
+}
+function fighter(stage, who) {
+  const el = stage.querySelector(`[data-r="${who}"]`), s = stage.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const x = r.left - s.left, y = r.top - s.top;
+  return { el, img: el.querySelector('img'), x, y, w: r.width, h: r.height, cx: x + r.width / 2, cy: y + r.height * .5, feet: y + r.height * .93 };
+}
+const toward = (a, t) => { const dx = t.cx - a.cx, dy = t.cy - a.cy, L = Math.hypot(dx, dy); return { ux: dx / L, uy: dy / L, deg: Math.atan2(dy, dx) * 180 / Math.PI }; };
+
+// ---------- Shared moves ----------
+function lunge(a, t, d = 14) {
+  const { ux, uy } = toward(a, t);
+  anim(a.el, [{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${ux * d}px, ${uy * d}px) scale(1.04)`, offset: .4 }, { transform: 'translate(0,0) scale(1)' }], 320, { keep: true });
+}
+// The target's flash, shake and (on a crit) a hit-stop plus a stage jolt.
+function impact(o, t, { tint = WHITE, amp = 5 } = {}) {
+  const hold = o.crit ? 90 : 0, ms = 400 + hold;
+  anim(t.el, [{ filter: tint[0] }, ...(hold ? [{ filter: tint[0], offset: hold / ms }] : []), { filter: tint[1] }], ms, { keep: true });
+  if (amp) {
+    const a = o.crit ? amp * 1.6 : amp;
+    anim(t.img, [0, -a, .8 * a, -.4 * a, 0].map((v) => ({ transform: `translateX(${v}px)` })), 400, { keep: true, delay: hold });
+  }
+  if (o.crit) anim(o.stage, [0, -3, 3, -2, 0].map((v) => ({ transform: `translate(${v}px, ${-v / 2}px)` })), 300, { keep: true, delay: hold });
+}
+function glow(f, c, ms) {
+  anim(f.el, [{ filter: 'drop-shadow(0 0 0px transparent) brightness(1)' }, { filter: `drop-shadow(0 0 14px ${c}) brightness(1.35)`, offset: .4 }, { filter: 'drop-shadow(0 0 0px transparent) brightness(1)' }], ms, { keep: true });
+}
+function wobble(t) {
+  anim(t.el, [{ transform: 'scale(1) skewX(0)' }, { transform: 'scale(1.05, .96) skewX(-3deg)', offset: .25 }, { transform: 'scale(.97, 1.03) skewX(2deg)', offset: .55 }, { transform: 'scale(1) skewX(0)' }], 460, { keep: true });
+}
+function nudge(t, dx, dy, ms = 360, delay = 0) {
+  anim(t.el, [{ transform: 'translate(0,0)' }, { transform: `translate(${dx}px, ${dy}px)`, offset: .3 }, { transform: 'translate(0,0)' }], ms, { keep: true, delay });
+}
+function streak(o, x, y, w, h, deg, c, ms = 320, delay = 0) {
+  const s = fx(o.stage, 'streak', x, y, w, h, c);
+  s.style.transform = `rotate(${deg}deg)`;
+  anim(s, [{ opacity: 0, clipPath: 'inset(0 100% 0 0)' }, { opacity: 1, offset: .3 }, { opacity: 0, clipPath: 'inset(0 0 0 0)' }], ms, { delay });
+}
+function sparks(o, x, y, n, c, dist, len = 10) {
+  for (let i = 0; i < n; i++) {
+    const s = fx(o.stage, 'spark', x, y, 3, len, c);
+    const ang = (360 / n) * i + Math.random() * 30, d = dist * (.6 + Math.random() * .6);
+    anim(s, [{ opacity: 1, transform: `rotate(${ang}deg) translateY(0) scaleY(1.2)` }, { opacity: 0, transform: `rotate(${ang}deg) translateY(${-d}px) scaleY(.3)` }], 380, { ease: 'cubic-bezier(.2,.7,.3,1)' });
+  }
+}
+function ring(o, x, y, w, h, c, ms = 450, delay = 0, cls = 'ring') {
+  const r = fx(o.stage, cls, x, y, w, h, c);
+  anim(r, [{ opacity: 1, transform: 'scale(.15)' }, { opacity: 0, transform: 'scale(1)' }], ms, { delay });
+}
+function rise(o, cls, f, n, c, { size = 5, h = size, dist = 90, ms = 900, gap = 60, text } = {}) {
+  for (let i = 0; i < n; i++) {
+    const x = f.x + f.w * (.22 + Math.random() * .56), y = f.feet - Math.random() * f.h * .25;
+    const m = fx(o.stage, cls, x, y, size, h, c);
+    if (text) m.textContent = text;
+    const d = dist * (.75 + Math.random() * .5);
+    anim(m, [{ opacity: 0, transform: 'translateY(0)' }, { opacity: 1, offset: .2 }, { opacity: 0, transform: `translateY(${-d}px)` }], ms, { delay: i * gap, ease: 'ease-out' });
+  }
+}
+function flashStage(o, cls, peak, ms, vars = {}) {
+  const e = document.createElement('i');
+  e.className = `fx ${cls}`;
+  Object.entries(vars).forEach(([k, v]) => e.style.setProperty(k, v));
+  o.stage.appendChild(e);
+  anim(e, [{ opacity: peak }, { opacity: 0 }], ms);
+}
+
+// ---------- A: each type arrives its own way ----------
+const A = {
+  physical: async (o) => {
+    const { a, t } = o;
+    lunge(a, t, 22);
+    await wait(130);
+    const y = t.cy - t.h * .05;
+    streak(o, t.cx, y, t.w * 1.05, 4, -32, o.c, 300);
+    streak(o, t.cx, y, t.w * 1.05, 4, 32, o.c, 300, 80);
+    sparks(o, t.cx, y, 8, o.c, 46);
+    impact(o, t, { amp: 6 });
+    o.land();
+  },
+  magic: async (o) => {
+    const { a, t } = o;
+    glow(a, 'rgba(171,141,216,.95)', 520);
+    await wait(180);
+    const sx = a.cx + (t.cx - a.cx) * .2, sy = a.cy + (t.cy - a.cy) * .2, flight = 300;
+    [0, 1, 2].forEach((i) => {
+      const b = fx(o.stage, 'orb', sx, sy, 18 - i * 5, 18 - i * 5, o.c), op = 1 - i * .3;
+      anim(b, [{ opacity: op, transform: 'translate(0,0)' }, { opacity: op, transform: `translate(${t.cx - sx}px, ${t.cy - sy}px)` }], flight, { delay: i * 35, ease: 'cubic-bezier(.5,0,.9,.6)' });
+    });
+    await wait(flight);
+    ring(o, t.cx, t.cy, t.w * .9, t.w * .9, o.c, 460);
+    ring(o, t.cx, t.cy, t.w * .5, t.w * .5, o.c, 460, 90);
+    sparks(o, t.cx, t.cy, 6, o.c, 34, 4);
+    impact(o, t, { tint: VIOLET, amp: 0 });
+    wobble(t);
+    o.land();
+  },
+  true: async (o) => {
+    const { a, t } = o;
+    glow(a, 'rgba(241,233,214,.9)', 360);
+    await wait(150);
+    const bottom = t.y + t.h * .82;
+    const beam = fx(o.stage, 'beam', t.cx, bottom / 2, 32, bottom);
+    anim(beam, [{ opacity: 0, transform: 'scaleX(.15)', clipPath: 'inset(0 0 100% 0)' }, { opacity: 1, transform: 'scaleX(1)', clipPath: 'inset(0 0 0 0)', offset: .22 }, { opacity: 0, transform: 'scaleX(.05)', clipPath: 'inset(0 0 0 0)' }], 440);
+    await wait(90);
+    flashStage(o, 'wash', .35, 240, { '--x': `${t.cx}px`, '--y': `${t.cy}px` });
+    impact(o, t, { tint: HOT, amp: 0 });
+    nudge(t, 0, 5, 380);
+    ring(o, t.cx, t.feet, t.w * 1.2, 26, o.c, 500);
+    o.land();
+  },
+  heal: async (o) => {
+    const h = o.t;
+    glow(h, 'rgba(146,191,136,.95)', 760);
+    ring(o, h.cx, h.feet, h.w * 1.1, 24, o.c, 600);
+    rise(o, 'mote', h, 9, o.c, { size: 5, dist: 100, ms: 900, gap: 55 });
+    await wait(160);
+    o.land();
+  },
+};
+
+// ---------- B: same lunge, the impact tells the type ----------
+const B = {
+  physical: async (o) => {
+    const { a, t } = o;
+    lunge(a, t, 16);
+    await wait(130);
+    const disc = fx(o.stage, 'disc', t.cx, t.cy, 70, 70);
+    anim(disc, [{ opacity: 1, transform: 'scale(.2)' }, { opacity: 0, transform: 'scale(1.2)' }], 200);
+    sparks(o, t.cx, t.cy, 9, o.c, 62, 16);
+    const puff = fx(o.stage, 'puff', t.cx, t.feet, t.w * 1.1, 34);
+    anim(puff, [{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, offset: .25 }, { opacity: 0, transform: 'scale(1.4, 1.1)' }], 560);
+    impact(o, t, { amp: 7 });
+    o.land();
+  },
+  magic: async (o) => {
+    const { a, t } = o;
+    lunge(a, t, 10);
+    await wait(130);
+    const s = t.w * .82, r = fx(o.stage, 'rune', t.cx, t.cy, s, s, o.c);
+    anim(r, [{ opacity: 0, transform: 'rotate(0deg) scale(.3)' }, { opacity: 1, transform: 'rotate(60deg) scale(1)', offset: .35 }, { opacity: 0, transform: 'rotate(140deg) scale(1.12)' }], 680);
+    ring(o, t.cx, t.cy, s * .5, s * .5, o.c, 420, 60);
+    impact(o, t, { tint: VIOLET, amp: 0 });
+    nudge(t, 0, -7, 480);
+    o.land();
+  },
+  true: async (o) => {
+    const { a, t } = o;
+    const { ux, uy, deg } = toward(a, t);
+    lunge(a, t, 16);
+    await wait(130);
+    flashStage(o, 'dim', 1, 420, { '--x': `${t.cx}px`, '--y': `${t.cy}px` });
+    streak(o, t.cx, t.cy, t.w * 2.4, 2, deg, o.c, 180);
+    impact(o, t, { tint: HOT, amp: 0 });
+    // Frozen white-hot, then one hard knock straight back.
+    nudge(t, ux * 9, uy * 9, 300, o.crit ? 200 : 110);
+    o.land();
+  },
+  heal: async (o) => {
+    const h = o.t;
+    glow(h, 'rgba(146,191,136,.9)', 760);
+    const col = fx(o.stage, 'column', h.cx, h.feet - h.h * .55, h.w * .55, h.h * 1.1);
+    anim(col, [{ opacity: 0, transform: 'scaleY(.2)' }, { opacity: .9, transform: 'scaleY(1)', offset: .3 }, { opacity: 0, transform: 'scaleY(1)' }], 820);
+    rise(o, 'plus', h, 5, o.c, { size: 16, dist: 80, ms: 900, gap: 90, text: '+' });
+    await wait(160);
+    o.land();
+  },
+};
+
+// ---------- C: today's slash, reshaped per type ----------
+function split(o, t, ms) {
+  const r = fighter(o.stage, t.el.dataset.r);
+  [[`polygon(0 0, 100% 0, 100% 40%, 0 54%)`, 5, -3], [`polygon(0 54%, 100% 40%, 100% 100%, 0 100%)`, -4, 2]].forEach(([clip, dx, dy]) => {
+    const im = new Image();
+    im.src = t.img.src; im.className = 'fx half';
+    Object.assign(im.style, { left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, clipPath: clip });
+    o.stage.appendChild(im);
+    anim(im, [{ transform: 'translate(0,0)', filter: 'brightness(3) saturate(0)' }, { transform: `translate(${dx}px, ${dy}px)`, filter: 'brightness(1.4) saturate(.6)', offset: .3 }, { transform: `translate(${dx}px, ${dy}px)`, offset: .6 }, { transform: 'translate(0,0)', filter: 'brightness(1.06) saturate(1)' }], ms);
+  });
+  t.img.style.visibility = 'hidden';
+  setTimeout(() => { t.img.style.visibility = ''; }, ms * K());
+}
+const C = {
+  physical: async (o) => {
+    const { a, t } = o;
+    lunge(a, t, 14);
+    await wait(130);
+    // Three claw marks, offset across the cut.
+    [-11, 0, 11].forEach((off, i) => streak(o, t.cx + off * .47, t.cy - t.h * .05 + off * .88, t.w * 1.05, 3, -28, o.c, 320, i * 40));
+    impact(o, t, { amp: 5 });
+    o.land();
+  },
+  magic: async (o) => {
+    const { a, t } = o;
+    lunge(a, t, 14);
+    await wait(130);
+    [[.95, 0], [.68, 70]].forEach(([k, delay]) => {
+      const s = t.w * k, arc = fx(o.stage, 'arc', t.cx, t.cy, s, s, o.c);
+      anim(arc, [{ opacity: 0, transform: 'rotate(-110deg)' }, { opacity: 1, transform: 'rotate(-20deg)', offset: .35 }, { opacity: 0, transform: 'rotate(90deg)' }], 420, { delay });
+    });
+    impact(o, t, { tint: VIOLET, amp: 0 });
+    wobble(t);
+    o.land();
+  },
+  true: async (o) => {
+    const { a, t } = o;
+    lunge(a, t, 14);
+    await wait(120);
+    const cutDeg = -Math.atan((.14 * t.h) / t.w) * 180 / Math.PI;
+    streak(o, t.cx, t.y + t.h * .47, t.w * 1.6, 1.5, cutDeg, o.c, 130);
+    await wait(60);
+    split(o, t, o.crit ? 420 : 320);
+    o.land();
+  },
+  heal: async (o) => {
+    const h = o.t;
+    glow(h, 'rgba(146,191,136,.9)', 700);
+    rise(o, 'streak', h, 5, o.c, { size: 2, h: 34, dist: 80, ms: 700, gap: 70 });
+    await wait(140);
+    o.land();
+  },
+};
+
+const OPTIONS = [
+  { id: 'A', title: 'Each its own way', fx: A, note: 'Only physical lunges. Magic is cast and flies; true damage falls from above.',
+    legend: { physical: 'Lunge, crossed cuts, sparks', magic: 'Cast glow, bolt, rune rings', true: 'Beam from above, still', heal: 'Motes rise from the ground' } },
+  { id: 'B', title: 'Same lunge, new impact', fx: B, note: 'Every attack lunges. What blooms on the target tells the type.',
+    legend: { physical: 'Burst, shards, dust, big shake', magic: 'Spinning rune circle, lifts', true: 'World dims, pierce, knocked back', heal: 'Pillar of light, rising +' } },
+  { id: 'C', title: 'Reshaped slash', fx: C, note: "Today's lunge and slash, with a different stroke per type. The smallest step.",
+    legend: { physical: 'Three claw marks, shake', magic: 'Sweeping crescents, wobble', true: 'One clean cut, splits apart', heal: 'Green strokes rise' } },
+];
+
+// ---------- Stage, HP, buttons ----------
+const bar = (who, cls) => `<div class="bar ${cls}" data-r="${who}-hp"><i class="ghost"></i><i class="fill"></i></div>`;
+const stageHtml = () => `<div class="stage"><div class="bg"></div>
+  <div class="blk" style="top:10px;left:16px;width:196px"><div class="row"><span class="nm engraved" style="font-size:13px">Frost Sentinel</span></div>${bar('boss', 'thick')}<div class="row"><span></span><span class="num" data-r="boss-num"></span></div></div>
+  <div class="plat" style="right:16px;top:168px;width:186px"></div>
+  <div class="who boss" data-r="boss" style="right:10px;top:0;--w:190px"><img src="${S}bosses/warded3x.png" alt="" /></div>
+  <div class="plat" style="left:4px;bottom:4px;width:152px"></div>
+  <div class="who hero mf" data-r="hero" style="left:23px;bottom:8px;--w:160px"><img src="${S}player/warrior.png" alt="" /></div>
+  <div class="blk" style="bottom:14px;right:16px;width:176px"><div class="row"><span class="nm engraved">Ash <b>4</b></span><span class="num" data-r="hero-num"></span></div>${bar('hero', 'thin')}<div class="exp"><i></i></div></div>
+</div>`;
+const btn = (k, label, c) => `<button data-k="${k}" style="--c:${c}">${label}</button>`;
+
+const root = document.getElementById('root');
+root.innerHTML = OPTIONS.map((opt, i) => `<div class="opt" data-o="${i}"><h2 class="engraved"><b>${opt.id}</b>${opt.title}</h2><p>${opt.note}</p>
+  ${stageHtml()}
+  <div class="acts">${btn('physical', 'Physical', COLOR.physical)}${btn('magic', 'Magic', COLOR.magic)}${btn('true', 'True', COLOR.true)}${btn('heal', 'Heal', COLOR.heal)}</div>
+  <div class="acts"><span>Boss</span>${btn('boss-physical', 'Physical', COLOR.physical)}${btn('boss-magic', 'Magic', COLOR.magic)}<button data-k="all" class="all">Play all</button></div>
+  <ul class="legend">${Object.entries(opt.legend).map(([k, v]) => `<li style="--c:${COLOR[k]}"><b>${k}</b>${v}</li>`).join('')}</ul></div>`).join('');
+
+function setHp(card, who, hp, instant) {
+  const max = who === 'boss' ? BOSS_MAX : HERO_MAX;
+  card.hp[who] = hp;
+  const b = card.querySelector(`[data-r="${who}-hp"]`), fill = b.querySelector('.fill'), ghost = b.querySelector('.ghost');
+  if (instant) { fill.style.transition = ghost.style.transition = 'none'; requestAnimationFrame(() => { fill.style.transition = ghost.style.transition = ''; }); }
+  fill.style.width = ghost.style.width = `${(hp / max) * 100}%`;
+  card.querySelector(`[data-r="${who}-num"]`).textContent = `${Math.round(hp)} / ${max}`;
+}
+function popup(o, f, text) {
+  const p = document.createElement('span');
+  p.className = `pop${o.crit ? ' crit' : ''}`; p.style.setProperty('--c', o.popC); p.textContent = text;
+  Object.assign(p.style, { left: `${f.cx}px`, top: `${f.y + f.h * .16}px` });
+  o.stage.appendChild(p);
+  anim(p, [{ opacity: 0, transform: 'translate(-50%, 6px) scale(.6)' }, { opacity: 1, transform: 'translate(-50%, -4px) scale(1.15)', offset: .15 }, { opacity: 1, transform: 'translate(-50%, -8px) scale(1)', offset: .3 }, { opacity: 0, transform: 'translate(-50%, -40px) scale(1)' }], 1000);
+}
+
+function strike(card, kind) {
+  const opt = OPTIONS[+card.dataset.o], stage = card.querySelector('.stage');
+  const hero = fighter(stage, 'hero'), boss = fighter(stage, 'boss');
+  const fromBoss = kind.startsWith('boss-'), type = fromBoss ? kind.slice(5) : kind;
+  const crit = document.body.dataset.crit === 'on' && type !== 'heal';
+  const amount = crit ? AMOUNT[kind] * 2 : AMOUNT[kind];
+  const o = { stage, crit, a: fromBoss ? boss : hero, t: type === 'heal' || fromBoss ? hero : boss,
+    // The boss's physical cut on the hero stays the red from today's mock.
+    c: fromBoss && type === 'physical' ? '#c33a2e' : COLOR[type], popC: COLOR[type] };
+  o.land = () => {
+    if (type === 'heal') { popup(o, hero, `+${amount}`); setHp(card, 'hero', Math.min(HERO_MAX, card.hp.hero + amount)); return; }
+    if (fromBoss) {
+      popup(o, hero, `−${amount}`);
+      const hp = card.hp.hero - amount;
+      setHp(card, 'hero', Math.max(0, hp));
+      if (hp < 250) setTimeout(() => setHp(card, 'hero', HERO_MAX, true), 1300 * K());
+      return;
+    }
+    popup(o, boss, crit ? `${amount}!` : `${amount}`);
+    const hp = card.hp.boss - amount;
+    setHp(card, 'boss', Math.max(0, hp));
+    if (hp <= 0) setTimeout(() => setHp(card, 'boss', BOSS_MAX, true), 1300 * K());
+  };
+  opt.fx[type](o);
+}
+async function playAll(card) {
+  for (const k of ['physical', 'magic', 'true', 'heal', 'boss-physical', 'boss-magic']) { strike(card, k); await wait(1250); }
+}
+
+root.querySelectorAll('.opt').forEach((card) => {
+  card.hp = {};
+  setHp(card, 'boss', 474, true);
+  setHp(card, 'hero', 980, true);
+  card.addEventListener('click', (e) => {
+    const b = e.target.closest('.acts button'); if (!b) return;
+    if (b.dataset.k === 'all') playAll(card); else strike(card, b.dataset.k);
+  });
+});
+document.querySelectorAll('.pick[data-key]').forEach((pick) => pick.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  pick.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+  document.body.dataset[pick.dataset.key] = b.dataset.v;
+}));
+</script>
+</body>
+</html>

@@ -268,9 +268,14 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
   display: none;
 }
 
-/* Drains toward the boss's portrait. */
+/* Drains toward the boss's portrait, its trail with it. */
 .who :deep(.health-bar-fill) {
   margin-left: auto;
+}
+
+.who :deep(.health-bar-trail) {
+  left: auto;
+  right: 0;
 }
 
 .hit-layer {

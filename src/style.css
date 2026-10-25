@@ -39,6 +39,12 @@
   --icon-gold: #fbbf24;
   --icon-gift: #f5c451;
   --hp-color: #e5484d;
+  /* Hits on the fight stage (fight/hitFx.ts): lifesteal's thread, a reflect's
+     steel echo, the boss's cut on the hero, and the HP bar's pale trail. */
+  --fx-lifesteal: #e11d48;
+  --fx-reflect: #94a3b8;
+  --fx-boss-cut: #e5484d;
+  --hp-trail: rgba(243, 244, 246, 0.55);
   --exp-color: #3b82f6;
   --rarity-common: #9ca3af;
   --rarity-uncommon: #34d399;

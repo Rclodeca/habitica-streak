@@ -156,6 +156,11 @@ $caps-lg: 0.85rem; // panel and popup titles
   --icon-gold: #c8a96e;
   --icon-gift: #c8a96e;
   --hp-color: #a82a20;
+  // Rosier than physical red, so the thread never reads as a hit.
+  --fx-lifesteal: #d9566a;
+  --fx-reflect: #c4bcac;
+  --fx-boss-cut: #c33a2e;
+  --hp-trail: rgba(240, 222, 190, 0.75);
   --exp-color: #c8a96e;
   --rarity-common: #8d8475;
   --rarity-uncommon: #86b08b;
@@ -182,8 +187,9 @@ $caps-lg: 0.85rem; // panel and popup titles
     background: radial-gradient(ellipse 80% 40% at 50% -6%, rgba(200, 169, 110, 0.12), transparent 70%);
   }
 
-  // Nothing is rounded, apart from the few things that are round by nature.
-  *:not(.ring, .seal, .stone, .level-ring) {
+  // Nothing is rounded, apart from the few things that are round by nature
+  // (the hit effects' rings, bolts, motes and pulses among them).
+  *:not(.ring, .seal, .stone, .level-ring, .fx-ring, .fx-orb, .fx-mote, .fx-pulse) {
     border-radius: 0;
   }
 
@@ -449,15 +455,15 @@ $caps-lg: 0.85rem; // panel and popup titles
     text-shadow: 0 0 10px #000;
   }
 
-  // Hits on the stage are outlined to read over the sprites (BossPanel,
-  // CharacterPanel), with the soft dark halo kept around the outline.
-  .boss-panel .damage-popup,
-  .character-panel .damage-popup {
+  // Hits on the stage (fight/hitFx.ts): engraved, each in its damage type's
+  // colour, with the soft dark halo and a hard drop under it.
+  .fx-pop {
+    font-family: var(--heading);
+    font-size-adjust: none;
     font-weight: 600;
     text-shadow:
-      0 0 2px #000,
-      0 0 2px #000,
-      0 0 10px #000;
+      0 0 10px rgba(0, 0, 0, 0.95),
+      0 2px 0 #000;
   }
 
   // A kill: the boss sinks into its own embers under an engraved "Slain"

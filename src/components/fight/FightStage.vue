@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { effectiveStat, heroClassFor, PERSONALITY_NAME } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
+import { setHitPlayer, useHitFeed } from '../../composables/useHitFeed';
 import { useScrolledPast } from '../../composables/useScrolledPast';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
@@ -9,9 +10,11 @@ import BossBar from '../boss/BossBar.vue';
 import BossPanel from '../boss/BossPanel.vue';
 import { BOSS_FACING_RIGHT, PERSONALITY_SPRITE } from '../boss/bossSprites';
 import CharacterPanel from '../character/CharacterPanel.vue';
+import { createHitPlayer } from './hitFx';
 
 // The fight as one scene: the boss and the hero square off across one stage,
-// each half its own panel with its own details.
+// each half its own panel with its own details. Hits play out across it
+// (hitFx.ts), each fighter's HP held back until its blow lands.
 
 const bossStore = useBossStore();
 const characterStore = useCharacterStore();
@@ -25,6 +28,10 @@ const boss = computed(() => displayedBoss.value ?? bossStore.boss);
 // like the hero panel's until a level-up's beat plays).
 const hero = computed(() => characterStore.character);
 const heroLevel = computed(() => heldLevel.value ?? hero.value.level);
+const heroMax = computed(() => effectiveStat(hero.value, 'health'));
+const { shownHp } = useHitFeed();
+const bossHp = computed(() => shownHp(boss.value.index, boss.value.health, boss.value.maxHealth));
+const heroHp = computed(() => shownHp('hero', hero.value.currentHealth, heroMax.value));
 const stage = ref<HTMLElement | null>(null);
 const bar = ref<InstanceType<typeof BossBar> | null>(null);
 const scrolledPast = useScrolledPast(stage, () => (bar.value?.$el as HTMLElement | undefined)?.offsetHeight ?? 0);
@@ -45,14 +52,36 @@ function measureBlocks() {
   blockEdges.value = { '--boss-bottom': `${boss.bottom - box.top}px`, '--hero-top': `${heroBlock.top - box.top}px` };
 }
 
+const fxLayer = ref<HTMLElement | null>(null);
+const FIGURES = { boss: ['.boss-figure', '.sprite'], hero: ['.hero-figure', '.player-sprite'] } as const;
+
 onMounted(() => {
   blockObserver = new ResizeObserver(() => requestAnimationFrame(measureBlocks));
   for (const el of [inner.value, inner.value?.querySelector('.boss-block'), inner.value?.querySelector('.hero-block')]) {
     if (el) blockObserver.observe(el);
   }
   measureBlocks();
+
+  const layer = fxLayer.value;
+  const stageEl = inner.value;
+  if (!layer || !stageEl) return;
+  setHitPlayer(
+    createHitPlayer({
+      layer,
+      stage: stageEl,
+      fighter: (who) => {
+        const [figureSel, bodySel] = FIGURES[who];
+        const figure = stageEl.querySelector<HTMLElement>(figureSel);
+        const body = figure?.querySelector<HTMLElement>(bodySel);
+        return figure && body ? { figure, body } : null;
+      },
+    }),
+  );
 });
-onBeforeUnmount(() => blockObserver?.disconnect());
+onBeforeUnmount(() => {
+  blockObserver?.disconnect();
+  setHitPlayer(null);
+});
 </script>
 
 <template>
@@ -61,6 +90,7 @@ onBeforeUnmount(() => blockObserver?.disconnect());
     <div ref="inner" class="stage-inner" :style="blockEdges">
       <BossPanel />
       <CharacterPanel />
+      <div ref="fxLayer" class="fx-layer" aria-hidden="true" />
     </div>
 
     <Teleport to="body">
@@ -69,11 +99,11 @@ onBeforeUnmount(() => blockObserver?.disconnect());
         :sprite="PERSONALITY_SPRITE[boss.personality]"
         :sprite-mirrored="BOSS_FACING_RIGHT[boss.personality]"
         :name="PERSONALITY_NAME[boss.personality]"
-        :current="boss.health"
+        :current="bossHp"
         :max="boss.maxHealth"
         :hero-class="heroClassFor(hero)"
-        :hero-current="hero.currentHealth"
-        :hero-max="effectiveStat(hero, 'health')"
+        :hero-current="heroHp"
+        :hero-max="heroMax"
         :hero-level="heroLevel"
         :shown="scrolledPast"
         :phase="phase"
@@ -84,9 +114,20 @@ onBeforeUnmount(() => blockObserver?.disconnect());
 
 <style scoped>
 /* Frameless: on phones the stage runs edge to edge (its fog, in Ashen), with
-   the fighters held to a centred box no wider than a large phone. */
+   the fighters held to a centred box no wider than a large phone. Clipped
+   at the sides only, so a crit's jolt or a spark never scrolls the page
+   sideways and the numbers can still rise off the top. */
 .fight-stage {
   position: relative;
+  overflow-x: clip;
+}
+
+/* Over the blocks, under the tap areas. */
+.fx-layer {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
 }
 
 .stage-bg {
@@ -140,5 +181,96 @@ onBeforeUnmount(() => blockObserver?.disconnect());
     --split-x2: max(var(--split-x), calc(7% + 450px));
     --split-ym: min(186px, calc(var(--hero-top, 999px) - 4px));
   }
+}
+</style>
+
+<style>
+/* The pieces hitFx.ts lays on .fx-layer, made outside Vue's templates so
+   unscoped. Each takes its colour from --c. */
+.fx-layer .fx {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.fx-streak {
+  background: linear-gradient(90deg, transparent, var(--c), #fff, var(--c), transparent);
+  box-shadow: 0 0 12px var(--c);
+}
+
+.fx-spark {
+  border-radius: 2px;
+  background: linear-gradient(#fff, var(--c));
+}
+
+.fx-orb {
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 25%, var(--c) 55%, transparent 72%);
+  box-shadow: 0 0 16px 3px color-mix(in srgb, var(--c) 55%, transparent);
+}
+
+.fx-ring {
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  box-shadow:
+    0 0 10px var(--c),
+    inset 0 0 10px var(--c);
+}
+
+.fx-mote {
+  border-radius: 50%;
+  background: #f0ffe6;
+  box-shadow: 0 0 8px 2px var(--c);
+}
+
+.fx-beam {
+  --soft: color-mix(in srgb, var(--c) 55%, transparent);
+  background: linear-gradient(90deg, transparent, var(--soft) 30%, #fff 50%, var(--soft) 70%, transparent);
+  box-shadow: 0 0 26px var(--soft);
+}
+
+.fx-layer .fx-wash {
+  inset: 0;
+  background: radial-gradient(ellipse 55% 75% at var(--x) var(--y), #fff, transparent 75%);
+}
+
+/* Lifesteal: a red thread, life running along it in green. */
+.fx-thread {
+  transform-origin: 0 50%;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--fx-lifesteal) 15%, transparent),
+    var(--fx-lifesteal) 50%,
+    color-mix(in srgb, var(--fx-lifesteal) 15%, transparent)
+  );
+  box-shadow: 0 0 8px color-mix(in srgb, var(--fx-lifesteal) 60%, transparent);
+}
+
+.fx-pulse {
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 25%, var(--dmg-healing) 55%, transparent 72%);
+}
+
+/* The numbers: outlined to read over the sprites' busy pixels. */
+.fx-pop {
+  position: absolute;
+  color: var(--c);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow:
+    0 0 2px #000,
+    0 0 2px #000,
+    0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.fx-pop.crit {
+  font-size: 2rem;
+}
+
+.fx-pop.small {
+  font-size: 1.2rem;
 }
 </style>

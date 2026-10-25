@@ -43,6 +43,20 @@ describe('useCelebration', () => {
     expect(celebrating.value).toBe(false);
   });
 
+  it('keeps the boss struck until the killing blow lands on the stage', () => {
+    const { slain, next } = bosses();
+    const { phase, celebrateBossKill } = useCelebration();
+
+    // A bolt still 480ms out when the kill resolves.
+    celebrateBossKill(slain, next, 480);
+    vi.advanceTimersByTime(450);
+    expect(phase.value).toBe('struck');
+    vi.advanceTimersByTime(479);
+    expect(phase.value).toBe('struck');
+    vi.advanceTimersByTime(1);
+    expect(phase.value).toBe('dying');
+  });
+
   it('holds the old level until the level beat plays', async () => {
     const { phase, heldLevel, celebrating, celebrateLevelUp } = useCelebration();
 

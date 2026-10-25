@@ -6,6 +6,7 @@ import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRng, generateBoss } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
+import { holdHp, setHitPlayer } from '../../composables/useHitFeed';
 import { useBossStore } from '../../store/bossStore';
 import Modal from '../ui/Modal.vue';
 import BossPanel from './BossPanel.vue';
@@ -21,6 +22,7 @@ describe('BossPanel', () => {
   // useCelebration is a module-scope singleton — reset it between tests.
   afterEach(() => {
     useCelebration().clear();
+    setHitPlayer(null);
     vi.useRealTimers();
   });
 
@@ -66,6 +68,18 @@ describe('BossPanel', () => {
     const numbers = block.querySelector('.hp-numbers')!;
     expect(numbers.textContent).toBe('474 / 620');
     expect(kids.indexOf(numbers)).toBe(kids.indexOf(block.querySelector('.health-bar')!) + 1);
+  });
+
+  it("holds the bar and numbers at the boss's HP from before a blow until it lands", async () => {
+    const store = useBossStore();
+    store.boss = { ...store.boss, health: 378, maxHealth: 620 };
+    const wrapper = mount(BossPanel);
+    const release = holdHp(store.boss.index, -96);
+    await nextTick();
+    expect(wrapper.find('.hp-numbers').text()).toBe('474 / 620');
+    release();
+    await nextTick();
+    expect(wrapper.find('.hp-numbers').text()).toBe('378 / 620');
   });
 
   it('lets the boss fall and stamps "Slain" on the stage', async () => {

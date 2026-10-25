@@ -6,7 +6,7 @@
 // convention used by `store/index.spec.ts` and `useDailyRollover.spec.ts`.
 
 import { createPinia, setActivePinia } from 'pinia';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { availableRelics, createRng, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, PERSONALITY_NAME, questSlotExp, weeklyPeriodKey } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
@@ -19,6 +19,8 @@ import { useCelebration } from './useCelebration';
 import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
 import { useFallenHero } from './useFallenHero';
+import { setHitPlayer } from './useHitFeed';
+import type { Hit } from './useHitFeed';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
 
@@ -35,6 +37,125 @@ describe('useCombatActions', () => {
     useDeathScreen().dismiss();
     useReviveNotice().visible.value = false;
     useCelebration().clear();
+    setHitPlayer(null);
+  });
+
+  describe('hits sent to the stage', () => {
+    let hits: Hit[];
+    beforeEach(() => {
+      hits = [];
+      setHitPlayer((hit) => {
+        hits.push(hit);
+        return 480;
+      });
+    });
+
+    it("sends the hero's blow with its type, the boss's HP change, and what was reflected", () => {
+      const habitStore = useHabitStore();
+      const bossStore = useBossStore();
+      const characterStore = useCharacterStore();
+      const { checkOffHabit } = useCombatActions();
+      const habit = habitStore.addHabit('Read', 'daily', 'medium', false, createRng());
+      habitStore.updateHabit({ ...habit, damageType: 'magic' });
+      bossStore.setBoss({ ...bossStore.boss, health: 100000, maxHealth: 100000, reflectPct: 0.1 });
+      const bossBefore = bossStore.boss;
+      const heroBefore = characterStore.character.currentHealth;
+
+      checkOffHabit(habit.id);
+
+      expect(hits).toHaveLength(1);
+      const [hit] = hits;
+      expect(hit).toMatchObject({ kind: 'strike', by: 'hero', type: 'magic', bossIndex: bossBefore.index, hp: bossStore.boss.health - bossBefore.health });
+      if (hit.kind !== 'strike') throw new Error('not a strike');
+      expect(hit.amount).toBeGreaterThan(0);
+      expect(hit.reflect?.amount).toBeCloseTo(hit.amount * 0.1);
+      expect(hit.reflect?.hp).toBeCloseTo(characterStore.character.currentHealth - heroBefore);
+      expect(hit.lifesteal).toBeUndefined();
+    });
+
+    it('splits the hero HP change into what was reflected and what was stolen', () => {
+      const habitStore = useHabitStore();
+      const bossStore = useBossStore();
+      const characterStore = useCharacterStore();
+      const { checkOffHabit } = useCombatActions();
+      const habit = habitStore.addHabit('Run', 'daily', 'medium', false, createRng());
+      habitStore.updateHabit({ ...habit, damageType: 'physical' });
+      // Too sturdy to fall, so no kill's heal muddies the hit's own change.
+      bossStore.setBoss({ ...bossStore.boss, health: 100000, maxHealth: 100000, reflectPct: 0.1 });
+      characterStore.setCharacter({ ...characterStore.character, currentHealth: 500, ownedItemIds: ['vampiric-fang'], equippedItemIds: ['vampiric-fang'] });
+
+      checkOffHabit(habit.id);
+
+      const [hit] = hits;
+      if (hit.kind !== 'strike') throw new Error('not a strike');
+      expect(hit.lifesteal?.amount).toBeCloseTo(hit.amount * 0.03);
+      expect(hit.reflect!.hp + hit.lifesteal!.hp).toBeCloseTo(characterStore.character.currentHealth - 500);
+    });
+
+    it("sends the boss's blow on a bad habit, and the life it steals", () => {
+      const habitStore = useHabitStore();
+      const bossStore = useBossStore();
+      const characterStore = useCharacterStore();
+      const { checkOffHabit } = useCombatActions();
+      const habit = habitStore.addHabit('Doomscroll', 'daily', 'medium', true, createRng());
+      bossStore.setBoss({ ...bossStore.boss, health: 100, lifestealPct: 0.15 });
+      const heroBefore = characterStore.character.currentHealth;
+
+      checkOffHabit(habit.id);
+
+      const dealt = heroBefore - characterStore.character.currentHealth;
+      expect(hits).toEqual([
+        expect.objectContaining({ kind: 'strike', by: 'boss', amount: dealt, hp: -dealt, lifesteal: { amount: bossStore.boss.health - 100, hp: bossStore.boss.health - 100 } }),
+      ]);
+    });
+
+    it('sends a heal, then the true damage Censer of Wrath adds to it', () => {
+      const habitStore = useHabitStore();
+      const characterStore = useCharacterStore();
+      const { checkOffHabit } = useCombatActions();
+      const habit = { ...habitStore.addHabit('Stretch', 'daily', 'medium', false, createRng()), damageType: 'healing' as const };
+      habitStore.updateHabit(habit);
+      characterStore.setCharacter({ ...characterStore.character, currentHealth: 100, ownedItemIds: ['censer-of-wrath'], equippedItemIds: ['censer-of-wrath'] });
+
+      checkOffHabit(habit.id);
+
+      expect(hits.map((h) => h.kind)).toEqual(['heal', 'strike']);
+      expect(hits[0]).toMatchObject({ amount: characterStore.character.currentHealth - 100, hp: characterStore.character.currentHealth - 100 });
+      expect(hits[1]).toMatchObject({ by: 'hero', type: 'trueDamage', crit: false });
+    });
+
+    it('sends a missed quest as a plain hurt', () => {
+      const characterStore = useCharacterStore();
+      const questStore = useQuestStore();
+      const { failQuest } = useCombatActions();
+      const quest = questStore.addQuest('Clean garage', 'medium', '2026-02-01');
+      const heroBefore = characterStore.character.currentHealth;
+
+      failQuest(quest.id);
+
+      const lost = heroBefore - characterStore.character.currentHealth;
+      expect(hits).toEqual([{ kind: 'hurt', amount: lost, hp: -lost }]);
+    });
+
+    it('lets the killing blow land before the boss falls', () => {
+      vi.useFakeTimers();
+      try {
+        const habitStore = useHabitStore();
+        const bossStore = useBossStore();
+        const { checkOffHabit } = useCombatActions();
+        const habit = habitStore.addHabit('Slay the boss', 'daily', 'hard', false, createRng());
+        habitStore.updateHabit({ ...habit, damageType: 'physical' });
+        bossStore.setBoss({ ...bossStore.boss, health: 0.0001, armor: 0 });
+
+        checkOffHabit(habit.id);
+
+        const { phase } = useCelebration();
+        vi.advanceTimersByTime(479);
+        expect(phase.value).toBe('struck');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   it('checkOffHabit is a no-op when called a second time on a habit already completed this period', () => {
