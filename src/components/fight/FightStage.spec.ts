@@ -57,6 +57,17 @@ describe('FightStage', () => {
     expect(style).toContain('--hero-top: 205px');
   });
 
+  it('tells the drop-down bar which bosses to turn toward the hero', async () => {
+    const store = useBossStore();
+    store.boss = { ...store.boss, personality: 'arcane5x' };
+    const wrapper = mountStage();
+    expect(wrapper.findComponent(BossBar).props('spriteMirrored')).toBe(true);
+
+    store.boss = { ...store.boss, personality: 'tank' };
+    await nextTick();
+    expect(wrapper.findComponent(BossBar).props('spriteMirrored')).toBe(false);
+  });
+
   it('feeds the drop-down bar the boss and the hero, parked until the stage scrolls away', () => {
     const wrapper = mountStage();
     const bar = wrapper.findComponent(BossBar);

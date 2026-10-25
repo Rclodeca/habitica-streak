@@ -46,6 +46,17 @@ describe('BossPanel', () => {
     expect(wrapper.find('.boss-name > .name-tail').text()).toBe('Sovereign');
   });
 
+  it('turns the bosses drawn facing right to face the hero, and leaves the rest as drawn', async () => {
+    const store = useBossStore();
+    store.boss = { ...store.boss, personality: 'brute' };
+    const wrapper = mount(BossPanel);
+    expect(wrapper.find('.boss-figure').classes()).toContain('mirrored');
+
+    store.boss = { ...store.boss, personality: 'warded3x' };
+    await nextTick();
+    expect(wrapper.find('.boss-figure').classes()).not.toContain('mirrored');
+  });
+
   it('shows the HP numbers under the HP bar', () => {
     const store = useBossStore();
     store.boss = { ...store.boss, health: 474.2, maxHealth: 620 };

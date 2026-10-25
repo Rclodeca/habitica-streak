@@ -24,3 +24,26 @@ export const PERSONALITY_SPRITE: Record<Personality, string> = {
   arcane4x: 'bosses/arcane4x',
   arcane5x: 'bosses/arcane5x',
 };
+
+// Art drawn facing right, so turned around on the stage and in the drop-down
+// bar to face the hero across from it. The rest face left or straight out.
+export const BOSS_FACING_RIGHT: Record<Personality, boolean> = {
+  balanced: false,
+  tank: false,
+  armored: true,
+  armored3x: false,
+  armored4x: false,
+  armored5x: true,
+  warded: true,
+  warded3x: false,
+  warded4x: true,
+  warded5x: false,
+  brute: true,
+  brute3x: false,
+  brute4x: false,
+  brute5x: false,
+  arcane: true,
+  arcane3x: false,
+  arcane4x: false,
+  arcane5x: true,
+};

@@ -42,6 +42,14 @@ describe('BossBar', () => {
     expect(wrapper.emitted('open')).toBeUndefined();
   });
 
+  it("turns the boss's portrait when its art faces away from the hero", async () => {
+    const wrapper = mount(BossBar, { props });
+    expect(wrapper.find('.portrait').classes()).not.toContain('mirrored');
+
+    await wrapper.setProps({ spriteMirrored: true });
+    expect(wrapper.find('.portrait').classes()).toContain('mirrored');
+  });
+
   it('pops each hit the boss takes', async () => {
     const wrapper = mount(BossBar, { props: { ...props, shown: true } });
     await wrapper.setProps({ current: 331.4 });

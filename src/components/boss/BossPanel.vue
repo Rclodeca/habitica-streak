@@ -6,7 +6,7 @@ import { useDamagePopup } from '../../composables/useDamagePopup';
 import { usePress } from '../../composables/usePress';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
-import { PERSONALITY_SPRITE } from './bossSprites';
+import { BOSS_FACING_RIGHT, PERSONALITY_SPRITE } from './bossSprites';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
@@ -86,7 +86,10 @@ const statTiles = computed<StatTile[]>(() => {
        each piece sits straight on the stage. -->
   <div class="boss-panel" :class="{ pressed }">
     <div class="boss-plat" aria-hidden="true" />
-    <div class="boss-figure" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
+    <div
+      class="boss-figure"
+      :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving', mirrored: BOSS_FACING_RIGHT[boss.personality] }"
+    >
       <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
       <template v-if="phase === 'dying'">
         <span class="death-flash" aria-hidden="true" />
@@ -480,6 +483,11 @@ const statTiles = computed<StatTile[]>(() => {
   width: 200px;
   height: 200px;
   margin-bottom: 6px;
+}
+
+/* Faces the hero; `scale` composes with the hit and kill animations' transforms. */
+.boss-figure.mirrored :deep(.sprite) {
+  scale: -1 1;
 }
 
 .boss-figure.hit :deep(.sprite) {

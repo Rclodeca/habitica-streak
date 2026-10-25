@@ -26,6 +26,8 @@ const props = defineProps<{
   heroLevel: number;
   shown: boolean;
   phase?: CelebrationPhase;
+  /** Turns the boss's portrait around, for art drawn facing away from the hero. */
+  spriteMirrored?: boolean;
 }>();
 
 const baseUrl = import.meta.env.BASE_URL;
@@ -65,7 +67,7 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
       </span>
       <HealthBar :current="current" :max="max" variant="boss" />
     </span>
-    <span class="portrait" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
+    <span class="portrait" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving', mirrored: spriteMirrored }">
       <Sprite :image-name="sprite" alt="" />
     </span>
     <span class="hit-layer" aria-hidden="true">
@@ -113,6 +115,10 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
   width: 42px;
   height: 42px;
   image-rendering: pixelated;
+}
+
+.portrait.mirrored :deep(.sprite) {
+  scale: -1 1;
 }
 
 .portrait.hit :deep(.sprite) {
