@@ -902,16 +902,22 @@ onBeforeUnmount(() => {
   color: var(--text);
 }
 
-/* Over the blocks, under the tap areas. */
+/* Over the blocks, under the tap areas. Outlined like the boss's, so it reads
+   over the sprite's busy pixels, and rising from about head height. */
 .damage-popup {
   position: absolute;
   z-index: 5;
-  top: 35%;
+  top: 18%;
   left: 50%;
   color: var(--hp-color);
-  font-weight: 700;
-  font-size: 0.9rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  font-weight: 800;
+  font-size: 1.1rem;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px #000,
+    0 0 2px #000,
+    0 1px 3px rgba(0, 0, 0, 0.8);
   pointer-events: none;
   animation: damage-float-fade 0.9s ease-out forwards;
 }
@@ -931,10 +937,10 @@ onBeforeUnmount(() => {
   animation: level-ring 1s ease-out;
 }
 
-/* At the end of the name line, clear of the portrait. */
+/* Just above the name line, clear of a long name that fills it. */
 .level-up-popup {
   position: absolute;
-  top: 50%;
+  bottom: 100%;
   right: 0;
   color: var(--accent);
   font-size: 0.8rem;

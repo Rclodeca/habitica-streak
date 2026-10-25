@@ -183,7 +183,7 @@ $caps-lg: 0.85rem; // panel and popup titles
   }
 
   // Nothing is rounded, apart from the few things that are round by nature.
-  *:not(.ring, .seal, .stone) {
+  *:not(.ring, .seal, .stone, .level-ring) {
     border-radius: 0;
   }
 
@@ -449,9 +449,10 @@ $caps-lg: 0.85rem; // panel and popup titles
     text-shadow: 0 0 10px #000;
   }
 
-  // The boss's hits are outlined to read over its sprite (BossPanel), with
-  // the soft dark halo kept around the outline.
-  .boss-panel .damage-popup {
+  // Hits on the stage are outlined to read over the sprites (BossPanel,
+  // CharacterPanel), with the soft dark halo kept around the outline.
+  .boss-panel .damage-popup,
+  .character-panel .damage-popup {
     font-weight: 600;
     text-shadow:
       0 0 2px #000,
