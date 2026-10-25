@@ -95,8 +95,8 @@ onBeforeUnmount(() => blockObserver?.disconnect());
 }
 
 /* Drawn at 390px wide; on narrower phones --u shrinks the art in proportion
-   while text and the blocks' insets keep their px (the blocks narrow with the
-   art, so they never cover it). The split is where the boss's and hero's tap
+   while text and the blocks' insets keep their px (the blocks keep the
+   mock's share of the width, so they never cover the art). The split is where the boss's and hero's tap
    areas meet, in a step that follows the diagonal; its left step rides the
    top of the hero, so a boss block that wraps deeper on a narrow phone stays
    on the boss's side. Each step also gives way, 4px clear, to a block that

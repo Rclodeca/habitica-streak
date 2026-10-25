@@ -175,14 +175,15 @@ const statTiles = computed<StatTile[]>(() => {
   width: var(--boss-w);
 }
 
-/* Floats on the stage to the boss's left, over its own block of fog; its
-   right edge keeps to the boss's art as that shrinks (196px at 390). */
+/* Floats on the stage to the boss's left, over its own block of fog. Its
+   right edge sits at the mock's share of the stage (212px of 390, just past
+   the middle) at every phone width (196px wide at 390). */
 .boss-block {
   position: absolute;
   z-index: 4;
   top: 10px;
   left: 16px;
-  width: calc(212 * var(--u) - 16px);
+  width: calc(100% * 212 / 390 - 16px);
   display: flex;
   flex-direction: column;
   gap: 5px;

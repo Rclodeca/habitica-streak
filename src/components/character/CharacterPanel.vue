@@ -395,14 +395,15 @@ onBeforeUnmount(() => {
   animation: sprite-shake 0.3s ease;
 }
 
-/* Floats on the stage to the hero's right; its left edge keeps clear of the
-   hero's art as that shrinks (176px at 390). */
+/* Floats on the stage to the hero's right. Its left edge sits at the mock's
+   share of the stage (198px of 390, about the middle) at every phone width
+   (176px wide at 390). */
 .hero-block {
   position: absolute;
   z-index: 4;
   bottom: 14px;
   right: 16px;
-  width: calc(192 * var(--u) - 16px);
+  width: calc(100% * 192 / 390 - 16px);
   display: flex;
   flex-direction: column;
   gap: 5px;
