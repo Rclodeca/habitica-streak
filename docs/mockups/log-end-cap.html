@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — log end cap (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* What sits under the Log panel when you scroll to the very bottom. Each
+   phone shows the page bottom: the last log rows, then the end cap, then the
+   home-indicator safe area. Option 0 is today (hard stop, no safe area). */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a; --blood: #c8402f; --ash: #5c554a;
+  --heal: #92bf88; --exp: #e6cf9a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4); --line-faint: rgba(200, 169, 110, 0.07);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1400px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.grid { display: flex; flex-wrap: wrap; gap: 34px 26px; justify-content: center; }
+.opt { display: flex; flex-direction: column; gap: 12px; width: 320px; max-width: 100%; }
+.opt h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); }
+.opt h2 b { color: var(--gold); font-weight: 600; margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 16px; line-height: 1.3; min-height: 2.6em; }
+
+/* Phone: a fixed-height window scrolled to the bottom. */
+.phone { position: relative; height: 520px; overflow: hidden; background: var(--bg); border: 1px solid rgba(200,169,110,.18); border-radius: 34px; }
+.scroll { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 12px; }
+.home { position: absolute; left: 50%; bottom: 8px; width: 120px; height: 5px; border-radius: 3px; background: rgba(236,227,205,.7); transform: translateX(-50%); z-index: 2; }
+.safe { height: 34px; } /* env(safe-area-inset-bottom) on a notched iPhone */
+
+/* Log panel, as Ashen styles it. */
+.panel { position: relative; padding: 14px 14px 10px; background: linear-gradient(180deg, rgb(27,24,21), rgb(14,13,11)); border: 1px solid var(--line); box-shadow: 0 24px 50px -24px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,236,200,.04); }
+.panel::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 12px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 12px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 12px no-repeat; }
+.panel h2 { font: 600 13.5px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-hi); margin-bottom: 8px; }
+.log li { padding: 5px 0; border-bottom: 1px solid var(--line-faint); font-size: 13.6px; line-height: 1.4; font-style: italic; color: var(--text); }
+.log li:first-child { color: var(--bone); }
+.log li:last-child { border-bottom: 0; }
+.log b { font-style: normal; font-weight: 700; }
+.d { color: var(--blood); } .h { color: var(--heal); } .x { color: var(--exp); }
+
+/* The panel above the log, just its bottom edge peeking in. */
+.prev { height: 60px; margin-bottom: 24px; }
+
+/* ---------- End caps ---------- */
+.cap { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 30px 0 18px; }
+.rule { flex: 0 0 70px; height: 1px; }
+.rule.l { background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.rule.r { background: linear-gradient(270deg, transparent, var(--line-mid)); }
+.dia { width: 7px; height: 7px; transform: rotate(45deg); border: 1px solid var(--gold); background: var(--bg); flex-shrink: 0; }
+.dia.sm { width: 4px; height: 4px; border-color: var(--line-mid); background: var(--line-mid); }
+.dia.fill { background: var(--gold); }
+
+/* A: mirror of the diamond set in each panel's top edge, on the log's bottom edge. */
+.panel.mirror::after { content: ''; position: absolute; bottom: -4px; left: 50%; width: 7px; height: 7px; transform: translateX(-50%) rotate(45deg); background: var(--bg); border: 1px solid var(--gold); }
+
+/* C: ember. Static glow, no animation. */
+.ember { width: 18px; height: 18px; color: var(--ember); filter: drop-shadow(0 0 6px rgba(224,120,58,.55)); opacity: .85; }
+.ember-wrap { position: relative; display: grid; place-items: center; }
+.ember-wrap::before { content: ''; position: absolute; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle, rgba(224,120,58,.16), transparent 65%); }
+
+/* D: skull. */
+.skull { width: 18px; height: 18px; color: var(--ash); }
+
+/* E: one word. */
+.word { font: 600 10px/1 'Cinzel', serif; letter-spacing: .4em; text-transform: uppercase; color: var(--ash); padding-left: .4em; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Log end cap</h1>
+  <p>Scrolled to the very bottom of the page on a phone.</p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const LOG = `
+  <section class="panel%CLS%">
+    <h2>Log</h2>
+    <ul class="log">
+      <li>Used "Morning run" — dealt <b class="d">1587</b> damage · <b class="x">+42</b> EXP</li>
+      <li>Healed <b class="h">+338</b> HP using "Meditate"</li>
+      <li>Critical hit!</li>
+      <li>Used "Read 20 pages" — dealt <b class="d">274</b> damage</li>
+      <li>Physical hit for <b class="d">412</b> damage (missed "Doomscrolling after midnight")</li>
+      <li>Boss #6 defeated! <b class="x">+118</b> EXP</li>
+    </ul>
+  </section>`;
+
+const FLAME = `<svg class="ember" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
+const SKULL = `<svg class="skull" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/></svg>`;
+
+const rule = inner => `<div class="cap"><i class="rule l"></i>${inner}<i class="rule r"></i></div>`;
+
+const OPTS = [
+  { k: '0', t: 'Today', p: 'Hard stop at the panel edge. Last row sits on the home bar.', safe: false, cap: '' },
+  { k: 'A', t: 'Mirrored diamond', p: 'The diamond on every panel’s top edge, repeated on the log’s bottom edge. Then space.', cls: ' mirror', cap: '<div style="height:44px"></div>' },
+  { k: 'B', t: 'Diamond rule', p: 'Fading hairlines with a small-large-small diamond set, like a chapter break.', cap: rule('<i class="dia sm"></i><i class="dia"></i><i class="dia sm"></i>') },
+  { k: 'C', t: 'Ember', p: 'A single still ember with a faint glow. Bonfire at the end of the road.', cap: rule(`<span class="ember-wrap">${FLAME}</span>`) },
+  { k: 'D', t: 'Skull', p: 'Dim ash-grey skull between hairlines. Grimmer, quieter.', cap: rule(SKULL) },
+  { k: 'E', t: 'One word', p: 'Engraved caps, ash grey. Any single word works here.', cap: rule('<span class="word">Ashes</span>') },
+];
+
+document.getElementById('grid').innerHTML = OPTS.map(o => `
+  <div class="opt">
+    <h2 class="engraved"><b>${o.k}</b>${o.t}</h2>
+    <p>${o.p}</p>
+    <div class="phone">
+      <div class="scroll">
+        <section class="panel prev"></section>
+        ${LOG.replace('%CLS%', o.cls || '')}
+        ${o.cap}
+        ${o.safe === false ? '<div style="height:12px"></div>' : '<div class="safe"></div>'}
+      </div>
+      <i class="home"></i>
+    </div>
+  </div>`).join('');
+</script>
+</body>
+</html>
