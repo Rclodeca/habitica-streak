@@ -338,7 +338,7 @@ $caps-lg: 0.85rem; // panel and popup titles
   }
 
   .fight-stage .level-number,
-  .fight-stage .boss-name::after,
+  .fight-stage .name-tail::after,
   .fight-stage .name-line::after {
     color: var(--accent-solid);
   }
@@ -369,10 +369,18 @@ $caps-lg: 0.85rem; // panel and popup titles
     height: 3px;
   }
 
+  // Set at its true size, as in the mock, so the boss's chips fit one line
+  // and the hero's keep four.
   .fight-stage .stat-summary {
+    font-size: 0.8125rem;
+    font-size-adjust: none;
     text-shadow:
       0 0 8px #000,
       0 1px 2px #000;
+  }
+
+  .fight-stage .stat-summary > span {
+    gap: 3px;
   }
 
   // Held, or focused from the keyboard: the figure brightens, its platform
