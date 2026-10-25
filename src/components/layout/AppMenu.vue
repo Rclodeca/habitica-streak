@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { Check, Menu, Trophy } from 'lucide-vue-next';
+import { Check, Menu, Pencil, Trophy } from 'lucide-vue-next';
+import { useHabitStore } from '../../store/habitStore';
 import { THEMES, useThemeStore } from '../../store/themeStore';
 import type { Theme } from '../../store/themeStore';
+import Modal from '../ui/Modal.vue';
 
 // Top-right menu: High Scores and the theme picker. Picking a theme keeps the
 // menu open so themes can be flipped back and forth; anything else, a tap
@@ -20,6 +22,22 @@ function openHighScores() {
 
 function pickTheme(theme: Theme) {
   themeStore.setTheme(theme);
+}
+
+// Temporary dev tool: rename habits in place. Each name saves when its field
+// loses focus; a blank one is ignored.
+const habitStore = useHabitStore();
+const renaming = ref(false);
+
+function openRename() {
+  open.value = false;
+  renaming.value = true;
+}
+
+function renameHabit(id: string, event: Event) {
+  const name = (event.target as HTMLInputElement).value.trim();
+  const habit = habitStore.habits.find((h) => h.id === id);
+  if (habit && name && name !== habit.name) habitStore.updateHabit({ ...habit, name });
 }
 
 function closeOnOutsideTap(event: Event) {
@@ -47,6 +65,7 @@ onBeforeUnmount(() => {
     </button>
     <div v-if="open" class="menu-panel" role="menu">
       <button type="button" class="menu-item" role="menuitem" @click="openHighScores"><Trophy :size="15" />High Scores</button>
+      <button type="button" class="menu-item" role="menuitem" @click="openRename"><Pencil :size="15" />Rename habits</button>
       <div class="menu-divider" role="separator" />
       <span class="menu-label">Theme</span>
       <button
@@ -61,12 +80,35 @@ onBeforeUnmount(() => {
         <Check :size="15" class="tick" :class="{ on: themeStore.theme === option.id }" />{{ option.label }}
       </button>
     </div>
+
+    <Modal v-model="renaming" title="Rename habits" max-width="420px">
+      <p v-if="!habitStore.habits.length">No habits yet.</p>
+      <input
+        v-for="habit in habitStore.habits"
+        :key="habit.id"
+        class="rename-field"
+        type="text"
+        :value="habit.name"
+        :aria-label="`Rename ${habit.name}`"
+        @change="renameHabit(habit.id, $event)"
+      />
+    </Modal>
   </div>
 </template>
 
 <style scoped>
 .app-menu {
   position: relative;
+}
+
+.rename-field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 0.5rem;
+  padding: 0 0.6rem;
+  font: inherit;
 }
 
 .menu-button {
