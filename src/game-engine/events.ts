@@ -30,7 +30,7 @@ export const EVENT_DEFS: readonly EventDef[] = [
   {
     id: 'side-quest',
     title: 'Side quest',
-    description: 'Something rare awaits.',
+    description: 'Earn a rare and powerful item.',
     minLevel: 1,
     oneTime: false,
     isEligible: (character, _habits, quests) => availableRelics(character, quests).length > 0,

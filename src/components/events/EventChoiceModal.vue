@@ -34,7 +34,6 @@ const GAIN_STATS = ['health', 'physicalDamage', 'magicDamage', 'trueDamage', 'he
 const statGains = computed(() =>
   GAIN_STATS.map((stat) => ({ stat, amount: Math.round(levelUp.value?.statDeltas[stat] ?? 0) })).filter((gain) => gain.amount > 0),
 );
-const healed = computed(() => Math.round(levelUp.value?.healthRestored ?? 0));
 
 watchEffect(ensureChoices);
 
@@ -88,8 +87,7 @@ function onPick(id: EventId) {
     <template v-else>
     <template v-if="step === 'choose'">
       <div class="level-emblem"><span class="level-emblem-number">{{ level }}</span></div>
-      <p v-if="healed > 0 || statGains.length" class="gains">
-        <span v-if="healed > 0" class="gain-heal">+{{ healed }} HP</span>
+      <p v-if="statGains.length" class="gains">
         <span v-for="gain in statGains" :key="gain.stat"><StatIcon :name="BOOST_STAT_ICON[gain.stat]" />+{{ gain.amount }}</span>
       </p>
     </template>
@@ -97,10 +95,11 @@ function onPick(id: EventId) {
 
     <div v-if="step === 'choose'" class="cards">
       <button v-for="event in choices" :key="event.id" type="button" class="card" @click="onPick(event.id)">
-        <StatIcon :name="EVENT_ICON[event.id]" :size="34" class="icon" />
-        <strong class="card-title">{{ event.title }}</strong>
-        <span v-if="event.description" class="card-desc">{{ event.description }}</span>
-        <span v-if="event.oneTime" class="badge">One-time</span>
+        <StatIcon :name="EVENT_ICON[event.id]" :size="22" class="icon" />
+        <span class="card-text">
+          <strong class="card-title">{{ event.title }}</strong>
+          <span v-if="event.description" class="card-desc">{{ event.description }}</span>
+        </span>
       </button>
     </div>
 
@@ -172,10 +171,6 @@ function onPick(id: EventId) {
   gap: 0.25rem;
 }
 
-.gain-heal {
-  color: var(--dmg-healing);
-}
-
 @keyframes emblem-in {
   0% {
     opacity: 0;
@@ -196,33 +191,34 @@ function onPick(id: EventId) {
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card {
   position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1.25rem 0.75rem 1rem;
-  text-align: center;
+  gap: 0.75rem;
+  min-height: 64px;
+  padding: 0.75rem 0.9rem;
+  text-align: left;
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
-  transition: transform 0.15s, border-color 0.15s, background-color 0.15s;
+  transition: border-color 0.15s, background-color 0.15s;
 }
 
 .card:hover,
 .card:focus-visible {
-  transform: translateY(-3px);
   border-color: var(--accent);
   background: var(--accent-bg);
 }
 
-.icon {
-  margin-bottom: 0.15rem;
+.card-text {
+  display: grid;
+  justify-items: start;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .card-title {
@@ -234,17 +230,6 @@ function onPick(id: EventId) {
   color: var(--text);
   font-size: 0.85rem;
   line-height: 1.4;
-}
-
-.badge {
-  margin-top: auto;
-  padding: 0.1rem 0.5rem;
-  border: 1px solid var(--accent-border);
-  border-radius: 999px;
-  color: var(--accent);
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .habit-group {
