@@ -48,7 +48,7 @@ describe('BossPanel', () => {
 
   it('turns the bosses drawn facing right to face the hero, and leaves the rest as drawn', async () => {
     const store = useBossStore();
-    store.boss = { ...store.boss, personality: 'brute' };
+    store.boss = { ...store.boss, personality: 'brute4x' };
     const wrapper = mount(BossPanel);
     expect(wrapper.find('.boss-figure').classes()).toContain('mirrored');
 

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — boss facing</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Each boss as the app shows it right now: bosses flagged in BOSS_FACING_RIGHT
+   (bossSprites.ts) are turned, the rest are as drawn. The hero stands on the
+   left of the stage, so a boss should face left. Generated from the source. */
+:root { --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5; --gold: #c8a96e; --gold-hi: #e6cf9a; --blood: #c8402f; --line: rgba(200,169,110,.2); --fog: rgb(15, 14, 11); }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 24px 16px 60px; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+.page { max-width: 1100px; margin: 0 auto; }
+h1 { margin: 0 0 4px; text-align: center; font: 600 14px/1 'Cinzel', Georgia, serif; letter-spacing: .32em; text-transform: uppercase; color: var(--gold-hi); }
+.sub { text-align: center; font-style: italic; color: var(--text); max-width: 680px; margin: 6px auto 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.card { border: 1px solid rgba(200,64,47,.45); background: linear-gradient(180deg, rgba(27,24,21,.97), rgba(14,13,11,.99)); }
+.stage { position: relative; height: 226px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+  background: radial-gradient(ellipse 55% 58% at 50% 60%, rgba(215,205,185,.17), transparent 72%), radial-gradient(ellipse 85% 32% at 50% 100%, rgba(224,120,58,.2), transparent 70%); }
+.stage::after { content: ''; position: absolute; inset: auto 0 0; height: 30%; z-index: 2; background: linear-gradient(0deg, var(--fog) 18%, transparent); }
+.stage img { position: relative; z-index: 1; width: 200px; height: 200px; margin-bottom: 6px; image-rendering: pixelated; margin-left: 40px;
+  filter: drop-shadow(2px 0 0 #2a120c) drop-shadow(-2px 0 0 #2a120c) drop-shadow(0 2px 0 #2a120c) drop-shadow(0 -2px 0 #2a120c); }
+.stage img.turned { scale: -1 1; }
+.hero { position: absolute; z-index: 3; left: 10px; bottom: 34px; padding: 4px 8px; border: 1px dashed var(--gold); color: var(--gold-hi); font: 600 10px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; }
+.hero::before { content: '◄ '; }
+.info { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: -30px; padding: 0 14px 14px; text-align: center; }
+h3 { margin: 0; font: 600 15px/1.2 'Cinzel', serif; letter-spacing: .12em; text-transform: uppercase; color: var(--text-h); text-shadow: 0 0 6px #000, 0 0 12px #000; }
+.key { margin: 0; font-size: 14px; color: var(--text); }
+.tag { margin: 4px 0 0; padding: 3px 8px; border: 1px solid var(--line); font: 600 10px/1 'Cinzel', serif; letter-spacing: .14em; text-transform: uppercase; color: var(--text); }
+.tag.on { color: var(--gold-hi); border-color: var(--gold); }
+</style>
+</head>
+<body>
+  <div class="page">
+    <h1>Boss facing</h1>
+    <p class="sub">The hero stands on the left. Each boss is shown the way the app shows it now &mdash; tell me which ones are looking the wrong way.</p>
+    <div class="grid">
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/balanced.png" alt=""></div>
+      <div class="info"><h3>1. Drifter</h3><p class="key">balanced</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/tank.png" alt=""></div>
+      <div class="info"><h3>2. Colossus</h3><p class="key">tank</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="turned" src="../../public/sprites/bosses/armored.png" alt=""></div>
+      <div class="info"><h3>3. Iron Guardian</h3><p class="key">armored</p><p class="tag on">turned in the app</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/armored3x.png" alt=""></div>
+      <div class="info"><h3>4. Steel Bulwark</h3><p class="key">armored3x</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/armored4x.png" alt=""></div>
+      <div class="info"><h3>5. Adamant Bastion</h3><p class="key">armored4x</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/armored5x.png" alt=""></div>
+      <div class="info"><h3>6. Mythic Juggernaut</h3><p class="key">armored5x</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="turned" src="../../public/sprites/bosses/warded.png" alt=""></div>
+      <div class="info"><h3>7. Arcane Warden</h3><p class="key">warded</p><p class="tag on">turned in the app</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/warded3x.png" alt=""></div>
+      <div class="info"><h3>8. Frost Sentinel</h3><p class="key">warded3x</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="turned" src="../../public/sprites/bosses/warded4x.png" alt=""></div>
+      <div class="info"><h3>9. Spectral Aegis</h3><p class="key">warded4x</p><p class="tag on">turned in the app</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/warded5x.png" alt=""></div>
+      <div class="info"><h3>10. Ethereal Sovereign</h3><p class="key">warded5x</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/brute.png" alt=""></div>
+      <div class="info"><h3>11. Savage Brute</h3><p class="key">brute</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/brute3x.png" alt=""></div>
+      <div class="info"><h3>12. Raging Berserker</h3><p class="key">brute3x</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="turned" src="../../public/sprites/bosses/brute4x.png" alt=""></div>
+      <div class="info"><h3>13. Bloodfang Marauder</h3><p class="key">brute4x</p><p class="tag on">turned in the app</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/brute5x.png" alt=""></div>
+      <div class="info"><h3>14. Apex Destroyer</h3><p class="key">brute5x</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="turned" src="../../public/sprites/bosses/arcane.png" alt=""></div>
+      <div class="info"><h3>15. Arcane Adept</h3><p class="key">arcane</p><p class="tag on">turned in the app</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="" src="../../public/sprites/bosses/arcane3x.png" alt=""></div>
+      <div class="info"><h3>16. Spellweaver</h3><p class="key">arcane3x</p><p class="tag ">shown as drawn</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="turned" src="../../public/sprites/bosses/arcane4x.png" alt=""></div>
+      <div class="info"><h3>17. Eldritch Harbinger</h3><p class="key">arcane4x</p><p class="tag on">turned in the app</p></div>
+    </div>
+    <div class="card">
+      <div class="stage"><span class="hero">hero</span><img class="turned" src="../../public/sprites/bosses/arcane5x.png" alt=""></div>
+      <div class="info"><h3>18. Voidcaller</h3><p class="key">arcane5x</p><p class="tag on">turned in the app</p></div>
+    </div>
+    </div>
+  </div>
+</body>
+</html>
