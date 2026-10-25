@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — boss catalog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Every boss personality with its current art, on the boss panel's stage:
+   2x2 pixels, ember rim, name on the fog. The odds are the chance a new boss
+   rolls that personality. Generated from the boss tables, so regenerate it
+   when they change. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5; --gold: #c8a96e; --gold-hi: #e6cf9a; --blood: #c8402f;
+  --line: rgba(200,169,110,.2); --line-mid: rgba(200,169,110,.4); --fog: rgb(15, 14, 11);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 24px 16px 60px; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+.page { max-width: 1400px; margin: 0 auto; }
+h1 { margin: 0 0 4px; text-align: center; font: 600 14px/1 'Cinzel', Georgia, serif; letter-spacing: .32em; text-transform: uppercase; color: var(--gold-hi); }
+.sub { text-align: center; font-style: italic; color: var(--text); max-width: 680px; margin: 6px auto 0; }
+h2 { display: flex; align-items: baseline; gap: 10px; margin: 30px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); font: 600 12px/1 'Cinzel', Georgia, serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text-h); }
+h2 small { font: italic 500 15px/1 'Cormorant Garamond', Georgia, serif; letter-spacing: 0; text-transform: none; color: var(--text); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+
+.card { position: relative; overflow: hidden; border: 1px solid color-mix(in srgb, var(--blood) 45%, transparent); background: linear-gradient(180deg, rgba(27,24,21,.97), rgba(14,13,11,.99)); box-shadow: 0 0 18px -8px var(--blood); }
+.card::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .8; z-index: 4;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat; }
+
+/* The stage: fog glow, ember glow at the feet, a few embers, the fog band. */
+.stage { position: relative; height: 226px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+  background:
+    radial-gradient(1.6px 1.6px at 18% 30%, #ffb06a 50%, transparent 55%),
+    radial-gradient(1.2px 1.2px at 30% 64%, #ffd08f 50%, transparent 55%),
+    radial-gradient(1.8px 1.8px at 74% 30%, #ff9a52 50%, transparent 55%),
+    radial-gradient(1.2px 1.2px at 86% 58%, #ffd59a 50%, transparent 55%),
+    radial-gradient(1.3px 1.3px at 55% 12%, #ffcf8a 50%, transparent 55%),
+    radial-gradient(ellipse 55% 58% at 50% 60%, rgba(215,205,185,.17), transparent 72%),
+    radial-gradient(ellipse 85% 32% at 50% 100%, rgba(224,120,58,.2), transparent 70%); }
+.stage::after { content: ''; position: absolute; inset: auto 0 0; height: 45%; z-index: 2; background: linear-gradient(0deg, var(--fog) 18%, transparent); }
+.stage img { position: relative; z-index: 1; width: 200px; height: 200px; margin-bottom: 6px; image-rendering: pixelated;
+  filter: drop-shadow(2px 0 0 #2a120c) drop-shadow(-2px 0 0 #2a120c) drop-shadow(0 2px 0 #2a120c) drop-shadow(0 -2px 0 #2a120c) drop-shadow(0 0 12px rgba(224,120,58,.35)) brightness(1.06); }
+
+.info { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: -44px; padding: 0 14px 14px; text-align: center; }
+h3 { margin: 0; font: 600 15px/1.2 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--text-h); text-shadow: 0 0 6px #000, 0 0 12px #000; }
+.emph { margin: 4px 0 0; font-size: 16px; color: var(--text); }
+.emph b { font-weight: 700; color: var(--text-h); }
+.odds { display: flex; justify-content: center; gap: 6px; margin: 8px 0 0; }
+.odds div { min-width: 76px; padding: 5px 8px; background: rgba(0,0,0,.3); border: 1px solid var(--line); }
+.odds dt { font: 600 9px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--text); }
+.odds dd { margin: 4px 0 0; font: 500 16px/1 'Cinzel', serif; color: var(--text-h); }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Boss catalog</h1>
+<p class="sub">18 personalities. Odds are the chance a new boss rolls each one; the rare tiers grow more common until every personality is equally likely from boss 50. Crit, reflect, lifesteal and wounds roll separately for every boss.</p>
+<section><h2>Balanced and tank <small>2 · no tiers</small></h2><div class="grid"><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/balanced.png" alt=""></div>
+    <div class="info">
+      <h3>Drifter</h3>
+      <p class="emph">No emphasized stat</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>14.3%</dd></div><div><dt>Boss 25</dt><dd>8.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/tank.png" alt=""></div>
+    <div class="info">
+      <h3>Colossus</h3>
+      <p class="emph"><b>×1.5</b> health</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>14.3%</dd></div><div><dt>Boss 25</dt><dd>8.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article></div></section><section><h2>Armor <small>4 · blunts physical habits</small></h2><div class="grid"><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/armored.png" alt=""></div>
+    <div class="info">
+      <h3>Iron Guardian</h3>
+      <p class="emph"><b>Tier 2</b> armor · up to 55% less physical damage taken</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>14.3%</dd></div><div><dt>Boss 25</dt><dd>8.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/armored3x.png" alt=""></div>
+    <div class="info">
+      <h3>Steel Bulwark</h3>
+      <p class="emph"><b>Tier 3</b> armor · up to 70% less physical damage taken</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>2.9%</dd></div><div><dt>Boss 25</dt><dd>4.8%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/armored4x.png" alt=""></div>
+    <div class="info">
+      <h3>Adamant Bastion</h3>
+      <p class="emph"><b>Tier 4</b> armor · up to 82% less physical damage taken</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>0.57%</dd></div><div><dt>Boss 25</dt><dd>4.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/armored5x.png" alt=""></div>
+    <div class="info">
+      <h3>Mythic Juggernaut</h3>
+      <p class="emph"><b>Tier 5</b> armor · up to 90% less physical damage taken</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>0.11%</dd></div><div><dt>Boss 25</dt><dd>4%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article></div></section><section><h2>Magic resist <small>4 · blunts magic habits</small></h2><div class="grid"><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/warded.png" alt=""></div>
+    <div class="info">
+      <h3>Arcane Warden</h3>
+      <p class="emph"><b>Tier 2</b> magic resist · up to 55% less magic damage taken</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>14.3%</dd></div><div><dt>Boss 25</dt><dd>8.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/warded3x.png" alt=""></div>
+    <div class="info">
+      <h3>Frost Sentinel</h3>
+      <p class="emph"><b>Tier 3</b> magic resist · up to 70% less magic damage taken</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>2.9%</dd></div><div><dt>Boss 25</dt><dd>4.8%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/warded4x.png" alt=""></div>
+    <div class="info">
+      <h3>Spectral Aegis</h3>
+      <p class="emph"><b>Tier 4</b> magic resist · up to 82% less magic damage taken</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>0.57%</dd></div><div><dt>Boss 25</dt><dd>4.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/warded5x.png" alt=""></div>
+    <div class="info">
+      <h3>Ethereal Sovereign</h3>
+      <p class="emph"><b>Tier 5</b> magic resist · up to 90% less magic damage taken</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>0.11%</dd></div><div><dt>Boss 25</dt><dd>4%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article></div></section><section><h2>Physical attack <small>4 · hits hard on a miss</small></h2><div class="grid"><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/brute.png" alt=""></div>
+    <div class="info">
+      <h3>Savage Brute</h3>
+      <p class="emph"><b>×2</b> physical attack</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>14.3%</dd></div><div><dt>Boss 25</dt><dd>8.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/brute3x.png" alt=""></div>
+    <div class="info">
+      <h3>Raging Berserker</h3>
+      <p class="emph"><b>×3</b> physical attack</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>2.9%</dd></div><div><dt>Boss 25</dt><dd>4.8%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/brute4x.png" alt=""></div>
+    <div class="info">
+      <h3>Bloodfang Marauder</h3>
+      <p class="emph"><b>×4</b> physical attack</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>0.57%</dd></div><div><dt>Boss 25</dt><dd>4.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/brute5x.png" alt=""></div>
+    <div class="info">
+      <h3>Apex Destroyer</h3>
+      <p class="emph"><b>×5</b> physical attack</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>0.11%</dd></div><div><dt>Boss 25</dt><dd>4%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article></div></section><section><h2>Magic attack <small>4 · hits hard on a miss</small></h2><div class="grid"><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/arcane.png" alt=""></div>
+    <div class="info">
+      <h3>Arcane Adept</h3>
+      <p class="emph"><b>×2</b> magic attack</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>14.3%</dd></div><div><dt>Boss 25</dt><dd>8.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/arcane3x.png" alt=""></div>
+    <div class="info">
+      <h3>Spellweaver</h3>
+      <p class="emph"><b>×3</b> magic attack</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>2.9%</dd></div><div><dt>Boss 25</dt><dd>4.8%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/arcane4x.png" alt=""></div>
+    <div class="info">
+      <h3>Eldritch Harbinger</h3>
+      <p class="emph"><b>×4</b> magic attack</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>0.57%</dd></div><div><dt>Boss 25</dt><dd>4.1%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article><article class="card">
+    <div class="stage"><img src="../../public/sprites/bosses/arcane5x.png" alt=""></div>
+    <div class="info">
+      <h3>Voidcaller</h3>
+      <p class="emph"><b>×5</b> magic attack</p>
+      <dl class="odds"><div><dt>Boss 1</dt><dd>0.11%</dd></div><div><dt>Boss 25</dt><dd>4%</dd></div><div><dt>Boss 50+</dt><dd>5.6%</dd></div></dl>
+    </div>
+  </article></div></section>
+</div>
+</body>
+</html>
