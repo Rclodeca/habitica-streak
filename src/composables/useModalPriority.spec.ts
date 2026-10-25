@@ -130,10 +130,10 @@ describe('useModalPriority', () => {
   describe('questUnlockVisible', () => {
     function reachUnlockLevel() {
       const characterStore = useCharacterStore();
-      characterStore.setCharacter({ ...characterStore.character, level: 2, questsUnlocked: false, pendingEventPicks: 1 });
+      characterStore.setCharacter({ ...characterStore.character, level: 3, questsUnlocked: false, pendingEventPicks: 1 });
     }
 
-    it('shows on reaching level 2, ahead of the level-up pick', () => {
+    it('shows on reaching level 3, ahead of the level-up pick', () => {
       reachUnlockLevel();
       const { questUnlockVisible, eventChoiceVisible } = useModalPriority();
       expect(questUnlockVisible.value).toBe(true);

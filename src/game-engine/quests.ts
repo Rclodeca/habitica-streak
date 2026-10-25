@@ -6,7 +6,7 @@ import type { Rng } from './rng';
 import type { Boss, Character, Difficulty, Quest, QuestKind, QuestWeek } from './types';
 
 /** The player level at which the quests section opens, each run. */
-export const QUESTS_UNLOCK_LEVEL = 2;
+export const QUESTS_UNLOCK_LEVEL = 3;
 
 /** Whether the quests section is open: unlocked this run, or at the unlock level with its popup up. */
 export function questsOpen(character: Character): boolean {
@@ -24,8 +24,8 @@ export function unlockQuests(character: Character): Character {
 }
 
 /**
- * Settles `questsUnlocked` on a save from before the level-2 lock: a hero
- * already past level 1, or holding quests, was already using them, so they
+ * Settles `questsUnlocked` on a save from before the quest lock: a hero
+ * already at the unlock level, or holding quests, was already using them, so they
  * stay open with no popup. Anyone else is sealed like any new run.
  */
 export function migrateQuestUnlock(character: Character, hasQuests: boolean): Character {

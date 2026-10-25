@@ -410,7 +410,7 @@ export function useCombatActions() {
       // reads this to say who fell where.
       recordFallen({ name: character.name ?? DEFAULT_HERO_NAME, bossIndex: bossIndexAtDeath });
       // Quests survive a death; if any carried over, the new run starts with
-      // them open (and never shows the level-2 "Quests unlocked" popup).
+      // them open (and never shows the level-3 "Quests unlocked" popup).
       characterStore.setCharacter(questStore.quests.length > 0 ? unlockQuests(deathResult.character) : deathResult.character);
       bossStore.setBoss(deathResult.boss);
       habitStore.setHabits(deathResult.habits);
