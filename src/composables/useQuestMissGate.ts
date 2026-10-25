@@ -48,6 +48,8 @@ export function useQuestMissGate() {
 
   /** Records an overdue quest for the popup. */
   function queueMiss(quest: Quest): void {
+    // The rollover can run again while the popup is still up; a quest stays overdue until acknowledged.
+    if (pending.value.some((item) => item.questId === quest.id)) return;
     pending.value.push({
       questId: quest.id,
       description: quest.description,

@@ -388,3 +388,54 @@ describe('useDailyRollover — set days', () => {
     expect(useMissedSkillsGate().misses.value).toHaveLength(0);
   });
 });
+
+describe('useDailyRollover — run again before the popup is acknowledged', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  afterEach(() => {
+    useMissedSkillsGate().acknowledge();
+    useQuestMissGate().acknowledge();
+  });
+
+  it('queues a missed habit only once', () => {
+    const habitStore = useHabitStore();
+    useBossStore();
+    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', false, createRng());
+    const now = new Date();
+    const yesterdayKey = periodKeyFor('daily', new Date(now.getTime() - 24 * 60 * 60 * 1000));
+    habitStore.updateHabit({ ...habit, lastCheckedPeriodKey: yesterdayKey, lastCompletedPeriodKey: null });
+
+    useDailyRollover(now);
+    useDailyRollover(now);
+
+    expect(useMissedSkillsGate().misses.value).toHaveLength(1);
+  });
+
+  it('queues an avoided bad habit only once', () => {
+    const habitStore = useHabitStore();
+    useBossStore();
+    const habit = habitStore.addHabit('Doomscroll', 'daily', 'medium', true, createRng());
+    const now = new Date();
+    const yesterdayKey = periodKeyFor('daily', new Date(now.getTime() - 24 * 60 * 60 * 1000));
+    habitStore.updateHabit({ ...habit, lastCheckedPeriodKey: yesterdayKey, lastCompletedPeriodKey: null });
+
+    useDailyRollover(now);
+    useDailyRollover(now);
+
+    expect(useMissedSkillsGate().rewards.value).toHaveLength(1);
+  });
+
+  it('queues an overdue quest only once', () => {
+    const questStore = useQuestStore();
+    const now = new Date();
+    const yesterday = dailyPeriodKey(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+    questStore.addQuest('Clean garage', 'medium', yesterday);
+
+    useDailyRollover(now);
+    useDailyRollover(now);
+
+    expect(useQuestMissGate().misses.value).toHaveLength(1);
+  });
+});

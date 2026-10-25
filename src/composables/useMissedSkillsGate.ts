@@ -65,8 +65,14 @@ export function useMissedSkillsGate() {
     overridden.value = next;
   }
 
+  /** Whether `habitId` is already queued — the rollover can run again while its popup is still up, and a habit isn't stamped until acknowledged. */
+  function isPending(habitId: string): boolean {
+    return pending.value.some((item) => item.habitId === habitId);
+  }
+
   /** Records a good-habit miss for `habit`, stamping `periodKeyToStamp` once acknowledged. */
   function queueMiss(habit: Habit, periodKeyToStamp: string) {
+    if (isPending(habit.id)) return;
     pending.value.push({
       habitId: habit.id,
       habitName: habit.name,
@@ -79,6 +85,7 @@ export function useMissedSkillsGate() {
 
   /** Records a bad-habit avoidance reward for `habit`, stamping `periodKeyToStamp` once acknowledged. */
   function queueReward(habit: Habit, periodKeyToStamp: string) {
+    if (isPending(habit.id)) return;
     pending.value.push({
       habitId: habit.id,
       habitName: habit.name,
