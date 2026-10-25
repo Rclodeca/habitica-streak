@@ -59,7 +59,7 @@ const nameTail = computed(() => props.habit.name.slice(nameHead.value.length));
 
 function onCheckOff() {
   const result = checkOffHabit(props.habit.id);
-  if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
+  if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped, result.droppedBy);
 }
 
 // Tapping a haloed check overdrives the skill. Cancelling the click keeps
@@ -68,7 +68,7 @@ function onCheckClick(event: MouseEvent) {
   if (!canOverdrive.value) return;
   event.preventDefault();
   const result = activateOverdrive(props.habit.id);
-  if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
+  if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped, result.droppedBy);
 }
 </script>
 

@@ -10,6 +10,9 @@
 // to swap it in. Processing one item at a time (rather than checking room
 // once for the whole batch) is what lets a multi-item drop fill any
 // remaining slots before the forced-choice popup ever appears.
+//
+// A boss kill's drops carry the boss's name (`droppedBy`) so the popup can
+// say where they came from; event, quest and backfilled drops have none.
 
 import { computed, ref } from 'vue';
 import { maxEquipSlots } from '../game-engine';
@@ -17,7 +20,7 @@ import type { ItemDef } from '../game-engine';
 import { useCharacterStore } from '../store/characterStore';
 import { useDeathScreen } from './useDeathScreen';
 
-const queue = ref<ItemDef[]>([]);
+const queue = ref<{ item: ItemDef; droppedBy?: string }[]>([]);
 
 export function useItemDropQueue() {
   const characterStore = useCharacterStore();
@@ -26,7 +29,8 @@ export function useItemDropQueue() {
   // Hidden while the death screen is up: a boss kill and a death can land in
   // the same pass, and the drop popup would otherwise paint over the death
   // screen. The run is over, so `clear()` (called on restart) discards them.
-  const current = computed<ItemDef | null>(() => (isDead.value ? null : queue.value[0] ?? null));
+  const current = computed<ItemDef | null>(() => (isDead.value ? null : queue.value[0]?.item ?? null));
+  const droppedBy = computed<string | null>(() => (isDead.value ? null : queue.value[0]?.droppedBy ?? null));
   const isFull = computed(() => characterStore.character.equippedItemIds.length >= maxEquipSlots(characterStore.character));
 
   function processFront() {
@@ -36,8 +40,8 @@ export function useItemDropQueue() {
     }
   }
 
-  function enqueueDrops(items: ItemDef[]) {
-    queue.value.push(...items);
+  function enqueueDrops(items: ItemDef[], droppedBy?: string) {
+    queue.value.push(...items.map((item) => ({ item, droppedBy })));
     processFront();
   }
 
@@ -65,5 +69,5 @@ export function useItemDropQueue() {
     queue.value = [];
   }
 
-  return { current, isFull, enqueueDrops, dismiss, replace, clear };
+  return { current, droppedBy, isFull, enqueueDrops, dismiss, replace, clear };
 }

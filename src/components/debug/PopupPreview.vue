@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { createHabit, createQuest, createRng } from '../../game-engine';
+import { useCelebration } from '../../composables/useCelebration';
 import { useDeathScreen } from '../../composables/useDeathScreen';
 import { useMissedSkillsGate } from '../../composables/useMissedSkillsGate';
 import { useQuestCompleteQueue } from '../../composables/useQuestCompleteQueue';
 import { useQuestMissGate } from '../../composables/useQuestMissGate';
+import { useBossStore } from '../../store/bossStore';
+import { useCharacterStore } from '../../store/characterStore';
 
 const { enqueue } = useQuestCompleteQueue();
 const { queueMiss } = useQuestMissGate();
 const missedSkills = useMissedSkillsGate();
 const { triggerDeath } = useDeathScreen();
+const { celebrateBossKill, celebrateLevelUp } = useCelebration();
+const bossStore = useBossStore();
+const characterStore = useCharacterStore();
 
 // Fake quests/habits never enter their stores, so acknowledging a preview is
 // a no-op (the resolvers all bail on an unknown id).
@@ -20,6 +26,13 @@ function previewComplete() {
 function previewMiss() {
   queueMiss(createQuest('Clean the garage', 'hard', '2026-01-01'));
   queueMiss(createQuest('File the taxes', 'easy', '2026-01-02'));
+}
+
+// Plays the current boss's death and its own return, then the hero's last
+// level-up again; neither store changes.
+function previewKill() {
+  celebrateBossKill({ ...bossStore.boss, health: 0 }, bossStore.boss);
+  celebrateLevelUp(Math.max(1, characterStore.character.level - 1));
 }
 
 function previewDaily() {
@@ -36,6 +49,7 @@ function previewDaily() {
     <button type="button" @click="previewDaily">Preview daily update (testing)</button>
     <button type="button" @click="previewMiss">Preview quest failed (testing)</button>
     <button type="button" @click="triggerDeath">Preview death screen (testing)</button>
+    <button type="button" @click="previewKill">Preview boss kill (testing)</button>
   </div>
 </template>
 

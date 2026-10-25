@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
+import {
+  bossMissDamage,
+  damageReductionPct,
+  effectiveResistAfterPen,
+  effectiveStat,
+  heroClassFor,
+  itemBonusPercent,
+  PERSONALITY_NAME,
+} from '../../game-engine';
 import type { Personality } from '../../game-engine';
+import { useCelebration } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useScrolledPast } from '../../composables/useScrolledPast';
 import { useBossStore } from '../../store/bossStore';
@@ -41,12 +50,18 @@ const PERSONALITY_SPRITE: Record<Personality, string> = {
 const bossStore = useBossStore();
 const characterStore = useCharacterStore();
 
-const boss = computed(() => bossStore.boss);
+// While a kill plays out, the slain boss stays on the stage (at 0 HP, so the
+// killing blow's hit still shows) until the next one rises in its place.
+const { phase, displayedBoss, heldLevel } = useCelebration();
+const boss = computed(() => displayedBoss.value ?? bossStore.boss);
 
-const { popups, isHit } = useDamagePopup(() => bossStore.boss.health);
+const { popups, isHit } = useDamagePopup(() => boss.value.health);
 
 // On phones the panel scrolls away with the page, and BossBar drops in once
-// it's gone.
+// it's gone, carrying the hero's HP and level too (the level held back like
+// the hero panel's until a level-up's beat plays).
+const hero = computed(() => characterStore.character);
+const heroLevel = computed(() => heldLevel.value ?? hero.value.level);
 const panel = ref<HTMLElement | null>(null);
 const bar = ref<InstanceType<typeof BossBar> | null>(null);
 const scrolledPast = useScrolledPast(panel, () => (bar.value?.$el as HTMLElement | undefined)?.offsetHeight ?? 0);
@@ -105,12 +120,20 @@ const statTiles = computed<StatTile[]>(() => {
   <section ref="panel" class="panel boss-panel">
     <button type="button" class="summary-row" @click="showDetails = true">
       <div class="stage-wrap">
-        <div class="sprite-wrapper" :class="{ hit: isHit }">
+        <div class="sprite-wrapper" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
           <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
+          <template v-if="phase === 'dying'">
+            <span class="death-flash" aria-hidden="true" />
+            <span class="death-sparks" aria-hidden="true" />
+          </template>
         </div>
         <!-- Outside the stage so its clipping never cuts off a hit. -->
         <div class="hit-layer" aria-hidden="true">
           <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
+        </div>
+        <div v-if="phase === 'dying'" class="slain-stamp" role="status">
+          <strong class="slain-word">Slain</strong>
+          <span class="slain-name">{{ PERSONALITY_NAME[boss.personality] }}</span>
         </div>
       </div>
       <div class="summary-info">
@@ -136,7 +159,12 @@ const statTiles = computed<StatTile[]>(() => {
         :name="PERSONALITY_NAME[boss.personality]"
         :current="boss.health"
         :max="boss.maxHealth"
+        :hero-class="heroClassFor(hero)"
+        :hero-current="hero.currentHealth"
+        :hero-max="effectiveStat(hero, 'health')"
+        :hero-level="heroLevel"
         :shown="scrolledPast"
+        :phase="phase"
         @open="showDetails = true"
       />
     </Teleport>
@@ -424,6 +452,169 @@ const statTiles = computed<StatTile[]>(() => {
     0 1px 3px rgba(0, 0, 0, 0.8);
   pointer-events: none;
   animation: damage-float-fade 1.2s ease-out forwards;
+}
+
+/* ---------- A kill: flash, fall into the fog, "Slain" ---------- */
+
+.sprite-wrapper.dying :deep(.sprite) {
+  transform-origin: 50% 100%;
+  animation: boss-fall 1.1s cubic-bezier(0.5, 0, 0.8, 0.4) both;
+}
+
+.sprite-wrapper.arriving :deep(.sprite) {
+  animation: boss-arrive 0.8s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.death-flash {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse 50% 60% at 50% 60%, rgba(255, 240, 210, 0.85), transparent 70%);
+  animation: death-flash 0.45s ease-out;
+}
+
+.death-sparks {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  --spark: var(--accent);
+  background-image:
+    radial-gradient(2px 2px at 40% 80%, var(--spark) 50%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 52% 70%, var(--spark) 50%, transparent 55%),
+    radial-gradient(2px 2px at 60% 85%, var(--spark) 50%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 46% 60%, var(--spark) 50%, transparent 55%),
+    radial-gradient(1.8px 1.8px at 56% 55%, var(--spark) 50%, transparent 55%),
+    radial-gradient(1.2px 1.2px at 35% 66%, var(--spark) 50%, transparent 55%),
+    radial-gradient(1.6px 1.6px at 65% 62%, var(--spark) 50%, transparent 55%);
+  animation: death-sparks 1.6s ease-out 0.2s;
+}
+
+/* Over the stage, clear of the name and HP bar on its fog band. */
+.slain-stamp {
+  position: absolute;
+  z-index: 4;
+  inset: 0 0 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  pointer-events: none;
+  animation: slain-stamp 1.9s ease 0.35s both;
+}
+
+.slain-stamp::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 8%;
+  right: 8%;
+  height: 4.5rem;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.75) 20%, rgba(0, 0, 0, 0.75) 80%, transparent);
+}
+
+.slain-word {
+  color: var(--text-h);
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 14px var(--accent),
+    0 2px 0 #000;
+}
+
+.slain-name {
+  color: var(--text);
+  font-size: 0.9rem;
+  text-shadow: 0 1px 6px #000;
+}
+
+/* Staggers, then sinks into the fog. */
+@keyframes boss-fall {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  18% {
+    transform: translateX(-4px) rotate(-3deg);
+  }
+  30% {
+    transform: translateX(3px) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(46px) scaleY(0.7);
+    opacity: 0;
+  }
+}
+
+@keyframes boss-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes death-flash {
+  25% {
+    opacity: 1;
+  }
+}
+
+@keyframes death-sparks {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-90px);
+  }
+}
+
+@keyframes slain-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+  15% {
+    opacity: 1;
+    transform: none;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sprite-wrapper.dying :deep(.sprite) {
+    animation: none;
+    opacity: 0;
+  }
+
+  .sprite-wrapper.arriving :deep(.sprite),
+  .death-flash,
+  .death-sparks,
+  .slain-stamp {
+    animation: none;
+  }
 }
 
 @keyframes sprite-shake {

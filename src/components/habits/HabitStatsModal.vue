@@ -105,7 +105,7 @@ function chargeState(n: number): 'used' | 'ready' | undefined {
 
 function onOverdrive() {
   const result = activateOverdrive(props.habit.id);
-  if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
+  if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped, result.droppedBy);
 }
 
 // Two-tap confirm: the first click just reveals the "really remove?" state,

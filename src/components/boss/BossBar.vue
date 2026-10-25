@@ -1,36 +1,77 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import type { HeroClass } from '../../game-engine';
+import type { CelebrationPhase } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import HealthBar from '../ui/HealthBar.vue';
 import Sprite from '../ui/Sprite.vue';
 
 // Phones only: once the boss panel has scrolled off the top, this bar drops
 // in so every hit stays in view while ticking skills (BossPanel decides when,
-// see useScrolledPast). Just the boss — portrait, name and HP; the hero
-// scrolls away with the page. Desktop keeps the boss in its pinned side column.
+// see useScrolledPast). Laid out like the fight: the hero on the left, HP as
+// a ring around their portrait with the level on it, and the boss taking the
+// rest of the row, its HP draining toward its portrait on the right. Desktop
+// keeps both in the pinned side column.
+// A kill plays here in miniature (see useCelebration): the portrait sinks and
+// "Slain" takes the HP numbers' place, then the next boss rises.
 const props = defineProps<{
   sprite: string;
   name: string;
   current: number;
   max: number;
+  heroClass: HeroClass;
+  heroCurrent: number;
+  heroMax: number;
+  heroLevel: number;
   shown: boolean;
+  phase?: CelebrationPhase;
 }>();
 
 defineEmits<{ open: [] }>();
 
+const baseUrl = import.meta.env.BASE_URL;
+
+// The warrior and cleric art faces left; turned around, they face the boss.
+// The ranger is drawn facing right already.
+const DRAWN_FACING_LEFT: Record<HeroClass, boolean> = { warrior: true, cleric: true, ranger: false };
+
+// Below this share of HP the ring pulses, since it has no numbers to read.
+const LOW_HEALTH_SHARE = 0.25;
+
+const RING_RADIUS = 20;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+
+const heroShare = computed(() => (props.heroMax > 0 ? Math.max(0, Math.min(1, props.heroCurrent / props.heroMax)) : 0));
+const ringOffset = computed(() => RING_LENGTH * (1 - heroShare.value));
+const heroLow = computed(() => heroShare.value < LOW_HEALTH_SHARE);
+
 const { popups, isHit } = useDamagePopup(() => props.current);
+const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCurrent);
 </script>
 
 <template>
   <button type="button" class="boss-bar" :class="{ shown }" :inert="!shown || undefined" @click="$emit('open')">
-    <span class="portrait" :class="{ hit: isHit }">
-      <Sprite :image-name="sprite" alt="" />
+    <span class="ring" :class="{ hit: heroHit, low: heroLow }">
+      <svg class="ring-track" viewBox="0 0 44 44" aria-hidden="true">
+        <circle class="track" cx="22" cy="22" :r="RING_RADIUS" />
+        <circle class="arc" cx="22" cy="22" :r="RING_RADIUS" :stroke-dasharray="RING_LENGTH" :stroke-dashoffset="ringOffset" />
+      </svg>
+      <span class="ring-face" :class="{ mirrored: DRAWN_FACING_LEFT[heroClass] }">
+        <img class="hero" :src="`${baseUrl}sprites/player/${heroClass}.png`" alt="" />
+      </span>
+      <span class="level"><span>{{ heroLevel }}</span></span>
+      <span v-for="popup in heroPopups" :key="popup.id" class="damage-popup" aria-hidden="true">-{{ popup.amount }}</span>
     </span>
     <span class="who">
       <span class="label">
+        <span v-if="phase === 'dying'" class="slain">Slain</span>
+        <span v-else class="numbers">{{ Math.round(current) }} / {{ Math.round(max) }}</span>
         <span class="name">{{ name }}</span>
-        <span class="numbers">{{ Math.round(current) }} / {{ Math.round(max) }}</span>
       </span>
       <HealthBar :current="current" :max="max" variant="boss" />
+    </span>
+    <span class="portrait" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
+      <Sprite :image-name="sprite" alt="" />
     </span>
     <span class="hit-layer" aria-hidden="true">
       <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
@@ -88,6 +129,107 @@ const { popups, isHit } = useDamagePopup(() => props.current);
   animation: bar-shake 0.32s ease;
 }
 
+.portrait.dying :deep(.sprite) {
+  transform-origin: 50% 100%;
+  animation: bar-fall 1.1s cubic-bezier(0.5, 0, 0.8, 0.4) both;
+}
+
+.portrait.arriving :deep(.sprite) {
+  animation: bar-arrive 0.8s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* The hero: a round portrait inside an HP ring that empties clockwise from
+   the top, the same 44px as the boss's portrait so the bar keeps its height. */
+.ring {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+}
+
+.ring-track {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+.ring .track {
+  stroke: var(--border);
+}
+
+.ring .arc {
+  stroke: var(--hp-color);
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.ring.low .arc {
+  animation: ring-low 1.1s ease-in-out infinite;
+}
+
+.ring-face {
+  position: absolute;
+  inset: 4px;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+  background: var(--code-bg);
+  border-radius: 50%;
+}
+
+.ring-face.mirrored {
+  transform: scaleX(-1);
+}
+
+.hero {
+  width: 38px;
+  height: 38px;
+  margin-bottom: -3px;
+  image-rendering: pixelated;
+}
+
+.ring.hit .hero {
+  animation: bar-shake 0.32s ease;
+}
+
+.level {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* The hero's hits rise from the ring itself rather than the bar's middle. */
+.ring .damage-popup {
+  top: -4px;
+}
+
+.slain {
+  flex-shrink: 0;
+  color: var(--text-h);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px var(--accent);
+  animation: bar-slain 0.3s ease-out;
+}
+
 .who {
   flex: 1;
   min-width: 0;
@@ -96,8 +238,8 @@ const { popups, isHit } = useDamagePopup(() => props.current);
   gap: 0.35rem;
 }
 
-/* The name and HP numbers share a row over a thin bar; a long name gives way
-   to the numbers. */
+/* The HP numbers and name share a row over a thin bar, the name by the boss's
+   portrait; a long name gives way to the numbers. */
 .label {
   display: flex;
   align-items: baseline;
@@ -111,6 +253,7 @@ const { popups, isHit } = useDamagePopup(() => props.current);
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-h);
+  text-align: right;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -127,6 +270,11 @@ const { popups, isHit } = useDamagePopup(() => props.current);
 
 .who :deep(.health-bar-label) {
   display: none;
+}
+
+/* Drains toward the boss's portrait. */
+.who :deep(.health-bar-fill) {
+  margin-left: auto;
 }
 
 .hit-layer {
@@ -160,6 +308,61 @@ const { popups, isHit } = useDamagePopup(() => props.current);
 @media (prefers-reduced-motion: reduce) {
   .boss-bar {
     transition: none;
+  }
+
+  .portrait.dying :deep(.sprite) {
+    animation: none;
+    opacity: 0;
+  }
+
+  .portrait.arriving :deep(.sprite),
+  .slain {
+    animation: none;
+  }
+
+  /* Still marked, just not pulsing. */
+  .ring.low .arc {
+    animation: none;
+    stroke-width: 4;
+  }
+}
+
+@keyframes ring-low {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes bar-fall {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  25% {
+    transform: translateX(-2px) rotate(-3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(18px) scaleY(0.7);
+    opacity: 0;
+  }
+}
+
+@keyframes bar-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bar-slain {
+  0% {
+    opacity: 0;
+    transform: scale(1.3);
   }
 }
 

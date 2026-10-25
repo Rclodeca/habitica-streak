@@ -45,6 +45,7 @@ import {
   overdriveHabit,
   overdriveUsesRemaining,
   periodKeyFor,
+  PERSONALITY_NAME,
   questMissDamage,
   questRewardExp,
   questWeekFor,
@@ -63,10 +64,17 @@ import { useDebugClockStore } from '../store/debugClockStore';
 import { useHabitStore } from '../store/habitStore';
 import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
+import { useCelebration } from './useCelebration';
 import { useDeathScreen } from './useDeathScreen';
 import { useFallenHero } from './useFallenHero';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
+
+/** What a reward resolved to: any boss-kill drops, and the name of the boss that dropped them. */
+export interface RewardResult {
+  itemsDropped: ItemDef[];
+  droppedBy?: string;
+}
 
 // Shared across calls made through this composable. This is app runtime
 // code (not `game-engine/`), so an unseeded Math.random()-backed Rng is
@@ -85,15 +93,18 @@ export function useCombatActions() {
   const { recordFallen } = useFallenHero();
   const { showReviveNotice } = useReviveNotice();
   const { enqueueDrops, clear: clearItemDrops } = useItemDropQueue();
+  const { celebrateBossKill, celebrateLevelUp, clear: clearCelebration } = useCelebration();
 
   /**
-   * Writes a `level-up` log entry if `after` is at a higher level than
-   * `before` — a no-op otherwise. Stat deltas are derived (rather than
-   * carried on the level-up result itself) since `addExpAndResolveLevelUps`
-   * only returns the count of levels gained, not the resulting stat values.
+   * Writes a `level-up` log entry and queues the hero panel's level-up beat
+   * if `after` is at a higher level than `before` — a no-op otherwise. Stat
+   * deltas are derived (rather than carried on the level-up result itself)
+   * since `addExpAndResolveLevelUps` only returns the count of levels gained,
+   * not the resulting stat values.
    */
   function logLevelUpIfAny(before: Character, after: Character): void {
     if (after.level <= before.level) return;
+    celebrateLevelUp(before.level);
     activityLogStore.addEntry({
       kind: 'level-up',
       newLevel: after.level,
@@ -136,7 +147,7 @@ export function useCombatActions() {
     habitId: string,
     stampPeriodKey?: string,
     options: { isOverdriveUse?: boolean } = {},
-  ): { itemsDropped: ItemDef[] } {
+  ): RewardResult {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return { itemsDropped: [] };
 
@@ -198,17 +209,21 @@ export function useCombatActions() {
     }
 
     const beforeDefeat = characterStore.character;
-    const defeatResult = resolveBossDefeatIfDead(characterStore.character, bossStore.boss, rng);
-    if (defeatResult.defeated) {
-      activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: bossStore.boss.index, amount: bossExpReward(bossStore.boss.index) });
-      if (defeatResult.itemHealed) activityLogStore.addEntry({ kind: 'item-heal', itemName: 'Soul Lantern', amount: defeatResult.itemHealed });
-      logLevelUpIfAny(beforeDefeat, defeatResult.character);
-      characterStore.setCharacter(defeatResult.character);
-      bossStore.setBoss(defeatResult.boss);
-      grantEventPicks(defeatResult.levelsGained);
-    }
+    const slain = bossStore.boss;
+    const defeatResult = resolveBossDefeatIfDead(characterStore.character, slain, rng);
+    if (!defeatResult.defeated) return { itemsDropped: [] };
 
-    return { itemsDropped: defeatResult.itemsDropped };
+    activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: slain.index, amount: bossExpReward(slain.index) });
+    if (defeatResult.itemHealed) activityLogStore.addEntry({ kind: 'item-heal', itemName: 'Soul Lantern', amount: defeatResult.itemHealed });
+    // Queued before the level-up beat below so the panels swap to the slain
+    // boss in the same render the store swaps to the next one.
+    celebrateBossKill(slain, defeatResult.boss);
+    logLevelUpIfAny(beforeDefeat, defeatResult.character);
+    characterStore.setCharacter(defeatResult.character);
+    bossStore.setBoss(defeatResult.boss);
+    grantEventPicks(defeatResult.levelsGained);
+
+    return { itemsDropped: defeatResult.itemsDropped, droppedBy: PERSONALITY_NAME[slain.personality] };
   }
 
   /**
@@ -286,7 +301,7 @@ export function useCombatActions() {
    * predicate used in `HabitListItem.vue`. A set-day habit can't be
    * checked off on a rest day either (`isDueOn`).
    */
-  function checkOffHabit(habitId: string): { itemsDropped: ItemDef[] } {
+  function checkOffHabit(habitId: string): RewardResult {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return { itemsDropped: [] };
     if (!isDueOn(habit, debugClockStore.now())) return { itemsDropped: [] };
@@ -317,7 +332,7 @@ export function useCombatActions() {
    * habit counterpart to `checkMissedHabit`, called the same way from
    * `useMissedSkillsGate.acknowledge()`.
    */
-  function checkAvoidedHabit(habitId: string): { itemsDropped: ItemDef[] } {
+  function checkAvoidedHabit(habitId: string): RewardResult {
     return applyReward(habitId);
   }
 
@@ -329,7 +344,7 @@ export function useCombatActions() {
    * `checkOffHabit`'s own period-key guard above. Refused on a rest day even
    * if the habit was checked off before today was taken out of its days.
    */
-  function activateOverdrive(habitId: string): { itemsDropped: ItemDef[] } {
+  function activateOverdrive(habitId: string): RewardResult {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit || habit.isBad || !habit.isOverdrive) return { itemsDropped: [] };
     if (!isDueOn(habit, debugClockStore.now())) return { itemsDropped: [] };
@@ -414,8 +429,9 @@ export function useCombatActions() {
       characterStore.setCharacter(questStore.quests.length > 0 ? unlockQuests(deathResult.character) : deathResult.character);
       bossStore.setBoss(deathResult.boss);
       habitStore.setHabits(deathResult.habits);
-      // Drops from a boss kill on the fatal pass belong to the dead run.
+      // Drops and beats from a boss kill on the fatal pass belong to the dead run.
       clearItemDrops();
+      clearCelebration();
     }
     dismissDeathScreen();
   }

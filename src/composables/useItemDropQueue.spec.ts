@@ -58,6 +58,23 @@ describe('useItemDropQueue', () => {
     expect(isFull.value).toBe(false);
   });
 
+  it('remembers which boss dropped each item, and nothing for one with no boss behind it', () => {
+    const characterStore = useCharacterStore();
+    const spoils = makeItem({ id: 'rusty-blade' });
+    const relic = makeItem({ id: 'apprentice-wand', bonuses: [{ stat: 'magicDamage', percent: 3 }] });
+    characterStore.character = { ...characterStore.character, ownedItemIds: [spoils.id, relic.id], equippedItemIds: [] };
+
+    const { current, droppedBy, enqueueDrops, dismiss } = useItemDropQueue();
+    enqueueDrops([spoils], 'Iron Guardian');
+    enqueueDrops([relic]);
+
+    expect(current.value).toEqual(spoils);
+    expect(droppedBy.value).toBe('Iron Guardian');
+    dismiss();
+    expect(current.value).toEqual(relic);
+    expect(droppedBy.value).toBeNull();
+  });
+
   it('dismiss advances the queue to the next item', () => {
     const characterStore = useCharacterStore();
     const first = makeItem({ id: 'rusty-blade' });

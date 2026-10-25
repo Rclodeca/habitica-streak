@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { availableRelics, createRng, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, questSlotExp, weeklyPeriodKey } from '../game-engine';
+import { availableRelics, createRng, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, PERSONALITY_NAME, questSlotExp, weeklyPeriodKey } from '../game-engine';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
@@ -15,6 +15,7 @@ import { useDebugClockStore } from '../store/debugClockStore';
 import { useHabitStore } from '../store/habitStore';
 import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
+import { useCelebration } from './useCelebration';
 import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
 import { useFallenHero } from './useFallenHero';
@@ -33,6 +34,7 @@ describe('useCombatActions', () => {
   afterEach(() => {
     useDeathScreen().dismiss();
     useReviveNotice().visible.value = false;
+    useCelebration().clear();
   });
 
   it('checkOffHabit is a no-op when called a second time on a habit already completed this period', () => {
@@ -99,6 +101,29 @@ describe('useCombatActions', () => {
     const result = checkOffHabit(habit.id);
 
     expect(result.itemsDropped.length).toBeGreaterThan(0);
+  });
+
+  it('a boss kill keeps the slain boss on screen for its death, names it on the drops, and holds the old level', () => {
+    const habitStore = useHabitStore();
+    const bossStore = useBossStore();
+    const characterStore = useCharacterStore();
+    const { checkOffHabit } = useCombatActions();
+
+    const habit = habitStore.addHabit('Slay the boss', 'daily', 'hard', false, createRng());
+    habitStore.updateHabit({ ...habit, damageType: 'physical' });
+    bossStore.setBoss({ ...bossStore.boss, health: 0.0001, armor: 0 });
+    const slain = bossStore.boss;
+    const levelBefore = characterStore.character.level;
+    characterStore.setCharacter({ ...characterStore.character, exp: expToNextLevel(levelBefore) - 1 }); // the kill's EXP levels up
+
+    const result = checkOffHabit(habit.id);
+
+    const { displayedBoss, heldLevel } = useCelebration();
+    expect(bossStore.boss.index).toBe(slain.index + 1);
+    expect(displayedBoss.value).toMatchObject({ index: slain.index, health: 0 });
+    expect(result.droppedBy).toBe(PERSONALITY_NAME[slain.personality]);
+    expect(characterStore.character.level).toBeGreaterThan(levelBefore);
+    expect(heldLevel.value).toBe(levelBefore);
   });
 
   it('checkOffHabit returns no items dropped when the habit completion does not defeat the boss', () => {

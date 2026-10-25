@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { describeItemBonus, ITEM_CATALOG, itemDoubleFactor } from '../../game-engine';
+import { useCelebration } from '../../composables/useCelebration';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
 import { useCharacterStore } from '../../store/characterStore';
 import ItemHero from './ItemHero.vue';
 import Modal from './Modal.vue';
 
-const { current, dismiss, replace } = useItemDropQueue();
+const { current, droppedBy, dismiss, replace } = useItemDropQueue();
+// A kill's drops wait until the boss has fallen on screen.
+const { celebrating } = useCelebration();
 const characterStore = useCharacterStore();
 const baseUrl = import.meta.env.BASE_URL;
 
@@ -27,13 +30,14 @@ const isCurrentEquipped = computed(
 
 <template>
   <Modal
-    :model-value="current !== null"
+    :model-value="current !== null && !celebrating"
     :dismissible="isCurrentEquipped"
     title="Item found!"
     max-width="460px"
     @update:model-value="dismiss"
   >
     <template v-if="current">
+      <p v-if="droppedBy" class="dropped-by">Spoils of the <span class="dropped-by-name">{{ droppedBy }}</span></p>
       <ItemHero :item="current" />
 
       <template v-if="!isCurrentEquipped">
@@ -79,6 +83,18 @@ const isCurrentEquipped = computed(
 
 .rarity-relic {
   --rarity: var(--side-quest-color);
+}
+
+.dropped-by {
+  margin: -0.25rem 0 0.75rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.dropped-by-name {
+  color: var(--text-h);
+  font-weight: 600;
 }
 
 .replace-list {

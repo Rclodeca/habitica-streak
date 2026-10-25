@@ -7,7 +7,17 @@ import BossBar from './BossBar.vue';
 enableAutoUnmount(afterEach);
 
 describe('BossBar', () => {
-  const props = { sprite: 'bosses/brute3x', name: 'Raging Berserker', current: 431.4, max: 604.3, shown: false };
+  const props = {
+    sprite: 'bosses/brute3x',
+    name: 'Raging Berserker',
+    current: 431.4,
+    max: 604.3,
+    heroClass: 'warrior' as const,
+    heroCurrent: 980,
+    heroMax: 1232,
+    heroLevel: 4,
+    shown: false,
+  };
 
   it('shows the boss name and its rounded HP numbers', () => {
     const wrapper = mount(BossBar, { props });
@@ -34,6 +44,47 @@ describe('BossBar', () => {
   it('pops each hit the boss takes', async () => {
     const wrapper = mount(BossBar, { props: { ...props, shown: true } });
     await wrapper.setProps({ current: 331.4 });
-    expect(wrapper.find('.damage-popup').text()).toBe('-100');
+    expect(wrapper.find('.hit-layer .damage-popup').text()).toBe('-100');
+  });
+
+  it("shows the hero's level on the ring", () => {
+    const wrapper = mount(BossBar, { props });
+    expect(wrapper.find('.ring .level').text()).toBe('4');
+  });
+
+  it("draws the ring's arc as the share of hero HP left", async () => {
+    const wrapper = mount(BossBar, { props });
+    const offset = () => Number(wrapper.find('.ring .arc').attributes('stroke-dashoffset'));
+    const length = Number(wrapper.find('.ring .arc').attributes('stroke-dasharray'));
+    expect(offset()).toBeCloseTo(length * (1 - 980 / 1232));
+
+    await wrapper.setProps({ heroCurrent: 1232 });
+    expect(offset()).toBeCloseTo(0);
+  });
+
+  it('warns once the hero drops below a quarter of their HP', async () => {
+    const wrapper = mount(BossBar, { props: { ...props, heroCurrent: 308 } });
+    expect(wrapper.find('.ring').classes()).not.toContain('low');
+
+    await wrapper.setProps({ heroCurrent: 307 });
+    expect(wrapper.find('.ring').classes()).toContain('low');
+  });
+
+  it('pops each hit the hero takes on the ring', async () => {
+    const wrapper = mount(BossBar, { props: { ...props, shown: true } });
+    await wrapper.setProps({ heroCurrent: 917 });
+    expect(wrapper.find('.ring .damage-popup').text()).toBe('-63');
+    expect(wrapper.find('.hit-layer .damage-popup').exists()).toBe(false);
+  });
+
+  it('turns the warrior and cleric to face the boss, and leaves the ranger as drawn', async () => {
+    const wrapper = mount(BossBar, { props });
+    expect(wrapper.find('.ring-face').classes()).toContain('mirrored');
+
+    await wrapper.setProps({ heroClass: 'cleric' });
+    expect(wrapper.find('.ring-face').classes()).toContain('mirrored');
+
+    await wrapper.setProps({ heroClass: 'ranger' });
+    expect(wrapper.find('.ring-face').classes()).not.toContain('mirrored');
   });
 });

@@ -4,6 +4,9 @@ import type { EventId } from '../../game-engine';
 import { useEventChoice } from '../../composables/useEventChoice';
 import { useModalPriority } from '../../composables/useModalPriority';
 import { TUNING } from '../../game-engine/constants/tuning';
+import { useActivityLogStore } from '../../store/activityLogStore';
+import type { ActivityLogEntry } from '../../store/activityLogStore';
+import { useCharacterStore } from '../../store/characterStore';
 import { useHabitStore } from '../../store/habitStore';
 import RerollSkillRow from '../habits/RerollSkillRow.vue';
 import { sortByDamageType } from '../habits/habitDisplay';
@@ -11,11 +14,27 @@ import QuestForm from '../quests/QuestForm.vue';
 import ItemHero from '../ui/ItemHero.vue';
 import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
-import { EVENT_ICON } from '../ui/statIcons';
+import { BOOST_STAT_ICON, EVENT_ICON } from '../ui/statIcons';
 
 const { pending, choices, revealed, ensureChoices, choose, chooseReroll, chooseSideQuest, dismissReveal } = useEventChoice();
 const { eventChoiceVisible } = useModalPriority();
 const habitStore = useHabitStore();
+const characterStore = useCharacterStore();
+const activityLogStore = useActivityLogStore();
+
+// The pick leads with the level just reached and what it gave, read back
+// from that level-up's log entry (left out if it has already scrolled off).
+const level = computed(() => characterStore.character.level);
+const levelUp = computed(() =>
+  activityLogStore.entries.find(
+    (entry): entry is Extract<ActivityLogEntry, { kind: 'level-up' }> => entry.kind === 'level-up' && entry.newLevel === level.value,
+  ),
+);
+const GAIN_STATS = ['health', 'physicalDamage', 'magicDamage', 'trueDamage', 'healing'] as const;
+const statGains = computed(() =>
+  GAIN_STATS.map((stat) => ({ stat, amount: Math.round(levelUp.value?.statDeltas[stat] ?? 0) })).filter((gain) => gain.amount > 0),
+);
+const healed = computed(() => Math.round(levelUp.value?.healthRestored ?? 0));
 
 watchEffect(ensureChoices);
 
@@ -67,6 +86,13 @@ function onPick(id: EventId) {
     </template>
 
     <template v-else>
+    <template v-if="step === 'choose'">
+      <div class="level-emblem"><span class="level-emblem-number">{{ level }}</span></div>
+      <p v-if="healed > 0 || statGains.length" class="gains">
+        <span v-if="healed > 0" class="gain-heal">+{{ healed }} HP</span>
+        <span v-for="gain in statGains" :key="gain.stat"><StatIcon :name="BOOST_STAT_ICON[gain.stat]" />+{{ gain.amount }}</span>
+      </p>
+    </template>
     <p class="subtitle">{{ subtitle }}</p>
 
     <div v-if="step === 'choose'" class="cards">
@@ -108,6 +134,61 @@ function onPick(id: EventId) {
 </template>
 
 <style scoped>
+.level-emblem {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin: 0.25rem auto 0.75rem;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 24px -6px var(--accent);
+  animation: emblem-in 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.level-emblem-number {
+  color: var(--text-h);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gains {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.7rem;
+  margin: 0 0 1rem;
+  padding: 0.5rem 0;
+  border-block: 1px solid var(--border);
+  color: var(--text-h);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.gains > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.gain-heal {
+  color: var(--dmg-healing);
+}
+
+@keyframes emblem-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-emblem {
+    animation: none;
+  }
+}
+
 .subtitle {
   margin: 0 0 1rem;
   color: var(--text);

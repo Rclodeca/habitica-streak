@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { useCelebration } from './useCelebration';
 import { useDeathScreen } from './useDeathScreen';
 import { useEventChoice } from './useEventChoice';
 import { useItemDropQueue } from './useItemDropQueue';
@@ -25,6 +26,7 @@ describe('useModalPriority', () => {
     while (current.value) dismiss();
     useMissedSkillsGate().acknowledge();
     useQuestMissGate().acknowledge();
+    useCelebration().clear();
   });
 
   describe('eventChoiceVisible', () => {
@@ -86,6 +88,15 @@ describe('useModalPriority', () => {
       const { eventChoiceVisible } = useModalPriority();
       expect(eventChoiceVisible.value).toBe(false);
     });
+
+    it('waits for the level-up beat to finish playing', () => {
+      givePendingPick();
+      useCelebration().celebrateLevelUp(1);
+      const { eventChoiceVisible } = useModalPriority();
+      expect(eventChoiceVisible.value).toBe(false);
+      useCelebration().clear();
+      expect(eventChoiceVisible.value).toBe(true);
+    });
   });
 
   describe('questMissVisible', () => {
@@ -132,6 +143,15 @@ describe('useModalPriority', () => {
       const characterStore = useCharacterStore();
       characterStore.setCharacter({ ...characterStore.character, level: 3, questsUnlocked: false, pendingEventPicks: 1 });
     }
+
+    it('waits for the level-up beat to finish playing', () => {
+      reachUnlockLevel();
+      useCelebration().celebrateLevelUp(2);
+      const { questUnlockVisible } = useModalPriority();
+      expect(questUnlockVisible.value).toBe(false);
+      useCelebration().clear();
+      expect(questUnlockVisible.value).toBe(true);
+    });
 
     it('shows on reaching level 3, ahead of the level-up pick', () => {
       reachUnlockLevel();

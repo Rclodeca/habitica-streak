@@ -20,6 +20,7 @@ import QuestMissPopup from '../quests/QuestMissPopup.vue';
 import QuestUnlockPopup from '../quests/QuestUnlockPopup.vue';
 import EventChoiceModal from '../events/EventChoiceModal.vue';
 import ReviveNotice from '../ui/ReviveNotice.vue';
+import { useCelebration } from '../../composables/useCelebration';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 
@@ -28,7 +29,9 @@ const characterStore = useCharacterStore();
 
 const isDev = import.meta.env.DEV;
 
-const bossIndex = computed(() => bossStore.boss.index);
+// Follows the boss panel, which keeps a slain boss up until the next arrives.
+const { displayedBoss } = useCelebration();
+const bossIndex = computed(() => (displayedBoss.value ?? bossStore.boss).index);
 
 // An unnamed hero (first launch, or a new run after a death) gets the
 // full-screen NewHeroScreen instead of the whole shell. The popups live inside

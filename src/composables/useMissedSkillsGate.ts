@@ -107,7 +107,7 @@ export function useMissedSkillsGate() {
         checkMissedHabit(item.habitId);
       } else {
         const result = checkAvoidedHabit(item.habitId);
-        if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped);
+        if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped, result.droppedBy);
       }
       const habit = habitStore.habits.find((h) => h.id === item.habitId);
       if (habit) {

@@ -21,6 +21,7 @@ import {
   statAtLevel,
 } from '../../game-engine';
 import { TUNING } from '../../game-engine/constants/tuning';
+import { useCelebration } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
@@ -49,7 +50,14 @@ const character = computed(() => characterStore.character);
 // Named on NewHeroScreen; only a hero still waiting on that screen is unnamed.
 const heroName = computed(() => character.value.name ?? 'Character');
 const maxHealth = computed(() => effectiveStat(character.value, 'health'));
-const expNeeded = computed(() => expToNextLevel(character.value.level));
+
+// Until a level-up's beat plays (useCelebration — after any kill it came
+// from), the panel holds the old level with a full EXP bar, then ticks over.
+const { phase, heldLevel } = useCelebration();
+const leveling = computed(() => phase.value === 'leveling');
+const displayLevel = computed(() => heldLevel.value ?? character.value.level);
+const expNeeded = computed(() => expToNextLevel(displayLevel.value));
+const displayExp = computed(() => (heldLevel.value === null ? character.value.exp : expNeeded.value));
 const physicalDamage = computed(() => effectiveStat(character.value, 'physicalDamage'));
 const magicDamage = computed(() => effectiveStat(character.value, 'magicDamage'));
 const healing = computed(() => effectiveStat(character.value, 'healing'));
@@ -236,11 +244,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="panel character-panel">
+  <section class="panel character-panel" :class="{ leveling }">
     <div class="top-row">
       <div class="sprite-wrapper" :class="{ hit: isHit }">
         <PlayerSprite :character="character" />
         <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
+        <span v-if="leveling" class="level-ring" aria-hidden="true" />
       </div>
       <div class="item-grid" :style="{ gridTemplateColumns: `repeat(${gridCols}, 1fr)`, maxWidth: `${gridCols * 46 + (gridCols - 1) * 4}px` }">
         <div
@@ -264,12 +273,16 @@ onBeforeUnmount(() => {
     </div>
 
     <button type="button" class="title-button" @click="showDetails = true">
-      <h2>{{ heroName }} — Lv. {{ character.level }}</h2>
+      <h2 class="name-line">
+        {{ heroName }} — Lv. <span class="level-number">{{ displayLevel }}</span>
+        <span v-if="leveling" class="level-up-popup" role="status">Level up</span>
+      </h2>
       <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
-      <ExpBar :current="character.exp" :max="expNeeded" />
+      <!-- Keyed by level so the bar snaps empty on a level-up instead of draining back. -->
+      <ExpBar :key="displayLevel" :current="displayExp" :max="expNeeded" />
       <p ref="statLine" class="stat-summary">
         <!-- The EXP bar's numbers again, for themes that set them in this line instead. -->
-        <span class="exp-numbers" aria-hidden="true">{{ Math.round(character.exp) }} / {{ Math.round(expNeeded) }}</span>
+        <span class="exp-numbers" aria-hidden="true">{{ Math.round(displayExp) }} / {{ Math.round(expNeeded) }}</span>
         <span><StatIcon name="physical" />{{ physicalDamage.toFixed(0) }}</span>
         <span><StatIcon name="magic" />{{ magicDamage.toFixed(0) }}</span>
         <span><StatIcon name="healing" />{{ healing.toFixed(0) }}</span>
@@ -292,9 +305,9 @@ onBeforeUnmount(() => {
           <PlayerSprite :character="character" />
         </div>
         <div class="hero-info">
-          <span class="hero-level">Level {{ character.level }}</span>
+          <span class="hero-level">Level {{ displayLevel }}</span>
           <HealthBar :current="character.currentHealth" :max="maxHealth" variant="player" />
-          <ExpBar :current="character.exp" :max="expNeeded" />
+          <ExpBar :key="displayLevel" :current="displayExp" :max="expNeeded" />
         </div>
       </div>
 
@@ -892,6 +905,110 @@ onBeforeUnmount(() => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   animation: damage-float-fade 0.9s ease-out forwards;
+}
+
+/* ---------- A level-up: ring, "Level up", the number ticks over ---------- */
+
+.level-ring {
+  position: absolute;
+  inset: -6px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 20px var(--accent),
+    inset 0 0 14px var(--accent);
+  pointer-events: none;
+  opacity: 0;
+  animation: level-ring 1s ease-out;
+}
+
+.name-line {
+  position: relative;
+}
+
+/* At the end of the name line, clear of the portrait. */
+.level-up-popup {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px #000,
+    0 0 10px #000;
+  pointer-events: none;
+  opacity: 0;
+  animation: level-up-float 1.4s ease-out;
+}
+
+.level-number {
+  display: inline-block;
+}
+
+.leveling .level-number {
+  animation: level-tick 0.6s ease;
+}
+
+.leveling .exp-bar {
+  animation: exp-glow 0.9s ease;
+}
+
+@keyframes level-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes level-up-float {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.3);
+  }
+  15%,
+  75% {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+}
+
+@keyframes level-tick {
+  40% {
+    transform: scale(1.6);
+    color: var(--accent);
+  }
+}
+
+@keyframes exp-glow {
+  40% {
+    box-shadow: 0 0 16px 2px var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-ring,
+  .leveling .level-number,
+  .leveling .exp-bar {
+    animation: none;
+  }
+
+  .level-up-popup {
+    animation: none;
+    opacity: 1;
+    transform: translateY(-50%);
+  }
 }
 
 /* Phones: a condensed strip (portrait, name, HP, EXP and the stat line).

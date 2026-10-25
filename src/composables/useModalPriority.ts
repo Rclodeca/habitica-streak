@@ -11,9 +11,12 @@
 // review notes). This centralizes the precedence order so it's declared
 // once instead of re-derived pairwise per modal:
 // death > item drop > habit miss > quest miss > quest complete > quest unlock > event choice.
+// Quest unlock and event choice also wait out a kill or level-up still
+// playing on the panels (useCelebration), as does the item drop popup itself.
 
 import { computed } from 'vue';
 import { questUnlockPending } from '../game-engine';
+import { useCelebration } from './useCelebration';
 import { useDeathScreen } from './useDeathScreen';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
@@ -30,6 +33,7 @@ export function useModalPriority() {
   const characterStore = useCharacterStore();
   const { revealed } = useEventChoice();
   const { current: questCompleteCurrent } = useQuestCompleteQueue();
+  const { celebrating } = useCelebration();
 
   /** True only when a quest miss is pending and nothing higher-priority (death, habit miss) is. */
   const questMissVisible = computed(() => questMissPending.value && !isDead.value && !habitMissPending.value);
@@ -38,6 +42,7 @@ export function useModalPriority() {
   const questUnlockVisible = computed(
     () =>
       questUnlockPending(characterStore.character) &&
+      !celebrating.value &&
       !isDead.value &&
       itemDropCurrent.value === null &&
       !habitMissPending.value &&
@@ -45,10 +50,11 @@ export function useModalPriority() {
       questCompleteCurrent.value === null,
   );
 
-  /** True only when an event pick (or an enchant reveal) is pending and nothing higher-priority (death, item drop, habit miss, quest miss, quest unlock) is. */
+  /** True only when an event pick (or an enchant reveal) is pending and nothing higher-priority (death, item drop, habit miss, quest miss, quest unlock, a celebration) is. */
   const eventChoiceVisible = computed(
     () =>
       ((characterStore.character.pendingEventPicks ?? 0) > 0 || revealed.value !== null) &&
+      !celebrating.value &&
       !isDead.value &&
       itemDropCurrent.value === null &&
       !habitMissPending.value &&
