@@ -1083,7 +1083,6 @@ $caps-lg: 0.85rem; // panel and popup titles
   .tile-note,
   .card-desc,
   .card-hint,
-  .row-bonus,
   .due-summary {
     font-style: italic;
   }
@@ -1241,20 +1240,6 @@ $caps-lg: 0.85rem; // panel and popup titles
   .hero:has(> .icon-frame) .name {
     font-size: 1.45rem;
     font-weight: 600;
-  }
-
-  .replace-row {
-    background: rgba(0, 0, 0, 0.25);
-    border-color: $line;
-    border-left: 2px solid var(--rarity);
-  }
-
-  .row-name {
-    font-weight: 700;
-  }
-
-  .row-bonus.enchanted {
-    color: var(--accent);
   }
 
   .equipped-note {
