@@ -70,6 +70,20 @@ describe('createHabit', () => {
     expect(counts.trueDamage / iterations).toBeCloseTo(0.08, 1);
     expect(Object.keys(counts)).not.toContain('expGain');
   });
+
+  it('only picks physical or magic, split evenly, for a first habit', () => {
+    const rng = createRng(123);
+    const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0, trueDamage: 0 };
+    const iterations = 2000;
+    for (let i = 0; i < iterations; i++) {
+      const habit = createHabit('H', 'daily', 'easy', false, rng, undefined, true);
+      counts[habit.damageType] += 1;
+    }
+    expect(counts.healing).toBe(0);
+    expect(counts.trueDamage).toBe(0);
+    expect(counts.physical / iterations).toBeCloseTo(0.5, 1);
+    expect(counts.magic / iterations).toBeCloseTo(0.5, 1);
+  });
 });
 
 describe('rerollDamageType', () => {

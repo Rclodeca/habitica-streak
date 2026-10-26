@@ -8,6 +8,39 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createRng } from '../game-engine';
 import { useHabitStore } from './habitStore';
 
+describe('habitStore.addHabit damage type', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it('makes the first habit physical or magic, whatever the roll', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      setActivePinia(createPinia());
+      const store = useHabitStore();
+      expect(['physical', 'magic']).toContain(store.addHabit('First', 'daily', 'easy', false, createRng(seed)).damageType);
+    }
+  });
+
+  it('rolls any type once there is already a habit', () => {
+    const store = useHabitStore();
+    store.addHabit('First', 'daily', 'easy', false, createRng(1));
+    const later = Array.from({ length: 200 }, (_, i) =>
+      store.addHabit(`Later ${i}`, 'daily', 'easy', false, createRng(i + 1)).damageType,
+    );
+    expect(later).toContain('healing');
+    expect(later).toContain('trueDamage');
+  });
+
+  it('treats the list as empty again once every habit is removed', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      setActivePinia(createPinia());
+      const store = useHabitStore();
+      store.removeHabit(store.addHabit('Gone', 'daily', 'easy', false, createRng(seed)).id);
+      expect(['physical', 'magic']).toContain(store.addHabit('Again', 'daily', 'easy', false, createRng(seed)).damageType);
+    }
+  });
+});
+
 describe('habitStore.setHabitDays', () => {
   beforeEach(() => {
     setActivePinia(createPinia());

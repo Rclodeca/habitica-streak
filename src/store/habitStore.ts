@@ -34,9 +34,13 @@ export const useHabitStore = defineStore('habit', {
       this.habits = (saved ?? []).map((habit) => migrateHabitDamageType(habit, rng));
     },
 
-    /** Creates a new habit via the engine and adds it to the list. `days` only applies to a daily. */
+    /**
+     * Creates a new habit via the engine and adds it to the list. `days` only
+     * applies to a daily. With no habits yet, the engine keeps its damage type
+     * to physical or magic.
+     */
     addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, rng: Rng, days?: number[]): Habit {
-      const habit = createHabit(name, period, difficulty, isBad, rng, days);
+      const habit = createHabit(name, period, difficulty, isBad, rng, days, this.habits.length === 0);
       this.habits.push(habit);
       return habit;
     },

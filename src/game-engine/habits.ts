@@ -4,6 +4,21 @@ import { pickWeighted, type Rng } from './rng';
 import { dayOfWeekIndex } from './time';
 import type { DamageType, Difficulty, Habit, Period } from './types';
 
+/**
+ * What a brand-new player's first habit can roll: healing has nothing to heal
+ * at full HP and no way to hurt the boss, and true damage is confusing as a
+ * first hit. Keeps the tuned physical:magic ratio.
+ */
+const FIRST_HABIT_DAMAGE_TYPES: readonly DamageType[] = ['physical', 'magic'];
+
+function damageTypeWeights(isFirstHabit: boolean): Record<string, number> {
+  if (!isFirstHabit) return TUNING.HABIT_DAMAGE_TYPE_WEIGHTS;
+  return Object.fromEntries(
+    FIRST_HABIT_DAMAGE_TYPES.map((type) => [type, TUNING.HABIT_DAMAGE_TYPE_WEIGHTS[type]]),
+  );
+}
+
+/** `isFirstHabit` limits the damage type to physical or magic; pass it only when the player has no habits yet. */
 export function createHabit(
   name: string,
   period: Period,
@@ -11,6 +26,7 @@ export function createHabit(
   isBad: boolean,
   rng: Rng,
   days?: number[],
+  isFirstHabit = false,
 ): Habit {
   const dueDays = period === 'daily' ? normalizeDays(days) : undefined;
   return {
@@ -18,7 +34,7 @@ export function createHabit(
     name,
     period,
     difficulty,
-    damageType: pickWeighted<DamageType>(TUNING.HABIT_DAMAGE_TYPE_WEIGHTS, rng),
+    damageType: pickWeighted<DamageType>(damageTypeWeights(isFirstHabit), rng),
     isBad,
     streakCount: 0,
     lastCompletedPeriodKey: null,
