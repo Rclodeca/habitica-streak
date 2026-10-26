@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — skill ranks (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Skill ranks: where a skill's rank shows, how a rank-up lands, and how the
+   skill modal breaks the hit down. Phone panels at 360px. Same six skills in
+   every option. Icons are stand-ins for the build's StatIcons. */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --blood: #c8402f;
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+.page { max-width: 1200px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 30px; }
+section.sec { margin-bottom: 48px; }
+section.sec > h2 { font-size: 12px; letter-spacing: .22em; color: var(--text-h); margin-bottom: 4px; }
+section.sec > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 30px 24px; justify-items: center; }
+.opt { display: flex; flex-direction: column; gap: 10px; width: 360px; max-width: 100%; }
+.opt h3 { font: 600 12px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text-h); }
+.opt h3 b { color: var(--gold); font-weight: 600; margin-right: 6px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; line-height: 1.3; }
+
+.panel { position: relative; padding: 12px 12px; background: linear-gradient(180deg, rgba(27,24,21,.96), rgba(14,13,11,.98)); border: 1px solid var(--line); }
+.panel::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75;
+  background: linear-gradient(var(--gold),var(--gold)) top left/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) top left/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) top right/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) top right/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) bottom left/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) bottom left/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) bottom right/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) bottom right/1px 10px no-repeat; }
+.panel > h4 { font: 600 11px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--gold-hi); margin-bottom: 4px; }
+
+/* ---------- skill row ---------- */
+.skill { position: relative; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 4px 6px 6px; }
+.skill.bad::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: var(--blood); box-shadow: 0 0 8px var(--blood); }
+.dia { position: relative; flex-shrink: 0; width: 13px; height: 13px; margin: 0 5px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0,0,0,.45); }
+.skill .name { flex: 1; min-width: 0; font-weight: 600; color: var(--text-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skill .meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.streak { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; color: var(--text); }
+.streak svg { width: 11px; height: 11px; }
+.pips { display: inline-flex; gap: 3px; }
+.pip { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid var(--line-mid); }
+.pip.lit { background: var(--gold); border-color: var(--gold); }
+.hit { width: 52px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.physical .hit { color: var(--dmg-physical); } .magic .hit { color: var(--dmg-magic); }
+.healing .hit { color: var(--dmg-healing); } .true .hit { color: var(--dmg-true); }
+
+/* A: numeral badge */
+.badge { display: inline-grid; place-items: center; min-width: 20px; height: 17px; padding: 0 3px; border: 1px solid var(--line-mid); font: 600 9.5px/1 'Cinzel', serif; letter-spacing: .04em; color: var(--text); }
+.badge.r3 { border-color: var(--gold); color: var(--gold); }
+.badge.r5 { border-color: var(--gold-hi); color: var(--gold-hi); background: rgba(200,169,110,.12); box-shadow: 0 0 8px rgba(230,207,154,.25); }
+
+/* B: rank gem */
+.gem { position: relative; display: inline-grid; place-items: center; width: 19px; height: 19px; flex-shrink: 0; }
+.gem::before { content: ''; position: absolute; inset: 3px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(200,169,110, var(--fill, .08)); }
+.gem span { position: relative; font: 600 9px/1 'Cinzel', serif; color: var(--gold-hi); }
+.gem.r5::before { box-shadow: 0 0 9px rgba(230,207,154,.45); border-color: var(--gold-hi); }
+
+/* C: rings on the check diamond, no new element */
+.dia.r1 { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--line-mid); }
+.dia.r3 { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--gold), 0 0 0 5px var(--bg), 0 0 0 6px var(--line-mid); }
+.dia.r5 { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--gold-hi), 0 0 0 5px var(--bg), 0 0 0 6px var(--gold), 0 0 12px 4px rgba(230,207,154,.3); }
+
+/* ---------- rank-up moment ---------- */
+.log { font-size: 15px; }
+.log li { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.log li:last-child { border-bottom: 0; }
+.log .mk { align-self: center; width: 9px; height: 9px; flex-shrink: 0; transform: rotate(45deg); border: 1px solid var(--gold); }
+.log .mk.up { background: var(--gold); box-shadow: 0 0 8px rgba(230,207,154,.5); }
+.log .dim { color: var(--text); }
+.log b { color: var(--gold-hi); font-weight: 700; }
+.log .dmg { color: var(--dmg-physical); font-weight: 700; }
+
+.flare { overflow: hidden; }
+.flare::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgba(230,207,154,.28) 50%, transparent 80%); transform: translateX(-100%); animation: sweep 3s ease-out infinite; pointer-events: none; }
+.flare .ghost { position: absolute; right: 64px; top: 50%; font: 600 11px/1 'Cinzel', serif; letter-spacing: .22em; color: var(--gold-hi); text-shadow: 0 0 10px rgba(230,207,154,.7); animation: rise 3s ease-out infinite; }
+@keyframes sweep { 0% { transform: translateX(-100%); } 35%, 100% { transform: translateX(100%); } }
+@keyframes rise { 0% { opacity: 0; transform: translateY(-20%); } 15% { opacity: 1; } 55% { opacity: 1; transform: translateY(-150%); } 75%, 100% { opacity: 0; transform: translateY(-180%); } }
+
+.card { padding: 22px 18px 16px; text-align: center; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(200,169,110,.16), transparent 70%), linear-gradient(180deg, rgba(27,24,21,.98), rgba(11,10,9,.98)); border: 1px solid var(--line-mid); }
+.card .big { display: inline-grid; place-items: center; width: 64px; height: 64px; margin-bottom: 12px; position: relative; }
+.card .big::before { content: ''; position: absolute; inset: 10px; transform: rotate(45deg); border: 1px solid var(--gold-hi); background: rgba(200,169,110,.14); box-shadow: 0 0 22px rgba(230,207,154,.35); }
+.card .big span { position: relative; font: 600 18px/1 'Cinzel', serif; color: var(--gold-hi); }
+.card .t { font-size: 13px; letter-spacing: .3em; color: var(--gold-hi); margin-bottom: 4px; }
+.card .s { font-style: italic; color: var(--text); margin-bottom: 14px; }
+.card .n { font-size: 15px; color: var(--text); margin-bottom: 16px; }
+.card .n b { color: var(--dmg-physical); font-size: 19px; }
+.btn { display: inline-block; min-width: 120px; padding: 10px 18px; border: 1px solid var(--gold); color: var(--gold-hi); font: 600 11px/1 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; }
+
+/* ---------- modal breakdown ---------- */
+.mh { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.mh .nm { font-weight: 700; font-size: 19px; color: var(--text-h); }
+.mh .ty { font-size: 13px; color: var(--dmg-physical); }
+.rows { font-size: 16px; }
+.rows li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.rows .lab { flex: 1; color: var(--text); }
+.rows .note { color: var(--text); font-size: 14px; }
+.rows .val { min-width: 60px; text-align: right; color: var(--text-h); font-weight: 600; font-variant-numeric: tabular-nums; }
+.rows .val.gold { color: var(--gold-hi); }
+.total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; }
+.total .lab { font: 600 10px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text); }
+.total .val { font-size: 22px; font-weight: 700; color: var(--dmg-physical); }
+.next { margin: 4px 0 2px 0; }
+.bar { height: 3px; background: rgba(0,0,0,.5); border: 1px solid var(--line); margin-top: 5px; }
+.bar i { display: block; height: 100%; width: 56%; background: linear-gradient(90deg, var(--gold), var(--gold-hi)); }
+.next .cap { display: flex; justify-content: space-between; font-size: 13px; color: var(--text); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><symbol id="flame" viewBox="0 0 12 12"><path d="M6 1c1 2 3 3 3 6a3 3 0 0 1-6 0c0-1.5.8-2.3 1.4-3 .2 1 .7 1.5 1.2 1.6C5.4 4 5.4 2.6 6 1z" fill="currentColor"/></symbol></svg>
+<div class="page">
+  <h1 class="engraved">Skill ranks</h1>
+  <p>Each skill keeps a rank (I–VIII) earned at streaks 10 / 20 / 30 / 50 / 100 / 200 / 300 / 500. Pick one option per section.</p>
+
+  <!-- ===== 1. ROW ===== -->
+  <section class="sec">
+    <h2 class="engraved">1 · Rank on the skill row</h2>
+    <p>The same six skills. Rank 0 shows nothing. "Read" kept rank III after losing its streak, so it still hits hard.</p>
+    <div class="grid">
+      <div class="opt">
+        <h3><b>A</b>Numeral badge</h3>
+        <p>A small framed numeral before the streak. It brightens at III and glows at V+.</p>
+        <div class="panel"><h4>Skills</h4><ul id="rowsA"></ul></div>
+      </div>
+      <div class="opt">
+        <h3><b>B</b>Rank gem</h3>
+        <p>A gold diamond after the name, filling in as rank climbs. Reads as a medal next to the skill.</p>
+        <div class="panel"><h4>Skills</h4><ul id="rowsB"></ul></div>
+      </div>
+      <div class="opt">
+        <h3><b>C</b>Rings on the check</h3>
+        <p>No new element: the check diamond gains rings and a glow. Quietest; the exact rank lives in the skill modal.</p>
+        <div class="panel"><h4>Skills</h4><ul id="rowsC"></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 2. RANK-UP ===== -->
+  <section class="sec">
+    <h2 class="engraved">2 · The rank-up moment</h2>
+    <p>"Morning run" just reached a 100-day streak.</p>
+    <div class="grid">
+      <div class="opt">
+        <h3><b>1</b>Log line only</h3>
+        <p>Quiet. The new rank shows on the row; the log notes it.</p>
+        <div class="panel"><h4>Log</h4>
+          <ul class="log">
+            <li><span class="mk up"></span><span><b>Morning run</b> · Rank V</span></li>
+            <li><span class="mk"></span><span>Morning run struck for <span class="dmg">5,990</span></span></li>
+            <li><span class="mk"></span><span class="dim">Streak 100 · +300 EXP</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="opt">
+        <h3><b>2</b>Row flare + log line</h3>
+        <p>A gold sweep across the row and "Rank V" rising off it, then the log line from 1.</p>
+        <div class="panel"><h4>Skills</h4><ul id="rowsFlare"></ul></div>
+      </div>
+      <div class="opt">
+        <h3><b>3</b>Popup card</h3>
+        <p>A small card, after any item drop. Rank-ups are rare (eight per skill, ever), so they get a moment.</p>
+        <div class="card">
+          <div class="big"><span>V</span></div>
+          <div class="t engraved">Rank V</div>
+          <div class="s">Morning run</div>
+          <div class="n">Strikes for <b>7,000</b></div>
+          <span class="btn">Onward</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 3. MODAL ===== -->
+  <section class="sec">
+    <h2 class="engraved">3 · Skill modal breakdown</h2>
+    <p>Today the modal shows one "Streak ×N" line. Base 1,000, rank V, streak 112, gear ×1.4.</p>
+    <div class="grid">
+      <div class="opt">
+        <h3><b>A</b>Rank and streak lines</h3>
+        <p>Two lines that add up, so you can see what a miss would cost (the streak line).</p>
+        <div class="panel">
+          <div class="mh"><span class="nm">Morning run</span><span class="ty">Physical · Daily</span></div>
+          <ul class="rows">
+            <li><span class="lab">Base</span><span class="val">1,000</span></li>
+            <li><span class="lab">Rank</span><span class="note">V</span><span class="val gold">+500%</span></li>
+            <li><span class="lab">Streak</span><span class="note">112</span><span class="val">+112%</span></li>
+            <li><span class="lab">Gear</span><span class="val">×1.4</span></li>
+          </ul>
+          <div class="total"><span class="lab">Strikes for</span><span class="val">9,968</span></div>
+        </div>
+      </div>
+      <div class="opt">
+        <h3><b>B</b>One line + next rank</h3>
+        <p>Keeps today's single line, adds a thin bar toward the next rank.</p>
+        <div class="panel">
+          <div class="mh"><span class="nm">Morning run</span><span class="ty">Physical · Daily</span></div>
+          <ul class="rows">
+            <li><span class="lab">Base</span><span class="val">1,000</span></li>
+            <li style="flex-wrap:wrap"><span class="lab">Rank V · streak 112</span><span class="val gold">×7.12</span>
+              <div class="next" style="flex-basis:100%"><div class="bar"><i></i></div><div class="cap"><span>112</span><span>VI at 200</span></div></div></li>
+            <li><span class="lab">Gear</span><span class="val">×1.4</span></li>
+          </ul>
+          <div class="total"><span class="lab">Strikes for</span><span class="val">9,968</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const SKILLS = [
+  { name: 'Morning run', type: 'physical', rank: 5, streak: 112, pips: 3, hit: '7,120' },
+  { name: 'Read 20 pages', type: 'magic', rank: 3, streak: 4, pips: 2, hit: '4,040' },
+  { name: 'Meditate', type: 'healing', rank: 2, streak: 23, pips: 1, hit: '690' },
+  { name: 'Journal', type: 'true', rank: 6, streak: 214, pips: 2, hit: '9,140' },
+  { name: 'Stretch', type: 'physical', rank: 0, streak: 6, pips: 1, hit: '1,060' },
+  { name: 'No soda', type: 'physical', rank: 1, streak: 12, pips: 2, hit: '2,120', bad: true },
+];
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const tier = (r) => (r >= 5 ? 'r5' : r >= 3 ? 'r3' : r >= 1 ? 'r1' : '');
+const streak = (s) => (s >= 3 ? `<span class="streak"><svg><use href="#flame"/></svg>${s}</span>` : '');
+const pips = (n) => `<span class="pips">${[1, 2, 3].map((i) => `<span class="pip ${i <= n ? 'lit' : ''}"></span>`).join('')}</span>`;
+function row(s, opt, extra = '') {
+  const badge = opt === 'A' && s.rank ? `<span class="badge ${tier(s.rank)}">${ROMAN[s.rank]}</span>` : '';
+  const gem = opt === 'B' && s.rank ? `<span class="gem ${tier(s.rank)}" style="--fill:${0.06 + s.rank * 0.05}"><span>${s.rank}</span></span>` : '';
+  return `<li class="skill ${s.type} ${s.bad ? 'bad' : ''} ${extra}">
+    <span class="dia ${opt === 'C' ? tier(s.rank) : ''}"></span>
+    <span class="name">${s.name}</span>${gem}
+    <span class="meta">${badge}${streak(s.streak)}${pips(s.pips)}</span>
+    <span class="hit">${s.hit}</span>${extra ? '<span class="ghost">RANK V</span>' : ''}
+  </li>`;
+}
+for (const opt of ['A', 'B', 'C']) document.getElementById('rows' + opt).innerHTML = SKILLS.map((s) => row(s, opt)).join('');
+const flare = [{ ...SKILLS[0], streak: 100, hit: '7,000' }, ...SKILLS.slice(1, 4)];
+document.getElementById('rowsFlare').innerHTML = flare.map((s, i) => row(s, 'A', i === 0 ? 'flare' : '')).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — skill ranks, round 2 (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Round 2: difficulty leaves the skill row (modal only) and its diamonds
+   show rank instead, 1-8. Four compact layouts for the diamonds, then the
+   whole skill modal in two layouts. Phone width. Icons are stand-ins. */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --gold-deep: #8a6a2c; --ash: #5c554a; --blood: #c8402f; --ember: #e0783a;
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p, dl, dd { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+.page { max-width: 1240px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 30px; }
+section.sec { margin-bottom: 52px; }
+section.sec > h2 { font-size: 12px; letter-spacing: .22em; color: var(--text-h); margin-bottom: 4px; }
+section.sec > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 30px 24px; justify-items: center; }
+.opt { display: flex; flex-direction: column; gap: 10px; width: 360px; max-width: 100%; }
+.opt h3 { font: 600 12px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text-h); }
+.opt h3 b { color: var(--gold); font-weight: 600; margin-right: 6px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; line-height: 1.3; }
+
+.corners::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75;
+  background: linear-gradient(var(--gold),var(--gold)) top left/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) top left/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) top right/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) top right/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) bottom left/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) bottom left/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) bottom right/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) bottom right/1px 10px no-repeat; }
+.panel { position: relative; padding: 12px; background: linear-gradient(180deg, rgba(27,24,21,.96), rgba(14,13,11,.98)); border: 1px solid var(--line); }
+.panel > h4 { font: 600 11px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--gold-hi); margin-bottom: 4px; }
+
+/* ---------- skill row (no difficulty pips) ---------- */
+.skill { position: relative; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 4px 6px 6px; }
+.skill.bad::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: var(--blood); box-shadow: 0 0 8px var(--blood); }
+.dia { flex-shrink: 0; width: 13px; height: 13px; margin: 0 5px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0,0,0,.45); }
+.skill .name { flex: 1; min-width: 0; font-weight: 600; color: var(--text-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skill .meta { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.streak { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; color: var(--text); }
+.streak svg { width: 11px; height: 11px; }
+.hit { width: 52px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.physical .hit { color: var(--dmg-physical); } .magic .hit { color: var(--dmg-magic); }
+.healing .hit { color: var(--dmg-healing); } .true .hit { color: var(--dmg-true); }
+
+/* rank diamonds: a lit gold pip, same family as the old difficulty pips */
+.rk { position: relative; display: inline-block; flex-shrink: 0; }
+.rk i { position: absolute; width: 6px; height: 6px; transform: rotate(45deg); background: radial-gradient(circle, var(--gold-hi), var(--gold) 60%, var(--gold-deep)); box-shadow: 0 0 5px rgba(230,207,154,.35); }
+.rk i.big { width: 11px; height: 11px; box-shadow: 0 0 8px rgba(230,207,154,.5); }
+.rk i.off { background: transparent; border: 1px solid var(--line-mid); box-shadow: none; }
+
+/* ---------- modal ---------- */
+.screen { position: relative; width: 360px; max-width: 100%; padding: 26px 14px; background: rgba(0,0,0,.72); border: 1px solid rgba(200,169,110,.12); border-radius: 22px; }
+.modal { position: relative; padding: 16px 16px 14px; background: linear-gradient(180deg, rgba(24,21,18,.985), rgba(10,9,8,.985)); border: 1px solid var(--line-mid); box-shadow: 0 40px 80px -30px #000, 0 0 0 4px rgba(0,0,0,.6), 0 0 0 5px rgba(200,169,110,.13); }
+.m-head { position: relative; display: flex; align-items: center; gap: 14px; margin: 2px 0 10px; padding-inline: 2rem; font: 600 13px/1.2 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; color: var(--gold-hi); text-align: center; }
+.m-head::before, .m-head::after { content: ''; flex: 1; min-width: 12px; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.m-head::after { background: linear-gradient(270deg, transparent, var(--line-mid)); }
+.m-close { position: absolute; right: -4px; top: 50%; transform: translateY(-50%); color: var(--text); font: 400 20px/1 serif; letter-spacing: 0; }
+.m-meta { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); }
+.m-meta .ic { width: 13px; height: 13px; border: 1px solid currentColor; border-radius: 50%; }
+.m-meta .pips { display: inline-flex; gap: 4px; }
+.m-meta .pip { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid var(--line-mid); }
+.m-meta .pip.lit { background: var(--gold); border-color: var(--gold); }
+
+.rank-block { margin: 0 0 14px; padding: 10px 10px 9px; border: 1px solid var(--line); background: rgba(0,0,0,.28); }
+.rank-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.rank-top .lab { font: 600 11px/1 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; color: var(--gold-hi); }
+.bar { height: 4px; background: rgba(0,0,0,.55); border: 1px solid var(--line); }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-deep), var(--gold-hi)); box-shadow: 0 0 6px rgba(230,207,154,.4); }
+.bar-cap { display: flex; justify-content: space-between; margin-top: 4px; font-size: 13px; color: var(--text); font-style: italic; }
+.bar-cap b { font-style: normal; color: var(--gold); font-weight: 600; }
+
+.days-lab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 14px; color: var(--text); }
+.days-lab span:first-child { font: 600 10px/1 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; }
+.days-lab span:last-child { font-style: italic; }
+.days { display: flex; justify-content: space-between; margin: 0 6px 18px; }
+.day { position: relative; display: grid; place-items: center; width: 34px; height: 34px; font: 600 10px/1 'Cinzel', serif; color: var(--text); }
+.day::before { content: ''; position: absolute; width: 24px; height: 24px; transform: rotate(45deg); border: 1px solid var(--ash); background: rgba(0,0,0,.35); }
+.day.on { color: var(--gold-hi); }
+.day.on::before { border-color: var(--gold); background: radial-gradient(circle, rgba(230,207,154,.35), rgba(138,106,44,.2) 70%); box-shadow: 0 0 10px -2px rgba(230,199,127,.5); }
+.day span { position: relative; }
+
+.sum { display: grid; gap: 7px; }
+.row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.row dt { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-h); }
+.row dt .ic { width: 13px; height: 13px; border: 1px solid var(--gold); border-radius: 50%; opacity: .8; }
+.row dt small { color: var(--text); font-size: .95em; font-weight: 500; font-style: italic; }
+.row dd { font: 600 14.5px/1 'Cinzel', serif; color: var(--gold-hi); letter-spacing: .02em; }
+.row.base dd { color: var(--text-h); }
+.row.crowd dd { color: #c98d7c; }
+.row .barwrap { flex-basis: 100%; margin-top: 2px; }
+.total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line-mid); }
+.total dt { font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); }
+.total dd { font-size: 27px; font-weight: 700; color: var(--c); }
+
+.od { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; padding: 11px; border: 1px solid rgba(224,120,58,.7); background: linear-gradient(180deg, rgba(160,60,20,.35), rgba(90,30,10,.35)); font: 600 11px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text-h); box-shadow: 0 0 14px 1px rgba(224,120,58,.45); }
+.od .charges { display: inline-flex; gap: 6px; }
+.od .charge { width: 7px; height: 7px; transform: rotate(45deg); border: 1px solid #f2b48a; background: radial-gradient(circle, #ffe2c4 0, var(--ember) 45%, #7a2e10 85%); box-shadow: 0 0 8px 1px rgba(224,120,58,.6); }
+.od .charge.used { background: none; border-color: var(--ash); box-shadow: none; }
+.od small { font-family: 'Cormorant Garamond', serif; font-size: 15px; letter-spacing: .05em; color: var(--gold-hi); text-transform: none; }
+.remove { margin-top: 12px; text-align: center; font: 600 9.5px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: rgba(200,64,47,.8); }
+.remove.locked { color: var(--ash); }
+.remove.locked small { display: block; margin-top: 5px; font: italic 500 13px/1 'Cormorant Garamond', serif; letter-spacing: 0; text-transform: none; color: var(--text); }
+#modals { max-width: 800px; margin: 0 auto; }
+.tag { margin-top: 8px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text); text-align: center; opacity: .75; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><symbol id="flame" viewBox="0 0 12 12"><path d="M6 1c1 2 3 3 3 6a3 3 0 0 1-6 0c0-1.5.8-2.3 1.4-3 .2 1 .7 1.5 1.2 1.6C5.4 4 5.4 2.6 6 1z" fill="currentColor"/></symbol></svg>
+<div class="page">
+  <h1 class="engraved">Skill ranks · round 2</h1>
+  <p>Difficulty leaves the skill row and shows in the modal only. Its diamonds now show rank, 1–8. The rank-up uses the row flare and a log line, as picked.</p>
+
+  <section class="sec">
+    <h2 class="engraved">1 · Rank diamonds on the row</h2>
+    <p>The same seven skills in each option, ranks 0 to 8. Rank 0 shows nothing.</p>
+    <div class="grid" id="rowOpts"></div>
+  </section>
+
+  <section class="sec">
+    <h2 class="engraved">2 · The whole skill modal</h2>
+    <p>Three skills in two layouts. <b>A</b> puts rank in its own block at the top with the bar; the sum has separate Rank and Streak lines. <b>B</b> keeps the top clean and puts one Rank + streak line with the bar inside the sum. Difficulty pips sit next to the type in both.</p>
+    <div class="grid" id="modals"></div>
+  </section>
+</div>
+
+<script>
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const SKILLS = [
+  { name: 'Morning run', type: 'physical', rank: 5, streak: 112, hit: '7,120' },
+  { name: 'Read 20 pages', type: 'magic', rank: 3, streak: 4, hit: '4,040' },
+  { name: 'Meditate', type: 'healing', rank: 2, streak: 23, hit: '690' },
+  { name: 'Journal', type: 'true', rank: 8, streak: 506, hit: '11,900' },
+  { name: 'Cold shower', type: 'magic', rank: 7, streak: 341, hit: '9,640' },
+  { name: 'Stretch', type: 'physical', rank: 0, streak: 6, hit: '1,060' },
+  { name: 'No soda', type: 'physical', rank: 1, streak: 12, hit: '2,120', bad: true },
+];
+
+// Each layout returns [width, height, [[x, y, big?], ...]] for a rank.
+const LAYOUTS = {
+  line: { title: 'One line', note: 'Simplest: one diamond per rank. Rank 8 runs about 60px, which still fits next to the streak.',
+    place: (r) => [r * 7.5, 10, Array.from({ length: r }, (_, i) => [i * 7.5, 2])] },
+  braid: { title: 'Braid', note: 'Two rows, zigzagged, so 8 takes the width of about 5. Reads like a stitched seam.',
+    place: (r) => [r ? (r - 1) * 4.6 + 7 : 0, 14, Array.from({ length: r }, (_, i) => [i * 4.6, i % 2 ? 7 : 0])] },
+  crest: { title: 'Crest', note: 'A ring of 8 that fills clockwise from the top. Always the same size, so rows line up; rank 8 closes the ring.',
+    place: (r) => { const P = [[9, 0], [15.5, 3], [18, 9], [15.5, 15], [9, 18], [2.5, 15], [0, 9], [2.5, 3]];
+      return [24, 24, P.map(([x, y], i) => [x, y, false, i >= r])]; } },
+  merge: { title: 'Merge', note: 'Four small diamonds become one big one: rank 5 is a big diamond, rank 8 is two. Never more than four marks.',
+    place: (r) => { const big = Math.floor(r / 4), small = r % 4, out = []; let x = 0;
+      for (let i = 0; i < big; i++) { out.push([x, 0, true]); x += 13; }
+      for (let i = 0; i < small; i++) { out.push([x, 2.5, false]); x += 7.5; }
+      return [x, 12, out]; } },
+};
+function diamonds(r, layout) {
+  if (!r) return '';
+  const [w, h, pts] = LAYOUTS[layout].place(r);
+  return `<span class="rk" title="Rank ${ROMAN[r]}" style="width:${w}px;height:${h}px">${pts.map(([x, y, big, off]) => `<i class="${big ? 'big' : ''} ${off ? 'off' : ''}" style="left:${x}px;top:${y}px"></i>`).join('')}</span>`;
+}
+const streak = (s) => (s >= 3 ? `<span class="streak"><svg><use href="#flame"/></svg>${s}</span>` : '');
+const row = (s, layout) => `<li class="skill ${s.type} ${s.bad ? 'bad' : ''}"><span class="dia"></span><span class="name">${s.name}</span>
+  <span class="meta">${streak(s.streak)}${diamonds(s.rank, layout)}</span><span class="hit">${s.hit}</span></li>`;
+document.getElementById('rowOpts').innerHTML = Object.entries(LAYOUTS).map(([key, l], i) => `
+  <div class="opt"><h3><b>${'ABCD'[i]}</b>${l.title}</h3><p>${l.note}</p>
+  <div class="panel corners"><h4>Skills</h4><ul>${SKILLS.map((s) => row(s, key)).join('')}</ul></div></div>`).join('');
+
+// ---------- modals ----------
+const MODALS = [
+  { name: 'Morning run', type: 'Physical', color: 'var(--dmg-physical)', pips: 3, rank: 5, streak: 112, next: 200, period: 'daily', days: [0, 1, 2, 3, 4], dayLabel: '5 days',
+    base: '1,815', rankPct: '+500%', streakPct: '+112%', combined: '×7.12', rows: [['Gear', '×1.4']], bonus: ['Special', 'first hit', '×1.5'], total: '27,138', totalLab: 'Strikes for', od: { left: 2, dmg: '9,046' } },
+  { name: 'Deep clean', type: 'Magic · Weekly', color: 'var(--dmg-magic)', pips: 2, rank: 2, streak: 9, next: 10, unit: 'wk', period: 'weekly',
+    base: '1,361', rankPct: '+200%', streakPct: '+27%', combined: '×3.27', rows: [['Gear', '×1.2'], ['Weekly', '×2']], bonus: ['Ult', 'first hit', '×2.5'], total: '26,700', totalLab: 'Strikes for' },
+  { name: 'Evening walk', type: 'Healing', color: 'var(--dmg-healing)', pips: 1, rank: 0, streak: 0, next: 10, period: 'daily', days: [0, 1, 2, 3, 4, 5, 6], dayLabel: 'Every day',
+    base: '508', rankPct: '—', streakPct: '+0%', combined: '×1', rows: [['Crowded', '×0.7', 'crowd']], total: '356', totalLab: 'Heals for', locked: true },
+];
+const LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+function rankBlock(m) {
+  const pct = Math.min(100, (m.streak / m.next) * 100);
+  return `<div class="rank-block"><div class="rank-top"><span class="lab">${m.rank ? 'Rank ' + ROMAN[m.rank] : 'Unranked'}</span>${diamonds(m.rank, 'line')}</div>
+    <div class="bar"><i style="width:${pct}%"></i></div><div class="bar-cap"><span>${m.streak}${m.unit ? ' wk' : ''}</span><span><b>${ROMAN[m.rank + 1]}</b> at ${m.next}${m.unit ? ' wk' : ''}</span></div></div>`;
+}
+function modal(m, layout) {
+  const days = m.period === 'daily' ? `<div class="days-lab"><span>Days</span><span>${m.dayLabel}</span></div>
+    <div class="days">${LETTERS.map((l, d) => `<span class="day ${m.days.includes(d) ? 'on' : ''}"><span>${l}</span></span>`).join('')}</div>` : '';
+  const pct = Math.min(100, (m.streak / m.next) * 100);
+  const rankRows = layout === 'A'
+    ? `<div class="row"><dt><span class="ic"></span>Rank<small>${m.rank ? ROMAN[m.rank] : ''}</small></dt><dd>${m.rankPct}</dd></div>
+       <div class="row"><dt><span class="ic"></span>Streak<small>${m.streak}</small></dt><dd>${m.streakPct}</dd></div>`
+    : `<div class="row" style="flex-wrap:wrap"><dt><span class="ic"></span>${m.rank ? 'Rank ' + ROMAN[m.rank] : 'Unranked'}<small>streak ${m.streak}</small></dt><dd>${m.combined}</dd>
+       <div class="barwrap"><div class="bar"><i style="width:${pct}%"></i></div><div class="bar-cap"><span>${m.streak}${m.unit ? ' wk' : ''}</span><span><b>${ROMAN[m.rank + 1]}</b> at ${m.next}${m.unit ? ' wk' : ''}</span></div></div></div>`;
+  const rows = m.rows.map(([l, v, cls]) => `<div class="row ${cls || ''}"><dt><span class="ic"></span>${l}</dt><dd>${v}</dd></div>`).join('');
+  const bonus = m.bonus ? `<div class="row"><dt><span class="ic"></span>${m.bonus[0]}<small>${m.bonus[1]}</small></dt><dd>${m.bonus[2]}</dd></div>` : '';
+  const od = m.od ? `<div class="od">Overdrive <span class="charges">${[1, 2].map((n) => `<span class="charge ${n > m.od.left ? 'used' : ''}"></span>`).join('')}</span><small>${m.od.dmg}</small></div>` : '';
+  const remove = m.locked ? `<div class="remove locked">Remove habit<small>Tomorrow</small></div>` : `<div class="remove">Remove habit</div>`;
+  return `<div class="opt"><h3><b>${layout}</b>${m.name}</h3><div class="screen"><div class="modal corners">
+    <div class="m-head">${m.name}<span class="m-close">×</span></div>
+    <div class="m-meta"><span class="ic" style="color:${m.color}"></span><span>${m.type}</span><span class="pips">${[1, 2, 3].map((n) => `<span class="pip ${n <= m.pips ? 'lit' : ''}"></span>`).join('')}</span></div>
+    ${layout === 'A' ? rankBlock(m) : ''}${days}
+    <dl class="sum"><div class="row base"><dt>Base</dt><dd>${m.base}</dd></div>${rankRows}${rows}${bonus}
+      <div class="total" style="--c:${m.color}"><dt>${m.totalLab}</dt><dd>${m.total}</dd></div></dl>
+    ${od}${remove}</div></div>
+    ${m.locked ? '<div class="tag">Added today · 16th skill</div>' : ''}</div>`;
+}
+document.getElementById('modals').innerHTML = MODALS.flatMap((m) => [modal(m, 'A'), modal(m, 'B')]).join('');
+</script>
+</body>
+</html>

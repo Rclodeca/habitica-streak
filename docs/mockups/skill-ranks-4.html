@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — skill difficulty, round 4 (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Round 2: difficulty leaves the skill row (modal only) and its diamonds
+   show rank instead, 1-8. Four compact layouts for the diamonds, then the
+   whole skill modal in two layouts. Phone width. Icons are stand-ins. */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --gold-deep: #8a6a2c; --ash: #5c554a; --blood: #c8402f; --ember: #e0783a;
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p, dl, dd { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+.page { max-width: 1240px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 30px; }
+section.sec { margin-bottom: 52px; }
+section.sec > h2 { font-size: 12px; letter-spacing: .22em; color: var(--text-h); margin-bottom: 4px; }
+section.sec > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 30px 24px; justify-items: center; }
+.opt { display: flex; flex-direction: column; gap: 10px; width: 360px; max-width: 100%; }
+.opt h3 { font: 600 12px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text-h); }
+.opt h3 b { color: var(--gold); font-weight: 600; margin-right: 6px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; line-height: 1.3; }
+
+.corners::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75;
+  background: linear-gradient(var(--gold),var(--gold)) top left/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) top left/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) top right/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) top right/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) bottom left/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) bottom left/1px 10px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) bottom right/10px 1px no-repeat, linear-gradient(var(--gold),var(--gold)) bottom right/1px 10px no-repeat; }
+.panel { position: relative; padding: 12px; background: linear-gradient(180deg, rgba(27,24,21,.96), rgba(14,13,11,.98)); border: 1px solid var(--line); }
+.panel > h4 { font: 600 11px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--gold-hi); margin-bottom: 4px; }
+
+/* ---------- skill row (no difficulty pips) ---------- */
+.skill { position: relative; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 4px 6px 6px; }
+.skill.bad::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: var(--blood); box-shadow: 0 0 8px var(--blood); }
+.dia { flex-shrink: 0; width: 13px; height: 13px; margin: 0 5px; transform: rotate(45deg); border: 1px solid var(--gold); background: rgba(0,0,0,.45); }
+.skill .name { flex: 1; min-width: 0; font-weight: 600; color: var(--text-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skill .meta { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.streak { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; color: var(--text); }
+.streak svg { width: 11px; height: 11px; }
+.hit { width: 52px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.physical .hit { color: var(--dmg-physical); } .magic .hit { color: var(--dmg-magic); }
+.healing .hit { color: var(--dmg-healing); } .true .hit { color: var(--dmg-true); }
+
+/* rank diamonds: a lit gold pip, same family as the old difficulty pips */
+.rk { position: relative; display: inline-block; flex-shrink: 0; }
+.rk i { position: absolute; width: 6px; height: 6px; transform: rotate(45deg); background: radial-gradient(circle, var(--gold-hi), var(--gold) 60%, var(--gold-deep)); box-shadow: 0 0 5px rgba(230,207,154,.35); }
+.rk i.big { width: 11px; height: 11px; box-shadow: 0 0 8px rgba(230,207,154,.5); }
+.rk i.off { background: transparent; border: 1px solid var(--line-mid); box-shadow: none; }
+
+/* ---------- modal ---------- */
+.screen { position: relative; width: 360px; max-width: 100%; padding: 26px 14px; background: rgba(0,0,0,.72); border: 1px solid rgba(200,169,110,.12); border-radius: 22px; }
+.modal { position: relative; padding: 16px 16px 14px; background: linear-gradient(180deg, rgba(24,21,18,.985), rgba(10,9,8,.985)); border: 1px solid var(--line-mid); box-shadow: 0 40px 80px -30px #000, 0 0 0 4px rgba(0,0,0,.6), 0 0 0 5px rgba(200,169,110,.13); }
+.m-head { position: relative; display: flex; align-items: center; gap: 14px; margin: 2px 0 10px; padding-inline: 2rem; font: 600 13px/1.2 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; color: var(--gold-hi); text-align: center; }
+.m-head::before, .m-head::after { content: ''; flex: 1; min-width: 12px; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.m-head::after { background: linear-gradient(270deg, transparent, var(--line-mid)); }
+.m-close { position: absolute; right: -4px; top: 50%; transform: translateY(-50%); color: var(--text); font: 400 20px/1 serif; letter-spacing: 0; }
+.m-meta { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); }
+.m-meta .ic { width: 13px; height: 13px; border: 1px solid currentColor; border-radius: 50%; }
+.m-meta .pips { display: inline-flex; gap: 4px; }
+.m-meta .pip { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid var(--line-mid); }
+.m-meta .pip.lit { background: var(--gold); border-color: var(--gold); }
+
+.rank-block { margin: 0 0 14px; padding: 10px 10px 9px; border: 1px solid var(--line); background: rgba(0,0,0,.28); }
+.rank-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.rank-top .lab { font: 600 11px/1 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; color: var(--gold-hi); }
+.bar { height: 4px; background: rgba(0,0,0,.55); border: 1px solid var(--line); }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-deep), var(--gold-hi)); box-shadow: 0 0 6px rgba(230,207,154,.4); }
+.bar-cap { display: flex; justify-content: space-between; margin-top: 4px; font-size: 13px; color: var(--text); font-style: italic; }
+.bar-cap b { font-style: normal; color: var(--gold); font-weight: 600; }
+
+.days-lab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 14px; color: var(--text); }
+.days-lab span:first-child { font: 600 10px/1 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; }
+.days-lab span:last-child { font-style: italic; }
+.days { display: flex; justify-content: space-between; margin: 0 6px 18px; }
+.day { position: relative; display: grid; place-items: center; width: 34px; height: 34px; font: 600 10px/1 'Cinzel', serif; color: var(--text); }
+.day::before { content: ''; position: absolute; width: 24px; height: 24px; transform: rotate(45deg); border: 1px solid var(--ash); background: rgba(0,0,0,.35); }
+.day.on { color: var(--gold-hi); }
+.day.on::before { border-color: var(--gold); background: radial-gradient(circle, rgba(230,207,154,.35), rgba(138,106,44,.2) 70%); box-shadow: 0 0 10px -2px rgba(230,199,127,.5); }
+.day span { position: relative; }
+
+.sum { display: grid; gap: 7px; }
+.row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.row dt { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-h); }
+.row dt .ic { width: 13px; height: 13px; border: 1px solid var(--gold); border-radius: 50%; opacity: .8; }
+.row dt small { color: var(--text); font-size: .95em; font-weight: 500; font-style: italic; }
+.row dd { font: 600 14.5px/1 'Cinzel', serif; color: var(--gold-hi); letter-spacing: .02em; }
+.row.base dd { color: var(--text-h); }
+.row.crowd dd { color: #c98d7c; }
+.row .barwrap { flex-basis: 100%; margin-top: 2px; }
+.total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line-mid); }
+.total dt { font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); }
+.total dd { font-size: 27px; font-weight: 700; color: var(--c); }
+
+.od { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; padding: 11px; border: 1px solid rgba(224,120,58,.7); background: linear-gradient(180deg, rgba(160,60,20,.35), rgba(90,30,10,.35)); font: 600 11px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text-h); box-shadow: 0 0 14px 1px rgba(224,120,58,.45); }
+.od .charges { display: inline-flex; gap: 6px; }
+.od .charge { width: 7px; height: 7px; transform: rotate(45deg); border: 1px solid #f2b48a; background: radial-gradient(circle, #ffe2c4 0, var(--ember) 45%, #7a2e10 85%); box-shadow: 0 0 8px 1px rgba(224,120,58,.6); }
+.od .charge.used { background: none; border-color: var(--ash); box-shadow: none; }
+.od small { font-family: 'Cormorant Garamond', serif; font-size: 15px; letter-spacing: .05em; color: var(--gold-hi); text-transform: none; }
+.remove { margin-top: 12px; text-align: center; font: 600 9.5px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: rgba(200,64,47,.8); }
+.remove.locked { color: var(--ash); }
+.remove.locked small { display: block; margin-top: 5px; font: italic 500 13px/1 'Cormorant Garamond', serif; letter-spacing: 0; text-transform: none; color: var(--text); }
+#modals { max-width: 800px; margin: 0 auto; }
+.tag { margin-top: 8px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text); text-align: center; opacity: .75; }
+</style>
+<style>
+/* Round 4: difficulty in the skill modal without diamonds (rank owns those
+   now). Simple and informational. Each option shows easy / medium / hard,
+   then the full modal at hard. */
+.strip { display: flex; flex-direction: column; align-items: center; gap: 9px; justify-content: space-around; padding: 10px 6px; border: 1px solid var(--line); background: rgba(0,0,0,.25); }
+.strip .m-meta { margin: 0; }
+.bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 11px; }
+.bars i { width: 3px; background: var(--ash); }
+.bars i:nth-child(1) { height: 5px; } .bars i:nth-child(2) { height: 8px; } .bars i:nth-child(3) { height: 11px; }
+.bars i.lit { background: var(--gold); box-shadow: 0 0 4px rgba(230,207,154,.4); }
+.dots { display: inline-flex; gap: 4px; }
+.dots i { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--line-mid); }
+.dots i.lit { background: var(--gold); border-color: var(--gold); }
+.d-easy { color: var(--bone); } .d-medium { color: var(--gold-hi); } .d-hard { color: var(--ember); }
+.row.base dt small.diff { font-style: italic; color: var(--text); font-weight: 500; }
+.row.base.c-ash dd { color: var(--ash); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Difficulty in the skill modal · round 4</h1>
+  <p>Rank owns the diamonds now, so difficulty needs its own look. Crowded shows only here in the modal (Base in ash with a "crowded" note), never on the row.</p>
+  <div class="grid" id="opts"></div>
+</div>
+<script>
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const LEVELS = ['easy', 'medium', 'hard'];
+const WORD = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+const diamonds = (r) => (r ? `<span class="rk" style="width:${r * 7.5}px;height:10px">${Array.from({ length: r }, (_, i) => `<i style="left:${i * 7.5}px;top:2px"></i>`).join('')}</span>` : '');
+const OPTS = [
+  { title: 'Word', note: 'Just the word, in the same engraved caps as the type.', meta: (d) => `<span>·</span><span>${WORD[d]}</span>` },
+  { title: 'Bars', note: 'Three rising bars, like signal strength. Clearly not a rank.', meta: (d) => `<span class="bars">${[1, 2, 3].map((n) => `<i class="${n <= LEVELS.indexOf(d) + 1 ? 'lit' : ''}"></i>`).join('')}</span>` },
+  { title: 'Dots', note: 'The old pips, but round instead of diamonds.', meta: (d) => `<span class="dots">${[1, 2, 3].map((n) => `<i class="${n <= LEVELS.indexOf(d) + 1 ? 'lit' : ''}"></i>`).join('')}</span>` },
+  { title: 'Tinted word', note: 'The word, tinted bone / gold / ember by difficulty.', meta: (d) => `<span>·</span><span class="d-${d}">${WORD[d]}</span>` },
+  { title: 'On the Base line', note: 'Nothing in the header. Difficulty is a note on Base, the number it changes ("Base hard").', meta: () => '', base: true },
+];
+const LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+function metaLine(o, d) { return `<div class="m-meta"><span class="ic" style="color:var(--dmg-physical)"></span><span>Physical</span>${o.meta(d)}</div>`; }
+function modal(o) {
+  return `<div class="screen"><div class="modal corners">
+    <div class="m-head">Morning run<span class="m-close">×</span></div>
+    ${metaLine(o, 'hard')}
+    <div class="rank-block"><div class="rank-top"><span class="lab">Rank V</span>${diamonds(5)}</div>
+      <div class="bar"><i style="width:56%"></i></div><div class="bar-cap"><span>112</span><span><b>VI</b> at 200</span></div></div>
+    <div class="days-lab"><span>Days</span><span>5 days</span></div>
+    <div class="days">${LETTERS.map((l, i) => `<span class="day ${i < 5 ? 'on' : ''}"><span>${l}</span></span>`).join('')}</div>
+    <dl class="sum"><div class="row base"><dt>Base${o.base ? '<small class="diff">hard</small>' : ''}</dt><dd>1,815</dd></div>
+      <div class="row"><dt><span class="ic"></span>Rank<small>V</small></dt><dd>+500%</dd></div>
+      <div class="row"><dt><span class="ic"></span>Streak<small>112</small></dt><dd>+112%</dd></div>
+      <div class="row"><dt><span class="ic"></span>Gear</dt><dd>×1.4</dd></div>
+      <div class="row"><dt><span class="ic"></span>Special<small>first hit</small></dt><dd>×1.5</dd></div>
+      <div class="total" style="--c:var(--dmg-physical)"><dt>Strikes for</dt><dd>27,138</dd></div></dl>
+    <div class="od">Overdrive <span class="charges"><span class="charge"></span><span class="charge"></span></span><small>9,046</small></div>
+    <div class="remove">Remove habit</div></div></div>`;
+}
+const strip = (o) => o.base
+  ? `<div class="strip">${LEVELS.map((d) => `<span class="row base" style="gap:6px"><dt style="font-weight:600;color:var(--text-h)">Base<small class="diff" style="margin-left:5px">${d}</small></dt></span>`).join('')}</div>`
+  : `<div class="strip">${LEVELS.map((d) => metaLine(o, d)).join('')}</div>`;
+document.getElementById('opts').innerHTML = OPTS.map((o, i) => `
+  <div class="opt"><h3><b>${'ABCDE'[i]}</b>${o.title}</h3><p>${o.note}</p>${strip(o)}${modal(o)}</div>`).join('') + `
+  <div class="opt"><h3><b>·</b>Crowded, modal only</h3><p>Picked in round 3: a crowded skill's Base goes ash with a quiet note. The row shows nothing.</p>
+    <div class="screen"><div class="modal corners"><dl class="sum">
+      <div class="row base c-ash"><dt>Base<small class="diff" style="color:var(--ash)">crowded</small></dt><dd>680</dd></div>
+      <div class="row"><dt><span class="ic"></span>Rank<small>II</small></dt><dd>+200%</dd></div>
+      <div class="row"><dt><span class="ic"></span>Streak<small>14</small></dt><dd>+14%</dd></div>
+      <div class="total" style="--c:var(--dmg-physical)"><dt>Strikes for</dt><dd>2,563</dd></div></dl></div></div></div>`;
+</script>
+</body>
+</html>
