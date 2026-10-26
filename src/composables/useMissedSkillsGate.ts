@@ -30,6 +30,7 @@ import type { Difficulty, Habit, Period } from '../game-engine';
 import { useCombatActions } from './useCombatActions';
 import { useHabitStore } from '../store/habitStore';
 import { useItemDropQueue } from './useItemDropQueue';
+import { useQuestMissGate } from './useQuestMissGate';
 
 interface PendingOutcome {
   habitId: string;
@@ -47,6 +48,7 @@ export function useMissedSkillsGate() {
   const habitStore = useHabitStore();
   const { checkMissedHabit, checkAvoidedHabit, landDoom } = useCombatActions();
   const { enqueueDrops } = useItemDropQueue();
+  const { hasPending: questMissesPending } = useQuestMissGate();
 
   const misses = computed(() => pending.value.filter((item) => item.outcome === 'penalty'));
   const rewards = computed(() => pending.value.filter((item) => item.outcome === 'reward'));
@@ -125,8 +127,9 @@ export function useMissedSkillsGate() {
     pending.value = [];
     overridden.value = new Set();
     // Last, so the day's misses and avoided habits land first (and a boss
-    // they kill takes its Doom with it).
-    landDoom();
+    // they kill takes its Doom with it). A missed quest still queued lands
+    // first too: its popup (next by priority) lands the Doom instead.
+    if (!questMissesPending.value) landDoom();
   }
 
   return { misses, rewards, hasPending, queueMiss, queueReward, isOverridden, toggleOverride, acknowledge };

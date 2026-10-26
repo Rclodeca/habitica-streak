@@ -91,9 +91,9 @@ const statTiles = computed<StatTile[]>(() => {
     ...(b.reflectPct > 0 ? [{ icon: 'reflect' as const, label: 'Reflect', value: pct(b.reflectPct) }] : []),
     ...(b.lifestealPct > 0 ? [{ icon: 'lifesteal' as const, label: 'Lifesteal', value: pct(b.lifestealPct) }] : []),
     ...(bloodlustDays.value !== undefined
-      ? [{ icon: 'bloodlust' as const, label: 'Bloodlust', value: `${bloodlustDays.value}d`, note: '3% max HP per hit' }]
+      ? [{ icon: 'bloodlust' as const, label: 'Bloodlust', value: `${bloodlustDays.value}d` }]
       : []),
-    ...(undying.value ? [{ icon: 'undying' as const, label: 'Undying', value: 'Today', note: "Can't fall below 10%" }] : []),
+    ...(undying.value ? [{ icon: 'undying' as const, label: 'Undying', value: 'Today' }] : []),
     ...(doomDays.value !== undefined ? [{ icon: 'doom' as const, label: 'Doom', value: `${doomDays.value}d` }] : []),
   ];
 });

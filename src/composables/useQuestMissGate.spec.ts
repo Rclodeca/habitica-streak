@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ITEM_CATALOG } from '../game-engine';
+import { dailyPeriodKey, ITEM_CATALOG } from '../game-engine';
+import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useQuestStore } from '../store/questStore';
@@ -57,6 +58,22 @@ describe('useQuestMissGate', () => {
     expect(characterStore.character.currentHealth).toBeLessThan(healthBefore);
     expect(questStore.quests).toEqual([]);
     expect(useQuestMissGate().misses.value).toEqual([]);
+  });
+
+  it('acknowledge lands a due Doom after the quest misses', () => {
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const quest = useQuestStore().addQuest('Clean garage', 'medium', '2026-01-01');
+    characterStore.setCharacter({ ...characterStore.character, currentHealth: 1000 });
+    bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: dailyPeriodKey(new Date()) });
+
+    useQuestMissGate().queueMiss(quest);
+    useQuestMissGate().acknowledge();
+
+    const entries = useActivityLogStore().entries;
+    const failed = entries.find((e) => e.kind === 'quest-failed') as { amount: number };
+    expect(entries[0]).toMatchObject({ kind: 'doom-landed' });
+    expect(characterStore.character.currentHealth).toBeCloseTo((1000 - failed.amount) / 2, 6);
   });
 
   it('acknowledge grants the reward (completeQuest) for an overridden miss instead of damage', () => {

@@ -144,6 +144,17 @@ describe('BossPanel', () => {
       expect(mount(BossPanel).find('.stat-summary .undying').exists()).toBe(false);
     });
 
+    it('names a running skill in the details without explaining it', async () => {
+      const store = useBossStore();
+      store.setBoss({ ...store.boss, bloodlustDayKey: today(), undyingDayKey: today() });
+      const wrapper = mount(BossPanel);
+      await wrapper.find('button.tap-boss').trigger('click');
+      const tiles = Array.from(document.body.querySelectorAll('.stat-tile')).filter((tile) => /Bloodlust|Undying/.test(tile.textContent ?? ''));
+      expect(tiles).toHaveLength(2);
+      for (const tile of tiles) expect(tile.querySelector('.tile-note')).toBeNull();
+      wrapper.unmount();
+    });
+
     it('shows Doom counting down', () => {
       const store = useBossStore();
       store.setBoss({ ...store.boss, doomDueDayKey: addDaysToDayKey(today(), 2) });

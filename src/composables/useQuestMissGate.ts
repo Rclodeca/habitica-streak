@@ -28,7 +28,7 @@ const pending = ref<PendingQuestMiss[]>([]);
 const overridden = ref<Set<string>>(new Set());
 
 export function useQuestMissGate() {
-  const { completeQuest, failQuest } = useCombatActions();
+  const { completeQuest, failQuest, landDoom } = useCombatActions();
 
   const misses = computed(() => pending.value);
   const hasPending = computed(() => pending.value.length > 0);
@@ -65,7 +65,9 @@ export function useQuestMissGate() {
 
   /**
    * Resolves every queued quest (failQuest if not overridden, completeQuest
-   * if overridden) and clears the queue.
+   * if overridden), clears the queue, then lands any Doom that's due. The
+   * habit-miss popup always comes first (see useModalPriority), so the day's
+   * habit outcomes have already resolved by now.
    */
   function acknowledge(): void {
     for (const item of pending.value) {
@@ -77,6 +79,7 @@ export function useQuestMissGate() {
     }
     pending.value = [];
     overridden.value = new Set();
+    landDoom();
   }
 
   return { misses, hasPending, queueMiss, isOverridden, toggleOverride, acknowledge };

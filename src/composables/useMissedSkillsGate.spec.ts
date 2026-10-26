@@ -6,7 +6,9 @@ import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
+import { useQuestStore } from '../store/questStore';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
+import { useQuestMissGate } from './useQuestMissGate';
 
 describe('useMissedSkillsGate', () => {
   beforeEach(() => {
@@ -199,6 +201,25 @@ describe('useMissedSkillsGate', () => {
     expect(bossStore.boss.index).toBe(slainIndex + 1);
     expect(bossStore.boss.doomDueDayKey).toBeUndefined();
     expect(useActivityLogStore().entries.some((e) => e.kind === 'doom-landed')).toBe(false);
+  });
+
+  it('acknowledge holds a due Doom while a quest miss is still queued', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', false, createRng());
+    const quest = useQuestStore().addQuest('Clean garage', 'medium', '2026-01-01');
+    characterStore.setCharacter({ ...characterStore.character, currentHealth: 1000 });
+    bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: dailyPeriodKey(new Date()) });
+
+    useMissedSkillsGate().queueMiss(habit, '2024-01-02');
+    useQuestMissGate().queueMiss(quest);
+    useMissedSkillsGate().acknowledge();
+
+    expect(useActivityLogStore().entries.some((e) => e.kind === 'doom-landed')).toBe(false);
+    expect(bossStore.boss.doomDueDayKey).toBeDefined();
+    useQuestMissGate().acknowledge();
+    expect(useActivityLogStore().entries[0]).toMatchObject({ kind: 'doom-landed' });
   });
 });
 

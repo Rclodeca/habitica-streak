@@ -77,6 +77,20 @@ describe('useDailyRollover', () => {
     expect(bossStore.boss.doomDueDayKey).toBeDefined();
   });
 
+  it('holds a due Doom while a missed quest\'s popup is up', () => {
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    useQuestStore().addQuest('Clean garage', 'medium', dailyPeriodKey(new Date(Date.now() - 24 * 60 * 60 * 1000)));
+    characterStore.setCharacter({ ...characterStore.character, currentHealth: 1000 });
+    bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: dailyPeriodKey(new Date()) });
+
+    useDailyRollover(new Date());
+
+    expect(characterStore.character.currentHealth).toBe(1000);
+    expect(bossStore.boss.doomDueDayKey).toBeDefined();
+    useQuestMissGate().acknowledge();
+  });
+
   it('queues a miss (without applying damage) for a daily habit not completed in the preceding period', () => {
     const habitStore = useHabitStore();
     const characterStore = useCharacterStore();
