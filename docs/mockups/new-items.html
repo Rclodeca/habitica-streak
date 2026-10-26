@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — new items</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Proposed new items drawn like item-catalog.html's cards, with their
+   processed icons (npm run item-icon). Each card lists the closest existing items
+   so the stat mix can be checked for uniqueness. */
+:root {
+  --bg: #0b0a09; --panel: rgba(0,0,0,.25); --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5; --gold: #c8a96e; --gold-hi: #e6cf9a;
+  --line: rgba(200,169,110,.2); --line-mid: rgba(200,169,110,.4); --bad: #d0604f;
+  --common: #8d8475; --uncommon: #86b08b; --rare: #7f9fd1; --epic: #ae8bd6; --relic: #ec8338;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 24px 16px 60px; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+.page { max-width: 1100px; margin: 0 auto; }
+h1 { margin: 0 0 4px; text-align: center; font: 600 14px/1 'Cinzel', Georgia, serif; letter-spacing: .32em; text-transform: uppercase; color: var(--gold-hi); }
+.sub { text-align: center; font-style: italic; color: var(--text); margin: 6px 0 0; }
+h2 { display: flex; align-items: baseline; gap: 10px; margin: 30px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); font: 600 12px/1 'Cinzel', Georgia, serif; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+h2 small { font: italic 500 15px/1 'Cormorant Garamond', Georgia, serif; letter-spacing: 0; text-transform: none; color: var(--text); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 10px; }
+
+.card { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 10px 8px; background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--rc); }
+.top { display: flex; align-items: center; gap: 12px; }
+.r-common { --rc: var(--common); } .r-uncommon { --rc: var(--uncommon); } .r-rare { --rc: var(--rare); } .r-epic { --rc: var(--epic); } .r-relic { --rc: var(--relic); }
+
+/* The gear list's slot: rarity hairline, inner bevel, glow, gold corner ticks. */
+.icon { position: relative; flex-shrink: 0; width: 80px; height: 80px; border: 1px solid color-mix(in srgb, var(--rc) 55%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--rc) 22%, transparent), rgba(0,0,0,.55) 72%);
+  box-shadow: inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px color-mix(in srgb, var(--rc) 22%, transparent), 0 0 14px -6px var(--rc); }
+.icon::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .9; z-index: 1;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 7px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 7px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 7px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 7px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 7px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 7px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 7px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 7px no-repeat; }
+.art { position: absolute; inset: 0; overflow: hidden; }
+.art img { --rim: color-mix(in srgb, var(--rc) 55%, #000); position: absolute; left: 50%; top: 50%; width: 160px; height: 160px; transform: translate(-50%, -50%); image-rendering: pixelated;
+  filter: drop-shadow(2px 0 0 var(--rim)) drop-shadow(-2px 0 0 var(--rim)) drop-shadow(0 2px 0 var(--rim)) drop-shadow(0 -2px 0 var(--rim)) drop-shadow(0 0 6px color-mix(in srgb, var(--rc) 45%, transparent)); }
+
+.body { min-width: 0; }
+h3 { margin: 0; font-size: 19px; font-weight: 700; color: var(--text-h); line-height: 1.15; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 5px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; }
+.rarity { color: var(--rc); }
+.tag { padding: 2px 5px; color: var(--text); border: 1px solid var(--line); }
+.tag.exc { color: var(--relic); border-color: color-mix(in srgb, var(--relic) 40%, transparent); }
+ul { margin: 0; padding: 0; list-style: none; font-size: 15px; }
+li b { font-weight: 600; color: var(--text-h); }
+li { color: var(--text); }
+li.neg, li.neg b { color: var(--bad); }
+
+.notes { border-top: 1px solid var(--line); padding-top: 7px; font-size: 14.5px; line-height: 1.3; color: var(--text); }
+.notes p { margin: 0 0 4px; }
+.notes .k { font: 600 8.5px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); margin-right: 6px; }
+.notes .near { color: #8a8174; }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>New items</h1>
+<p class="sub">5 proposed to fill tier gaps · 2 alternates from the extra art</p>
+
+<section>
+<h2>Proposed <small>5 · 2 magic rares, 2 support rares, 1 tank uncommon</small></h2>
+<div class="grid">
+
+  <article class="card r-rare">
+    <div class="top">
+      <div class="icon"><span class="art"><img src="../../public/sprites/items/wyrmsage-staff.png" alt=""></span></div>
+      <div class="body">
+        <h3>Wyrmsage Staff</h3>
+        <div class="meta"><span class="rarity">rare</span><span class="tag">Magic</span></div>
+        <ul><li><b>+32%</b> Magic damage</li><li><b>+10%</b> EXP gain</li></ul>
+      </div>
+    </div>
+    <div class="notes">
+      <p><span class="k">Twist</span>The only rare magic item that also speeds leveling.</p>
+      <p class="near"><span class="k">Nearest</span>Scholar's Grimoire (uncommon) +10% magic / +5% pen / +10% EXP · Stormcaller +30% / +6% crit</p>
+    </div>
+  </article>
+
+  <article class="card r-rare">
+    <div class="top">
+      <div class="icon"><span class="art"><img src="../../public/sprites/items/galewind-staff.png" alt=""></span></div>
+      <div class="body">
+        <h3>Galewind Staff</h3>
+        <div class="meta"><span class="rarity">rare</span><span class="tag">Magic</span></div>
+        <ul><li><b>+28%</b> Magic damage</li><li><b>+12%</b> Magic penetration</li><li><b>+8%</b> Crit chance</li></ul>
+      </div>
+    </div>
+    <div class="notes">
+      <p><span class="k">Twist</span>Lower raw damage, but the only magic item with both pen and crit.</p>
+      <p class="near"><span class="k">Nearest</span>Stormcaller +30% / +6% crit · Chaos Conduit +34% / +20% pen</p>
+    </div>
+  </article>
+
+  <article class="card r-rare">
+    <div class="top">
+      <div class="icon"><span class="art"><img src="../../public/sprites/items/firebird-staff.png" alt=""></span></div>
+      <div class="body">
+        <h3>Firebird Staff</h3>
+        <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
+        <ul><li><b>+28%</b> Healing</li><li><b>+4%</b> Lifesteal</li></ul>
+      </div>
+    </div>
+    <div class="notes">
+      <p><span class="k">Twist</span>First healing item with lifesteal, so it heals off hits too.</p>
+      <p class="near"><span class="k">Nearest</span>Staff of Renewal +30% / +5% EXP · Penitent's Cuirass +25% / +150 armor</p>
+    </div>
+  </article>
+
+  <article class="card r-rare">
+    <div class="top">
+      <div class="icon"><span class="art"><img src="../../public/sprites/items/tome-of-insight.png" alt=""></span></div>
+      <div class="body">
+        <h3>Tome of Insight</h3>
+        <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
+        <ul><li><b>+16%</b> EXP gain</li><li><b>+8%</b> Crit chance</li></ul>
+      </div>
+    </div>
+    <div class="notes">
+      <p><span class="k">Twist</span>The EXP item for damage builds: a little crit instead of health.</p>
+      <p class="near"><span class="k">Nearest</span>Adventurer's Crest +15% EXP / +10% HP</p>
+    </div>
+  </article>
+
+  <article class="card r-uncommon">
+    <div class="top">
+      <div class="icon"><span class="art"><img src="../../public/sprites/items/ironstride-greaves.png" alt=""></span></div>
+      <div class="body">
+        <h3>Ironstride Greaves</h3>
+        <div class="meta"><span class="rarity">uncommon</span><span class="tag">Tank</span></div>
+        <ul><li><b>+150</b> Armor</li><li><b>+5%</b> Max health</li></ul>
+      </div>
+    </div>
+    <div class="notes">
+      <p><span class="k">Twist</span>The armor twin of Warding Pendant. Uncommon had no armor-first item.</p>
+      <p class="near"><span class="k">Nearest</span>Warding Pendant +150 MR / +10% HP · Plate Armor +10% HP</p>
+    </div>
+  </article>
+
+</div>
+</section>
+
+<section>
+<h2>Alternates <small>2 · swap one in, or add as extras</small></h2>
+<div class="grid">
+
+  <article class="card r-rare">
+    <div class="top">
+      <div class="icon"><span class="art"><img src="../../public/sprites/items/azure-staff.png" alt=""></span></div>
+      <div class="body">
+        <h3>Azure Staff</h3>
+        <div class="meta"><span class="rarity">rare</span><span class="tag">Magic</span></div>
+        <ul><li><b>+28%</b> Magic damage</li><li><b>+12%</b> True damage</li></ul>
+      </div>
+    </div>
+    <div class="notes">
+      <p><span class="k">Slot</span>Either magic rare. First magic item with true damage on the side.</p>
+      <p class="near"><span class="k">Nearest</span>Stormcaller +30% / +6% crit · Truthseeker's Bow +25% true / +8% crit</p>
+    </div>
+  </article>
+
+  <article class="card r-rare">
+    <div class="top">
+      <div class="icon"><span class="art"><img src="../../public/sprites/items/crescent-crook.png" alt=""></span></div>
+      <div class="body">
+        <h3>Crescent Crook</h3>
+        <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
+        <ul><li><b>+30%</b> Healing</li><li><b>+150</b> Magic resist</li></ul>
+      </div>
+    </div>
+    <div class="notes">
+      <p><span class="k">Slot</span>Healing rare. The magic-resist twin of Penitent's Cuirass.</p>
+      <p class="near"><span class="k">Nearest</span>Penitent's Cuirass +25% / +150 armor · Stalwart Sage's Ring (uncommon) +100 MR / +8% healing</p>
+    </div>
+  </article>
+
+</div>
+</section>
+</div>
+</body>
+</html>

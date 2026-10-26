@@ -27,6 +27,10 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'archmages-rod', name: "Archmage's Rod", icon: 'items/archmages-rod', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'magicDamage', percent: 13 }] },
   { id: 'stormcaller-staff', name: 'Stormcaller Staff', icon: 'items/stormcaller-staff', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 30 }, { stat: 'critChance', percent: 6 }] },
   { id: 'void-crystal', name: 'Void Orb', icon: 'items/void-crystal', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 38 }, { stat: 'health', percent: -10 }] },
+  { id: 'wyrmsage-staff', name: 'Wyrmsage Staff', icon: 'items/wyrmsage-staff', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 32 }, { stat: 'expGain', percent: 10 }] },
+  { id: 'galewind-staff', name: 'Galewind Staff', icon: 'items/galewind-staff', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 28 }, { stat: 'magicPen', percent: 12 }, { stat: 'critChance', percent: 8 }] },
+  // Exception: magic with true damage on the side.
+  { id: 'azure-staff', name: 'Azure Staff', icon: 'items/azure-staff', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 28 }, { stat: 'trueDamage', percent: 12 }] },
   { id: 'voidcallers-scepter', name: "Voidcaller's Scepter", icon: 'items/voidcallers-scepter', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'magicDamage', percent: 55 }, { stat: 'critChance', percent: 8 }], effect: 'void-crits', effectText: 'Magic crits deal 3× damage.' },
   // --- Always droppable: true damage and crit ---
   { id: 'bone-needle', name: 'Crystal Needle', icon: 'items/bone-needle', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'trueDamage', percent: 5 }] },
@@ -44,6 +48,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'iron-buckler', name: 'Crusader Shield', icon: 'items/iron-buckler', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'armor', flat: 75 }] },
   { id: 'ward-cloak', name: 'Warding Robe', icon: 'items/ward-cloak', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'magicResist', flat: 75 }] },
   { id: 'plate-armor', name: 'Plate Armor', icon: 'items/plate-armor', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'health', percent: 10 }] },
+  { id: 'ironstride-greaves', name: 'Ironstride Greaves', icon: 'items/ironstride-greaves', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'armor', flat: 150 }, { stat: 'health', percent: 5 }] },
   { id: 'dragons-heart', name: "Dragon's Heart", icon: 'items/dragons-heart', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'health', percent: 20 }, { stat: 'physicalDamage', percent: 10 }] },
   // --- Always droppable: support and consumable ---
   { id: 'novices-charm', name: "Novice's Rose", icon: 'items/novices-charm', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'healing', percent: 3 }] },
@@ -52,6 +57,9 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'lucky-coin', name: 'Lucky Coffer', icon: 'items/lucky-coin', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'expGain', percent: 3 }] },
   { id: 'shining-star', name: 'Shining Star', icon: 'items/shining-star', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'expGain', percent: 6 }] },
   { id: 'rebirth-orb', name: 'Rebirth Orb', icon: 'items/rebirth-orb', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'expGain', percent: 10 }] },
+  { id: 'firebird-staff', name: 'Firebird Staff', icon: 'items/firebird-staff', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'healing', percent: 28 }, { stat: 'lifesteal', percent: 4 }] },
+  { id: 'crescent-crook', name: 'Crescent Crook', icon: 'items/crescent-crook', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'healing', percent: 30 }, { stat: 'magicResist', flat: 150 }] },
+  { id: 'tome-of-insight', name: 'Tome of Insight', icon: 'items/tome-of-insight', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'expGain', percent: 16 }, { stat: 'critChance', percent: 8 }] },
   { id: 'phoenix-feather', name: 'Phoenix Feather', icon: 'items/phoenix-feather', type: 'consumable', rarity: 'rare', bonuses: [] },
 
   // --- Level-gated (random 10/15/20 unlock per run): physical ---

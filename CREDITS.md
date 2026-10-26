@@ -2,7 +2,7 @@
 
 ## FreePixel art
 
-Every boss sprite, item icon and player hero comes from [FreePixel](https://freepixel.art/), used under the [FreePixel Asset License](https://freepixel.art/license/): free for personal and commercial games and apps, modification allowed, no attribution required (credited here anyway). The raw asset files themselves must not be redistributed, so only the processed sprites live in the repo. Processing: items are cropped, reduced to a 32px grid with 12 colours and a 1px dark outline; bosses are reduced by averaging 2x2 blocks with 48 colours.
+Every boss sprite, item icon and player hero comes from [FreePixel](https://freepixel.art/), used under the [FreePixel Asset License](https://freepixel.art/license/): free for personal and commercial games and apps, modification allowed, no attribution required (credited here anyway). The raw asset files themselves must not be redistributed, so only the processed sprites live in the repo. Processing: items are cropped, reduced to a 32px grid with 12 colours and a 1px dark outline (`npm run item-icon -- <source.png> <item-id>`, see `scripts/item-icons/`); bosses are reduced by averaging 2x2 blocks with 48 colours.
 
 ### Boss sprites
 
@@ -114,6 +114,13 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/eagle-eye-lens.png` | `surviv-compass-navigation-direction-finder-088-v6-2026-03-30T00-37-17.png` |
 | `items/serene-lotus-charm.png` | `mushroom-glowing-blue-magical-bioluminescent-cap_20260225_190905.png` |
 | `items/ward-cloak.png` | `rpg-burgundy-wizard-robe-wine-075-v2-2026-03-03T17-02-45.png` |
+| `items/wyrmsage-staff.png` | `rpg-dragon-staff-dragon-head-116-v3-2026-03-03T17-02-45.png` |
+| `items/galewind-staff.png` | `rpg-wind-staff-swirling-air-237-v5-2026-03-03T17-02-45.png` |
+| `items/firebird-staff.png` | `rpg-phoenix-staff-firebird-wing-117-v3-2026-03-03T17-02-45.png` |
+| `items/tome-of-insight.png` | `items_consumables_0060_20260216_204501.png` |
+| `items/ironstride-greaves.png` | `mediev-greaves-leg-leg-armor-087-v9-2026-03-25T19-14-54.png` |
+| `items/azure-staff.png` | `rpg-gem-staff-precious-jewel-090-v2-2026-03-03T17-02-45.png` |
+| `items/crescent-crook.png` | `rpg-silver-staff-moon-crescent-109-v3-2026-03-03T17-02-45.png` |
 
 ### Player heroes
 
