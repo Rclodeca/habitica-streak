@@ -4,6 +4,9 @@
 
 export type {
   Boss,
+  BossSkillId,
+  BossSkillSlot,
+  Breakpoint,
   Character,
   DamageType,
   Difficulty,
@@ -166,3 +169,5 @@ export type { Rng } from './rng';
 export { createRng, pickRandom, pickWeighted, shuffle } from './rng';
 
 export { dailyPeriodKey, dayOfWeekIndex, daysBetweenDayKeys, periodKeyFor, weeklyPeriodKey } from './time';
+
+export { rollBossSkills } from './bossSkills';

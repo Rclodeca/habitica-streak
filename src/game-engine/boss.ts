@@ -1,3 +1,4 @@
+import { rollBossSkills } from './bossSkills';
 import { TUNING } from './constants/tuning';
 import { statAtLevel } from './leveling';
 import type { Rng } from './rng';
@@ -311,7 +312,10 @@ export function generateBoss(
   if (emphasizedStat === 'magicAttack') leansPhysical = false;
   else if (emphasizedStat !== 'physicalAttack' && lean > 0.5) leansPhysical = rng() < 0.5;
   const physicalShare = leansPhysical ? lean : Math.round((1 - lean) * 100) / 100;
-  return { ...boss, physicalShare };
+
+  // Rolled after the lean for the same reason; none before boss 15.
+  const skills = rollBossSkills(index, rng);
+  return skills.length > 0 ? { ...boss, physicalShare, skills } : { ...boss, physicalShare };
 }
 
 /**

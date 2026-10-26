@@ -1,3 +1,5 @@
+import type { BossSkillId, Breakpoint } from '../types';
+
 export const TUNING = {
   // Scaled up ~30x from the original 10/10/6/50 (see PROGRESS.md "Balance
   // rescale") so that a 1% streak/item bonus moves the displayed (rounded)
@@ -250,6 +252,24 @@ export const TUNING = {
   // mirrors how CRIT_CHANCE_CAP keeps crit under 100%. A boss always
   // retains at least 10% of its true resist no matter how much pen is stacked.
   ARMOR_MAGIC_PEN_CAP_PCT: 90,
+  // Late-game boss skills, fired at HP breakpoints (see bossSkills.ts).
+  BOSS_SKILLS: {
+    UNLOCK_INDEX: { wounds: 15, bloodlust: 15, blind: 15, mend: 15, rend: 20, doom: 20, sunder: 20, undying: 20, ravage: 25 } as Record<BossSkillId, number>,
+    // [first boss index of the band, weights for 0/1/2/3 skills]; fixed bands, no blending.
+    COUNT_BANDS: [[15, [65, 35, 0, 0]], [20, [45, 35, 20, 0]], [25, [30, 40, 30, 0]], [30, [25, 30, 35, 10]]] as [number, number[]][],
+    SLOTS: { 1: [0.5], 2: [0.75, 0.25], 3: [0.75, 0.5, 0.25] } as Record<number, Breakpoint[]>,
+    HP_HIT_SKILLS: ['rend', 'ravage', 'doom'] as BossSkillId[],
+    DURATION_DAYS: 2, // Wounds, Bloodlust, Blind, Sunder
+    WOUNDS_EFFECT_RATE: 0.5,
+    BLOODLUST_HEAL_PCT: 3, // of the boss's max HP, per hit it lands
+    MEND_HEAL_PCT: 10,
+    REND_PCT: 20,
+    RAVAGE_PCT: 40,
+    DOOM_PCT: 50,
+    DOOM_DELAY_DAYS: 3,
+    SUNDER_FACTOR: 0.5,
+    UNDYING_FLOOR_PCT: 10,
+  },
   ITEM_DROP_EVERY_N_BOSSES: 3, // bosses 1-3 drop 1 item, 4-6 drop 2, 7+ drop 3 (capped)
   ITEM_DROP_MAX_COUNT: 3,
   // Physical/magic starting-stat split: createCharacter picks one of these

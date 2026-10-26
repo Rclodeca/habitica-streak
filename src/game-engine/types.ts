@@ -160,6 +160,34 @@ export interface Boss {
   playerHasHit?: boolean;
   // Damage past 0 health on the killing blow (Echoing Blade carries it over).
   overkill?: number;
+  // Hidden skills waiting at HP breakpoints, rolled once at generation from
+  // boss 15 (see rollBossSkills in bossSkills.ts). Optional so an existing
+  // save still loads; undefined means no skills.
+  skills?: BossSkillSlot[];
+  // The day key Bloodlust fired on (see bloodlustActive); undefined = never.
+  bloodlustDayKey?: string;
+  // The day key Undying fired on — it only holds that day (see undyingActive).
+  undyingDayKey?: string;
+  // The day key Doom lands on, set when it fires (see resolveDoom).
+  doomDueDayKey?: string;
+}
+
+// Rend is the 20% HP hit, Ravage the 40% one.
+export type BossSkillId = 'wounds' | 'bloodlust' | 'blind' | 'mend' | 'rend' | 'doom' | 'sunder' | 'undying' | 'ravage';
+
+/** A boss's HP breakpoints, as a fraction of its max health. */
+export type Breakpoint = 0.75 | 0.5 | 0.25;
+
+/**
+ * One hidden skill at a breakpoint. `spent` is set once a hit crosses it;
+ * `fired` only on the slot that actually triggered (a hit crossing several
+ * fires only the first, and nothing fires on a kill).
+ */
+export interface BossSkillSlot {
+  at: Breakpoint;
+  skill: BossSkillId;
+  spent?: true;
+  fired?: true;
 }
 
 export interface Habit {
