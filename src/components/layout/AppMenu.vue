@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { Check, Menu, Pencil, RotateCcw, Trophy } from 'lucide-vue-next';
-import { dailyPeriodKey } from '../../game-engine';
-import { useDebugClockStore } from '../../store/debugClockStore';
+import { Check, Menu, Pencil, Trophy } from 'lucide-vue-next';
 import { useHabitStore } from '../../store/habitStore';
 import { THEMES, useThemeStore } from '../../store/themeStore';
 import type { Theme } from '../../store/themeStore';
@@ -42,13 +40,6 @@ function renameHabit(id: string, event: Event) {
   if (habit && name && name !== habit.name) habitStore.updateHabit({ ...habit, name });
 }
 
-// Temporary dev tool: clears today's checks on the dailies (e.g. taps meant
-// for the day before). Streaks and everything else stay as they are.
-function uncheckTodaysDailies() {
-  open.value = false;
-  habitStore.uncheckDailiesCompletedIn(dailyPeriodKey(useDebugClockStore().now()));
-}
-
 function closeOnOutsideTap(event: Event) {
   if (!root.value?.contains(event.target as Node)) open.value = false;
 }
@@ -75,7 +66,6 @@ onBeforeUnmount(() => {
     <div v-if="open" class="menu-panel" role="menu">
       <button type="button" class="menu-item" role="menuitem" @click="openHighScores"><Trophy :size="15" />High Scores</button>
       <button type="button" class="menu-item" role="menuitem" @click="openRename"><Pencil :size="15" />Rename habits</button>
-      <button type="button" class="menu-item" role="menuitem" @click="uncheckTodaysDailies"><RotateCcw :size="15" />Uncheck today's dailies</button>
       <div class="menu-divider" role="separator" />
       <span class="menu-label">Theme</span>
       <button
