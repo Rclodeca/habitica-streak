@@ -105,3 +105,9 @@ export function daysBetweenDayKeys(a: string, b: string): number {
   };
   return Math.round((toUtcMs(b) - toUtcMs(a)) / MS_PER_DAY);
 }
+
+/** The day key `days` calendar days after `dayKey` (both `YYYY-MM-DD`), parsed the same UTC way as `daysBetweenDayKeys`. */
+export function addDaysToDayKey(dayKey: string, days: number): string {
+  const [year, month, day] = dayKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}

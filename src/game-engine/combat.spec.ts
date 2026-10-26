@@ -4,7 +4,7 @@ import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { MILESTONE_EXP } from './constants/milestones';
 import { TUNING } from './constants/tuning';
 import { ITEM_CATALOG, itemBonusPercent, itemFlatBonus } from './items';
-import { addExpAndResolveLevelUps, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
+import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { poolSizeMultiplier } from './habits';
 import { createRng } from './rng';
 import { streakMultiplier } from './streaks';
@@ -1301,5 +1301,66 @@ describe('resolveBossDefeatIfDead — item effects', () => {
     expect(result.defeated).toBe(true);
     expect(result.boss.index).toBe(2);
     expect(result.boss.health).toBe(1);
+  });
+});
+
+describe('boss skill effects in combat', () => {
+  const blind = { type: 'blind' as const, appliedDayKey: DAY_KEY, durationDays: 2 };
+  const sunder = { type: 'sunder' as const, appliedDayKey: DAY_KEY, durationDays: 2 };
+  const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; beats critChance 0
+
+  it('Blind drops crit chance to 0, but only when a day key is given', () => {
+    const character = makeCharacter({ critChance: 0.3, statusEffects: [blind] });
+    expect(effectiveCritChance(character, DAY_KEY)).toBe(0);
+    expect(effectiveCritChance(character)).toBeCloseTo(0.3, 10);
+  });
+
+  it('Blind stops rolled crits', () => {
+    const character = makeCharacter({ critChance: 0.5, statusEffects: [blind] });
+    const habit = makeHabit();
+    const result = completeHabit(character, habit, [habit], makeBoss({ health: 500, maxHealth: 500, playerHasHit: true }), DAY_KEY, alwaysCritRng);
+    expect(result.wasCrit).toBe(false);
+  });
+
+  it('Blind still lets First Blood force a crit on the first hit', () => {
+    const character = makeCharacter({ statusEffects: [blind], ownedItemIds: ['first-blood'], equippedItemIds: ['first-blood'] });
+    const habit = makeHabit();
+    const result = completeHabit(character, habit, [habit], makeBoss({ health: 500, maxHealth: 500 }), DAY_KEY, noCritRng);
+    expect(result.wasCrit).toBe(true);
+  });
+
+  it('Sunder halves the armor a miss is mitigated by', () => {
+    const boss = makeBoss({ critChance: 0, physicalAttack: 400 });
+    const sundered = missHabit(
+      makeCharacter({ currentHealth: 1000, equippedItemIds: ['executioners-axe'], statusEffects: [sunder] }), // 150 armor, halved
+      makeHabit(), boss, DAY_KEY, forcePhysicalNoCrit,
+    );
+    const halfArmor = missHabit(makeCharacter({ currentHealth: 1000, equippedItemIds: ['iron-buckler'] }), makeHabit(), boss, DAY_KEY, forcePhysicalNoCrit); // 75 armor
+    expect(1000 - sundered.character.currentHealth).toBeCloseTo(1000 - halfArmor.character.currentHealth, 10);
+  });
+
+  it('Bloodlust heals the boss 3% of its max HP per hit, on top of its lifesteal', () => {
+    const boss = makeBoss({ critChance: 0, maxHealth: 1000, health: 500, lifestealPct: 0.1, bloodlustDayKey: DAY_KEY });
+    const result = missHabit(makeCharacter({ currentHealth: 1000 }), makeHabit(), boss, DAY_KEY, forcePhysicalNoCrit);
+    const dealt = 1000 - result.character.currentHealth;
+    expect(result.boss.health).toBeCloseTo(500 + dealt * 0.1 + 30, 10);
+    expect(result.bossLifestealHealed).toBeCloseTo(dealt * 0.1 + 30, 10);
+  });
+
+  it('Bloodlust heals no more than to full', () => {
+    const boss = makeBoss({ critChance: 0, maxHealth: 1000, health: 990, bloodlustDayKey: DAY_KEY });
+    expect(missHabit(makeCharacter({ currentHealth: 1000 }), makeHabit(), boss, DAY_KEY, forcePhysicalNoCrit).boss.health).toBe(1000);
+  });
+
+  it('Bloodbound Carapace blocks the Bloodlust heal too', () => {
+    const boss = makeBoss({ critChance: 0, maxHealth: 1000, health: 500, bloodlustDayKey: DAY_KEY });
+    const result = missHabit(makeCharacter({ currentHealth: 1000, equippedItemIds: ['bloodbound-carapace'] }), makeHabit(), boss, DAY_KEY, forcePhysicalNoCrit);
+    expect(result.boss.health).toBe(500);
+    expect(result.bossLifestealHealed).toBeUndefined();
+  });
+
+  it('Bloodlust has worn off two days later', () => {
+    const boss = makeBoss({ critChance: 0, maxHealth: 1000, health: 500, bloodlustDayKey: DAY_KEY });
+    expect(missHabit(makeCharacter({ currentHealth: 1000 }), makeHabit(), boss, '2026-01-03', forcePhysicalNoCrit).boss.health).toBe(500);
   });
 });

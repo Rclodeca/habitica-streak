@@ -20,6 +20,8 @@ export type {
   CritBoostStatusEffect,
   HealBoostStatusEffect,
   WoundsStatusEffect,
+  BlindStatusEffect,
+  SunderStatusEffect,
 } from './types';
 
 export {
@@ -168,6 +170,6 @@ export {
 export type { Rng } from './rng';
 export { createRng, pickRandom, pickWeighted, shuffle } from './rng';
 
-export { dailyPeriodKey, dayOfWeekIndex, daysBetweenDayKeys, periodKeyFor, weeklyPeriodKey } from './time';
+export { addDaysToDayKey, dailyPeriodKey, dayOfWeekIndex, daysBetweenDayKeys, periodKeyFor, weeklyPeriodKey } from './time';
 
-export { rollBossSkills } from './bossSkills';
+export { activeBlind, activeSunder, bloodlustActive, bossSkillMarks, doomDaysLeft, hpHitDamage, rollBossSkills, undyingActive } from './bossSkills';

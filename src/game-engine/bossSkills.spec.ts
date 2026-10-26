@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoss } from './boss';
-import { rollBossSkills } from './bossSkills';
+import { activeBlind, activeSunder, bloodlustActive, bossSkillMarks, doomDaysLeft, hpHitDamage, rollBossSkills, undyingActive } from './bossSkills';
 import { createRng } from './rng';
-import type { BossSkillSlot } from './types';
+import type { Boss, BossSkillSlot, Character } from './types';
 
 const SEEDS = 2000;
 
@@ -120,5 +120,90 @@ describe('generateBoss — skills', () => {
 
   it('gives bosses before 15 no skills field at all', () => {
     for (let seed = 0; seed < 50; seed++) expect('skills' in generateBoss(14, createRng(seed))).toBe(false);
+  });
+});
+
+const hero = (overrides: Partial<Character> = {}): Character => ({
+  level: 1,
+  exp: 0,
+  starterStats: { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 },
+  currentHealth: 50,
+  ownedItemIds: [],
+  equippedItemIds: [],
+  critChance: 0.01,
+  ...overrides,
+});
+
+const foe = (overrides: Partial<Boss> = {}): Boss => ({
+  index: 30,
+  personality: 'balanced',
+  maxHealth: 1000,
+  health: 1000,
+  physicalAttack: 20,
+  magicAttack: 20,
+  armor: 10,
+  magicResist: 10,
+  critChance: 0,
+  reflectPct: 0,
+  lifestealPct: 0,
+  ...overrides,
+});
+
+describe('hpHitDamage', () => {
+  it('takes the percent of current HP', () => {
+    expect(hpHitDamage(1000, 20)).toBe(200);
+  });
+
+  it('never leaves the hero below 1 HP and never heals', () => {
+    expect(1.4 - hpHitDamage(1.4, 50)).toBeCloseTo(1, 10);
+    expect(hpHitDamage(0.6, 40)).toBe(0);
+    expect(hpHitDamage(0, 50)).toBe(0);
+  });
+});
+
+describe('lasting skill effects', () => {
+  it('Blind and Sunder last the day they land and the next', () => {
+    const effects = [
+      { type: 'blind' as const, appliedDayKey: '2026-01-01', durationDays: 2 },
+      { type: 'sunder' as const, appliedDayKey: '2026-01-01', durationDays: 2 },
+    ];
+    const character = hero({ statusEffects: effects });
+    expect(activeBlind(character, '2026-01-01')).toEqual(effects[0]);
+    expect(activeBlind(character, '2026-01-02')).toEqual(effects[0]);
+    expect(activeBlind(character, '2026-01-03')).toBeUndefined();
+    expect(activeSunder(character, '2026-01-02')).toEqual(effects[1]);
+    expect(activeSunder(character, '2026-01-03')).toBeUndefined();
+    expect(activeBlind(hero(), '2026-01-01')).toBeUndefined();
+  });
+
+  it('Bloodlust lasts 2 days and Undying only the day it fired', () => {
+    const boss = foe({ bloodlustDayKey: '2026-01-01', undyingDayKey: '2026-01-01' });
+    expect(bloodlustActive(boss, '2026-01-02')).toBe(true);
+    expect(bloodlustActive(boss, '2026-01-03')).toBe(false);
+    expect(bloodlustActive(foe(), '2026-01-01')).toBe(false);
+    expect(undyingActive(boss, '2026-01-01')).toBe(true);
+    expect(undyingActive(boss, '2026-01-02')).toBe(false);
+  });
+
+  it('counts down Doom to its landing day', () => {
+    const boss = foe({ doomDueDayKey: '2026-01-04' });
+    expect(doomDaysLeft(boss, '2026-01-01')).toBe(3);
+    expect(doomDaysLeft(boss, '2026-01-04')).toBe(0);
+    expect(doomDaysLeft(boss, '2026-01-06')).toBe(0);
+    expect(doomDaysLeft(foe(), '2026-01-01')).toBeUndefined();
+  });
+});
+
+describe('bossSkillMarks', () => {
+  it('reports each breakpoint and its state, never the skill', () => {
+    const boss = foe({ skills: [{ at: 0.75, skill: 'mend', spent: true, fired: true }, { at: 0.5, skill: 'doom', spent: true }, { at: 0.25, skill: 'blind' }] });
+    const marks = bossSkillMarks(boss);
+    expect(marks).toEqual([
+      { at: 0.75, state: 'fired' },
+      { at: 0.5, state: 'spent' },
+      { at: 0.25, state: 'armed' },
+    ]);
+    expect(JSON.stringify(marks)).not.toMatch(/mend|doom|blind|skill/);
+    expect(bossSkillMarks(foe())).toEqual([]);
   });
 });

@@ -6,7 +6,8 @@
 import { TUNING } from './constants/tuning';
 import { pickRandom, pickWeighted } from './rng';
 import type { Rng } from './rng';
-import type { BossSkillId, BossSkillSlot } from './types';
+import { daysBetweenDayKeys } from './time';
+import type { BlindStatusEffect, Boss, BossSkillId, BossSkillSlot, Breakpoint, Character, SunderStatusEffect } from './types';
 
 const S = TUNING.BOSS_SKILLS;
 const SKILL_IDS = Object.keys(S.UNLOCK_INDEX) as BossSkillId[];
@@ -39,4 +40,46 @@ export function rollBossSkills(index: number, rng: Rng): BossSkillSlot[] {
     if (eligible.length > 0) slots.push({ at, skill: pickRandom(eligible, rng) });
   }
   return slots;
+}
+
+/**
+ * The HP an HP-hit skill (Rend, Ravage, Doom) takes: `pct`% of current
+ * health, but never past 1 HP — the death check rounds, so even a fraction
+ * of a point left could otherwise read as dead — and never a heal.
+ */
+export function hpHitDamage(currentHealth: number, pct: number): number {
+  return Math.min((currentHealth * pct) / 100, Math.max(0, currentHealth - 1));
+}
+
+/** The character's active Blind as of `currentDayKey`, or undefined. Lazy, like activeWoundsEffect. */
+export function activeBlind(character: Character, currentDayKey: string): BlindStatusEffect | undefined {
+  const blind = character.statusEffects?.find((e): e is BlindStatusEffect => e.type === 'blind');
+  return blind && daysBetweenDayKeys(blind.appliedDayKey, currentDayKey) < blind.durationDays ? blind : undefined;
+}
+
+/** The character's active Sunder as of `currentDayKey`, or undefined. */
+export function activeSunder(character: Character, currentDayKey: string): SunderStatusEffect | undefined {
+  const sunder = character.statusEffects?.find((e): e is SunderStatusEffect => e.type === 'sunder');
+  return sunder && daysBetweenDayKeys(sunder.appliedDayKey, currentDayKey) < sunder.durationDays ? sunder : undefined;
+}
+
+/** Whether this boss's Bloodlust is still running on `currentDayKey`. */
+export function bloodlustActive(boss: Boss, currentDayKey: string): boolean {
+  return boss.bloodlustDayKey !== undefined && daysBetweenDayKeys(boss.bloodlustDayKey, currentDayKey) < S.DURATION_DAYS;
+}
+
+/** Whether this boss is Undying today — it only holds the day it fired. */
+export function undyingActive(boss: Boss, currentDayKey: string): boolean {
+  return boss.undyingDayKey === currentDayKey;
+}
+
+/** Days until this boss's Doom lands (0 once due), or undefined with no Doom counting down. */
+export function doomDaysLeft(boss: Boss, currentDayKey: string): number | undefined {
+  if (!boss.doomDueDayKey) return undefined;
+  return Math.max(0, daysBetweenDayKeys(currentDayKey, boss.doomDueDayKey));
+}
+
+/** What the boss bars may show: each breakpoint and whether it's armed, fired or spent — never which skill. */
+export function bossSkillMarks(boss: Boss): { at: Breakpoint; state: 'armed' | 'fired' | 'spent' }[] {
+  return (boss.skills ?? []).map((slot) => ({ at: slot.at, state: slot.fired ? 'fired' : slot.spent ? 'spent' : 'armed' }));
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dailyPeriodKey, dayOfWeekIndex, periodKeyFor, weeklyPeriodKey } from './time';
+import { addDaysToDayKey, dailyPeriodKey, dayOfWeekIndex, periodKeyFor, weeklyPeriodKey } from './time';
 
 describe('dailyPeriodKey', () => {
   it('formats a date as YYYY-MM-DD using its Pacific business day', () => {
@@ -92,5 +92,12 @@ describe('dayOfWeekIndex', () => {
   it('before 3am Pacific is still the previous day', () => {
     expect(dayOfWeekIndex(new Date(Date.UTC(2024, 0, 15, 10, 59)))).toBe(6); // Mon 02:59 PST -> Sunday
     expect(dayOfWeekIndex(new Date(Date.UTC(2024, 0, 15, 11, 0)))).toBe(0);
+  });
+});
+
+describe('addDaysToDayKey', () => {
+  it('rolls over month and year ends', () => {
+    expect(addDaysToDayKey('2026-02-27', 3)).toBe('2026-03-02');
+    expect(addDaysToDayKey('2026-12-31', 1)).toBe('2027-01-01');
   });
 });

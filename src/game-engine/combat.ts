@@ -1,4 +1,5 @@
 import { applyResist, baseResistStatForIndex, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
+import { activeSunder, bloodlustActive } from './bossSkills';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
@@ -376,13 +377,21 @@ export function missHabit(
   const damage =
     attack * TUNING.MISS_DAMAGE_FACTOR * (DIFFICULTY_WEIGHT[habit.difficulty] / 1.5) *
     (wasCrit ? TUNING.CRIT_MULTIPLIER : 1) * weeklyMultiplier;
-  const playerResistStat = attackType === 'physical' ? itemFlatBonus(character, 'armor') : itemFlatBonus(character, 'magicResist');
+  // Sunder (a boss skill) halves the player's armor and magic resist.
+  const sunderFactor = activeSunder(character, currentDayKey) ? TUNING.BOSS_SKILLS.SUNDER_FACTOR : 1;
+  const playerResistStat =
+    (attackType === 'physical' ? itemFlatBonus(character, 'armor') : itemFlatBonus(character, 'magicResist')) * sunderFactor;
   // Dawnguard Helm: the first hit each day is softened.
   const dawnguard = hasItemEffect(character, 'dawnguard') && !effectUsedToday(character, 'dawnguard', currentDayKey);
   const mitigatedDamage = applyResist(damage, playerResistStat) * (dawnguard ? TUNING.ITEM_EFFECTS.DAWNGUARD_FACTOR : 1);
   const newHealth = Math.max(0, character.currentHealth - mitigatedDamage);
-  const bossLifestealPct = hasItemEffect(character, 'bloodbound') ? 0 : boss.lifestealPct;
-  const healedBoss = Math.min(boss.maxHealth, boss.health + mitigatedDamage * bossLifestealPct);
+  // Bloodbound Carapace blocks both the boss's lifesteal and Bloodlust's
+  // flat heal (a boss skill), which the log and popup show as lifesteal too.
+  const bloodbound = hasItemEffect(character, 'bloodbound');
+  const bossLifestealPct = bloodbound ? 0 : boss.lifestealPct;
+  const bloodlustHeal =
+    !bloodbound && bloodlustActive(boss, currentDayKey) ? boss.maxHealth * (TUNING.BOSS_SKILLS.BLOODLUST_HEAL_PCT / 100) : 0;
+  const healedBoss = Math.min(boss.maxHealth, boss.health + mitigatedDamage * bossLifestealPct + bloodlustHeal);
   const bossLifestealHealed = healedBoss - boss.health;
   const newBoss = healedBoss !== boss.health ? { ...boss, health: healedBoss } : boss;
 

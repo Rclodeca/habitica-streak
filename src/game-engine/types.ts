@@ -109,7 +109,21 @@ export interface Character {
 // Discriminated on `type`. Intentionally a plain union rather than a
 // registry/plugin system — each effect has its own small lookup helper
 // (activeWoundsEffect in combat.ts, activeCritBoost/activeHealBoost in leveling.ts).
-export type StatusEffect = WoundsStatusEffect | CritBoostStatusEffect | HealBoostStatusEffect;
+export type StatusEffect = WoundsStatusEffect | CritBoostStatusEffect | HealBoostStatusEffect | BlindStatusEffect | SunderStatusEffect;
+
+/** The Blind boss skill: no rolled crits for `durationDays` days (forced crits still land) — see activeBlind. */
+export interface BlindStatusEffect {
+  type: 'blind';
+  appliedDayKey: string; // dailyPeriodKey() when the skill fired
+  durationDays: number;
+}
+
+/** The Sunder boss skill: armor and magic resist halved for `durationDays` days — see activeSunder. */
+export interface SunderStatusEffect {
+  type: 'sunder';
+  appliedDayKey: string; // dailyPeriodKey() when the skill fired
+  durationDays: number;
+}
 
 /** Temporary crit-chance bonus granted by the Crit boost event; expires after `durationDays` days. */
 export interface CritBoostStatusEffect {

@@ -1,3 +1,4 @@
+import { activeBlind } from './bossSkills';
 import { TUNING } from './constants/tuning';
 import { hasItemEffect, itemBonusPercent, itemFlatBonus } from './items';
 import { daysBetweenDayKeys } from './time';
@@ -96,6 +97,8 @@ export function clampHealthToMax(character: Character): Character {
  * crit items are stacked. Pass `currentDayKey` to include an active Crit boost.
  */
 export function effectiveCritChance(character: Character, currentDayKey?: string): number {
+  // Blind (a boss skill) stops rolled crits; forced ones (isForcedCrit) still land.
+  if (currentDayKey && activeBlind(character, currentDayKey)) return 0;
   const boost = currentDayKey ? (activeCritBoost(character, currentDayKey)?.bonus ?? 0) : 0;
   const raw = character.critChance + itemBonusPercent(character, 'critChance') / 100 + boost;
   return Math.min(raw, TUNING.CRIT_CHANCE_CAP);
