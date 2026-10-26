@@ -72,15 +72,11 @@ describe('BossPanel', () => {
     wrapper.unmount();
   });
 
-  it('shows the HP numbers under the HP bar', () => {
+  it('shows the HP numbers inside the HP bar', () => {
     const store = useBossStore();
     store.boss = { ...store.boss, health: 474.2, maxHealth: 620 };
     const wrapper = mount(BossPanel);
-    const block = wrapper.find('.boss-block').element;
-    const kids = Array.from(block.children);
-    const numbers = block.querySelector('.hp-numbers')!;
-    expect(numbers.textContent).toBe('474 / 620');
-    expect(kids.indexOf(numbers)).toBe(kids.indexOf(block.querySelector('.health-bar')!) + 1);
+    expect(wrapper.find('.boss-block .health-bar .health-bar-label').text()).toBe('474 / 620');
   });
 
   it("holds the bar and numbers at the boss's HP from before a blow until it lands", async () => {
@@ -89,10 +85,10 @@ describe('BossPanel', () => {
     const wrapper = mount(BossPanel);
     const release = holdHp(store.boss.index, -96);
     await nextTick();
-    expect(wrapper.find('.hp-numbers').text()).toBe('474 / 620');
+    expect(wrapper.find('.boss-block .health-bar-label').text()).toBe('474 / 620');
     release();
     await nextTick();
-    expect(wrapper.find('.hp-numbers').text()).toBe('378 / 620');
+    expect(wrapper.find('.boss-block .health-bar-label').text()).toBe('378 / 620');
   });
 
   it('lets the boss fall and stamps "Slain" on the stage', async () => {

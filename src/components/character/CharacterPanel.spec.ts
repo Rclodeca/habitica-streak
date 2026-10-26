@@ -61,15 +61,13 @@ describe('CharacterPanel', () => {
     expect(wrapper.find('.name-line > .level-number').text()).toBe(String(useCharacterStore().character.level));
   });
 
-  it('shows the HP numbers under the HP bar', () => {
+  it('shows the HP numbers inside the HP bar, with the EXP bar alongside it', () => {
     const store = useCharacterStore();
     store.character.currentHealth = 980.4;
     const wrapper = mount(CharacterPanel);
-    const block = wrapper.find('.hero-block').element;
-    const kids = Array.from(block.children);
-    const numbers = block.querySelector('.hp-numbers')!;
-    expect(numbers.textContent).toBe(`980 / ${Math.round(effectiveStat(store.character, 'health'))}`);
-    expect(kids.indexOf(numbers)).toBe(kids.indexOf(block.querySelector('.health-bar')!) + 1);
+    const bars = wrapper.find('.hero-block .bars');
+    expect(bars.find('.health-bar .health-bar-label').text()).toBe(`980 / ${Math.round(effectiveStat(store.character, 'health'))}`);
+    expect(bars.find('.exp-bar').exists()).toBe(true);
   });
 
   it('turns the warrior and cleric to face the boss and places each by its class', async () => {

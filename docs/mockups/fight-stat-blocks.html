@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — fight stat blocks (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Ways to slim the boss's and hero's blocks on the phone fight stage. Each
+   option is the real 390px stage (current geometry, hero block starting at
+   172px) with the top of the Skills panel under it. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  --steel: #a8a092; --arcane: #8d9bd1; --crit: #d6a24f;
+  --bg: #070606;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: var(--bg); font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1760px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 30px; }
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 44px 34px; }
+.opt { width: 390px; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; min-height: 40px; }
+
+.screen { width: 390px; overflow: hidden; border: 1px solid #2a2620; border-radius: 30px 30px 0 0; border-bottom: 0;
+  background: radial-gradient(ellipse 80% 30% at 50% 0, rgba(200,169,110,.08), transparent 70%), var(--bg); padding-top: 14px; }
+
+/* ---------- Stage ---------- */
+.stage { position: relative; height: 300px; }
+.bg { position: absolute; inset: 0;
+  background:
+    radial-gradient(1.5px 1.5px at 18% 40%, rgba(240,150,80,.9), transparent),
+    radial-gradient(1.5px 1.5px at 40% 22%, rgba(240,150,80,.6), transparent),
+    radial-gradient(1px 1px at 72% 35%, rgba(240,150,80,.8), transparent),
+    radial-gradient(1px 1px at 56% 12%, rgba(240,150,80,.6), transparent),
+    radial-gradient(ellipse 45% 55% at 68% 55%, rgba(215,205,185,.13), transparent 72%),
+    radial-gradient(ellipse 90% 30% at 50% 100%, rgba(224,120,58,.14), transparent 70%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent); mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent); }
+.who { position: absolute; z-index: 2; }
+.who img { display: block; width: 100%; image-rendering: pixelated; filter: drop-shadow(0 0 14px rgba(0,0,0,.9)); }
+.who.hero img { scale: -1 1; }
+.plat { position: absolute; height: 26px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(205,195,175,.12), transparent 72%); }
+
+/* ---------- Blocks ---------- */
+.blk { position: absolute; z-index: 4; display: flex; flex-direction: column; gap: 5px; text-shadow: 0 0 8px #000, 0 1px 2px #000; }
+.boss-blk { top: 10px; left: 16px; width: 196px; }
+.hero-blk { bottom: 14px; right: 16px; width: 202px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.nm { font: 600 13px/1.2 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--text-h); white-space: nowrap; }
+.nm b { color: var(--gold); font-weight: 600; margin-left: .3em; letter-spacing: .08em; }
+.nm::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 9px; vertical-align: 2px; border-top: 1.5px solid var(--text); border-right: 1.5px solid var(--text); transform: rotate(45deg); }
+.num { font: 600 11px/1 'Cinzel', serif; letter-spacing: .1em; color: var(--text); white-space: nowrap; }
+.num.end { align-self: flex-end; }
+
+.bar { position: relative; height: 6px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.32); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.bar .fill { position: absolute; inset: 0 auto 0 0; width: var(--pct); background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 10px rgba(195,58,46,.35); }
+.boss-blk .bar { height: 10px; }
+.exp { height: 4px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.2); }
+.exp i { display: block; height: 100%; width: 56%; background: linear-gradient(90deg, #8a6a2c, #e6c77f); box-shadow: 0 0 8px rgba(230,199,127,.4); }
+
+.stats { display: flex; flex-wrap: wrap; gap: 2px 8px; font: 600 12px/1.25 'Cinzel', serif; color: var(--text-h); }
+.stats span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.ico { display: inline-flex; color: var(--k); }
+/* The hero's line keeps to one row, as in the app. */
+.hero-blk .stats { height: 15px; overflow: hidden; }
+
+/* ---------- B: numbers up on the name line, EXP hugging the HP bar ---------- */
+.o-b .blk { gap: 0; }
+.o-b .bar { margin-top: 5px; }
+.o-b .exp { height: 3px; margin-top: 2px; }
+.o-b .stats { margin-top: 6px; }
+
+/* ---------- C: numbers inside a taller bar, EXP fused to its foot ---------- */
+.o-c .blk { gap: 0; }
+.o-c .bar { margin-top: 5px; height: 13px; display: flex; align-items: center; justify-content: flex-end; padding: 0 5px; }
+.o-c .boss-blk .bar { height: 15px; }
+.o-c .bar .num { position: relative; z-index: 1; font-size: 9.5px; color: #f3e6cc; text-shadow: 0 0 3px #000, 0 0 2px #000; }
+.o-c .bar .xp { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(0,0,0,.7); }
+.o-c .bar .xp i { display: block; height: 100%; width: 56%; background: linear-gradient(90deg, #8a6a2c, #e6c77f); }
+.o-c .stats { margin-top: 6px; }
+
+/* ---------- D: B, with the stats stepped back ---------- */
+.o-d .blk { gap: 0; }
+.o-d .bar { margin-top: 5px; }
+.o-d .exp { height: 3px; margin-top: 2px; }
+.o-d .stats { margin-top: 5px; gap: 2px 7px; font-size: 10.5px; font-weight: 500; color: var(--text); letter-spacing: .02em; }
+.o-d .stats .ico { opacity: .8; }
+.o-d .hero-blk .stats { height: 13px; }
+
+/* ---------- E: bars only on the stage, stats on a strip under it ---------- */
+.o-e .blk { gap: 0; }
+.o-e .bar { margin-top: 5px; }
+.o-e .exp { height: 3px; margin-top: 2px; }
+.o-e .hero-blk { bottom: 20px; }
+.strip { position: relative; display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0 12px; margin: 2px 16px 0; padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.strip::before { content: ''; position: absolute; left: 50%; top: -4px; width: 7px; height: 7px; transform: translateX(-50%) rotate(45deg); border: 1px solid var(--gold); background: var(--bg); }
+.strip .sep { background: var(--line); }
+.strip .stats { font-size: 11px; gap: 3px 8px; }
+.strip .stats.foe { justify-content: flex-end; }
+
+/* ---------- The top of the Skills panel, for spacing ---------- */
+.skills { position: relative; margin: 18px 16px 0; height: 64px; padding: 16px 14px 0; background: linear-gradient(180deg, rgb(27,24,21), rgb(14,13,11)); border: 1px solid var(--line); border-bottom: 0; }
+.skills::before { content: ''; position: absolute; left: 50%; top: -5px; width: 9px; height: 9px; transform: translateX(-50%) rotate(45deg); border: 1px solid var(--gold); background: var(--bg); }
+.skills .engraved { font-size: 13px; color: var(--text-h); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">The fight — slimmer stat blocks</h1>
+  <p>Same stage, same fighters. Only the boss's and hero's blocks change.</p>
+  <div class="grid" id="root"></div>
+</div>
+
+<script>
+const S = '../../public/sprites/';
+const P = {
+  sword: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  shieldHalf: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 22V2"/>',
+  crosshair: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+  heartPulse: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  zap: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  bandage: '<path d="M10 10.01h.01"/><path d="M10 14.01h.01"/><path d="M14 10.01h.01"/><path d="M14 14.01h.01"/><path d="M18 6v12"/><path d="M6 6v12"/><rect x="2" y="6" width="20" height="12" rx="2"/>',
+};
+const ic = (name, k, size = 13) => `<i class="ico" style="--k:${k}"><svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${P[name]}</svg></i>`;
+const chip = (name, k, v, size) => `<span>${ic(name, k, size)}${v}</span>`;
+
+const heroStats = (size) => [
+  chip('sword', 'var(--dmg-physical)', 467, size), chip('wand', 'var(--dmg-magic)', 691, size),
+  chip('heartPulse', 'var(--dmg-healing)', 256, size), chip('zap', 'var(--dmg-true)', 502, size),
+  chip('crosshair', 'var(--crit)', '5%', size),
+].join('');
+const bossStats = (size) => [
+  chip('sword', 'var(--dmg-physical)', 62, size), chip('wand', 'var(--dmg-magic)', 58, size),
+  chip('shield', 'var(--steel)', 145, size), chip('shieldHalf', 'var(--arcane)', 144, size),
+  chip('crosshair', 'var(--crit)', '1%', size), chip('bandage', 'var(--dmg-physical)', '50%', size),
+].join('');
+
+const heroName = `<span class="nm">Rowan<b>24</b></span>`;
+const bossName = `<span class="nm">Colossus</span>`;
+const heroNum = `<span class="num">1204 / 1204</span>`;
+const bossNum = `<span class="num">612 / 886</span>`;
+const bar = (pct, inner = '') => `<div class="bar" style="--pct:${pct}%"><i class="fill"></i>${inner}</div>`;
+const exp = `<div class="exp"><i></i></div>`;
+
+const stage = (bossBlk, heroBlk) => `
+  <div class="stage">
+    <div class="bg"></div>
+    <div class="plat" style="right:16px;top:168px;width:186px"></div>
+    <div class="who" style="right:10px;top:0;width:190px"><img src="${S}bosses/brute3x.png" alt="" /></div>
+    <div class="plat" style="left:4px;bottom:4px;width:152px"></div>
+    <div class="who hero" style="left:23px;bottom:8px;width:160px"><img src="${S}player/warrior.png" alt="" /></div>
+    <div class="blk boss-blk">${bossBlk}</div>
+    <div class="blk hero-blk">${heroBlk}</div>
+  </div>`;
+const skills = `<div class="skills"><span class="engraved">Skills</span></div>`;
+
+const OPTIONS = [
+  {
+    key: 'a', title: 'Now', note: 'As the app is today, for comparison.',
+    html: stage(
+      `<div class="row">${bossName}</div>${bar(69)}<span class="num end">612 / 886</span><div class="stats">${bossStats()}</div>`,
+      `<div class="row">${heroName}</div>${bar(100)}<span class="num end">1204 / 1204</span>${exp}<div class="stats">${heroStats()}</div>`,
+    ) + skills,
+  },
+  {
+    key: 'b', title: 'Numbers up top', note: 'Your idea. HP numbers move onto the name line, so the EXP bar and stats tuck up under the HP bar. One row shorter each.',
+    html: stage(
+      `<div class="row">${bossName}${bossNum}</div>${bar(69)}<div class="stats">${bossStats()}</div>`,
+      `<div class="row">${heroName}${heroNum}</div>${bar(100)}${exp}<div class="stats">${heroStats()}</div>`,
+    ) + skills,
+  },
+  {
+    key: 'c', title: 'Numbers in the bar', note: 'A taller HP bar carries its own numbers, and the EXP is a thin gold seam along its foot. The most compact.',
+    html: stage(
+      `<div class="row">${bossName}</div>${bar(69, '<span class="num">612 / 886</span>')}<div class="stats">${bossStats()}</div>`,
+      `<div class="row">${heroName}</div>${bar(100, '<span class="num">1204 / 1204</span><span class="xp"><i></i></span>')}<div class="stats">${heroStats()}</div>`,
+    ) + skills,
+  },
+  {
+    key: 'd', title: 'Quiet stats', note: 'B, with the stats smaller and dimmed so the names and bars lead. Still there at a glance.',
+    html: stage(
+      `<div class="row">${bossName}${bossNum}</div>${bar(69)}<div class="stats">${bossStats(11)}</div>`,
+      `<div class="row">${heroName}${heroNum}</div>${bar(100)}${exp}<div class="stats">${heroStats(11)}</div>`,
+    ) + skills,
+  },
+  {
+    key: 'e', title: 'Versus strip', note: 'Only names and bars on the stage. Both stat lines sit side by side on a strip under it: you on the left, the boss on the right. Nothing is cut.',
+    html: stage(
+      `<div class="row">${bossName}${bossNum}</div>${bar(69)}`,
+      `<div class="row">${heroName}${heroNum}</div>${bar(100)}${exp}`,
+    ) + `<div class="strip"><div class="stats">${heroStats(12)}</div><i class="sep"></i><div class="stats foe">${bossStats(12)}</div></div>` + skills,
+  },
+  {
+    key: 'f', cls: 'o-c o-d', title: 'C + D', note: 'Numbers in the bar with the EXP seam, and the quiet stats under it.',
+    html: stage(
+      `<div class="row">${bossName}</div>${bar(69, '<span class="num">612 / 886</span>')}<div class="stats">${bossStats(11)}</div>`,
+      `<div class="row">${heroName}</div>${bar(100, '<span class="num">1204 / 1204</span><span class="xp"><i></i></span>')}<div class="stats">${heroStats(11)}</div>`,
+    ) + skills,
+  },
+];
+
+document.getElementById('root').innerHTML = OPTIONS.map((o) => `
+  <section class="opt ${o.cls ?? `o-${o.key}`}">
+    <h2 class="engraved"><b>${o.key.toUpperCase()}</b>${o.title}</h2>
+    <p>${o.note}</p>
+    <div class="screen">${o.html}</div>
+  </section>`).join('');
+</script>
+</body>
+</html>

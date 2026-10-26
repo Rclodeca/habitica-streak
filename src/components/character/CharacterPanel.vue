@@ -247,10 +247,12 @@ onBeforeUnmount(() => {
         <span class="level-number">{{ displayLevel }}</span>
         <span v-if="leveling" class="level-up-popup" role="status">Level up</span>
       </h2>
-      <HealthBar :current="shownHealth" :max="maxHealth" variant="player" />
-      <span class="hp-numbers">{{ Math.round(shownHealth) }} / {{ Math.round(maxHealth) }}</span>
-      <!-- Keyed by level so the bar snaps empty on a level-up instead of draining back. -->
-      <ExpBar :key="displayLevel" :current="displayExp" :max="expNeeded" />
+      <!-- The HP bar carries its own numbers, and the EXP runs along its foot. -->
+      <div class="bars">
+        <HealthBar :current="shownHealth" :max="maxHealth" variant="player" />
+        <!-- Keyed by level so the bar snaps empty on a level-up instead of draining back. -->
+        <ExpBar :key="displayLevel" :current="displayExp" :max="expNeeded" />
+      </div>
       <p ref="statLine" class="stat-summary">
         <span><StatIcon name="physical" />{{ physicalDamage.toFixed(0) }}</span>
         <span><StatIcon name="magic" />{{ magicDamage.toFixed(0) }}</span>
@@ -392,15 +394,15 @@ onBeforeUnmount(() => {
   scale: -1 1;
 }
 
-/* Floats on the stage to the hero's right. Its left edge sits at the mock's
-   share of the stage (198px of 390, about the middle) at every phone width
-   (176px wide at 390). */
+/* Floats on the stage to the hero's right. Its left edge sits at the same
+   share of the stage (172px of 390) at every phone width, just clear of the
+   warrior's sword tip (202px wide at 390). */
 .hero-block {
   position: absolute;
   z-index: 4;
   bottom: 14px;
   right: 16px;
-  width: calc(100% * 192 / 390 - 16px);
+  width: calc(100% * 218 / 390 - 16px);
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -445,24 +447,36 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
 }
 
+/* Clipped together to the HP bar's pill, so the EXP seam follows its ends. */
+.bars {
+  position: relative;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+/* Tall enough to carry its own HP numbers, at its right end, clear of the
+   seam. */
 .hero-block :deep(.health-bar) {
-  height: 6px;
+  height: 16px;
 }
 
+.hero-block :deep(.health-bar-label) {
+  inset: 0 0 3px;
+  justify-content: flex-end;
+  padding-right: 7px;
+}
+
+/* The EXP as a seam along the HP bar's foot. */
 .hero-block :deep(.exp-bar) {
-  height: 4px;
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.45);
 }
 
-.hero-block :deep(.health-bar-label),
 .hero-block :deep(.exp-bar-label) {
   display: none;
-}
-
-.hp-numbers {
-  align-self: flex-end;
-  font-size: 0.7rem;
-  line-height: 1;
-  color: var(--text);
 }
 
 .stat-summary span {
@@ -470,6 +484,15 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.25rem;
   white-space: nowrap;
+}
+
+.stat-summary :deep(.stat-icon) {
+  opacity: 0.8;
+}
+
+.stat-summary :deep(.stat-icon svg) {
+  width: 12px;
+  height: 12px;
 }
 
 /* The banner's hero sits 7% in from the left, each class offset from the
@@ -492,16 +515,17 @@ onBeforeUnmount(() => {
   }
 }
 
-/* One row only: clipStatLine hides whichever chips wrap past it. */
+/* Small and dimmed, so the name and bar lead. One row only: clipStatLine
+   hides whichever chips wrap past it. */
 .stat-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 8px;
+  gap: 2px 7px;
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 500;
   line-height: 1.2;
-  color: var(--text-h);
+  color: var(--text);
 }
 
 /* A transparent button over the whole stage, clipped to the hero's side of

@@ -101,7 +101,6 @@ const statTiles = computed<StatTile[]>(() => {
     <div class="boss-block">
       <h2 class="boss-name">{{ nameHead }}<span class="name-tail">{{ nameTail }}</span></h2>
       <HealthBar :current="shownHealth" :max="boss.maxHealth" variant="boss" />
-      <span class="hp-numbers">{{ Math.round(shownHealth) }} / {{ Math.round(boss.maxHealth) }}</span>
       <p class="stat-summary">
         <span><StatIcon name="physical" /> {{ physicalAttack.toFixed(0) }}</span>
         <span><StatIcon name="magic" /> {{ magicAttack.toFixed(0) }}</span>
@@ -223,19 +222,14 @@ const statTiles = computed<StatTile[]>(() => {
   color: var(--text);
 }
 
+/* Tall enough to carry its own HP numbers, at its right end. */
 .boss-block :deep(.health-bar) {
-  height: 10px;
+  height: 16px;
 }
 
 .boss-block :deep(.health-bar-label) {
-  display: none;
-}
-
-.hp-numbers {
-  align-self: flex-end;
-  font-size: 0.7rem;
-  line-height: 1;
-  color: var(--text);
+  justify-content: flex-end;
+  padding-right: 7px;
 }
 
 .stat-summary span {
@@ -243,6 +237,15 @@ const statTiles = computed<StatTile[]>(() => {
   align-items: center;
   gap: 0.25rem;
   white-space: nowrap;
+}
+
+.stat-summary :deep(.stat-icon) {
+  opacity: 0.8;
+}
+
+.stat-summary :deep(.stat-icon svg) {
+  width: 12px;
+  height: 12px;
 }
 
 @media (min-width: 821px) {
@@ -268,16 +271,17 @@ const statTiles = computed<StatTile[]>(() => {
   }
 }
 
-/* Wraps freely when the boss has reflect, lifesteal or wounds. */
+/* Small and dimmed, so the name and bar lead. Wraps freely when the boss has
+   reflect, lifesteal or wounds. */
 .stat-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 8px;
+  gap: 2px 7px;
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 500;
   line-height: 1.2;
-  color: var(--text-h);
+  color: var(--text);
 }
 
 /* A transparent button over the whole stage, clipped to the boss's side of

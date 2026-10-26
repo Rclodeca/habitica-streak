@@ -351,14 +351,8 @@ $caps-lg: 0.85rem; // panel and popup titles
     color: var(--accent-solid);
   }
 
-  .fight-stage .hp-numbers {
-    @include engraved($caps-xs, 0.12em);
-    line-height: 1;
-    color: var(--text);
-  }
-
-  // The mock's heights, borders included; the numbers sit in the block, not
-  // on the bars, so the bars need no room around them.
+  // Heights with borders included; each bar carries its numbers inside, so
+  // needs no room around it.
   .fight-stage .health-bar,
   .fight-stage .exp-bar {
     box-sizing: border-box;
@@ -366,22 +360,53 @@ $caps-lg: 0.85rem; // panel and popup titles
   }
 
   .fight-stage .boss-block .health-bar {
-    height: 11px;
+    height: 16px;
   }
 
   .fight-stage .hero-block .health-bar {
-    height: 6px;
+    height: 15px;
   }
 
-  .fight-stage .exp-bar {
-    height: 3px;
+  // Square, unclipped: the bar's black ring and the fill's glow show.
+  .fight-stage .bars {
+    overflow: visible;
   }
 
-  // Set at its true size, as in the mock, so the boss's chips fit one line
-  // and the hero's keep four.
+  .fight-stage .health-bar-label {
+    inset: 0;
+    padding-right: 5px;
+    color: var(--text-h);
+    text-shadow:
+      0 0 3px #000,
+      0 0 2px #000;
+  }
+
+  // Centred on the bar above its EXP seam. Cinzel's digits sit high in their
+  // line box, so the box is nudged down to bring the ink to the middle.
+  .fight-stage .hero-block .health-bar-label {
+    top: 0.75px;
+    bottom: 1.25px;
+  }
+
+  // The hero's EXP, as a gold seam inside the HP bar's border.
+  .fight-stage .hero-block .exp-bar {
+    inset: auto 1px 1px;
+    height: 2px;
+    border: 0;
+    background: rgba(0, 0, 0, 0.7);
+    box-shadow: none;
+  }
+
+  .fight-stage .hero-block .exp-bar-fill {
+    box-shadow: none;
+  }
+
+  // Small and dimmed, so the names and bars lead.
   .fight-stage .stat-summary {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-size-adjust: none;
+    font-weight: 600;
+    color: var(--text);
     text-shadow:
       0 0 8px #000,
       0 1px 2px #000;
