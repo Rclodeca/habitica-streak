@@ -124,6 +124,45 @@ describe('useCombatActions', () => {
       expect(hits[1]).toMatchObject({ by: 'hero', type: 'trueDamage', crit: false });
     });
 
+    it('sends a Rend as its own hurt after the blow, and logs it under the skill', () => {
+      const habitStore = useHabitStore();
+      const bossStore = useBossStore();
+      const characterStore = useCharacterStore();
+      const { checkOffHabit } = useCombatActions();
+      const habit = habitStore.addHabit('Lift', 'daily', 'medium', false, createRng());
+      habitStore.updateHabit({ ...habit, damageType: 'physical' });
+      // Just above the 50% line, so any blow crosses it without killing.
+      bossStore.setBoss({ ...bossStore.boss, health: 50001, maxHealth: 100000, reflectPct: 0, skills: [{ at: 0.5, skill: 'rend' }] });
+      characterStore.setCharacter({ ...characterStore.character, currentHealth: 500, ownedItemIds: ['vampiric-fang'], equippedItemIds: ['vampiric-fang'] });
+
+      checkOffHabit(habit.id);
+
+      expect(hits.map((h) => h.kind)).toEqual(['strike', 'hurt']);
+      const [strike, hurt] = hits;
+      if (strike.kind !== 'strike' || hurt.kind !== 'hurt') throw new Error('wrong hits');
+      // The blow's lifesteal is all of the blow's HP change; Rend shows on its own.
+      expect(strike.lifesteal?.hp).toBeCloseTo(strike.lifesteal!.amount);
+      expect(hurt.hp).toBeCloseTo(-hurt.amount);
+      expect(characterStore.character.currentHealth).toBeCloseTo(500 + strike.lifesteal!.amount - hurt.amount);
+      const entries = useActivityLogStore().entries;
+      expect(entries[0]).toMatchObject({ kind: 'skill-damage' });
+      expect(entries[1]).toMatchObject({ kind: 'boss-skill', skill: 'rend', outcome: 'landed' });
+      expect((entries[1] as { amount: number }).amount).toBeCloseTo(hurt.amount);
+    });
+
+    it('logs a Wounds skill as the familiar Wounds entry', () => {
+      const habitStore = useHabitStore();
+      const bossStore = useBossStore();
+      const { checkOffHabit } = useCombatActions();
+      const habit = habitStore.addHabit('Lift', 'daily', 'medium', false, createRng());
+      habitStore.updateHabit({ ...habit, damageType: 'physical' });
+      bossStore.setBoss({ ...bossStore.boss, health: 50001, maxHealth: 100000, reflectPct: 0, skills: [{ at: 0.5, skill: 'wounds' }] });
+
+      checkOffHabit(habit.id);
+
+      expect(useActivityLogStore().entries[1]).toMatchObject({ kind: 'wounds-applied', durationDays: 2, effectRate: 0.5 });
+    });
+
     it('sends a missed quest as a plain hurt', () => {
       const characterStore = useCharacterStore();
       const questStore = useQuestStore();

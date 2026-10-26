@@ -91,6 +91,37 @@ const activityLogStore = useActivityLogStore();
         <template v-else-if="entry.kind === 'wounds-applied'">
           <StatIcon name="wounds" class="log-icon" /> Wounded for {{ entry.durationDays }} day(s) — healing at {{ (entry.effectRate * 100).toFixed(0) }}%
         </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.outcome === 'failed'">
+          <StatIcon name="skillFailed" class="log-icon" /> A boss skill fails
+        </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.outcome === 'resisted'">
+          <StatIcon name="wounds" class="log-icon" /> Wounds resisted
+        </template>
+        <template v-else-if="entry.kind === 'boss-skill' && (entry.skill === 'rend' || entry.skill === 'ravage')">
+          <StatIcon name="bossHit" class="log-icon" /> {{ entry.skill === 'rend' ? 'Rend' : 'Ravage' }} — took
+          <span class="log-damage">{{ Math.round(entry.amount ?? 0) }}</span> damage
+        </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'mend'">
+          <StatIcon name="mend" class="log-icon" /> The boss mends <span class="log-heal">+{{ Math.round(entry.amount ?? 0) }}</span>
+        </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'bloodlust'">
+          <StatIcon name="bloodlust" class="log-icon" /> Bloodlust · 2 days
+        </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'blind'">
+          <StatIcon name="blind" class="log-icon" /> Blinded · 2 days
+        </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'sunder'">
+          <StatIcon name="sunder" class="log-icon" /> Sundered · 2 days
+        </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'doom'">
+          <StatIcon name="doom" class="log-icon" /> Doom falls in 3 days
+        </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'undying'">
+          <StatIcon name="undying" class="log-icon" /> Undying until tomorrow
+        </template>
+        <template v-else-if="entry.kind === 'doom-landed'">
+          <StatIcon name="doom" class="log-icon" /> Doom — took <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage
+        </template>
         <template v-else-if="entry.kind === 'quest-completed'">
           <StatIcon name="quest" class="log-icon" /> Completed quest "{{ entry.description }}" —
           <template v-if="entry.itemName">found {{ entry.itemName }}</template>

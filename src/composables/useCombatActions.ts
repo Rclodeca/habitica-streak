@@ -57,7 +57,8 @@ import {
   unlockQuests,
   weeklyPeriodKey,
 } from '../game-engine';
-import type { Character, Difficulty, Habit, ItemDef, Period } from '../game-engine';
+import type { Character, Difficulty, FiredBossSkill, Habit, ItemDef, Period } from '../game-engine';
+import { TUNING } from '../game-engine/constants/tuning';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
@@ -124,6 +125,15 @@ export function useCombatActions() {
     });
   }
 
+  /** Logs a boss skill a blow made fire; a landed Wounds keeps its familiar entry. */
+  function logBossSkill(fired: FiredBossSkill): void {
+    if (fired.skill === 'wounds' && fired.outcome === 'landed') {
+      activityLogStore.addEntry({ kind: 'wounds-applied', durationDays: TUNING.BOSS_SKILLS.DURATION_DAYS, effectRate: TUNING.BOSS_SKILLS.WOUNDS_EFFECT_RATE });
+      return;
+    }
+    activityLogStore.addEntry({ kind: 'boss-skill', skill: fired.skill, outcome: fired.outcome, ...(fired.amount !== undefined && { amount: fired.amount }) });
+  }
+
   /** Queues one event pick per level gained; the player resolves them in EventChoiceModal. */
   function grantEventPicks(levelsGained: number): void {
     if (levelsGained <= 0) return;
@@ -173,8 +183,14 @@ export function useCombatActions() {
     bossStore.setBoss(result.boss);
     habitStore.updateHabit(updatedHabit);
 
+    // A Rend/Ravage the blow knocked loose plays as its own hurt after it,
+    // so the blow's own hero HP change (lifesteal, reflect) leaves it out.
+    const bossSkill = result.bossSkill;
+    const skillHit =
+      bossSkill?.outcome === 'landed' && (bossSkill.skill === 'rend' || bossSkill.skill === 'ravage') ? (bossSkill.amount ?? 0) : 0;
+
     // The blow, sent to the stage; a kill's fall waits until it lands.
-    const healthAfter = result.character.currentHealth;
+    const healthAfter = result.character.currentHealth + skillHit;
     const bossHpChange = result.boss.health - bossBefore.health;
     let landsInMs = 0;
     if (habit.damageType === 'healing') {
@@ -199,16 +215,18 @@ export function useCombatActions() {
         ...(result.lifestealHealed ? { lifesteal: { amount: result.lifestealHealed, hp: healthAfter - healthBefore - reflectHp } } : {}),
       });
     }
+    if (skillHit > 0) landsInMs = playHit({ kind: 'hurt', amount: skillHit, hp: -skillHit });
 
     if (habit.damageType === 'healing') {
       // Censer of Wrath: the heal also hit the boss (as true damage).
       if (result.damageDealt) {
         activityLogStore.addEntry({ kind: 'skill-damage', habitName: habit.name, amount: result.damageDealt, isTrueDamage: true });
       }
+      if (bossSkill) logBossSkill(bossSkill);
       activityLogStore.addEntry({
         kind: 'heal',
         habitName: habit.name,
-        amount: result.character.currentHealth - healthBefore,
+        amount: healthAfter - healthBefore,
         milestoneExp: result.milestoneExp,
       });
     } else if (result.damageDealt !== undefined) {
@@ -221,6 +239,7 @@ export function useCombatActions() {
       if (result.reflectedDamage) {
         activityLogStore.addEntry({ kind: 'reflect', amount: result.reflectedDamage });
       }
+      if (bossSkill) logBossSkill(bossSkill);
       activityLogStore.addEntry({
         kind: 'skill-damage',
         habitName: habit.name,
