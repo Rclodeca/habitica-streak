@@ -1,5 +1,5 @@
 import { applyResist, baseResistStatForIndex, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
-import { activeSunder, bloodlustActive, resolveBreakpoints, spendPassedBreakpoints } from './bossSkills';
+import { activeSunder, bloodlustActive, reflectActive, resolveBreakpoints, spendPassedBreakpoints } from './bossSkills';
 import type { FiredBossSkill } from './bossSkills';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
@@ -199,8 +199,8 @@ export function effectiveResistAfterPen(resistStat: number, penPct: number): num
  * (physical/magic type — reduced by the boss's matching resist stat and, on
  * a crit roll, doubled). Healing habits never crit. A lifesteal item bonus
  * heals the character for a percent of the damage actually dealt, while the
- * boss's own reflect% (if any) damages the character back for a percent of
- * that same damage — both computed off the same `dealt` amount, then netted
+ * boss's Reflect skill (while it runs) damages the character back for a percent
+ * of that same damage — both computed off the same `dealt` amount, then netted
  * into a single health change. Any boss skill the hit knocks loose fires
  * afterward (see `resolveBreakpoints`) and comes back as `bossSkill`.
  * `currentDayKey` must be `dailyPeriodKey(now)` (never
@@ -305,7 +305,8 @@ function resolveCompletion(
   const maxHealth = effectiveStat(character, 'health');
   const bloodthornHeal = wasCrit && hasItemEffect(character, 'bloodthorn') ? maxHealth * (TUNING.ITEM_EFFECTS.BLOODTHORN_CRIT_HEAL_PCT / 100) : 0;
   const healed = dealt * (lifestealPct / 100) + bloodthornHeal;
-  const reflected = hasItemEffect(character, 'null-mirror') ? 0 : dealt * boss.reflectPct;
+  const reflected =
+    hasItemEffect(character, 'null-mirror') || !reflectActive(boss, currentDayKey) ? 0 : dealt * (TUNING.BOSS_SKILLS.REFLECT_PCT / 100);
   const netHealthChange = healed - reflected;
   const newHealth = Math.min(Math.max(character.currentHealth + netHealthChange, 0), maxHealth);
   const stampedCharacter = starfall ? stampEffectDay(wovenCharacter, 'starfall', currentDayKey) : wovenCharacter;

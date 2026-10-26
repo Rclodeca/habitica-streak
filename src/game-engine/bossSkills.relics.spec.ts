@@ -38,7 +38,6 @@ const hitBoss = (skill: BossSkillSlot['skill']): Boss => ({
   armor: 10,
   magicResist: 10,
   critChance: 0,
-  reflectPct: 0,
   lifestealPct: 0,
   skills: [{ at: 0.5, skill }],
 });

@@ -231,7 +231,7 @@ function jitteredResistStat(index: number, tierMultiplier: number | undefined, r
  * Generates a boss for the given index: rolls a personality, scales health
  * off the index's exponential curve (tank personalities get more), sets
  * armor/magicResist from the authored `resistPctForIndex` curve (armored/
- * warded personalities ramp higher), jitters each, and independently rolls a crit chance, reflect%, and lifesteal% (see TUNING
+ * warded personalities ramp higher), jitters each, and independently rolls a crit chance and lifesteal% (see TUNING
  * for the odds of each). physicalAttack/magicAttack are handled separately
  * — see below.
  *
@@ -273,7 +273,6 @@ export function generateBoss(
     rng() < TUNING.BOSS_RARE_CRIT_CHANCE_PROBABILITY
       ? TUNING.BOSS_RARE_CRIT_CHANCE
       : rng() * TUNING.BOSS_DEFAULT_CRIT_CHANCE_MAX;
-  const reflectPct = parseFloat(pickWeighted<string>(TUNING.BOSS_REFLECT_WEIGHTS, rng));
   const lifestealPct = parseFloat(pickWeighted<string>(TUNING.BOSS_LIFESTEAL_WEIGHTS, rng));
 
   // The non-emphasized baseline attack value for this index — deliberately
@@ -298,7 +297,6 @@ export function generateBoss(
     armor: jitteredResistStat(index, emphasizedStat === 'armor' ? tierMultiplier : undefined, rng),
     magicResist: jitteredResistStat(index, emphasizedStat === 'magicResist' ? tierMultiplier : undefined, rng),
     critChance,
-    reflectPct,
     lifestealPct,
     difficultyModifier: resolvedDifficultyModifier,
   };

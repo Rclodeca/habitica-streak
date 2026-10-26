@@ -54,8 +54,10 @@ export const TUNING = {
   // boss regardless of personality) — they're authored directly as damage
   // reduction percents below, so health grows faster to keep effective HP
   // (health / (1 - reduction)) close to the old curve through boss ~20.
+  // Eased 1.285 -> 1.27 after play-testing: past boss ~20 the compounding got
+  // out of hand (-20% health at boss 20, -29% at boss 30, -5% at boss 5).
   BASE_BOSS_HEALTH: 650,
-  BOSS_HEALTH_GROWTH_RATE: 1.285,
+  BOSS_HEALTH_GROWTH_RATE: 1.27,
   // Tank personality's health multiplier over a balanced boss.
   BOSS_TANK_HEALTH_MULTIPLIER: 1.5,
   // Non-emphasized armor/magicResist damage reduction: a straight line from
@@ -117,7 +119,9 @@ export const TUNING = {
   // Must stay strictly above MISS_DAMAGE_CURVE_TARGET_PCT — it's the
   // asymptote the curve approaches but never reaches at the target
   // checkpoint itself.
-  MISS_DAMAGE_CEILING_PCT_OF_MAX_HP: 0.75,
+  // Eased 0.75 -> 0.65 (and the target 0.7 -> 0.6 below) after play-testing:
+  // about 11% less per miss at boss 20, 14% at boss 30; boss 1 is unchanged.
+  MISS_DAMAGE_CEILING_PCT_OF_MAX_HP: 0.65,
   // The curve's two authored checkpoints — its midpoint/steepness are
   // solved from these (see solveLogisticParams in boss.ts) so the shape is
   // tuned via "how small at the start" and "where it hits the target"
@@ -125,7 +129,7 @@ export const TUNING = {
   MISS_DAMAGE_CURVE_EARLY_INDEX: 1,
   MISS_DAMAGE_CURVE_EARLY_PCT: 0.05,
   MISS_DAMAGE_CURVE_TARGET_INDEX: 50,
-  MISS_DAMAGE_CURVE_TARGET_PCT: 0.7,
+  MISS_DAMAGE_CURVE_TARGET_PCT: 0.6,
   // [boss index, player level] control points for the level an average
   // player has when that boss spawns (linear between points, extrapolated
   // past the last). Boss attacks are sized against the health of this
@@ -240,13 +244,12 @@ export const TUNING = {
   BOSS_DEFAULT_CRIT_CHANCE_MAX: 0.03,
   BOSS_RARE_CRIT_CHANCE_PROBABILITY: 0.05,
   BOSS_RARE_CRIT_CHANCE: 0.2,
-  // Reflect (% of damage taken thrown back at the player) and lifesteal (%
-  // of damage dealt to the player healed back to the boss), each rolled
-  // independently of personality via pickWeighted. Weight ratios mirror the
-  // same "much rarer at each step up" shape as BOSS_PERSONALITY_WEIGHTS:
-  // most bosses get none, a fifth get the low tier, and the highest tier is
-  // rare enough to be a genuine surprise.
-  BOSS_REFLECT_WEIGHTS: { '0': 80, '0.05': 15, '0.1': 4, '0.2': 1 },
+  // Lifesteal (% of damage dealt to the player healed back to the boss),
+  // rolled independently of personality via pickWeighted. Weight ratios
+  // mirror the same "much rarer at each step up" shape as
+  // BOSS_PERSONALITY_WEIGHTS: most bosses get none, a fifth get the low
+  // tier, and the highest tier is rare enough to be a genuine surprise.
+  // (Reflect used to roll here too; it's a boss skill now, see BOSS_SKILLS.)
   BOSS_LIFESTEAL_WEIGHTS: { '0': 80, '0.05': 15, '0.1': 4, '0.15': 1 },
   // Total armorPen/magicPen percent from equipped items is clamped to this
   // before reducing a boss's effective armor/magicResist (see combat.ts) —
@@ -255,14 +258,15 @@ export const TUNING = {
   ARMOR_MAGIC_PEN_CAP_PCT: 90,
   // Late-game boss skills, fired at HP breakpoints (see bossSkills.ts).
   BOSS_SKILLS: {
-    UNLOCK_INDEX: { wounds: 15, bloodlust: 15, blind: 15, mend: 15, rend: 20, doom: 20, sunder: 20, undying: 20, ravage: 25 } as Record<BossSkillId, number>,
+    UNLOCK_INDEX: { wounds: 15, bloodlust: 15, blind: 15, mend: 15, reflect: 15, rend: 20, doom: 20, sunder: 20, undying: 20, ravage: 25 } as Record<BossSkillId, number>,
     // [first boss index of the band, weights for 0/1/2/3 skills]; fixed bands, no blending.
     COUNT_BANDS: [[15, [65, 35, 0, 0]], [20, [45, 35, 20, 0]], [25, [30, 40, 30, 0]], [30, [25, 30, 35, 10]]] as [number, number[]][],
     SLOTS: { 1: [0.5], 2: [0.75, 0.25], 3: [0.75, 0.5, 0.25] } as Record<number, Breakpoint[]>,
     HP_HIT_SKILLS: ['rend', 'ravage', 'doom'] as BossSkillId[],
-    DURATION_DAYS: 2, // Wounds, Bloodlust, Blind, Sunder
+    DURATION_DAYS: 2, // Wounds, Bloodlust, Reflect, Blind, Sunder
     WOUNDS_EFFECT_RATE: 0.5,
     BLOODLUST_HEAL_PCT: 3, // of the boss's max HP, per hit it lands
+    REFLECT_PCT: 5, // of the damage the hero deals, thrown back at the hero while it runs
     MEND_HEAL_PCT: 10,
     REND_PCT: 20,
     RAVAGE_PCT: 40,

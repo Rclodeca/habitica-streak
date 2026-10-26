@@ -151,7 +151,6 @@ export interface Boss {
   armor: number;
   magicResist: number;
   critChance: number; // randomized per boss, not scaled by index — see generateBoss
-  reflectPct: number; // fraction (0-1) of damage taken reflected back at the player — see completeHabit
   lifestealPct: number; // fraction (0-1) of damage dealt to the player healed back to the boss — see missHabit
   // Hidden per-run difficulty scaling (see rollRunDifficultyModifier) —
   // carried forward to every boss within the same run, never shown in the
@@ -173,6 +172,9 @@ export interface Boss {
   skills?: BossSkillSlot[];
   // The day key Bloodlust fired on (see bloodlustActive); undefined = never.
   bloodlustDayKey?: string;
+  // The day key Reflect fired on (see reflectActive); undefined = never. Older
+  // saves may still carry the retired permanent `reflectPct`, which is ignored.
+  reflectDayKey?: string;
   // The day key Undying fired on — it only holds that day (see undyingActive).
   undyingDayKey?: string;
   // The day key Doom lands on, set when it fires (see resolveDoom).
@@ -180,7 +182,7 @@ export interface Boss {
 }
 
 // Rend is the 20% HP hit, Ravage the 40% one.
-export type BossSkillId = 'wounds' | 'bloodlust' | 'blind' | 'mend' | 'rend' | 'doom' | 'sunder' | 'undying' | 'ravage';
+export type BossSkillId = 'wounds' | 'bloodlust' | 'reflect' | 'blind' | 'mend' | 'rend' | 'doom' | 'sunder' | 'undying' | 'ravage';
 
 /** A boss's HP breakpoints, as a fraction of its max health. */
 export type Breakpoint = 0.75 | 0.5 | 0.25;

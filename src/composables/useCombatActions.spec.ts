@@ -7,7 +7,8 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { availableRelics, createRng, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, PERSONALITY_NAME, questSlotExp, weeklyPeriodKey } from '../game-engine';
+import { availableRelics, createRng, dailyPeriodKey, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, PERSONALITY_NAME, questSlotExp, weeklyPeriodKey } from '../game-engine';
+import { TUNING } from '../game-engine/constants/tuning';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
@@ -57,7 +58,7 @@ describe('useCombatActions', () => {
       const { checkOffHabit } = useCombatActions();
       const habit = habitStore.addHabit('Read', 'daily', 'medium', false, createRng());
       habitStore.updateHabit({ ...habit, damageType: 'magic' });
-      bossStore.setBoss({ ...bossStore.boss, health: 100000, maxHealth: 100000, reflectPct: 0.1 });
+      bossStore.setBoss({ ...bossStore.boss, health: 100000, maxHealth: 100000, reflectDayKey: dailyPeriodKey(useDebugClockStore().now()) });
       const bossBefore = bossStore.boss;
       const heroBefore = characterStore.character.currentHealth;
 
@@ -68,7 +69,7 @@ describe('useCombatActions', () => {
       expect(hit).toMatchObject({ kind: 'strike', by: 'hero', type: 'magic', bossIndex: bossBefore.index, hp: bossStore.boss.health - bossBefore.health });
       if (hit.kind !== 'strike') throw new Error('not a strike');
       expect(hit.amount).toBeGreaterThan(0);
-      expect(hit.reflect?.amount).toBeCloseTo(hit.amount * 0.1);
+      expect(hit.reflect?.amount).toBeCloseTo((hit.amount * TUNING.BOSS_SKILLS.REFLECT_PCT) / 100);
       expect(hit.reflect?.hp).toBeCloseTo(characterStore.character.currentHealth - heroBefore);
       expect(hit.lifesteal).toBeUndefined();
     });
@@ -81,7 +82,7 @@ describe('useCombatActions', () => {
       const habit = habitStore.addHabit('Run', 'daily', 'medium', false, createRng());
       habitStore.updateHabit({ ...habit, damageType: 'physical' });
       // Too sturdy to fall, so no kill's heal muddies the hit's own change.
-      bossStore.setBoss({ ...bossStore.boss, health: 100000, maxHealth: 100000, reflectPct: 0.1 });
+      bossStore.setBoss({ ...bossStore.boss, health: 100000, maxHealth: 100000, reflectDayKey: dailyPeriodKey(useDebugClockStore().now()) });
       characterStore.setCharacter({ ...characterStore.character, currentHealth: 500, ownedItemIds: ['vampiric-fang'], equippedItemIds: ['vampiric-fang'] });
 
       checkOffHabit(habit.id);
@@ -132,7 +133,7 @@ describe('useCombatActions', () => {
       const habit = habitStore.addHabit('Lift', 'daily', 'medium', false, createRng());
       habitStore.updateHabit({ ...habit, damageType: 'physical' });
       // Just above the 50% line, so any blow crosses it without killing.
-      bossStore.setBoss({ ...bossStore.boss, health: 50001, maxHealth: 100000, reflectPct: 0, skills: [{ at: 0.5, skill: 'rend' }] });
+      bossStore.setBoss({ ...bossStore.boss, health: 50001, maxHealth: 100000, skills: [{ at: 0.5, skill: 'rend' }] });
       characterStore.setCharacter({ ...characterStore.character, currentHealth: 500, ownedItemIds: ['vampiric-fang'], equippedItemIds: ['vampiric-fang'] });
 
       checkOffHabit(habit.id);
@@ -156,7 +157,7 @@ describe('useCombatActions', () => {
       const { checkOffHabit } = useCombatActions();
       const habit = habitStore.addHabit('Lift', 'daily', 'medium', false, createRng());
       habitStore.updateHabit({ ...habit, damageType: 'physical' });
-      bossStore.setBoss({ ...bossStore.boss, health: 50001, maxHealth: 100000, reflectPct: 0, skills: [{ at: 0.5, skill: 'wounds' }] });
+      bossStore.setBoss({ ...bossStore.boss, health: 50001, maxHealth: 100000, skills: [{ at: 0.5, skill: 'wounds' }] });
 
       checkOffHabit(habit.id);
 

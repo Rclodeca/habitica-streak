@@ -215,17 +215,12 @@ describe('generateBoss', () => {
     expect(generateBoss(20, createRng(1), 1).critChance).toBeLessThanOrEqual(rareValue);
   });
 
-  it('rolls reflectPct from the configured tiers, mostly 0', () => {
-    const validValues = Object.keys(TUNING.BOSS_REFLECT_WEIGHTS).map(Number);
-    const results: number[] = [];
-    for (let seed = 0; seed < 500; seed++) {
-      results.push(generateBoss(1, createRng(seed), 1).reflectPct);
+  it('never rolls a permanent reflect — Reflect is a boss skill now', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const boss = generateBoss(1, createRng(seed), 1);
+      expect('reflectPct' in boss).toBe(false);
+      expect(boss.reflectDayKey).toBeUndefined();
     }
-    for (const reflectPct of results) {
-      expect(validValues).toContain(reflectPct);
-    }
-    expect(results.filter((r) => r === 0).length).toBeGreaterThan(results.length * 0.6);
-    expect(results.some((r) => r > 0)).toBe(true);
   });
 
   it('rolls lifestealPct from the configured tiers, mostly 0', () => {
@@ -522,20 +517,20 @@ describe('generateBoss — hidden attack lean', () => {
 
   it('leaves every other rolled stat exactly as it was before the lean existed, for a given seed', () => {
     // Rolled after the Wounds ability, so the lean can't shift any earlier rng() draw.
-    // Seed 42 at index 5 was captured before the lean was added.
+    // Seed 42 at index 5 was captured before the lean was added, and re-captured
+    // when Reflect left the roll order and the boss health/attack curves eased.
     const { physicalShare, ...rest } = generateBoss(5, createRng(42));
     expect(physicalShare).toBeDefined();
     expect(rest).toEqual({
       index: 5,
       personality: 'warded',
-      maxHealth: 1935.5478662028272,
-      health: 1935.5478662028272,
-      physicalAttack: 634.2983434954642,
-      magicAttack: 664.0939034641902,
-      armor: 229.74824406077414,
-      magicResist: 322.13730417487795,
+      maxHealth: 1846.7422666798311,
+      health: 1846.7422666798311,
+      physicalAttack: 574.6747075954526,
+      magicAttack: 616.995697460808,
+      armor: 278.1175695000878,
+      magicResist: 352.1594129276755,
       critChance: 0.005244416962377727,
-      reflectPct: 0,
       lifestealPct: 0,
       difficultyModifier: 1.0202207503840328,
     });

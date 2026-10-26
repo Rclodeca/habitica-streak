@@ -33,6 +33,7 @@ const alwaysCritRng = () => 0;
 
 // Placeholder day key for tests that don't exercise day-based effects.
 const DAY_KEY = '2026-01-01';
+const REFLECT_PCT = TUNING.BOSS_SKILLS.REFLECT_PCT;
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
   const starterStats = { physicalDamage: 10, magicDamage: 10, healing: 6, health: 50, trueDamage: 6 };
@@ -59,7 +60,6 @@ function makeBoss(overrides: Partial<Boss> = {}): Boss {
     armor: 10,
     magicResist: 10,
     critChance: 0.01,
-    reflectPct: 0,
     lifestealPct: 0,
     ...overrides,
   };
@@ -260,15 +260,35 @@ describe('completeHabit', () => {
     expect(result.character.currentHealth).toBe(1);
   });
 
-  it('damages the character back for a percent of damage dealt when the boss has reflect', () => {
+  it('damages the character back for a percent of damage dealt while the boss has Reflect', () => {
     const character = makeCharacter({ currentHealth: 50 });
     const habit = makeHabit({ damageType: 'physical' });
-    const boss = makeBoss({ armor: 0, health: 1000, reflectPct: 0.2 });
+    const boss = makeBoss({ armor: 0, health: 1000, reflectDayKey: DAY_KEY });
 
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
-    const expectedReflect = (result.damageDealt ?? 0) * 0.2;
+    const expectedReflect = ((result.damageDealt ?? 0) * REFLECT_PCT) / 100;
     expect(result.character.currentHealth).toBeCloseTo(50 - expectedReflect, 10);
+    expect(result.reflectedDamage).toBeCloseTo(expectedReflect, 10);
+  });
+
+  it('reflects on the day Reflect fires and the next, then stops', () => {
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000, reflectDayKey: DAY_KEY });
+
+    expect(completeHabit(makeCharacter(), habit, [habit], boss, DAY_KEY, noCritRng).reflectedDamage).toBeGreaterThan(0);
+    expect(completeHabit(makeCharacter(), habit, [habit], boss, '2026-01-02', noCritRng).reflectedDamage).toBeGreaterThan(0);
+    expect(completeHabit(makeCharacter(), habit, [habit], boss, '2026-01-03', noCritRng).reflectedDamage).toBeUndefined();
+  });
+
+  it('does not reflect before Reflect has fired', () => {
+    const habit = makeHabit({ damageType: 'physical' });
+    const boss = makeBoss({ armor: 0, health: 1000 });
+
+    const result = completeHabit(makeCharacter({ currentHealth: 50 }), habit, [habit], boss, DAY_KEY, noCritRng);
+
+    expect(result.reflectedDamage).toBeUndefined();
+    expect(result.character.currentHealth).toBe(50);
   });
 
   it('nets lifesteal healing against boss reflect damage into a single health change', () => {
@@ -278,19 +298,19 @@ describe('completeHabit', () => {
       equippedItemIds: ['vampiric-fang'],
     });
     const habit = makeHabit({ damageType: 'physical' });
-    const boss = makeBoss({ armor: 0, health: 1000, reflectPct: 0.2 });
+    const boss = makeBoss({ armor: 0, health: 1000, reflectDayKey: DAY_KEY });
 
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
     const dealt = result.damageDealt ?? 0;
-    const expectedHealthChange = dealt * 0.03 - dealt * 0.2; // vampiric-fang 3% lifesteal vs 20% reflect
+    const expectedHealthChange = dealt * 0.03 - (dealt * REFLECT_PCT) / 100; // vampiric-fang 3% lifesteal vs Reflect
     expect(result.character.currentHealth).toBeCloseTo(50 + expectedHealthChange, 10);
   });
 
   it('never reduces currentHealth below 0 from reflect', () => {
     const character = makeCharacter({ level: 20, currentHealth: 1 });
     const habit = makeHabit({ damageType: 'physical' });
-    const boss = makeBoss({ armor: 0, health: 1_000_000, reflectPct: 0.2 });
+    const boss = makeBoss({ armor: 0, health: 1_000_000, reflectDayKey: DAY_KEY });
 
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
@@ -300,7 +320,7 @@ describe('completeHabit', () => {
   it('does not apply reflect on a healing habit (no damage dealt)', () => {
     const character = makeCharacter({ currentHealth: 30 });
     const habit = makeHabit({ damageType: 'healing' });
-    const boss = makeBoss({ reflectPct: 0.2 });
+    const boss = makeBoss({ reflectDayKey: DAY_KEY });
 
     const result = completeHabit(character, habit, [habit], boss, DAY_KEY, noCritRng);
 
@@ -1207,7 +1227,7 @@ describe('completeHabit — item effects', () => {
   });
 
   it('Null Mirror blocks boss reflect', () => {
-    const result = hit(['null-mirror'], {}, { reflectPct: 0.2 });
+    const result = hit(['null-mirror'], {}, { reflectDayKey: DAY_KEY });
     expect(result.reflectedDamage).toBeUndefined();
     expect(result.character.currentHealth).toBe(50);
   });

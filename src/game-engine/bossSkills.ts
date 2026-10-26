@@ -75,6 +75,17 @@ export function bloodlustDaysLeft(boss: Boss, currentDayKey: string): number | u
   return S.DURATION_DAYS - daysBetweenDayKeys(boss.bloodlustDayKey!, currentDayKey);
 }
 
+/** Whether this boss's Reflect is still running on `currentDayKey`. */
+export function reflectActive(boss: Boss, currentDayKey: string): boolean {
+  return boss.reflectDayKey !== undefined && daysBetweenDayKeys(boss.reflectDayKey, currentDayKey) < S.DURATION_DAYS;
+}
+
+/** Days of Reflect left, counting today, or undefined once it's worn off (or never fired). */
+export function reflectDaysLeft(boss: Boss, currentDayKey: string): number | undefined {
+  if (!reflectActive(boss, currentDayKey)) return undefined;
+  return S.DURATION_DAYS - daysBetweenDayKeys(boss.reflectDayKey!, currentDayKey);
+}
+
 /** Whether this boss is Undying today — it only holds the day it fired. */
 export function undyingActive(boss: Boss, currentDayKey: string): boolean {
   return boss.undyingDayKey === currentDayKey;
@@ -106,6 +117,8 @@ export function bossSkillEffectText(skill: BossSkillId, doomShare: number = S.DO
   switch (skill) {
     case 'bloodlust':
       return `Boss heals ${S.BLOODLUST_HEAL_PCT}% per hit`;
+    case 'reflect':
+      return `Reflects ${S.REFLECT_PCT}% of your damage`;
     case 'blind':
       return 'No crits';
     case 'sunder':
@@ -166,6 +179,8 @@ function applySkill(skill: BossSkillId, boss: Boss, character: Character, curren
       return landed({ character: withStatus(character, { type: skill, appliedDayKey: currentDayKey, durationDays: S.DURATION_DAYS }) });
     case 'bloodlust':
       return landed({ boss: { ...boss, bloodlustDayKey: currentDayKey } });
+    case 'reflect':
+      return landed({ boss: { ...boss, reflectDayKey: currentDayKey } });
     case 'mend': {
       const healed = Math.min(boss.maxHealth - boss.health, boss.maxHealth * (S.MEND_HEAL_PCT / 100));
       return landed({ boss: { ...boss, health: boss.health + healed }, amount: healed });

@@ -1,12 +1,12 @@
 # Boss skills — Design Spec
 
-Status as of 2026-10-25. From boss #15 on, some bosses carry skills that fire when you knock their HP past a breakpoint (75%, 50% or 25%). Markers on the boss bar show where a skill waits. Wounds stops being a random boss trait and becomes one of these skills. Two new relics interact with the system.
+Status as of 2026-10-25. From boss #15 on, some bosses carry skills that fire when you knock their HP past a breakpoint (75%, 50% or 25%). Markers on the boss bar show where a skill waits. Wounds and Reflect stop being random boss traits and become two of these skills. Two new relics interact with the system.
 
 Not yet mocked up. Mock the bar markers and the new status chips in Ashen before building any UI (see **UI**).
 
 ## Why
 
-Late bosses are bigger numbers plus a few rare passives (reflect, lifesteal, Wounds on 10% of bosses). Skills give late fights their own identity. The markers show *that* a skill is coming, not which one, so each one is a surprise. The player can still plan around the line itself, for example by crossing two at once with a big hit.
+Late bosses are bigger numbers plus a few rare passives (lifesteal, and once reflect and Wounds on 10% of bosses). Skills give late fights their own identity. The markers show *that* a skill is coming, not which one, so each one is a surprise. The player can still plan around the line itself, for example by crossing two at once with a big hit.
 
 These skills are the first boss threat that comes from making progress rather than from missing a habit, so even a perfect player gets hit. That's intended. The hits that do damage can never kill you. They leave you exposed to the next miss.
 
@@ -42,12 +42,20 @@ These skills are the first boss threat that comes from making progress rather th
 - Old saves: ignore any `woundsAbility` stored on a boss. A Wounds effect already active on the character just runs out as it does today.
 - Remove the Wounds chance row and chip from `BossPanel.vue`.
 
+### Reflect leaves the normal boss traits
+
+Added 2026-10-26. A permanent 5% reflect on a boss 20+ nearly killed a player who never missed a habit: the reflected amount is a share of the damage *dealt*, which grows with the boss's exponential health, while the hero's HP doesn't.
+- Stop rolling `reflectPct` in `generateBoss`, and remove `BOSS_REFLECT_WEIGHTS` from tuning. `Boss.reflectPct` is gone; a leftover value on an old save is ignored.
+- Reflect is a boss skill now: for 2 days it throws `REFLECT_PCT` (5%) of the damage the hero deals back at the hero. The hit that fires it isn't reflected, only the hits after. Null Mirror still blocks it.
+- Older bosses lose their reflect, including one already in progress when the update lands.
+
 ### The skills
 
 | Skill | Unlocks at boss # | What it does | Lives on |
 |---|---|---|---|
 | Wounds | 15 | Your healing skills heal half as much for 2 days | character |
 | Bloodlust | 15 | For 2 days, each time the boss hits you it heals 3% of its own max HP | boss |
+| Reflect | 15 | For 2 days, 5% of the damage you deal is thrown back at you | boss |
 | Blind | 15 | You can't crit for 2 days. Guaranteed crits (First Blood, Starfall) still land | character |
 | Mend | 15 | The boss heals 10% of its max HP, once | instant |
 | 20% hit | 20 | The boss hits you for 20% of your current HP | instant |
@@ -105,7 +113,7 @@ These are calls made while writing the spec, not decisions the user made. They'r
 
 - **Doom lands after the day's outcomes.** The countdown is stored on the boss with its landing day: 3 days after it fired, so a Monday Doom lands Thursday. It lands at the first rollover on or after that day, once that rollover's missed and avoided habits have resolved. If the missed-skills popup is up, it lands when the player clicks OK (`useMissedSkillsGate.acknowledge()`). If nothing is queued, it lands at rollover. Resolving the misses and rewards first means two things: an avoided bad habit that day can still kill the boss and cancel Doom, and the hit shows in the hit popup rather than behind the missed-skills popup. If the app stays closed past the landing day, Doom lands once, at the next rollover.
 - **Undying clamps the hit that triggers it.** If that hit leaves the boss between 0% and 10%, the boss is set to 10%. If the hit would have killed the boss, it dies and Undying never fires (the kill rule). A bigger hit still wins.
-- **Effects on the hero outlast the boss.** Wounds, Blind and Sunder run their full days even if the boss dies, as Wounds does today. Effects on the boss (Bloodlust, Undying, Doom) end with it.
+- **Effects on the hero outlast the boss.** Wounds, Blind and Sunder run their full days even if the boss dies, as Wounds does today. Effects on the boss (Bloodlust, Reflect, Undying, Doom) end with it.
 - **Wounds refreshes.** If Wounds is still active (from an earlier boss), the new one replaces it with a fresh 2 days.
 - **Names for the HP hits** in the log and modal: **Rend** for the 20% hit and **Ravage** for the 40% hit. They're placeholders that keep the copy terse.
 
@@ -136,7 +144,7 @@ These are calls made while writing the spec, not decisions the user made. They'r
 Mock these in Ashen first, quickly, and let the user pick before building. Minimalist comes after (see the mockup rules).
 
 - **Bar markers.** Every unfired skill gets a marker at its breakpoint, on both the fight stage's boss HP bar (`FightStage.vue`) and the drop-down bar (`BossBar.vue`). **Markers are generic: they never show which skill waits there. The skill is a surprise until it fires.** A marker disappears when its breakpoint is spent. Markers are status only, not tap targets: tapping the boss still opens the boss modal. Mockup: `docs/mockups/boss-skill-markers.html`, option **B (Diamond)**: Ashen's diamond on the bar's top edge, flaring as it fires. The HP numbers inside the stage bar sit above the markers.
-- **Boss modal** (`BossPanel.vue`). Never reveals which skills a boss has. It shows only active boss-side effects once they've fired: Bloodlust (with days left), Undying, and Doom's countdown.
+- **Boss modal** (`BossPanel.vue`). Never reveals which skills a boss has. It shows only active boss-side effects once they've fired: Bloodlust and Reflect (with days left), Undying, and Doom's countdown.
 - **Hero status chips** (`CharacterPanel.vue`'s effects list, the same place as Wounds). Wounds, Blind, Sunder and the Doom countdown, each in the existing `bane` tone with days left. Wounds no longer needs its rate in the label, since it's always half.
 - **Activity log.** One terse entry per fired skill, one when Hushing Bell makes a skill fail, and one when Doom lands. Reuse the existing `wounds-applied` entry kind for Wounds.
 - **HP hits** show as a boss hit on the hero, through the existing hit popup and hit feed.

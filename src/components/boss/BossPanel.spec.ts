@@ -131,6 +131,24 @@ describe('BossPanel', () => {
       wrapper.unmount();
     });
 
+    it('shows Reflect on the stage and in the details', async () => {
+      const store = useBossStore();
+      store.setBoss({ ...store.boss, reflectDayKey: today() });
+      const wrapper = mount(BossPanel);
+      expect(wrapper.find('.stat-summary .reflect').text()).toBe('2d');
+      await wrapper.find('button.tap-boss').trigger('click');
+      expect(tileLabels()).toContain('Reflect');
+      wrapper.unmount();
+    });
+
+    it('shows no Reflect before it fires', async () => {
+      const wrapper = mount(BossPanel);
+      expect(wrapper.find('.stat-summary .reflect').exists()).toBe(false);
+      await wrapper.find('button.tap-boss').trigger('click');
+      expect(tileLabels()).not.toContain('Reflect');
+      wrapper.unmount();
+    });
+
     it('shows Undying only on the day it fired', async () => {
       const store = useBossStore();
       store.setBoss({ ...store.boss, undyingDayKey: today() });

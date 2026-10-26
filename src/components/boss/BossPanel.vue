@@ -12,6 +12,7 @@ import {
   effectiveResistAfterPen,
   itemBonusPercent,
   PERSONALITY_NAME,
+  reflectDaysLeft,
   undyingActive,
 } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
@@ -45,6 +46,7 @@ const skillMarks = computed(() => bossSkillMarks(boss.value));
 const debugClockStore = useDebugClockStore();
 const currentDayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
 const bloodlustDays = computed(() => bloodlustDaysLeft(boss.value, currentDayKey.value));
+const reflectDays = computed(() => reflectDaysLeft(boss.value, currentDayKey.value));
 const undying = computed(() => undyingActive(boss.value, currentDayKey.value));
 const doomDays = computed(() => doomDaysLeft(boss.value, currentDayKey.value));
 
@@ -90,8 +92,10 @@ const statTiles = computed<StatTile[]>(() => {
     { icon: 'armor', label: 'Armor', value: b.armor.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` },
     { icon: 'magicResist', label: 'Magic resist', value: b.magicResist.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` },
     { icon: 'crit', label: 'Crit chance', value: pct(b.critChance) },
-    ...(b.reflectPct > 0 ? [{ icon: 'reflect' as const, label: 'Reflect', value: pct(b.reflectPct) }] : []),
     ...(b.lifestealPct > 0 ? [{ icon: 'lifesteal' as const, label: 'Lifesteal', value: pct(b.lifestealPct) }] : []),
+    ...(reflectDays.value !== undefined
+      ? [{ icon: 'reflect' as const, label: 'Reflect', value: `${reflectDays.value}d`, note: bossSkillEffectText('reflect') }]
+      : []),
     ...(bloodlustDays.value !== undefined
       ? [{ icon: 'bloodlust' as const, label: 'Bloodlust', value: `${bloodlustDays.value}d`, note: bossSkillEffectText('bloodlust') }]
       : []),
@@ -125,8 +129,8 @@ const statTiles = computed<StatTile[]>(() => {
         <span><StatIcon name="armor" /> {{ boss.armor.toFixed(0) }}</span>
         <span><StatIcon name="magicResist" /> {{ boss.magicResist.toFixed(0) }}</span>
         <span><StatIcon name="crit" /> {{ (boss.critChance * 100).toFixed(0) }}%</span>
-        <span v-if="boss.reflectPct > 0"><StatIcon name="reflect" /> {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
         <span v-if="boss.lifestealPct > 0"><StatIcon name="lifesteal" /> {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
+        <span v-if="reflectDays !== undefined"><StatIcon name="reflect" /> <span class="reflect">{{ reflectDays }}d</span></span>
         <span v-if="bloodlustDays !== undefined"><StatIcon name="bloodlust" /> <span class="bloodlust">{{ bloodlustDays }}d</span></span>
         <span v-if="undying"><StatIcon name="undying" class="undying" /></span>
         <span v-if="doomDays !== undefined"><StatIcon name="doom" /> <span class="doom">{{ doomDays }}d</span></span>

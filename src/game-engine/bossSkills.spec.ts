@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoss } from './boss';
 import { completeHabit, overdriveHabit, resolveBossDefeatIfDead } from './combat';
-import { activeBlind, activeSunder, bloodlustActive, bloodlustDaysLeft, bossSkillEffectText, bossSkillMarks, doomDaysLeft, doomPct, hpHitDamage, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
+import { activeBlind, activeSunder, bloodlustActive, bloodlustDaysLeft, bossSkillEffectText, bossSkillMarks, doomDaysLeft, doomPct, hpHitDamage, reflectActive, reflectDaysLeft, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
 import { createRng } from './rng';
 import type { Boss, BossSkillSlot, Character, Habit } from './types';
 
@@ -63,7 +63,7 @@ describe('rollBossSkills', () => {
 
   it('only picks skills unlocked at that boss', () => {
     for (const slots of [...sample(15), ...sample(19)]) {
-      for (const slot of slots) expect(['wounds', 'bloodlust', 'blind', 'mend']).toContain(slot.skill);
+      for (const slot of slots) expect(['wounds', 'bloodlust', 'blind', 'mend', 'reflect']).toContain(slot.skill);
     }
     for (const slots of sample(24)) {
       for (const slot of slots) expect(slot.skill).not.toBe('ravage');
@@ -99,20 +99,20 @@ describe('generateBoss — skills', () => {
   });
 
   it('leaves every other stat as it was before skills existed, for a given seed', () => {
-    // Seed 7 at boss 30, captured before skills were added.
+    // Seed 7 at boss 30, captured before skills were added, and re-captured when
+    // Reflect left the roll order and the boss health/attack curves eased.
     const rest = generateBoss(30, createRng(7));
     delete rest.skills;
     expect(rest).toEqual({
       index: 30,
       personality: 'balanced',
-      maxHealth: 924783.6408251054,
-      health: 924783.6408251054,
-      physicalAttack: 3666.705096759858,
-      magicAttack: 3909.1449803130317,
-      armor: 857.7095762002356,
-      magicResist: 757.230814301548,
+      maxHealth: 657896.1485506399,
+      health: 657896.1485506399,
+      physicalAttack: 3293.486617755793,
+      magicAttack: 3143.404935716983,
+      armor: 819.1077991395447,
+      magicResist: 857.7095762002356,
       critChance: 0.015643358055967838,
-      reflectPct: 0,
       lifestealPct: 0,
       difficultyModifier: 0.9023409506306053,
       physicalShare: 0.5,
@@ -145,7 +145,6 @@ const foe = (overrides: Partial<Boss> = {}): Boss => ({
   armor: 10,
   magicResist: 10,
   critChance: 0,
-  reflectPct: 0,
   lifestealPct: 0,
   ...overrides,
 });
@@ -192,6 +191,22 @@ describe('lasting skill effects', () => {
     expect(bloodlustDaysLeft(boss, '2026-01-02')).toBe(1);
     expect(bloodlustDaysLeft(boss, '2026-01-03')).toBeUndefined();
     expect(bloodlustDaysLeft(foe(), '2026-01-01')).toBeUndefined();
+  });
+
+  it('Reflect lasts 2 days', () => {
+    const boss = foe({ reflectDayKey: '2026-01-01' });
+    expect(reflectActive(boss, '2026-01-01')).toBe(true);
+    expect(reflectActive(boss, '2026-01-02')).toBe(true);
+    expect(reflectActive(boss, '2026-01-03')).toBe(false);
+    expect(reflectActive(foe(), '2026-01-01')).toBe(false);
+  });
+
+  it("counts down Reflect's days", () => {
+    const boss = foe({ reflectDayKey: '2026-01-01' });
+    expect(reflectDaysLeft(boss, '2026-01-01')).toBe(2);
+    expect(reflectDaysLeft(boss, '2026-01-02')).toBe(1);
+    expect(reflectDaysLeft(boss, '2026-01-03')).toBeUndefined();
+    expect(reflectDaysLeft(foe(), '2026-01-01')).toBeUndefined();
   });
 
   it('counts down Doom to its landing day', () => {
@@ -310,6 +325,12 @@ describe('resolveBreakpoints', () => {
   it('Bloodlust starts on the day it fires', () => {
     const lust = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'bloodlust' }], health: 400 }), hero(), DAY, neverRng);
     expect(bloodlustActive(lust.boss, '2026-01-02')).toBe(true);
+  });
+
+  it('Reflect starts on the day it fires', () => {
+    const mirror = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'reflect' }], health: 400 }), hero(), DAY, neverRng);
+    expect(mirror.fired).toEqual({ skill: 'reflect', outcome: 'landed' });
+    expect(reflectActive(mirror.boss, '2026-01-02')).toBe(true);
   });
 
   it('Wounds lands at half healing for 2 days, replacing an older one', () => {
@@ -434,6 +455,7 @@ describe('resolveDoom', () => {
 describe('bossSkillEffectText', () => {
   it('says what each lasting skill does', () => {
     expect(bossSkillEffectText('bloodlust')).toBe('Boss heals 3% per hit');
+    expect(bossSkillEffectText('reflect')).toBe('Reflects 5% of your damage');
     expect(bossSkillEffectText('blind')).toBe('No crits');
     expect(bossSkillEffectText('sunder')).toBe('Armor & resist halved');
     expect(bossSkillEffectText('undying')).toBe("Can't fall below 10%");

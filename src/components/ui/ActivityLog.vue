@@ -109,6 +109,10 @@ const activityLogStore = useActivityLogStore();
           <StatIcon name="bloodlust" class="log-icon" /> Bloodlust · 2 days
           <span class="log-effect">{{ bossSkillEffectText('bloodlust') }}</span>
         </template>
+        <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'reflect'">
+          <StatIcon name="reflect" class="log-icon" /> Reflect · 2 days
+          <span class="log-effect">{{ bossSkillEffectText('reflect') }}</span>
+        </template>
         <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'blind'">
           <StatIcon name="blind" class="log-icon" /> Blinded · 2 days
           <span class="log-effect">{{ bossSkillEffectText('blind') }}</span>
