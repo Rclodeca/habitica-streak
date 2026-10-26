@@ -37,6 +37,7 @@ const nextDayLabel = computed(() =>
 const canOverdrive = computed(
   () => !isResting.value && isCompletedThisPeriod.value && overdriveUsesRemaining(props.habit, currentPeriodKey.value) > 0,
 );
+const checkDisabled = computed(() => isResting.value || (isCompletedThisPeriod.value && !canOverdrive.value));
 
 const breakdown = computed(() => {
   const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.period);
@@ -70,20 +71,29 @@ function onCheckClick(event: MouseEvent) {
   const result = activateOverdrive(props.habit.id);
   if (result.itemsDropped.length > 0) enqueueDrops(result.itemsDropped, result.droppedBy);
 }
+
+// The zone around the check belongs to the check while it is live, so a tap
+// that misses the box doesn't open the details. Once the check is spent the
+// zone is just row, and the tap opens them as before.
+function onZoneClick(event: MouseEvent) {
+  if (!checkDisabled.value) event.stopPropagation();
+}
 </script>
 
 <template>
   <li class="habit-item" :class="{ bad: habit.isBad, resting: isResting }" :style="{ '--c': damageTypeColor }" @click="$emit('open')">
-    <input
-      type="checkbox"
-      class="check"
-      :class="{ 'overdrive-ready': canOverdrive }"
-      :aria-label="canOverdrive ? `Overdrive ${habit.name}` : `Complete ${habit.name}`"
-      :checked="isCompletedThisPeriod"
-      :disabled="isResting || (isCompletedThisPeriod && !canOverdrive)"
-      @click.stop="onCheckClick"
-      @change="onCheckOff"
-    />
+    <label class="check-zone" @click="onZoneClick">
+      <input
+        type="checkbox"
+        class="check"
+        :class="{ 'overdrive-ready': canOverdrive }"
+        :aria-label="canOverdrive ? `Overdrive ${habit.name}` : `Complete ${habit.name}`"
+        :checked="isCompletedThisPeriod"
+        :disabled="checkDisabled"
+        @click.stop="onCheckClick"
+        @change="onCheckOff"
+      />
+    </label>
     <span v-if="hasSigil" class="name" :class="{ done: isCompletedThisPeriod }">{{ nameHead }}<span class="name-end">{{ nameTail }}<SkillSigil :habit="habit" /></span></span>
     <span v-else class="name" :class="{ done: isCompletedThisPeriod }">{{ habit.name }}</span>
     <span class="meta">
@@ -101,14 +111,36 @@ function onCheckClick(event: MouseEvent) {
 
 <style scoped>
 .habit-item {
+  --row-pad: 0.6rem;
+  --row-gap: 0.8rem;
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.6rem 0.6rem;
+  gap: var(--row-gap);
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: var(--row-pad);
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s;
+}
+
+/* The tap zone for the check: a strip down the row's left edge, out to just
+   past the gap, at least 44px square. The box keeps its look. The strip is a
+   pseudo-element of the label, so it anchors to the row and paints over the
+   name's first pixels rather than sitting in the layout. */
+.check-zone {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.check-zone::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--row-pad) + 22px + var(--row-gap) + 0.25rem);
 }
 
 .habit-item.bad::before {
@@ -175,8 +207,10 @@ function onCheckClick(event: MouseEvent) {
   line-height: 1;
 }
 
+/* A spent check lets the tap fall through to the zone, which opens the details. */
 .check:disabled {
   cursor: default;
+  pointer-events: none;
 }
 
 /* A skill resting today: dimmed, with a hollow dashed check. */
@@ -302,7 +336,7 @@ function onCheckClick(event: MouseEvent) {
 
 @media (max-width: 560px) {
   .habit-item {
-    gap: 0.6rem;
+    --row-gap: 0.6rem;
   }
 
   .meta {

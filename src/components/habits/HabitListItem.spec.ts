@@ -31,6 +31,42 @@ describe('HabitListItem', () => {
     return mount(Host, { global: { plugins: [pinia] }, attachTo: document.body });
   }
 
+  // Mounts the row itself, so its `open` emit can be watched.
+  function mountRow(overrides: Partial<Habit> = {}) {
+    const habitStore = useHabitStore();
+    const added = habitStore.addHabit('Read', 'daily', 'medium', false, createRng(1));
+    habitStore.updateHabit({ ...added, ...overrides });
+    return mount(HabitListItem, { props: { habit: habitStore.habits[0] }, global: { plugins: [pinia] }, attachTo: document.body });
+  }
+
+  it('a tap on the check zone around the box completes the skill and leaves the details closed', async () => {
+    const wrapper = mountRow();
+
+    await wrapper.find('.check-zone').trigger('click');
+
+    expect(useHabitStore().habits[0].lastCompletedPeriodKey).not.toBeNull();
+    expect(wrapper.emitted('open')).toBeUndefined();
+  });
+
+  it('a tap on the name opens the details and completes nothing', async () => {
+    const wrapper = mountRow();
+
+    await wrapper.find('.name').trigger('click');
+
+    expect(wrapper.emitted('open')).toHaveLength(1);
+    expect(useHabitStore().habits[0].lastCompletedPeriodKey).toBeNull();
+  });
+
+  it('a tap on the check zone of a done skill still opens the details', async () => {
+    const wrapper = mountRow();
+    await wrapper.find('.check-zone').trigger('click'); // lands the skill
+    await wrapper.setProps({ habit: useHabitStore().habits[0] });
+
+    await wrapper.find('.check-zone').trigger('click');
+
+    expect(wrapper.emitted('open')).toHaveLength(1);
+  });
+
   it('a second tap on a done Overdrive skill spends one charge and leaves it checked', async () => {
     const wrapper = mountSkill({ isOverdrive: true });
     const check = wrapper.find('input.check');
