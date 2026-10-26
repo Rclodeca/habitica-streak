@@ -6,7 +6,6 @@ import {
   rankForStreak,
   rankMultiplier,
   resetHabitStreak,
-  streakMultiplier,
 } from './streaks';
 import type { Habit } from './types';
 
@@ -24,28 +23,6 @@ function makeHabit(overrides: Partial<Habit> = {}): Habit {
     ...overrides,
   };
 }
-
-describe('streakMultiplier', () => {
-  it.each([
-    [0, 1.0],
-    [1, 1.1],
-    [10, 2.0],
-    [30, 4.0],
-    [100, 11.0],
-  ])('equals %s at streakCount=%s for a daily habit (default period)', (streakCount, expected) => {
-    expect(streakMultiplier(streakCount)).toBeCloseTo(expected, 10);
-    expect(streakMultiplier(streakCount, 'daily')).toBeCloseTo(expected, 10);
-  });
-
-  it.each([
-    [0, 1.0],
-    [1, 1.3],
-    [10, 4.0],
-    [30, 10.0],
-  ])('equals %s at streakCount=%s for a weekly habit (3x the daily rate)', (streakCount, expected) => {
-    expect(streakMultiplier(streakCount, 'weekly')).toBeCloseTo(expected, 10);
-  });
-});
 
 describe('completeHabitStreak', () => {
   it('increments streakCount by 1', () => {

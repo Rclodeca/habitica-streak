@@ -10,7 +10,7 @@ import { bumpSpellweave, critMultiplierFor, effectDamageMultiplier, effectUsedTo
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
 import type { Rng } from './rng';
-import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
+import { completeHabitStreak, rankBonus, rankMultiplier, resetHabitStreak, streakBonus } from './streaks';
 import { daysBetweenDayKeys } from './time';
 import type { Boss, Character, DamageType, Habit, Period, WoundsStatusEffect } from './types';
 
@@ -95,13 +95,18 @@ export type HabitDamageBreakdown = {
   /** True when the skill is past the FULL_POWER_SKILLS oldest, so its base is cut. */
   crowded: boolean;
   itemMultiplier: number;
-  streakMultiplier: number;
+  /** RANK_BONUS per rank (HEAL_RANK_BONUS for healing), e.g. 5 for +500%. */
+  rankBonus: number;
+  /** STREAK_BONUS per streak count (WEEKLY_STREAK_BONUS for a weekly), e.g. 1.12 for +112%. */
+  streakBonus: number;
+  /** 1 + rankBonus + streakBonus — see rankMultiplier. */
+  rankMultiplier: number;
   /** WEEKLY_BONUS_MULTIPLIER for a weekly habit, 1 (no-op) for a daily one — see `weeklyBonusMultiplier`. */
   weeklyMultiplier: number;
   bonusMultiplier: number;
   /** Conditional item effects right now (see effectDamageMultiplier) — 1 when none apply, or without a boss. */
   effectMultiplier: number;
-  /** baseDamage * itemMultiplier * streakMultiplier * weeklyMultiplier * bonusMultiplier * effectMultiplier. */
+  /** baseDamage * itemMultiplier * rankMultiplier * weeklyMultiplier * bonusMultiplier * effectMultiplier. */
   effectiveDamage: number;
 };
 
@@ -126,7 +131,7 @@ export function habitDamageBreakdown(
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
   const baseDamage = skillBaseDamage(habit, allHabits, rawStat);
   const itemMultiplier = itemStatMultiplier(character, statField);
-  const streakMult = streakMultiplier(habit.streakCount, habit.period);
+  const rankMult = rankMultiplier(habit);
   const weeklyMult = weeklyBonusMultiplier(habit.period);
   const bonusMultiplier = levelRewardMultiplier(habit);
   const effectMultiplier = boss && currentDayKey ? effectDamageMultiplier(character, habit, boss, currentDayKey) : 1;
@@ -134,11 +139,13 @@ export function habitDamageBreakdown(
     baseDamage,
     crowded: crowdingFactor(habit, allHabits) < 1,
     itemMultiplier,
-    streakMultiplier: streakMult,
+    rankBonus: rankBonus(habit),
+    streakBonus: streakBonus(habit),
+    rankMultiplier: rankMult,
     weeklyMultiplier: weeklyMult,
     bonusMultiplier,
     effectMultiplier,
-    effectiveDamage: baseDamage * itemMultiplier * streakMult * weeklyMult * bonusMultiplier * effectMultiplier,
+    effectiveDamage: baseDamage * itemMultiplier * rankMult * weeklyMult * bonusMultiplier * effectMultiplier,
   };
 }
 
@@ -185,9 +192,10 @@ export function effectiveResistAfterPen(resistStat: number, penPct: number): num
 /**
  * Resolves completing a habit: computes the habit's base damage/healing
  * (its type's full stat, see skillBaseDamage; `allHabits` is every owned
- * habit in store order, for crowding), applies the streak multiplier, bumps
- * the streak, and either heals the character (healing type — boss untouched) or damages the boss
- * (physical/magic type — reduced by the boss's matching resist stat and, on
+ * habit in store order, for crowding), applies the rank multiplier, bumps
+ * the streak (ranking up at a milestone), and either heals the character
+ * (healing type — boss untouched) or damages the boss (physical/magic
+ * type — reduced by the boss's matching resist stat and, on
  * a crit roll, doubled). Healing habits never crit. A lifesteal item bonus
  * heals the character for a percent of the damage actually dealt, while the
  * boss's Reflect skill (while it runs) damages the character back for a percent
@@ -236,7 +244,8 @@ function resolveCompletion(
   const milestoneExp = hasItemEffect(character, 'banner')
     ? streakResult.milestoneExp * TUNING.ITEM_EFFECTS.BANNER_MILESTONE_MULTIPLIER
     : streakResult.milestoneExp;
-  const multiplier = streakMultiplier(habit.streakCount, habit.period);
+  // The rank and streak before this completion bumps them.
+  const multiplier = rankMultiplier(habit);
   const weeklyMult = weeklyBonusMultiplier(habit.period);
   const bonusMultiplier = isOverdriveUse ? 1 : levelRewardMultiplier(habit);
   const overdriveFactor = isOverdriveUse && !hasItemEffect(character, 'dynamo') ? TUNING.OVERDRIVE_DAMAGE_FACTOR : 1;
@@ -499,7 +508,8 @@ export function resolveBossDefeatIfDead(
  * Special/Ult/Overdrive flags cleared (they're re-earned by leveling up
  * again). Streaks are deliberately NOT reset here — a streak should only
  * break when its own period is actually missed (`missHabit` ->
- * `resetHabitStreak`), not merely because the character died.
+ * `resetHabitStreak`), not merely because the character died. Ranks are
+ * never lowered by anything.
  */
 export function resolvePlayerDeathIfDead(
   character: Character,

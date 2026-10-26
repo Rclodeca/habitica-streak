@@ -41,7 +41,7 @@ const breakdown = computed(() =>
 
 const baseDamage = computed(() => breakdown.value.baseDamage);
 const itemMultiplier = computed(() => breakdown.value.itemMultiplier);
-const multiplier = computed(() => breakdown.value.streakMultiplier);
+const multiplier = computed(() => breakdown.value.rankMultiplier);
 const weeklyMultiplier = computed(() => breakdown.value.weeklyMultiplier);
 const bonusMultiplier = computed(() => breakdown.value.bonusMultiplier);
 const effectMultiplier = computed(() => breakdown.value.effectMultiplier);

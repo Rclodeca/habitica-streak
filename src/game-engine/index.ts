@@ -73,7 +73,6 @@ export {
   rankMultiplier,
   resetHabitStreak,
   streakBonus,
-  streakMultiplier,
 } from './streaks';
 
 export {

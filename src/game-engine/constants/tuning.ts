@@ -18,13 +18,6 @@ export const TUNING = {
   CROWDED_SKILL_FACTORS: [0.7, 0.5, 0.35, 0.25],
   STAT_RANDOMIZATION_PCT: 0.05, // ±5% at character creation
   LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level
-  // Bumped from 0.01 (+1%/streak) to 0.10 (+10%/streak) so a well-kept
-  // streak actually keeps pace with the exponential boss curve below —
-  // streak 10 -> 2x, streak 30 -> 4x, streak 100 -> 11x damage.
-  STREAK_MULTIPLIER_PER_COUNT: 0.10,
-  // Weeklies take much longer to stack a streak (once/week vs. every day),
-  // so each streak count is worth 3x as much as a daily's.
-  WEEKLY_STREAK_MULTIPLIER_PER_COUNT: 0.30,
   // Streak milestones that earn a skill's ranks I-VIII (weeklies count weeks).
   // A rank is permanent: a miss drops the streak to 0, never the rank.
   RANK_MILESTONES: {
