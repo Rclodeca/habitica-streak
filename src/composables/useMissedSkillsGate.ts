@@ -45,7 +45,7 @@ const overridden = ref<Set<string>>(new Set());
 
 export function useMissedSkillsGate() {
   const habitStore = useHabitStore();
-  const { checkMissedHabit, checkAvoidedHabit } = useCombatActions();
+  const { checkMissedHabit, checkAvoidedHabit, landDoom } = useCombatActions();
   const { enqueueDrops } = useItemDropQueue();
 
   const misses = computed(() => pending.value.filter((item) => item.outcome === 'penalty'));
@@ -99,7 +99,8 @@ export function useMissedSkillsGate() {
   /**
    * Applies every queued outcome (penalty via `checkMissedHabit`, reward via
    * `checkAvoidedHabit` — enqueuing any items a reward's boss-kill drops)
-   * and stamps its deferred `lastCheckedPeriodKey`, then clears the queue.
+   * and stamps its deferred `lastCheckedPeriodKey`, then clears the queue and
+   * lands any Doom that's due.
    * An item flagged via `toggleOverride` resolves as the *opposite* outcome
    * from the one detected — the player is correcting a habit they forgot to
    * check off rather than actually missing/avoiding it.
@@ -123,6 +124,9 @@ export function useMissedSkillsGate() {
     }
     pending.value = [];
     overridden.value = new Set();
+    // Last, so the day's misses and avoided habits land first (and a boss
+    // they kill takes its Doom with it).
+    landDoom();
   }
 
   return { misses, rewards, hasPending, queueMiss, queueReward, isOverridden, toggleOverride, acknowledge };

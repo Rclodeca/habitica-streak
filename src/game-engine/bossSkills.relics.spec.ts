@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveBreakpoints } from './bossSkills';
+import { resolveBreakpoints, resolveDoom } from './bossSkills';
 import type { Boss, BossSkillSlot, Character } from './types';
 
 // Hushing Bell and Omen Hourglass have no art yet, so they aren't in the
@@ -60,6 +60,11 @@ describe('Hushing Bell', () => {
 });
 
 describe('Omen Hourglass', () => {
+  it('halves Doom to 25%', () => {
+    const boss = { ...hitBoss('doom'), doomDueDayKey: DAY };
+    expect(resolveDoom(hero(['omen-hourglass'], 1000), boss, DAY).character.currentHealth).toBeCloseTo(750, 10);
+  });
+
   it('halves Rend to 10% and Ravage to 20%', () => {
     expect(resolveBreakpoints(600, hitBoss('rend'), hero(['omen-hourglass']), DAY, () => 0.99).character.currentHealth).toBeCloseTo(450, 10);
     expect(resolveBreakpoints(600, hitBoss('ravage'), hero(['omen-hourglass']), DAY, () => 0.99).character.currentHealth).toBeCloseTo(400, 10);

@@ -43,7 +43,8 @@ export type ActivityLogEntry =
   | { id: string; kind: 'skill-rerolled'; habitName: string; damageType: string }
   | { id: string; kind: 'wounds-applied'; durationDays: number; effectRate: number }
   | { id: string; kind: 'quest-completed'; description: string; amount: number; itemName?: string }
-  | { id: string; kind: 'quest-failed'; description: string; amount: number };
+  | { id: string; kind: 'quest-failed'; description: string; amount: number }
+  | { id: string; kind: 'doom-landed'; amount: number };
 
 // Plain `Omit<ActivityLogEntry, 'id'>` collapses the discriminated union
 // down to its common properties (losing the per-`kind` fields) since `Omit`

@@ -182,3 +182,20 @@ export function spendPassedBreakpoints(boss: Boss): Boss {
   if (!boss.skills) return boss;
   return { ...boss, skills: boss.skills.map((slot) => (!slot.spent && slot.at * boss.maxHealth >= boss.health ? { ...slot, spent: true } : slot)) };
 }
+
+/**
+ * Lands this boss's Doom once its day has come: half the hero's current HP
+ * (a quarter with Omen Hourglass), never past 1 HP, then the countdown is
+ * gone. Run from the daily rollover after the day's misses and avoided
+ * habits resolve, so a boss killed by them takes its Doom with it (a new
+ * boss has none). A no-op before its day, without one, or for a fallen hero.
+ */
+export function resolveDoom(character: Character, boss: Boss, currentDayKey: string): { character: Character; boss: Boss; amount?: number } {
+  if (!boss.doomDueDayKey || daysBetweenDayKeys(boss.doomDueDayKey, currentDayKey) < 0) return { character, boss };
+  if (Math.round(character.currentHealth) <= 0) return { character, boss };
+  const halved = hasItemEffect(character, 'omen-hourglass') ? TUNING.ITEM_EFFECTS.OMEN_HOURGLASS_FACTOR : 1;
+  const amount = hpHitDamage(character.currentHealth, S.DOOM_PCT * halved);
+  const cleared = { ...boss };
+  delete cleared.doomDueDayKey;
+  return { character: { ...character, currentHealth: character.currentHealth - amount }, boss: cleared, amount };
+}

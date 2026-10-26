@@ -51,6 +51,7 @@ import {
   questWeekFor,
   recordQuestCompletion,
   resolveBossDefeatIfDead,
+  resolveDoom,
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
   unlockQuests,
@@ -545,11 +546,27 @@ export function useCombatActions() {
     }
   }
 
+  /**
+   * Lands the current boss's Doom if its day has come (see `resolveDoom`).
+   * Called from the daily rollover, and from the missed-skills popup's OK
+   * once the day's misses have resolved. Doom never kills, so there's no
+   * death check.
+   */
+  function landDoom(currentDayKey: string = dailyPeriodKey(debugClockStore.now())): void {
+    const result = resolveDoom(characterStore.character, bossStore.boss, currentDayKey);
+    if (result.amount === undefined) return;
+    characterStore.setCharacter(result.character);
+    bossStore.setBoss(result.boss);
+    playHit({ kind: 'hurt', amount: result.amount, hp: -result.amount });
+    activityLogStore.addEntry({ kind: 'doom-landed', amount: result.amount });
+  }
+
   return {
     checkOffHabit,
     checkMissedHabit,
     checkAvoidedHabit,
     activateOverdrive,
+    landDoom,
     addHabit,
     restart,
     completeQuest,

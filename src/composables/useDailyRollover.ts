@@ -29,6 +29,7 @@ import { useActivityLogStore } from '../store/activityLogStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
 import { useQuestStore } from '../store/questStore';
+import { useCombatActions } from './useCombatActions';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
 import { useQuestMissGate } from './useQuestMissGate';
 
@@ -66,7 +67,7 @@ function periodKeyToResolve(habit: Habit, now: Date): string | undefined {
  */
 export function useDailyRollover(now: Date = new Date()): void {
   const habitStore = useHabitStore();
-  const { queueMiss, queueReward } = useMissedSkillsGate();
+  const { queueMiss, queueReward, hasPending } = useMissedSkillsGate();
   const questStore = useQuestStore();
   const { queueMiss: queueQuestMiss } = useQuestMissGate();
 
@@ -97,6 +98,10 @@ export function useDailyRollover(now: Date = new Date()): void {
     characterStore.setCharacter(regen.character);
     if (regen.healed > 0) useActivityLogStore().addEntry({ kind: 'item-heal', itemName: 'Ember Heart', amount: regen.healed });
   }
+
+  // A due Doom lands after the day's misses resolve: now if nothing is
+  // queued, otherwise when the missed-skills popup's OK runs them.
+  if (!hasPending.value) useCombatActions().landDoom(todayKey);
 
   for (const quest of questStore.quests) {
     if (daysBetweenDayKeys(quest.dueDateKey, todayKey) > 0) {

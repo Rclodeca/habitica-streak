@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoss } from './boss';
 import { completeHabit, overdriveHabit, resolveBossDefeatIfDead } from './combat';
-import { activeBlind, activeSunder, bloodlustActive, bossSkillMarks, doomDaysLeft, hpHitDamage, resolveBreakpoints, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
+import { activeBlind, activeSunder, bloodlustActive, bossSkillMarks, doomDaysLeft, hpHitDamage, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
 import { createRng } from './rng';
 import type { Boss, BossSkillSlot, Character, Habit } from './types';
 
@@ -389,5 +389,36 @@ describe('boss skills through combat', () => {
       }
     }
     expect(found).toBeGreaterThan(0);
+  });
+});
+
+describe('resolveDoom', () => {
+  const dooming = foe({ doomDueDayKey: '2026-01-04' });
+
+  it('waits until its landing day', () => {
+    const character = hero({ currentHealth: 1000 });
+    const early = resolveDoom(character, dooming, '2026-01-03');
+    expect(early.character).toBe(character);
+    expect(early.boss).toBe(dooming);
+    expect(early.amount).toBeUndefined();
+  });
+
+  it('takes half the hero\'s current HP on its day, once', () => {
+    const landed = resolveDoom(hero({ currentHealth: 1000 }), dooming, '2026-01-04');
+    expect(landed.character.currentHealth).toBeCloseTo(500, 10);
+    expect(landed.amount).toBeCloseTo(500, 10);
+    expect(landed.boss.doomDueDayKey).toBeUndefined();
+    expect(resolveDoom(landed.character, landed.boss, '2026-01-04').amount).toBeUndefined();
+  });
+
+  it('lands once at the next rollover when the app stayed closed past its day', () => {
+    const late = resolveDoom(hero({ currentHealth: 1000 }), dooming, '2026-01-10');
+    expect(late.amount).toBeCloseTo(500, 10);
+    expect(resolveDoom(late.character, late.boss, '2026-01-11').amount).toBeUndefined();
+  });
+
+  it('never hits a fallen hero', () => {
+    const fallen = hero({ currentHealth: 0 });
+    expect(resolveDoom(fallen, dooming, '2026-01-04').character).toBe(fallen);
   });
 });

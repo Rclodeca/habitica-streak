@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRng } from '../game-engine';
+import { createRng, dailyPeriodKey } from '../game-engine';
+import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
@@ -164,4 +165,40 @@ describe('useMissedSkillsGate', () => {
     acknowledge();
     expect(isOverridden(habit.id)).toBe(false); // overrides reset once acknowledged
   });
+
+  it('acknowledge lands a due Doom after the day\'s misses', () => {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const habit = habitStore.addHabit('Meditate', 'daily', 'medium', false, createRng());
+    characterStore.setCharacter({ ...characterStore.character, currentHealth: 1000 });
+    bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: dailyPeriodKey(new Date()) });
+
+    useMissedSkillsGate().queueMiss(habit, '2024-01-02');
+    useMissedSkillsGate().acknowledge();
+
+    const entries = useActivityLogStore().entries;
+    const hit = entries.find((e) => e.kind === 'hit');
+    expect(entries[0]).toMatchObject({ kind: 'doom-landed' });
+    expect(hit).toBeDefined();
+    expect(characterStore.character.currentHealth).toBeCloseTo((1000 - (hit as { amount: number }).amount) / 2, 6);
+  });
+
+  it('acknowledge drops a due Doom when an avoided bad habit kills its boss first', () => {
+    const habitStore = useHabitStore();
+    const bossStore = useBossStore();
+    useCharacterStore();
+    const habit = habitStore.addHabit('Skip dessert', 'daily', 'medium', true, createRng());
+    habitStore.updateHabit({ ...habit, damageType: 'physical' });
+    bossStore.setBoss({ ...bossStore.boss, health: 1, doomDueDayKey: dailyPeriodKey(new Date()) });
+    const slainIndex = bossStore.boss.index;
+
+    useMissedSkillsGate().queueReward(habit, '2024-01-02');
+    useMissedSkillsGate().acknowledge();
+
+    expect(bossStore.boss.index).toBe(slainIndex + 1);
+    expect(bossStore.boss.doomDueDayKey).toBeUndefined();
+    expect(useActivityLogStore().entries.some((e) => e.kind === 'doom-landed')).toBe(false);
+  });
 });
+

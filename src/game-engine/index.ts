@@ -180,6 +180,7 @@ export {
   doomDaysLeft,
   hpHitDamage,
   resolveBreakpoints,
+  resolveDoom,
   rollBossSkills,
   spendPassedBreakpoints,
   undyingActive,

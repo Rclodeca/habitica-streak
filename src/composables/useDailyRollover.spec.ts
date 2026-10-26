@@ -50,6 +50,33 @@ describe('useDailyRollover', () => {
     expect(characterStore.character).toBe(before);
   });
 
+  it('lands a due Doom at rollover when nothing is queued', () => {
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    characterStore.setCharacter({ ...characterStore.character, currentHealth: 1000 });
+    bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: dailyPeriodKey(new Date()) });
+
+    useDailyRollover(new Date());
+
+    expect(characterStore.character.currentHealth).toBeCloseTo(500, 10);
+    expect(bossStore.boss.doomDueDayKey).toBeUndefined();
+    expect(useActivityLogStore().entries[0]).toMatchObject({ kind: 'doom-landed' });
+  });
+
+  it('holds a due Doom while the missed-skills popup is up', () => {
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    const habit = useHabitStore().addHabit('Meditate', 'daily', 'medium', false, createRng());
+    characterStore.setCharacter({ ...characterStore.character, currentHealth: 1000 });
+    bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: dailyPeriodKey(new Date()) });
+    useMissedSkillsGate().queueMiss(habit, '2024-01-02');
+
+    useDailyRollover(new Date());
+
+    expect(characterStore.character.currentHealth).toBe(1000);
+    expect(bossStore.boss.doomDueDayKey).toBeDefined();
+  });
+
   it('queues a miss (without applying damage) for a daily habit not completed in the preceding period', () => {
     const habitStore = useHabitStore();
     const characterStore = useCharacterStore();
