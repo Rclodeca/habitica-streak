@@ -215,17 +215,29 @@ describe('boost events', () => {
 describe('double-item event', () => {
   const equipped = { equippedItemIds: ['rusty-blade', 'steel-sword'], ownedItemIds: ['rusty-blade', 'steel-sword'] };
 
-  it('is offered from level 10 when items are equipped and none is doubled', () => {
+  it('is offered from level 10 when items are equipped and fewer than the max are doubled', () => {
     expect(ids(eligibleEvents(makeCharacter({ level: 10, ...equipped }), []))).toContain('double-item');
     expect(ids(eligibleEvents(makeCharacter({ level: 9, ...equipped }), []))).not.toContain('double-item');
     expect(ids(eligibleEvents(makeCharacter({ level: 10 }), []))).not.toContain('double-item'); // nothing equipped
   });
 
-  it('is not offered while a doubled item is still equipped, and is offered again once it is gone', () => {
-    const doubled = makeCharacter({ level: 10, ...equipped, doubledItemId: 'rusty-blade' });
-    expect(ids(eligibleEvents(doubled, []))).not.toContain('double-item');
-    const gone = makeCharacter({ level: 10, equippedItemIds: ['steel-sword'], ownedItemIds: ['steel-sword'], doubledItemId: undefined });
+  it('is still offered with one item doubled, but not with DOUBLE_ITEM_MAX of them', () => {
+    const three = { equippedItemIds: ['rusty-blade', 'steel-sword', 'plate-armor'], ownedItemIds: ['rusty-blade', 'steel-sword', 'plate-armor'] };
+    const one = makeCharacter({ level: 10, ...three, doubledItemIds: ['rusty-blade'] });
+    expect(ids(eligibleEvents(one, []))).toContain('double-item');
+    const full = makeCharacter({ level: 10, ...three, doubledItemIds: ['rusty-blade', 'steel-sword'] });
+    expect(ids(eligibleEvents(full, []))).not.toContain('double-item');
+  });
+
+  it('is offered again once a doubled item is gone', () => {
+    const three = { equippedItemIds: ['rusty-blade', 'steel-sword', 'plate-armor'], ownedItemIds: ['rusty-blade', 'steel-sword', 'plate-armor'] };
+    const gone = makeCharacter({ level: 10, ...three, equippedItemIds: ['steel-sword', 'plate-armor'], doubledItemIds: ['rusty-blade', 'steel-sword'] });
     expect(ids(eligibleEvents(gone, []))).toContain('double-item');
+  });
+
+  it('is not offered when every other equipped item is already doubled', () => {
+    const character = makeCharacter({ level: 10, equippedItemIds: ['rusty-blade'], ownedItemIds: ['rusty-blade'], doubledItemIds: ['rusty-blade'] });
+    expect(ids(eligibleEvents(character, []))).not.toContain('double-item');
   });
 
   it('is not offered when only a consumable is equipped', () => {
@@ -240,8 +252,22 @@ describe('double-item event', () => {
     const before = itemBonusPercent(base, 'physicalDamage');
     const { character, item } = applyDoubleItemEvent(base, createRng(1));
     expect(item?.id).toBe('rusty-blade');
-    expect(character.doubledItemId).toBe('rusty-blade');
+    expect(character.doubledItemIds).toEqual(['rusty-blade']);
     expect(itemBonusPercent(character, 'physicalDamage')).toBe(before * TUNING.DOUBLED_ITEM_MULTIPLIER);
+  });
+
+  it('never re-picks an already doubled item, so a second pick doubles a different one', () => {
+    const base = makeCharacter({ level: 10, ...equipped, doubledItemIds: ['rusty-blade'] });
+    for (let seed = 1; seed <= 20; seed++) {
+      const { character, item } = applyDoubleItemEvent(base, createRng(seed));
+      expect(item?.id).toBe('steel-sword');
+      expect(character.doubledItemIds).toEqual(['rusty-blade', 'steel-sword']);
+    }
+  });
+
+  it('forgets a doubled id whose item is no longer equipped when it adds a new one', () => {
+    const base = makeCharacter({ level: 10, equippedItemIds: ['steel-sword'], ownedItemIds: ['steel-sword'], doubledItemIds: ['rusty-blade'] });
+    expect(applyDoubleItemEvent(base, createRng(1)).character.doubledItemIds).toEqual(['steel-sword']);
   });
 });
 

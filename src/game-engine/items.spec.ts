@@ -9,6 +9,7 @@ import {
   dropRarityShares,
   ITEM_CATALOG,
   itemBonusPercent,
+  itemDoubleFactor,
   itemFlatBonus,
   MAX_EQUIP_SLOTS,
   maxEquipSlots,
@@ -130,9 +131,16 @@ describe('itemBonusPercent — drawbacks and enchanting', () => {
   });
 
   it('doubles only positive bonuses on an enchanted item', () => {
-    const character = makeCharacter({ equippedItemIds: ['void-crystal'], doubledItemId: 'void-crystal' });
+    const character = makeCharacter({ equippedItemIds: ['void-crystal'], doubledItemIds: ['void-crystal'] });
     expect(itemBonusPercent(character, 'magicDamage')).toBe(76);
     expect(itemBonusPercent(character, 'health')).toBe(-10);
+  });
+
+  it('doubles each item on the doubled list and no other', () => {
+    const character = makeCharacter({ equippedItemIds: ['rusty-blade', 'steel-sword', 'plate-armor'], doubledItemIds: ['rusty-blade', 'steel-sword'] });
+    expect(itemDoubleFactor(character, 'rusty-blade')).toBe(TUNING.DOUBLED_ITEM_MULTIPLIER);
+    expect(itemDoubleFactor(character, 'steel-sword')).toBe(TUNING.DOUBLED_ITEM_MULTIPLIER);
+    expect(itemDoubleFactor(character, 'plate-armor')).toBe(1);
   });
 });
 

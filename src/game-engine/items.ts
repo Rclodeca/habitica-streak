@@ -118,14 +118,25 @@ export function hasItemEffect(character: Pick<Character, 'equippedItemIds'>, eff
   return character.equippedItemIds.some((id) => ITEM_CATALOG.find((item) => item.id === id)?.effect === effect);
 }
 
-/** TUNING.DOUBLED_ITEM_MULTIPLIER for the character's doubled item, 1 for every other item. */
-export function itemDoubleFactor(character: Pick<Character, 'doubledItemId'>, itemId: string): number {
-  return character.doubledItemId === itemId ? TUNING.DOUBLED_ITEM_MULTIPLIER : 1;
+/** TUNING.DOUBLED_ITEM_MULTIPLIER for each of the character's doubled items, 1 for every other item. */
+export function itemDoubleFactor(character: Pick<Character, 'doubledItemIds'>, itemId: string): number {
+  return character.doubledItemIds?.includes(itemId) ? TUNING.DOUBLED_ITEM_MULTIPLIER : 1;
 }
 
-/** Equipped items the Double item event could pick: anything with stat bonuses (not consumables). */
+/** The character's doubled items that are still equipped (a stale id left by an older save doesn't count). */
+export function equippedDoubledItemIds(character: Pick<Character, 'doubledItemIds' | 'equippedItemIds'>): string[] {
+  return (character.doubledItemIds ?? []).filter((id) => character.equippedItemIds.includes(id));
+}
+
+/** Equipped items the Double item event could pick: anything with stat bonuses (not consumables) that isn't already doubled. */
 export function doublableItems(character: Character): ItemDef[] {
-  return ITEM_CATALOG.filter((item) => character.equippedItemIds.includes(item.id) && item.type !== 'consumable' && item.bonuses.length > 0);
+  return ITEM_CATALOG.filter(
+    (item) =>
+      character.equippedItemIds.includes(item.id) &&
+      item.type !== 'consumable' &&
+      item.bonuses.length > 0 &&
+      !character.doubledItemIds?.includes(item.id),
+  );
 }
 
 /**

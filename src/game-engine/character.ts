@@ -78,7 +78,8 @@ export function nameCharacter(character: Character, rawName: string): Character 
  * Also drops the stray `starterStats.expGain` / `expGainRebalanceApplied` an
  * older save carries from before the expGain skill type was removed, the
  * `sideOnlyItemIds` pool from before relics, and the `newItemUnlockTiers`
- * from before every item could drop from level 1.
+ * from before every item could drop from level 1, and turns the single
+ * `doubledItemId` from before two items could be enchanted into `doubledItemIds`.
  */
 export function migrateCharacter(character: Character, rng: Rng): Character {
   const { trueDamage } = character.starterStats as Partial<Character['starterStats']>;
@@ -89,7 +90,8 @@ export function migrateCharacter(character: Character, rng: Rng): Character {
   // side quest that promised one of those items still pays it).
   const hasLegacySideOnly = 'sideOnlyItemIds' in (character as unknown as Record<string, unknown>);
   const hasLegacyTiers = 'newItemUnlockTiers' in (character as unknown as Record<string, unknown>);
-  if (!needsStats && !hasLegacySideOnly && !hasLegacyExpGain && !hasLegacyTiers) return character;
+  const hasLegacyDoubled = 'doubledItemId' in (character as unknown as Record<string, unknown>);
+  if (!needsStats && !hasLegacySideOnly && !hasLegacyExpGain && !hasLegacyTiers && !hasLegacyDoubled) return character;
   const starterStats = {
     ...character.starterStats,
     trueDamage: trueDamage ?? randomizeStat(TUNING.BASE_STATS.trueDamage, rng),
@@ -99,6 +101,11 @@ export function migrateCharacter(character: Character, rng: Rng): Character {
   delete (migrated as { expGainRebalanceApplied?: boolean }).expGainRebalanceApplied;
   delete (migrated as { sideOnlyItemIds?: string[] }).sideOnlyItemIds;
   delete (migrated as { newItemUnlockTiers?: unknown }).newItemUnlockTiers;
+  if (hasLegacyDoubled) {
+    const { doubledItemId } = character as unknown as { doubledItemId?: string };
+    delete (migrated as { doubledItemId?: string }).doubledItemId;
+    if (doubledItemId) migrated.doubledItemIds = [...(migrated.doubledItemIds ?? []), doubledItemId];
+  }
   return migrated;
 }
 
@@ -111,13 +118,13 @@ const CATALOG_ITEM_IDS = new Set(ITEM_CATALOG.map((item) => item.id));
  */
 export function discardUnknownItems(character: Character): Character {
   const known = (id: string) => CATALOG_ITEM_IDS.has(id);
-  const doubledUnknown = character.doubledItemId !== undefined && !known(character.doubledItemId);
+  const doubledUnknown = character.doubledItemIds?.some((id) => !known(id)) ?? false;
   if (character.ownedItemIds.every(known) && character.equippedItemIds.every(known) && !doubledUnknown) return character;
   return {
     ...character,
     ownedItemIds: character.ownedItemIds.filter(known),
     equippedItemIds: character.equippedItemIds.filter(known),
-    doubledItemId: doubledUnknown ? undefined : character.doubledItemId,
+    doubledItemIds: character.doubledItemIds?.filter(known),
   };
 }
 

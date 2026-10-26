@@ -94,15 +94,15 @@ describe('characterStore equip/discard', () => {
     expect(store.character.ownedItemIds).toEqual(['steel-sword']);
   });
 
-  it('clears the doubled item when it is discarded, but not when another item is', () => {
+  it('removes a doubled item from the list when it is discarded, but not when another item is', () => {
     const store = useCharacterStore();
-    store.character = { ...store.character, ownedItemIds: ['rusty-blade', 'steel-sword'], equippedItemIds: ['rusty-blade', 'steel-sword'], doubledItemId: 'rusty-blade' };
+    store.character = { ...store.character, ownedItemIds: ['rusty-blade', 'steel-sword', 'plate-armor'], equippedItemIds: ['rusty-blade', 'steel-sword', 'plate-armor'], doubledItemIds: ['rusty-blade', 'steel-sword'] };
 
-    store.discardItem('steel-sword');
-    expect(store.character.doubledItemId).toBe('rusty-blade');
+    store.discardItem('plate-armor');
+    expect(store.character.doubledItemIds).toEqual(['rusty-blade', 'steel-sword']);
 
     store.discardItem('rusty-blade');
-    expect(store.character.doubledItemId).toBeUndefined();
+    expect(store.character.doubledItemIds).toEqual(['steel-sword']);
   });
 
   it('equipping a max-health drawback at full health brings current health down to the new max', () => {

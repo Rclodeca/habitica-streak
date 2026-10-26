@@ -108,7 +108,7 @@ describe('useEventChoice', () => {
     characterStore.setCharacter({ ...characterStore.character, ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'] });
     events.choose('double-item');
 
-    expect(characterStore.character.doubledItemId).toBe('rusty-blade');
+    expect(characterStore.character.doubledItemIds).toEqual(['rusty-blade']);
     expect(events.revealed.value?.id).toBe('rusty-blade');
     events.dismissReveal();
     expect(events.revealed.value).toBeNull();

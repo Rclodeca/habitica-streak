@@ -162,8 +162,10 @@ export const TUNING = {
   HEAL_BOOST_BONUS: 0.2,
   HEAL_BOOST_DAYS: 3,
   // The Double item event (from DOUBLE_ITEM_MIN_LEVEL) multiplies every bonus
-  // of one equipped item by DOUBLED_ITEM_MULTIPLIER until that item is discarded.
+  // of one equipped item by DOUBLED_ITEM_MULTIPLIER until that item is discarded,
+  // for up to DOUBLE_ITEM_MAX items at a time.
   DOUBLE_ITEM_MIN_LEVEL: 10,
+  DOUBLE_ITEM_MAX: 2,
   DOUBLED_ITEM_MULTIPLIER: 2,
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
   CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed

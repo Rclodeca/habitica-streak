@@ -84,7 +84,7 @@ export const useCharacterStore = defineStore('character', {
         ...this.character,
         ownedItemIds: ownedItemIds.filter((id) => id !== itemId),
         equippedItemIds: equippedItemIds.filter((id) => id !== itemId),
-        doubledItemId: this.character.doubledItemId === itemId ? undefined : this.character.doubledItemId,
+        doubledItemIds: this.character.doubledItemIds?.filter((id) => id !== itemId),
       });
     },
 

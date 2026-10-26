@@ -4,7 +4,7 @@
 
 import { TUNING } from './constants/tuning';
 import { rerollDamageType } from './habits';
-import { availableRelics, doublableItems, unownedDroppableItems } from './items';
+import { availableRelics, doublableItems, equippedDoubledItemIds, unownedDroppableItems } from './items';
 import type { ItemDef } from './items';
 import { effectiveStat } from './leveling';
 import { assignSpecialIfEligible, assignUltIfEligible, grantOverdrive } from './levelRewards';
@@ -113,8 +113,7 @@ export const EVENT_DEFS: readonly EventDef[] = [
     description: "Increase a random item's stats.",
     minLevel: TUNING.DOUBLE_ITEM_MIN_LEVEL,
     oneTime: false,
-    isEligible: (character) =>
-      (!character.doubledItemId || !character.equippedItemIds.includes(character.doubledItemId)) && doublableItems(character).length > 0,
+    isEligible: (character) => equippedDoubledItemIds(character).length < TUNING.DOUBLE_ITEM_MAX && doublableItems(character).length > 0,
   },
   {
     id: 'crit-boost',
@@ -196,12 +195,15 @@ export function applyHealEvent(character: Character): { character: Character; he
   return { character: { ...character, currentHealth }, healed: currentHealth - character.currentHealth };
 }
 
-/** Doubles one random equipped item. Returns the new character and the chosen item (null if none could be picked). */
+/**
+ * Doubles one random equipped item that isn't already doubled. Returns the new
+ * character and the chosen item (null if none could be picked).
+ */
 export function applyDoubleItemEvent(character: Character, rng: Rng): { character: Character; item: ItemDef | null } {
   const candidates = doublableItems(character);
   if (candidates.length === 0) return { character, item: null };
   const item = candidates[Math.floor(rng() * candidates.length)];
-  return { character: { ...character, doubledItemId: item.id }, item };
+  return { character: { ...character, doubledItemIds: [...equippedDoubledItemIds(character), item.id] }, item };
 }
 
 /** Grants (or refreshes) the temporary Crit boost, replacing any existing one. */

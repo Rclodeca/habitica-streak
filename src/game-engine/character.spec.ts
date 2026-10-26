@@ -176,6 +176,27 @@ describe('migrateCharacter — side-only items', () => {
   });
 });
 
+describe('migrateCharacter — enchanted items', () => {
+  it('turns the single doubledItemId of an old save into doubledItemIds', () => {
+    const character = createCharacter(createRng(3));
+    const legacy = { ...character, ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'], doubledItemId: 'rusty-blade' } as unknown as Character;
+
+    const migrated = migrateCharacter(legacy, createRng(4));
+
+    expect('doubledItemId' in migrated).toBe(false);
+    expect(migrated.doubledItemIds).toEqual(['rusty-blade']);
+  });
+
+  it('drops an empty doubledItemId without inventing a list', () => {
+    const legacy = { ...createCharacter(createRng(3)), doubledItemId: undefined } as unknown as Character;
+
+    const migrated = migrateCharacter(legacy, createRng(4));
+
+    expect('doubledItemId' in migrated).toBe(false);
+    expect(migrated.doubledItemIds).toBeUndefined();
+  });
+});
+
 describe('applyDamagePoolRebalance', () => {
   it('scales only physicalDamage/magicDamage/healing down by ONE_TIME_DAMAGE_POOL_REBALANCE_PCT on a pre-rebalance character', () => {
     const character = { ...createCharacter(createRng(1)), damagePoolRebalanceApplied: undefined };
@@ -248,15 +269,15 @@ describe('randomizeStat', () => {
 
 describe('discardUnknownItems', () => {
   it('drops item ids the catalog no longer has, from owned, equipped and the enchanted slot', () => {
-    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['rusty-blade', 'shadow-dagger'], equippedItemIds: ['rusty-blade', 'shadow-dagger'], doubledItemId: 'shadow-dagger' };
+    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['rusty-blade', 'shadow-dagger'], equippedItemIds: ['rusty-blade', 'shadow-dagger'], doubledItemIds: ['rusty-blade', 'shadow-dagger'] };
     const loaded = discardUnknownItems(character);
     expect(loaded.ownedItemIds).toEqual(['rusty-blade']);
     expect(loaded.equippedItemIds).toEqual(['rusty-blade']);
-    expect(loaded.doubledItemId).toBeUndefined();
+    expect(loaded.doubledItemIds).toEqual(['rusty-blade']);
   });
 
   it('returns the same character when every item id is known', () => {
-    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'], doubledItemId: 'rusty-blade' };
+    const character = { ...createCharacter(createRng(1)), ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'], doubledItemIds: ['rusty-blade'] };
     expect(discardUnknownItems(character)).toBe(character);
   });
 });

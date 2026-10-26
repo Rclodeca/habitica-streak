@@ -70,8 +70,9 @@ export interface Character {
   // still waiting for the player to choose an event. Both optional so an
   // existing save still loads — the store hydration seeds them once (see
   // initializeStores). A fresh character starts empty, so death resets them.
-  // The equipped item currently doubled by the Double item event; cleared when it's discarded.
-  doubledItemId?: string;
+  // The equipped items currently doubled by the Double item event (up to
+  // TUNING.DOUBLE_ITEM_MAX); each leaves the list when it's discarded.
+  doubledItemIds?: string[];
   takenEventIds?: string[];
   pendingEventPicks?: number;
   // Regular-quest completions this calendar week (undefined = none yet). Lives
