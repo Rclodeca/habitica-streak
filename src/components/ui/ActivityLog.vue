@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { bossSkillEffectText } from '../../game-engine';
 import { useActivityLogStore } from '../../store/activityLogStore';
 import StatIcon from './StatIcon.vue';
 
@@ -106,18 +107,23 @@ const activityLogStore = useActivityLogStore();
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'bloodlust'">
           <StatIcon name="bloodlust" class="log-icon" /> Bloodlust · 2 days
+          <span class="log-effect">{{ bossSkillEffectText('bloodlust') }}</span>
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'blind'">
           <StatIcon name="blind" class="log-icon" /> Blinded · 2 days
+          <span class="log-effect">{{ bossSkillEffectText('blind') }}</span>
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'sunder'">
           <StatIcon name="sunder" class="log-icon" /> Sundered · 2 days
+          <span class="log-effect">{{ bossSkillEffectText('sunder') }}</span>
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'doom'">
-          <StatIcon name="doom" class="log-icon" /> Doom falls in 3 days
+          <StatIcon name="doom" class="log-icon" /> Doom · 3 days
+          <span class="log-effect">{{ bossSkillEffectText('doom', entry.pct) }}</span>
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'undying'">
-          <StatIcon name="undying" class="log-icon" /> Undying until tomorrow
+          <StatIcon name="undying" class="log-icon" /> Undying · today
+          <span class="log-effect">{{ bossSkillEffectText('undying') }}</span>
         </template>
         <template v-else-if="entry.kind === 'doom-landed'">
           <StatIcon name="doom" class="log-icon" /> Doom — took <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage
@@ -176,6 +182,14 @@ const activityLogStore = useActivityLogStore();
 .log-stat {
   color: var(--stat-color);
   font-weight: 700;
+}
+
+/* What a boss skill does, under its name. */
+.log-effect {
+  display: block;
+  margin-left: 1.4rem;
+  color: var(--text);
+  font-style: italic;
 }
 
 .log-true-damage {

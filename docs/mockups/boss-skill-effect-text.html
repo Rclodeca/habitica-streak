@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — boss skill effect text (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Fired boss skills say what they do, where they land: the log, the hero's
+   effect chips (player modal) and the boss's stat tiles (boss modal).
+   Icons here are initials in a ring; the build uses the existing StatIcons. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+  --damage: #c8402f; --heal: #92bf88;
+  --bg: #0b0a09; --panel: #14120f;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), var(--bg); font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1100px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 34px; }
+
+section.sec { margin-bottom: 44px; }
+section.sec > h2 { font-size: 12px; letter-spacing: .22em; color: var(--text-h); margin-bottom: 4px; }
+section.sec > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 14px; }
+.pair { display: flex; flex-wrap: wrap; gap: 26px 30px; }
+.col { width: 420px; max-width: 100%; }
+.cap { font: 600 9px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text); opacity: .75; margin: 0 0 8px 2px; }
+.cap b { color: var(--gold); }
+.card { padding: 12px 14px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(20,18,15,.97), rgba(11,10,9,.97)); }
+
+.ic { display: inline-grid; place-items: center; width: 18px; height: 18px; flex-shrink: 0; border: 1px solid currentColor; border-radius: 50%; font: 600 9px/1 'Cinzel', serif; }
+.bane { color: var(--damage); }
+.heal { color: var(--heal); }
+.gold { color: var(--gold); }
+
+/* ---------- Log ---------- */
+.log { list-style: none; margin: 0; padding: 0; font-size: 16px; }
+.log li { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.log li:last-child { border-bottom: 0; }
+.log .ic { align-self: flex-start; margin-top: 2px; }
+.log .dmg { color: var(--damage); font-weight: 700; }
+.log .heal-n { color: var(--heal); font-weight: 700; }
+.log .sub { display: block; color: var(--text); font-size: 14px; font-style: italic; }
+.log .dim { color: var(--text); }
+
+/* ---------- Player modal: effect chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip { display: inline-flex; align-items: center; gap: .35rem; padding: .15rem .6rem; border: 1px solid color-mix(in srgb, var(--damage) 45%, transparent); background: color-mix(in srgb, var(--damage) 12%, transparent); color: var(--damage); border-radius: 999px; font-size: 13px; }
+.chip .ic { width: 15px; height: 15px; font-size: 8px; }
+.chip.boon { color: var(--heal); border-color: color-mix(in srgb, var(--heal) 45%, transparent); background: color-mix(in srgb, var(--heal) 12%, transparent); }
+.modal-head { font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-hi); margin-bottom: 10px; }
+.hero-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: var(--text); }
+
+/* ---------- Boss modal: stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .5rem; }
+.tile { display: flex; flex-direction: column; gap: .15rem; padding: .55rem .7rem; background: rgba(0,0,0,.35); border: 1px solid var(--line); border-radius: 8px; }
+.tile .lab { display: flex; align-items: center; gap: .4rem; color: var(--text); font-size: 12px; }
+.tile .val { color: var(--text-h); font-size: 20px; font-weight: 600; }
+.tile .note { color: var(--text); font-size: 12px; }
+.tile .ic { width: 15px; height: 15px; font-size: 8px; color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Boss skill effect text</h1>
+  <p>Before: names only. After: a short plain line, where the effect lands. Rend, Ravage, Mend and Wounds already read fine, so they stay.</p>
+
+  <!-- ===== LOG ===== -->
+  <section class="sec">
+    <h2 class="engraved">1 · Activity log</h2>
+    <p>A is one line, matching "Rend — took 12 damage". B keeps the name short and puts the effect on a muted second line.</p>
+    <div class="pair">
+      <div class="col">
+        <div class="cap">Before</div>
+        <div class="card"><ul class="log">
+          <li><span class="ic gold">B</span><span>Bloodlust · 2 days</span></li>
+          <li><span class="ic bane">B</span><span>Blinded · 2 days</span></li>
+          <li><span class="ic bane">S</span><span>Sundered · 2 days</span></li>
+          <li><span class="ic bane">D</span><span>Doom falls in 3 days</span></li>
+          <li><span class="ic gold">U</span><span>Undying until tomorrow</span></li>
+        </ul></div>
+      </div>
+      <div class="col">
+        <div class="cap"><b>A</b> · one line</div>
+        <div class="card"><ul class="log">
+          <li><span class="ic gold">B</span><span>Bloodlust — boss heals 3% per hit · 2 days</span></li>
+          <li><span class="ic bane">B</span><span>Blinded — no crits · 2 days</span></li>
+          <li><span class="ic bane">S</span><span>Sundered — armor &amp; resist halved · 2 days</span></li>
+          <li><span class="ic bane">D</span><span>Doom — half your HP in 3 days</span></li>
+          <li><span class="ic gold">U</span><span>Undying — can't fall below 10% today</span></li>
+        </ul></div>
+      </div>
+      <div class="col">
+        <div class="cap"><b>B</b> · name + muted line</div>
+        <div class="card"><ul class="log">
+          <li><span class="ic gold">B</span><span>Bloodlust · 2 days<span class="sub">Boss heals 3% per hit</span></span></li>
+          <li><span class="ic bane">B</span><span>Blinded · 2 days<span class="sub">No crits</span></span></li>
+          <li><span class="ic bane">S</span><span>Sundered · 2 days<span class="sub">Armor &amp; resist halved</span></span></li>
+          <li><span class="ic bane">D</span><span>Doom · 3 days<span class="sub">Half your HP</span></span></li>
+          <li><span class="ic gold">U</span><span>Undying · today<span class="sub">Can't fall below 10%</span></span></li>
+        </ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PLAYER MODAL ===== -->
+  <section class="sec">
+    <h2 class="engraved">2 · Player modal — effect chips</h2>
+    <p>Same pattern Wounds already uses ("Wounded · 50% heal"). Chips wrap on a phone.</p>
+    <div class="pair">
+      <div class="col">
+        <div class="cap">Before</div>
+        <div class="card">
+          <div class="modal-head">Hero</div>
+          <div class="hero-line"><span>Level 31</span><span>HP 212 / 340</span></div>
+          <div class="chips">
+            <span class="chip"><span class="ic">W</span>Wounded · 50% heal · 1d</span>
+            <span class="chip"><span class="ic">B</span>Blinded · 2d</span>
+            <span class="chip"><span class="ic">S</span>Sundered · 2d</span>
+            <span class="chip"><span class="ic">D</span>Doom · 3d</span>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="cap"><b>After</b></div>
+        <div class="card">
+          <div class="modal-head">Hero</div>
+          <div class="hero-line"><span>Level 31</span><span>HP 212 / 340</span></div>
+          <div class="chips">
+            <span class="chip"><span class="ic">W</span>Wounded · 50% heal · 1d</span>
+            <span class="chip"><span class="ic">B</span>Blinded · no crits · 2d</span>
+            <span class="chip"><span class="ic">S</span>Sundered · armor &amp; resist halved · 2d</span>
+            <span class="chip"><span class="ic">D</span>Doom · half your HP · 3d</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== BOSS MODAL ===== -->
+  <section class="sec">
+    <h2 class="engraved">3 · Boss modal — stat tiles</h2>
+    <p>The tile's existing note line carries the effect, like Armor's "x% less damage".</p>
+    <div class="pair">
+      <div class="col">
+        <div class="cap">Before</div>
+        <div class="card">
+          <div class="modal-head">Stats</div>
+          <div class="tiles">
+            <div class="tile"><span class="lab"><span class="ic">B</span>Bloodlust</span><span class="val">2d</span></div>
+            <div class="tile"><span class="lab"><span class="ic">U</span>Undying</span><span class="val">Today</span></div>
+            <div class="tile"><span class="lab"><span class="ic">D</span>Doom</span><span class="val">3d</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="cap"><b>After</b></div>
+        <div class="card">
+          <div class="modal-head">Stats</div>
+          <div class="tiles">
+            <div class="tile"><span class="lab"><span class="ic">B</span>Bloodlust</span><span class="val">2d</span><span class="note">Heals 3% per hit</span></div>
+            <div class="tile"><span class="lab"><span class="ic">U</span>Undying</span><span class="val">Today</span><span class="note">Can't fall below 10%</span></div>
+            <div class="tile"><span class="lab"><span class="ic">D</span>Doom</span><span class="val">3d</span><span class="note">Takes half your HP</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

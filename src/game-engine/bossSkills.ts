@@ -91,11 +91,40 @@ export function bossSkillMarks(boss: Boss): { at: Breakpoint; state: 'armed' | '
   return (boss.skills ?? []).map((slot) => ({ at: slot.at, state: slot.fired ? 'fired' : slot.spent ? 'spent' : 'armed' }));
 }
 
-/** A skill that just fired: `amount` is the HP it took from the hero (Rend, Ravage) or healed the boss (Mend). */
+/** What share (%) of the hero's current HP a Doom takes — Omen Hourglass cuts it. */
+export function doomPct(character: Character): number {
+  return S.DOOM_PCT * (hasItemEffect(character, 'omen-hourglass') ? TUNING.ITEM_EFFECTS.OMEN_HOURGLASS_FACTOR : 1);
+}
+
+/**
+ * One plain line on what a fired skill does, for the log, the hero's effect
+ * chips and the boss's stat tiles. `doomShare` is the % of HP a Doom takes
+ * (see doomPct). Skills whose hit or heal is logged with a number (Wounds,
+ * Mend, Rend, Ravage) have no line.
+ */
+export function bossSkillEffectText(skill: BossSkillId, doomShare: number = S.DOOM_PCT): string | undefined {
+  switch (skill) {
+    case 'bloodlust':
+      return `Boss heals ${S.BLOODLUST_HEAL_PCT}% per hit`;
+    case 'blind':
+      return 'No crits';
+    case 'sunder':
+      return 'Armor & resist halved';
+    case 'doom':
+      return doomShare === 50 ? 'Half your HP' : doomShare === 25 ? 'A quarter of your HP' : `${doomShare}% of your HP`;
+    case 'undying':
+      return `Can't fall below ${S.UNDYING_FLOOR_PCT}%`;
+    default:
+      return undefined;
+  }
+}
+
+/** A skill that just fired: `amount` is the HP it took from the hero (Rend, Ravage) or healed the boss (Mend); `pct` is the share of HP a Doom will take. */
 export interface FiredBossSkill {
   skill: BossSkillId;
   outcome: 'landed' | 'failed' | 'resisted';
   amount?: number;
+  pct?: number;
 }
 
 /** `effect` in place of any earlier effect of its type. */
@@ -115,10 +144,15 @@ function heldByUndying(boss: Boss): Boss {
 /** Applies a fired skill's effect to the hero or the boss. */
 function applySkill(skill: BossSkillId, boss: Boss, character: Character, currentDayKey: string): { boss: Boss; character: Character; fired: FiredBossSkill } {
   const halved = hasItemEffect(character, 'omen-hourglass') ? TUNING.ITEM_EFFECTS.OMEN_HOURGLASS_FACTOR : 1;
-  const landed = (changes: { boss?: Boss; character?: Character; amount?: number } = {}) => ({
+  const landed = (changes: { boss?: Boss; character?: Character; amount?: number; pct?: number } = {}) => ({
     boss: changes.boss ?? boss,
     character: changes.character ?? character,
-    fired: { skill, outcome: 'landed' as const, ...(changes.amount !== undefined && { amount: changes.amount }) },
+    fired: {
+      skill,
+      outcome: 'landed' as const,
+      ...(changes.amount !== undefined && { amount: changes.amount }),
+      ...(changes.pct !== undefined && { pct: changes.pct }),
+    },
   });
   switch (skill) {
     case 'wounds':
@@ -142,7 +176,7 @@ function applySkill(skill: BossSkillId, boss: Boss, character: Character, curren
       return landed({ character: { ...character, currentHealth: character.currentHealth - taken }, amount: taken });
     }
     case 'doom':
-      return landed({ boss: { ...boss, doomDueDayKey: addDaysToDayKey(currentDayKey, S.DOOM_DELAY_DAYS) } });
+      return landed({ boss: { ...boss, doomDueDayKey: addDaysToDayKey(currentDayKey, S.DOOM_DELAY_DAYS) }, pct: doomPct(character) });
     case 'undying':
       return landed({ boss: heldByUndying({ ...boss, undyingDayKey: currentDayKey }) });
   }
@@ -199,8 +233,7 @@ export function spendPassedBreakpoints(boss: Boss): Boss {
 export function resolveDoom(character: Character, boss: Boss, currentDayKey: string): { character: Character; boss: Boss; amount?: number } {
   if (!boss.doomDueDayKey || daysBetweenDayKeys(boss.doomDueDayKey, currentDayKey) < 0) return { character, boss };
   if (Math.round(character.currentHealth) <= 0) return { character, boss };
-  const halved = hasItemEffect(character, 'omen-hourglass') ? TUNING.ITEM_EFFECTS.OMEN_HOURGLASS_FACTOR : 1;
-  const amount = hpHitDamage(character.currentHealth, S.DOOM_PCT * halved);
+  const amount = hpHitDamage(character.currentHealth, doomPct(character));
   const cleared = { ...boss };
   delete cleared.doomDueDayKey;
   return { character: { ...character, currentHealth: character.currentHealth - amount }, boss: cleared, amount };

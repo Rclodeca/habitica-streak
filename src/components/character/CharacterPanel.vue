@@ -7,10 +7,12 @@ import {
   activeHealBoost,
   activeSunder,
   activeWoundsEffect,
+  bossSkillEffectText,
   dailyPeriodKey,
   damageReductionPct,
   daysBetweenDayKeys,
   doomDaysLeft,
+  doomPct,
   describeItemBonus,
   describeItemBonusParts,
   effectiveCritChance,
@@ -194,14 +196,20 @@ const statTiles = computed<StatTile[]>(() => {
   ];
 });
 
+// "Blinded · no crits": a boss skill's name with what it does, lowercased to follow it.
+function effectText(name: string, skill: 'blind' | 'sunder' | 'doom', doomShare?: number): string {
+  const effect = bossSkillEffectText(skill, doomShare) ?? '';
+  return `${name} · ${effect.charAt(0).toLowerCase()}${effect.slice(1)}`;
+}
+
 const activeEffects = computed(() => {
   const effects: { icon: StatIconName; text: string; days: number; tone: 'boon' | 'bane' }[] = [];
   if (critBoost.value) effects.push({ icon: 'critBoost', text: `+${(critBoost.value.bonus * 100).toFixed(0)}% crit`, days: critBoostDaysLeft.value, tone: 'boon' });
   if (healBoost.value) effects.push({ icon: 'healBoost', text: `+${(healBoost.value.bonus * 100).toFixed(0)}% heal`, days: healBoostDaysLeft.value, tone: 'boon' });
   if (woundsEffect.value) effects.push({ icon: 'wounds', text: `Wounded · ${(woundsEffect.value.effectRate * 100).toFixed(0)}% heal`, days: woundsDaysLeft.value, tone: 'bane' });
-  if (blindEffect.value) effects.push({ icon: 'blind', text: 'Blinded', days: blindDaysLeft.value, tone: 'bane' });
-  if (sunderEffect.value) effects.push({ icon: 'sunder', text: 'Sundered', days: sunderDaysLeft.value, tone: 'bane' });
-  if (doomDays.value !== undefined) effects.push({ icon: 'doom', text: 'Doom', days: doomDays.value, tone: 'bane' });
+  if (blindEffect.value) effects.push({ icon: 'blind', text: effectText('Blinded', 'blind'), days: blindDaysLeft.value, tone: 'bane' });
+  if (sunderEffect.value) effects.push({ icon: 'sunder', text: effectText('Sundered', 'sunder'), days: sunderDaysLeft.value, tone: 'bane' });
+  if (doomDays.value !== undefined) effects.push({ icon: 'doom', text: effectText('Doom', 'doom', doomPct(character.value)), days: doomDays.value, tone: 'bane' });
   return effects;
 });
 

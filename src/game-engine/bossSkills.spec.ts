@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoss } from './boss';
 import { completeHabit, overdriveHabit, resolveBossDefeatIfDead } from './combat';
-import { activeBlind, activeSunder, bloodlustActive, bloodlustDaysLeft, bossSkillMarks, doomDaysLeft, hpHitDamage, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
+import { activeBlind, activeSunder, bloodlustActive, bloodlustDaysLeft, bossSkillEffectText, bossSkillMarks, doomDaysLeft, doomPct, hpHitDamage, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
 import { createRng } from './rng';
 import type { Boss, BossSkillSlot, Character, Habit } from './types';
 
@@ -304,7 +304,7 @@ describe('resolveBreakpoints', () => {
   it('Doom sets a countdown 3 days out', () => {
     const doom = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'doom' }], health: 400 }), hero(), DAY, neverRng);
     expect(doom.boss.doomDueDayKey).toBe('2026-01-04');
-    expect(doom.fired).toEqual({ skill: 'doom', outcome: 'landed' });
+    expect(doom.fired).toEqual({ skill: 'doom', outcome: 'landed', pct: 50 });
   });
 
   it('Bloodlust starts on the day it fires', () => {
@@ -364,7 +364,7 @@ describe('boss skills through combat', () => {
     const h = habit();
     const dealt = completeHabit(hero(), h, [h], foe({ armor: 0, health: 1e9, maxHealth: 1e9 }), DAY, neverRng).damageDealt!;
     const result = completeHabit(hero(), h, [h], sized(dealt, [{ at: 0.5, skill: 'doom' }]), DAY, neverRng);
-    expect(result.bossSkill).toEqual({ skill: 'doom', outcome: 'landed' });
+    expect(result.bossSkill).toEqual({ skill: 'doom', outcome: 'landed', pct: 50 });
     expect(result.boss.doomDueDayKey).toBe('2026-01-04');
   });
 
@@ -428,5 +428,35 @@ describe('resolveDoom', () => {
   it('never hits a fallen hero', () => {
     const fallen = hero({ currentHealth: 0 });
     expect(resolveDoom(fallen, dooming, '2026-01-04').character).toBe(fallen);
+  });
+});
+
+describe('bossSkillEffectText', () => {
+  it('says what each lasting skill does', () => {
+    expect(bossSkillEffectText('bloodlust')).toBe('Boss heals 3% per hit');
+    expect(bossSkillEffectText('blind')).toBe('No crits');
+    expect(bossSkillEffectText('sunder')).toBe('Armor & resist halved');
+    expect(bossSkillEffectText('undying')).toBe("Can't fall below 10%");
+  });
+
+  it('words Doom by its share of HP', () => {
+    expect(bossSkillEffectText('doom')).toBe('Half your HP');
+    expect(bossSkillEffectText('doom', 25)).toBe('A quarter of your HP');
+    expect(bossSkillEffectText('doom', 30)).toBe('30% of your HP');
+  });
+
+  it('has no line for skills logged with a number', () => {
+    for (const skill of ['wounds', 'mend', 'rend', 'ravage'] as const) expect(bossSkillEffectText(skill)).toBeUndefined();
+  });
+});
+
+describe('doomPct', () => {
+  it('is half the hero\'s HP', () => {
+    expect(doomPct(hero())).toBe(50);
+  });
+
+  it('reports the share on the fired Doom, for the log', () => {
+    const { healthBefore, boss } = hitFoe([{ at: 0.5, skill: 'doom' }], 0.6, 0.45);
+    expect(resolveBreakpoints(healthBefore, boss, hero(), DAY, neverRng).fired).toEqual({ skill: 'doom', outcome: 'landed', pct: 50 });
   });
 });

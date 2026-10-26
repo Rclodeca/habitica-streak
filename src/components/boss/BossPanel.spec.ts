@@ -144,14 +144,15 @@ describe('BossPanel', () => {
       expect(mount(BossPanel).find('.stat-summary .undying').exists()).toBe(false);
     });
 
-    it('names a running skill in the details without explaining it', async () => {
+    it('says what a running skill does on its tile in the details', async () => {
       const store = useBossStore();
-      store.setBoss({ ...store.boss, bloodlustDayKey: today(), undyingDayKey: today() });
+      store.setBoss({ ...store.boss, bloodlustDayKey: today(), undyingDayKey: today(), doomDueDayKey: addDaysToDayKey(today(), 3) });
       const wrapper = mount(BossPanel);
       await wrapper.find('button.tap-boss').trigger('click');
-      const tiles = Array.from(document.body.querySelectorAll('.stat-tile')).filter((tile) => /Bloodlust|Undying/.test(tile.textContent ?? ''));
-      expect(tiles).toHaveLength(2);
-      for (const tile of tiles) expect(tile.querySelector('.tile-note')).toBeNull();
+      const notes = Array.from(document.body.querySelectorAll('.stat-tile'))
+        .filter((tile) => /Bloodlust|Undying|Doom/.test(tile.textContent ?? ''))
+        .map((tile) => tile.querySelector('.tile-note')?.textContent?.trim());
+      expect(notes).toEqual(['Boss heals 3% per hit', "Can't fall below 10%", 'Half your HP']);
       wrapper.unmount();
     });
 

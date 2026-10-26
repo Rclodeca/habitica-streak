@@ -46,8 +46,8 @@ export type ActivityLogEntry =
   | { id: string; kind: 'quest-completed'; description: string; amount: number; itemName?: string }
   | { id: string; kind: 'quest-failed'; description: string; amount: number }
   | { id: string; kind: 'doom-landed'; amount: number }
-  // A boss skill a blow made fire (a landed Wounds logs 'wounds-applied' instead); amount is HP taken or, for Mend, healed.
-  | { id: string; kind: 'boss-skill'; skill: BossSkillId; outcome: 'landed' | 'failed' | 'resisted'; amount?: number };
+  // A boss skill a blow made fire (a landed Wounds logs 'wounds-applied' instead); amount is HP taken or, for Mend, healed; pct is the share of HP a Doom will take.
+  | { id: string; kind: 'boss-skill'; skill: BossSkillId; outcome: 'landed' | 'failed' | 'resisted'; amount?: number; pct?: number };
 
 // Plain `Omit<ActivityLogEntry, 'id'>` collapses the discriminated union
 // down to its common properties (losing the per-`kind` fields) since `Omit`

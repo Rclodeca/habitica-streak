@@ -109,15 +109,21 @@ describe('CharacterPanel', () => {
       expect(mount(CharacterPanel).find('.stat-summary').text()).toContain('Doom · 3d');
     });
 
-    it('lists Sunder and Doom among the active effects in the details', async () => {
+    it('lists Blind, Sunder and Doom among the active effects in the details, with what each does', async () => {
       const store = useCharacterStore();
       const bossStore = useBossStore();
-      store.setCharacter({ ...store.character, statusEffects: [{ type: 'sunder', appliedDayKey: today(), durationDays: 2 }] });
+      store.setCharacter({
+        ...store.character,
+        statusEffects: [
+          { type: 'blind', appliedDayKey: today(), durationDays: 2 },
+          { type: 'sunder', appliedDayKey: today(), durationDays: 2 },
+        ],
+      });
       bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: addDaysToDayKey(today(), 1) });
       const wrapper = mount(CharacterPanel);
       await wrapper.find('button.tap-hero').trigger('click');
       const effects = Array.from(document.body.querySelectorAll('.effect')).map((e) => e.textContent?.replace(/\s+/g, ' ').trim());
-      expect(effects).toEqual(expect.arrayContaining(['Sundered · 2d', 'Doom · 1d']));
+      expect(effects).toEqual(expect.arrayContaining(['Blinded · no crits · 2d', 'Sundered · armor & resist halved · 2d', 'Doom · half your HP · 1d']));
       wrapper.unmount();
     });
   });
