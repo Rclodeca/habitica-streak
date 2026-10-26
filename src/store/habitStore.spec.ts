@@ -125,3 +125,37 @@ describe('habitStore.initFromSave ranks', () => {
     expect(store.habits[0].rank).toBe(2);
   });
 });
+
+describe('habitStore heal cap', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it('never rolls a 4th skill healing when one of 3 already heals', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      setActivePinia(createPinia());
+      const store = useHabitStore();
+      for (const [i, type] of (['healing', 'physical', 'magic'] as const).entries()) {
+        store.updateHabit({ ...store.addHabit(`S${i}`, 'daily', 'easy', false, createRng(i + 1)), damageType: type });
+      }
+      expect(store.addHabit('Fourth', 'daily', 'easy', false, createRng(seed)).damageType).not.toBe('healing');
+    }
+  });
+
+  it('keeps saved healing skills over the cap', () => {
+    const store = useHabitStore();
+    const saved = ['healing', 'healing', 'healing', 'physical'].map((damageType, i) => ({
+      id: `h${i}`,
+      name: `S${i}`,
+      period: 'daily' as const,
+      difficulty: 'medium' as const,
+      damageType: damageType as 'healing' | 'physical',
+      isBad: false,
+      streakCount: 0,
+      lastCompletedPeriodKey: null,
+      lastCheckedPeriodKey: null,
+    }));
+    store.initFromSave(saved, createRng(1));
+    expect(store.habits.filter((h) => h.damageType === 'healing')).toHaveLength(3);
+  });
+});

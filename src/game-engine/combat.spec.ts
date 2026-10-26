@@ -959,6 +959,12 @@ describe('resolveBossDefeatIfDead', () => {
 });
 
 describe('resolvePlayerDeathIfDead', () => {
+  it('keeps every habit\'s rank through a death', () => {
+    const habits = [makeHabit({ id: 'a', rank: 4 }), makeHabit({ id: 'b', rank: 1, damageType: 'healing' })];
+    const result = resolvePlayerDeathIfDead(makeCharacter({ currentHealth: 0 }), makeBoss(), habits, createRng(1));
+    expect(result.habits.map((h) => h.rank)).toEqual([4, 1]);
+  });
+
   it('is a no-op when currentHealth > 0', () => {
     const character = makeCharacter({ currentHealth: 5 });
     const boss = makeBoss();

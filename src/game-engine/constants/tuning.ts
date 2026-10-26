@@ -190,6 +190,9 @@ export const TUNING = {
   // offered before it is forced into the next pick.
   SIDE_QUEST_GUARANTEE_LEVELS: 5,
   HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.38, magic: 0.38, healing: 0.16, trueDamage: 0.08 },
+  // At most this share of skills (rounded up) can roll healing — on new rolls
+  // only (see healingAllowed).
+  HEAL_SKILL_CAP_SHARE: 0.25,
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates
   // 2x -> 3x -> 4x -> 5x, and each tier is 5x rarer than the one below it,
   // so a boss with an extreme multiplier is a rare, memorable spike rather

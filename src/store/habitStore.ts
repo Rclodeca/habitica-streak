@@ -2,7 +2,7 @@
 // randomization live here — everything delegates into `game-engine`.
 
 import { defineStore } from 'pinia';
-import { createHabit, migrateHabitDamageType, migrateHabitRank, normalizeDays } from '../game-engine';
+import { createHabit, healingAllowed, migrateHabitDamageType, migrateHabitRank, normalizeDays } from '../game-engine';
 import type { Difficulty, Habit, Period, Rng } from '../game-engine';
 
 export const useHabitStore = defineStore('habit', {
@@ -22,10 +22,11 @@ export const useHabitStore = defineStore('habit', {
     /**
      * Creates a new habit via the engine and adds it to the list. `days` only
      * applies to a daily. With no habits yet, the engine keeps its damage type
-     * to physical or magic.
+     * to physical or magic, and it never rolls healing past the heal cap.
      */
     addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, rng: Rng, days?: number[]): Habit {
-      const habit = createHabit(name, period, difficulty, isBad, rng, days, this.habits.length === 0);
+      const excludeHealing = !healingAllowed(this.habits, this.habits.length + 1);
+      const habit = createHabit(name, period, difficulty, isBad, rng, days, this.habits.length === 0, excludeHealing);
       this.habits.push(habit);
       return habit;
     },

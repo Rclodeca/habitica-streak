@@ -11,14 +11,30 @@ import type { DamageType, Difficulty, Habit, Period } from './types';
  */
 const FIRST_HABIT_DAMAGE_TYPES: readonly DamageType[] = ['physical', 'magic'];
 
-function damageTypeWeights(isFirstHabit: boolean): Record<string, number> {
-  if (!isFirstHabit) return TUNING.HABIT_DAMAGE_TYPE_WEIGHTS;
-  return Object.fromEntries(
-    FIRST_HABIT_DAMAGE_TYPES.map((type) => [type, TUNING.HABIT_DAMAGE_TYPE_WEIGHTS[type]]),
-  );
+function damageTypeWeights(isFirstHabit: boolean, excludeHealing: boolean): Record<string, number> {
+  const weights: Record<string, number> = isFirstHabit
+    ? Object.fromEntries(FIRST_HABIT_DAMAGE_TYPES.map((type) => [type, TUNING.HABIT_DAMAGE_TYPE_WEIGHTS[type]]))
+    : { ...TUNING.HABIT_DAMAGE_TYPE_WEIGHTS };
+  if (excludeHealing) delete weights.healing;
+  return weights;
 }
 
-/** `isFirstHabit` limits the damage type to physical or magic; pass it only when the player has no habits yet. */
+/**
+ * Whether one more healing skill fits: the healing skills among
+ * `otherHabits` are fewer than HEAL_SKILL_CAP_SHARE of `skillCount` (rounded
+ * up). Checked on new rolls only; healing skills over the cap are never
+ * touched outside a reroll.
+ */
+export function healingAllowed(otherHabits: Habit[], skillCount: number): boolean {
+  const healing = otherHabits.filter((h) => h.damageType === 'healing').length;
+  return healing < Math.ceil(skillCount * TUNING.HEAL_SKILL_CAP_SHARE);
+}
+
+/**
+ * `isFirstHabit` limits the damage type to physical or magic; pass it only
+ * when the player has no habits yet. `excludeHealing` keeps it off healing
+ * (see healingAllowed).
+ */
 export function createHabit(
   name: string,
   period: Period,
@@ -27,6 +43,7 @@ export function createHabit(
   rng: Rng,
   days?: number[],
   isFirstHabit = false,
+  excludeHealing = false,
 ): Habit {
   const dueDays = period === 'daily' ? normalizeDays(days) : undefined;
   return {
@@ -34,7 +51,7 @@ export function createHabit(
     name,
     period,
     difficulty,
-    damageType: pickWeighted<DamageType>(damageTypeWeights(isFirstHabit), rng),
+    damageType: pickWeighted<DamageType>(damageTypeWeights(isFirstHabit, excludeHealing), rng),
     isBad,
     streakCount: 0,
     rank: 0,
@@ -65,14 +82,32 @@ export function nextDueDay(days: number[], today: number): number {
   return today;
 }
 
-/** Re-rolls a habit's damage type; with `excludeCurrent`, the result is guaranteed to differ from the current type. */
-export function rerollDamageType(habit: Habit, rng: Rng, excludeCurrent = false): Habit {
+/**
+ * Re-rolls a habit's damage type; with `excludeCurrent`, the result is
+ * guaranteed to differ from the current type, and with `excludeHealing` it's
+ * never healing.
+ */
+export function rerollDamageType(habit: Habit, rng: Rng, excludeCurrent = false, excludeHealing = false): Habit {
   const weights: Record<string, number> = { ...TUNING.HABIT_DAMAGE_TYPE_WEIGHTS };
   if (excludeCurrent) delete weights[habit.damageType];
+  if (excludeHealing) delete weights.healing;
   return {
     ...habit,
     damageType: pickWeighted<DamageType>(weights, rng),
   };
+}
+
+/**
+ * Re-rolls every habit's damage type in order (a run reset), keeping healing
+ * out once the habits rerolled so far fill the cap for `habits.length`.
+ * Order, ranks and streaks are kept.
+ */
+export function rerollAllDamageTypes(habits: Habit[], rng: Rng): Habit[] {
+  const rerolled: Habit[] = [];
+  for (const habit of habits) {
+    rerolled.push(rerollDamageType(habit, rng, false, !healingAllowed(rerolled, habits.length)));
+  }
+  return rerolled;
 }
 
 const VALID_DAMAGE_TYPES = new Set<string>(Object.keys(TUNING.HABIT_DAMAGE_TYPE_WEIGHTS));

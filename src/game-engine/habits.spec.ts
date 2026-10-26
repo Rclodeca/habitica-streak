@@ -3,10 +3,12 @@ import {
   createHabit,
   crowdingFactor,
   difficultyFactor,
+  healingAllowed,
   isDueOn,
   migrateHabitDamageType,
   nextDueDay,
   normalizeDays,
+  rerollAllDamageTypes,
   rerollDamageType,
 } from './habits';
 import { createRng } from './rng';
@@ -185,5 +187,34 @@ describe('set days', () => {
     expect(createHabit('Gym', 'daily', 'hard', false, createRng(1), [5, 0, 2]).days).toEqual([0, 2, 5]);
     expect('days' in createHabit('Read', 'daily', 'easy', false, createRng(1), [0, 1, 2, 3, 4, 5, 6])).toBe(false);
     expect('days' in createHabit('Hike', 'weekly', 'hard', false, createRng(1), [0])).toBe(false);
+  });
+});
+
+describe('heal-skill cap', () => {
+  const heals = (n: number) => Array.from({ length: n }, (_, i) => makeHabit({ id: `heal${i}`, damageType: 'healing' }));
+  const others = (n: number) => Array.from({ length: n }, (_, i) => makeHabit({ id: `phys${i}`, damageType: 'physical' }));
+
+  it('allows healing while fewer than a quarter of skills (rounded up) heal', () => {
+    expect(healingAllowed(others(3), 4)).toBe(true);
+    expect(healingAllowed([...heals(1), ...others(2)], 4)).toBe(false);
+    expect(healingAllowed([...heals(1), ...others(3)], 5)).toBe(true);
+    expect(healingAllowed([...heals(3), ...others(8)], 12)).toBe(false);
+    expect(healingAllowed([...heals(3), ...others(9)], 13)).toBe(true);
+  });
+
+  it('never rolls healing when it is excluded', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      expect(createHabit('H', 'daily', 'easy', false, createRng(seed), undefined, false, true).damageType).not.toBe('healing');
+      expect(rerollDamageType(makeHabit(), createRng(seed), false, true).damageType).not.toBe('healing');
+    }
+  });
+
+  it('rerolls a whole loadout with at most a quarter healing, keeping order, ranks and streaks', () => {
+    const habits = Array.from({ length: 8 }, (_, i) => makeHabit({ id: `h${i}`, rank: i % 3, streakCount: i * 7 }));
+    for (let seed = 1; seed <= 200; seed++) {
+      const out = rerollAllDamageTypes(habits, createRng(seed));
+      expect(out.filter((h) => h.damageType === 'healing').length).toBeLessThanOrEqual(2);
+      expect(out.map((h) => [h.id, h.rank, h.streakCount])).toEqual(habits.map((h) => [h.id, h.rank, h.streakCount]));
+    }
   });
 });

@@ -297,6 +297,20 @@ describe('applyRerollSkillEvent', () => {
       expect(result.find((h) => h.id === 'b')?.damageType).toBe('magic');
     }
   });
+
+  it('keeps the skill off healing when the others already fill the heal cap, keeping rank and streak', () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      const habits = [
+        makeHabit({ id: 'a', damageType: 'physical', rank: 3, streakCount: 31 }),
+        makeHabit({ id: 'b', damageType: 'healing' }),
+        makeHabit({ id: 'c', damageType: 'magic' }),
+        makeHabit({ id: 'd', damageType: 'magic' }),
+      ];
+      const target = applyRerollSkillEvent(habits, 'a', createRng(seed)).find((h) => h.id === 'a')!;
+      expect(target.damageType).not.toBe('healing');
+      expect(target).toMatchObject({ rank: 3, streakCount: 31 });
+    }
+  });
 });
 
 describe('migrateEventState', () => {

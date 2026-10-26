@@ -4,7 +4,7 @@ import type { FiredBossSkill } from './bossSkills';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
-import { crowdingFactor, rerollDamageType, resetLevelRewards, skillBaseDamage } from './habits';
+import { crowdingFactor, rerollAllDamageTypes, resetLevelRewards, skillBaseDamage } from './habits';
 import { activeHealBoost, addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { bumpSpellweave, critMultiplierFor, effectDamageMultiplier, effectUsedToday, hasItemEffect, isForcedCrit, stampEffectDay, starfallReady } from './itemEffects';
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
@@ -515,7 +515,8 @@ export function resolveBossDefeatIfDead(
 /**
  * No-op unless the character's health has reached 0. When it has, resets
  * the run: a fresh character, the boss sequence restarted at index 1, and
- * the same habit definitions retained with damage types re-rolled and
+ * the same habit definitions retained with damage types re-rolled (healing
+ * kept to the cap, see rerollAllDamageTypes) and
  * Special/Ult/Overdrive flags cleared (they're re-earned by leveling up
  * again). Streaks are deliberately NOT reset here — a streak should only
  * break when its own period is actually missed (`missHabit` ->
@@ -537,7 +538,7 @@ export function resolvePlayerDeathIfDead(
   return {
     character: freshCharacter,
     boss: generateBoss(1, rng, undefined, bossAttackAnchorHealth(1, freshCharacter.starterStats.health, freshCharacter.level)),
-    habits: habits.map((h) => resetLevelRewards(rerollDamageType(h, rng))),
+    habits: rerollAllDamageTypes(habits, rng).map(resetLevelRewards),
     died: true,
   };
 }
