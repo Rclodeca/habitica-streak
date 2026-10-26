@@ -595,6 +595,45 @@ $caps-lg: 0.85rem; // panel and popup titles
     font-variant-numeric: lining-nums;
   }
 
+  // Boss-skill breakpoints: Ashen's diamond, perched on the bar's top edge
+  // (docs/mockups/boss-skill-markers.html, option B). Under the HP numbers.
+  .health-bar-mark {
+    z-index: 3;
+    top: -6px;
+    width: 9px;
+    height: 9px;
+    margin: 0 0 0 -4.5px;
+    background: #0b0908;
+    border: 1px solid #e6cf9a;
+    box-shadow: 0 0 6px rgba(230, 207, 154, 0.55);
+  }
+
+  .health-bar-mark::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: var(--icon-gold);
+  }
+
+  .health-bar-mark.fired {
+    box-shadow: 0 0 16px 4px rgba(230, 207, 154, 0.9);
+  }
+
+  .health-bar-label {
+    z-index: 4;
+  }
+
+  .boss-bar .health-bar-mark {
+    top: -5px;
+    width: 7px;
+    height: 7px;
+    margin-left: -3.5px;
+  }
+
+  .boss-bar .health-bar-mark::after {
+    inset: 1.5px;
+  }
+
   // ---------- Progress summary ----------
 
   .summary .ring {

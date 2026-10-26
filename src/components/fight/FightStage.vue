@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { effectiveStat, heroClassFor, PERSONALITY_NAME } from '../../game-engine';
+import { bossSkillMarks, effectiveStat, heroClassFor, PERSONALITY_NAME } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
 import { setHitPlayer, useHitFeed } from '../../composables/useHitFeed';
 import { useScrolledPast } from '../../composables/useScrolledPast';
@@ -107,6 +107,7 @@ onBeforeUnmount(() => {
         :hero-level="heroLevel"
         :shown="scrolledPast"
         :phase="phase"
+        :marks="bossSkillMarks(boss)"
       />
     </Teleport>
   </section>

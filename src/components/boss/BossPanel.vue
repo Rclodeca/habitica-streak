@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { bossMissDamage, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
+import { bossMissDamage, bossSkillMarks, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
 import { useHitFeed } from '../../composables/useHitFeed';
 import { usePress } from '../../composables/usePress';
@@ -24,6 +24,8 @@ const boss = computed(() => displayedBoss.value ?? bossStore.boss);
 // Held back while a blow is on its way, so the bar drops as it lands (FightStage plays the hits).
 const { shownHp } = useHitFeed();
 const shownHealth = computed(() => shownHp(boss.value.index, boss.value.health, boss.value.maxHealth));
+// Where this boss's skills wait — never which skill (see bossSkillMarks).
+const skillMarks = computed(() => bossSkillMarks(boss.value));
 
 // The name's last word carries the tap cue's chevron, so a name that only
 // just fits its line never leaves the chevron alone on the next.
@@ -90,7 +92,7 @@ const statTiles = computed<StatTile[]>(() => {
     </div>
     <div class="boss-block">
       <h2 class="boss-name">{{ nameHead }}<span class="name-tail">{{ nameTail }}</span></h2>
-      <HealthBar :current="shownHealth" :max="boss.maxHealth" variant="boss" />
+      <HealthBar :current="shownHealth" :max="boss.maxHealth" variant="boss" :marks="skillMarks" />
       <p class="stat-summary">
         <span><StatIcon name="physical" /> {{ physicalAttack.toFixed(0) }}</span>
         <span><StatIcon name="magic" /> {{ magicAttack.toFixed(0) }}</span>
@@ -116,7 +118,7 @@ const statTiles = computed<StatTile[]>(() => {
         <div class="hero-info">
           <span class="hero-tag">Boss #{{ boss.index }}</span>
           <span class="hero-name">{{ PERSONALITY_NAME[boss.personality] }}</span>
-          <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" />
+          <HealthBar :current="boss.health" :max="boss.maxHealth" variant="boss" :marks="skillMarks" />
         </div>
       </div>
 

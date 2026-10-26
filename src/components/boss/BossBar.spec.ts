@@ -19,6 +19,11 @@ describe('BossBar', () => {
     shown: false,
   };
 
+  it('mirrors breakpoint marks, since its bar drains toward the portrait on the right', () => {
+    const wrapper = mount(BossBar, { props: { ...props, marks: [{ at: 0.75, state: 'armed' as const }] } });
+    expect(wrapper.find('.health-bar-mark').attributes('style')).toContain('left: 25%');
+  });
+
   it('shows the boss name and its rounded HP numbers', () => {
     const wrapper = mount(BossBar, { props });
     expect(wrapper.find('.name').text()).toBe('Raging Berserker');

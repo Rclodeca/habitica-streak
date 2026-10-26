@@ -26,6 +26,22 @@ describe('BossPanel', () => {
     vi.useRealTimers();
   });
 
+  it('marks a waiting skill on the stage bar without saying which', () => {
+    const bossStore = useBossStore();
+    bossStore.setBoss({ ...bossStore.boss, skills: [{ at: 0.5, skill: 'doom' }] });
+    const wrapper = mount(BossPanel);
+    expect(wrapper.findAll('.boss-block .health-bar-mark.armed')).toHaveLength(1);
+    expect(wrapper.html()).not.toMatch(/doom/i);
+  });
+
+  it('marks nothing for a boss saved before skills existed', () => {
+    const bossStore = useBossStore();
+    const old = { ...bossStore.boss };
+    delete old.skills;
+    bossStore.setBoss(old);
+    expect(mount(BossPanel).findAll('.health-bar-mark')).toHaveLength(0);
+  });
+
   it('opens the boss details from its tap area', async () => {
     const wrapper = mount(BossPanel);
     await wrapper.find('button.tap-boss').trigger('click');

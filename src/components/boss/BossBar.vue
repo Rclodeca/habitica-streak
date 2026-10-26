@@ -28,6 +28,8 @@ const props = defineProps<{
   phase?: CelebrationPhase;
   /** Turns the boss's portrait around, for art drawn facing away from the hero. */
   spriteMirrored?: boolean;
+  /** The boss's skill breakpoints (see bossSkillMarks); mirrored below, since this bar drains to the right. */
+  marks?: { at: number; state: 'armed' | 'fired' | 'spent' }[];
 }>();
 
 const baseUrl = import.meta.env.BASE_URL;
@@ -37,6 +39,8 @@ const LOW_HEALTH_SHARE = 0.25;
 
 const RING_RADIUS = 20;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+
+const mirroredMarks = computed(() => (props.marks ?? []).map((mark) => ({ ...mark, at: 1 - mark.at })));
 
 const heroShare = computed(() => (props.heroMax > 0 ? Math.max(0, Math.min(1, props.heroCurrent / props.heroMax)) : 0));
 const ringOffset = computed(() => RING_LENGTH * (1 - heroShare.value));
@@ -65,7 +69,7 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
         <span v-else class="numbers">{{ Math.round(current) }} / {{ Math.round(max) }}</span>
         <span class="name">{{ name }}</span>
       </span>
-      <HealthBar :current="current" :max="max" variant="boss" />
+      <HealthBar :current="current" :max="max" variant="boss" :marks="mirroredMarks" />
     </span>
     <span class="portrait" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving', mirrored: spriteMirrored }">
       <Sprite :image-name="sprite" alt="" />
