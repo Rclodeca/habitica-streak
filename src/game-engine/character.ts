@@ -38,6 +38,7 @@ export function createCharacter(rng: Rng): Character {
     // character would get double-cut by applyDamagePoolRebalance the next
     // time it's saved and reloaded.
     damagePoolRebalanceApplied: true,
+    healingRebalanceApplied: true,
   };
 }
 
@@ -171,5 +172,24 @@ export function applyDamagePoolRebalance(character: Character): Character {
       healing: character.starterStats.healing * factor,
     },
     damagePoolRebalanceApplied: true,
+  };
+}
+
+/**
+ * One-time migration for a run that predates the healing-only cut — see
+ * `healingRebalanceApplied` on `Character`. Scales only `healing` down by
+ * ONE_TIME_HEALING_REBALANCE_PCT, from whatever value is already on the
+ * character (like applyDamagePoolRebalance, not a re-roll from BASE_STATS).
+ */
+export function applyHealingRebalance(character: Character): Character {
+  if (character.healingRebalanceApplied) return character;
+  const factor = 1 - TUNING.ONE_TIME_HEALING_REBALANCE_PCT / 100;
+  return {
+    ...character,
+    starterStats: {
+      ...character.starterStats,
+      healing: character.starterStats.healing * factor,
+    },
+    healingRebalanceApplied: true,
   };
 }

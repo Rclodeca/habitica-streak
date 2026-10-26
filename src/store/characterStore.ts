@@ -7,6 +7,7 @@ import {
   addExpAndResolveLevelUps,
   ITEM_CATALOG,
   applyDamagePoolRebalance,
+  applyHealingRebalance,
   clampHealthToMax,
   discardUnequippedItems,
   discardUnknownItems,
@@ -32,7 +33,7 @@ export const useCharacterStore = defineStore('character', {
     /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
     initFromSave(saved: Character | null, rng: Rng) {
       this.character = saved
-        ? clampHealthToMax(discardUnequippedItems(discardUnknownItems(applyDamagePoolRebalance(migrateCharacter(saved, rng)))))
+        ? clampHealthToMax(discardUnequippedItems(discardUnknownItems(applyHealingRebalance(applyDamagePoolRebalance(migrateCharacter(saved, rng))))))
         : createCharacter(rng);
     },
 

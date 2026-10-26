@@ -176,6 +176,19 @@ describe('characterStore.initFromSave', () => {
     expect(store.character.damagePoolRebalanceApplied).toBe(true);
   });
 
+  it('applies the one-time healing rebalance to a save that predates it, touching only healing', () => {
+    const store = useCharacterStore();
+    const original = createCharacter(createRng(1));
+    const preCutSave = { ...original, healingRebalanceApplied: undefined } as typeof original;
+    const factor = 1 - TUNING.ONE_TIME_HEALING_REBALANCE_PCT / 100;
+
+    store.initFromSave(preCutSave, createRng(2));
+
+    expect(store.character.starterStats.healing).toBeCloseTo(original.starterStats.healing * factor, 10);
+    expect(store.character.starterStats.physicalDamage).toBe(original.starterStats.physicalDamage);
+    expect(store.character.healingRebalanceApplied).toBe(true);
+  });
+
   it('does not re-apply the damage-pool rebalance on a save that already has it', () => {
     const store = useCharacterStore();
     const original = createCharacter(createRng(1)); // damagePoolRebalanceApplied: true already

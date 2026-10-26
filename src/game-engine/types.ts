@@ -68,6 +68,11 @@ export interface Character {
   // never double-applies once a fresh character gets saved and reloaded).
   // health/trueDamage are deliberately untouched by this migration.
   damagePoolRebalanceApplied?: boolean;
+  // Same one-time marker for the later healing-only cut (BASE_STATS.healing
+  // 269 -> 188): undefined means applyHealingRebalance still has to run on
+  // this character; createCharacter sets it true for the same no-double-cut
+  // reason as above.
+  healingRebalanceApplied?: boolean;
   // Events mechanic (see events.ts). `takenEventIds` holds one-time events
   // already picked this run; `pendingEventPicks` is how many level-ups are
   // still waiting for the player to choose an event. Both optional so an

@@ -17,10 +17,12 @@ export const TUNING = {
   // buff that needed offsetting at the source. trueDamage is deliberately
   // exempted (kept at its original 480) — its ratio comment above no longer
   // holds exactly as a result, by choice.
+  // healing cut a further ~30% (269 -> 188) after the item catalog's healing
+  // bonuses piled up and healing skills outpaced the other damage types.
   // The expGain skill type was removed (a long streak on one scaled income to
   // 3-7x the reference pace in simulation); EXP now comes from boss kills,
   // streak milestones, and quests, plus the equipped-item EXP bonus.
-  BASE_STATS: { physicalDamage: 560, magicDamage: 560, healing: 269, health: 1250, trueDamage: 480 },
+  BASE_STATS: { physicalDamage: 560, magicDamage: 560, healing: 188, health: 1250, trueDamage: 480 },
   // The same ~30% cut as the BASE_STATS change above, applied once to an
   // in-progress run's existing physicalDamage/magicDamage/healing via
   // character.ts's applyDamagePoolRebalance — a fresh character already
@@ -28,6 +30,9 @@ export const TUNING = {
   // were rolled before this cut and need retroactively scaling down to
   // match (health/trueDamage untouched, same exemption as above).
   ONE_TIME_DAMAGE_POOL_REBALANCE_PCT: 30,
+  // The healing-only cut above (269 -> 188), applied once to an in-progress
+  // run's existing healing via character.ts's applyHealingRebalance.
+  ONE_TIME_HEALING_REBALANCE_PCT: 30,
   // Each additional medium-weight habit (easy/hard scale proportionally) in a
   // damage-type pool grows that pool by this fraction of its base size — see
   // `poolSizeMultiplier`.

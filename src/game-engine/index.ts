@@ -22,6 +22,7 @@ export type {
 
 export {
   applyDamagePoolRebalance,
+  applyHealingRebalance,
   createCharacter,
   DEFAULT_HERO_NAME,
   discardUnequippedItems,

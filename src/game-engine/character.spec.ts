@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyDamagePoolRebalance,
+  applyHealingRebalance,
   createCharacter,
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
@@ -222,6 +223,33 @@ describe('applyDamagePoolRebalance', () => {
     const once = applyDamagePoolRebalance(character);
     const twice = applyDamagePoolRebalance(once);
     expect(twice).toEqual(once);
+  });
+});
+
+describe('applyHealingRebalance', () => {
+  it('scales only healing down by ONE_TIME_HEALING_REBALANCE_PCT on a pre-cut character', () => {
+    const character = { ...createCharacter(createRng(1)), healingRebalanceApplied: undefined };
+    const factor = 1 - TUNING.ONE_TIME_HEALING_REBALANCE_PCT / 100;
+
+    const rebalanced = applyHealingRebalance(character);
+
+    expect(rebalanced.starterStats.healing).toBeCloseTo(character.starterStats.healing * factor, 10);
+    expect(rebalanced.starterStats.physicalDamage).toBe(character.starterStats.physicalDamage);
+    expect(rebalanced.starterStats.magicDamage).toBe(character.starterStats.magicDamage);
+    expect(rebalanced.starterStats.health).toBe(character.starterStats.health);
+    expect(rebalanced.starterStats.trueDamage).toBe(character.starterStats.trueDamage);
+    expect(rebalanced.healingRebalanceApplied).toBe(true);
+  });
+
+  it('is a no-op on a fresh character (already at the reduced baseline)', () => {
+    const character = createCharacter(createRng(2));
+    expect(applyHealingRebalance(character)).toEqual(character);
+  });
+
+  it('is idempotent when called twice in a row', () => {
+    const character = { ...createCharacter(createRng(3)), healingRebalanceApplied: undefined };
+    const once = applyHealingRebalance(character);
+    expect(applyHealingRebalance(once)).toEqual(once);
   });
 });
 
