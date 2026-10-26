@@ -155,6 +155,10 @@ export interface Boss {
   // Optional so an existing save still loads; undefined means this boss has
   // no Wounds ability (90% of bosses) — see generateBoss/TUNING.WOUNDS_ABILITY_CHANCE.
   woundsAbility?: WoundsAbility;
+  // Hidden: the chance (0-1) a hit on the player lands physical rather than
+  // magic, rolled once at generation and never shown — see generateBoss.
+  // Optional so an existing save still loads; undefined means a plain 50/50.
+  physicalShare?: number;
   // Set once the player first damages this boss (First Blood reads it).
   playerHasHit?: boolean;
   // Damage past 0 health on the killing blow (Echoing Blade carries it over).

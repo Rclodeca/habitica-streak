@@ -516,6 +516,25 @@ describe('missHabit', () => {
     expect(result.attackType).toBe('physical');
   });
 
+  it("uses the boss's physicalShare as the cutoff between a physical and a magic hit", () => {
+    const habit = makeHabit({ difficulty: 'medium' });
+    const leansMagic = makeBoss({ physicalAttack: 30, magicAttack: 10, physicalShare: 0.3 });
+    const leansPhysical = makeBoss({ physicalAttack: 30, magicAttack: 10, physicalShare: 0.7 });
+    // 0.4 is physical under the default 50/50 and under a 70% physical lean, magic under a 30% one.
+    const roll = () => 0.4;
+
+    expect(missHabit(makeCharacter({ currentHealth: 100 }), habit, leansMagic, DAY_KEY, roll).attackType).toBe('magic');
+    expect(missHabit(makeCharacter({ currentHealth: 100 }), habit, leansPhysical, DAY_KEY, roll).attackType).toBe('physical');
+  });
+
+  it('treats a boss with no physicalShare (an older save) as 50/50', () => {
+    const habit = makeHabit({ difficulty: 'medium' });
+    const boss = makeBoss({ physicalAttack: 30, magicAttack: 10 });
+    expect(boss.physicalShare).toBeUndefined();
+    expect(missHabit(makeCharacter({ currentHealth: 100 }), habit, boss, DAY_KEY, () => 0.49).attackType).toBe('physical');
+    expect(missHabit(makeCharacter({ currentHealth: 100 }), habit, boss, DAY_KEY, () => 0.51).attackType).toBe('magic');
+  });
+
   it('never reduces currentHealth below 0', () => {
     const character = makeCharacter({ currentHealth: 1 });
     const habit = makeHabit({ difficulty: 'hard' });

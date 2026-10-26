@@ -110,7 +110,7 @@ export function questRewardTier(difficulty: Difficulty): 'Small' | 'Medium' | 'L
  * regular and side quests.
  */
 export function questMissDamage(quest: Quest, boss: Boss, rng: Rng): number {
-  const attackType: 'physical' | 'magic' = rng() < 0.5 ? 'physical' : 'magic';
+  const attackType: 'physical' | 'magic' = rng() < (boss.physicalShare ?? 0.5) ? 'physical' : 'magic';
   const attack = attackType === 'physical' ? boss.physicalAttack : boss.magicAttack;
   return attack * TUNING.MISS_DAMAGE_FACTOR * TUNING.WEEKLY_MISS_MULTIPLIER * (DIFFICULTY_WEIGHT[quest.difficulty] / 1.5);
 }

@@ -315,7 +315,17 @@ export function generateBoss(
         }
       : undefined;
 
-  return woundsAbility ? { ...boss, woundsAbility } : boss;
+  // Rolled after the Wounds ability for the same reason. A brute/arcane boss
+  // leans toward its own attack; a side-less one picks a side, but only when
+  // it actually leans, so an even split costs no extra roll.
+  const lean = parseFloat(pickWeighted<string>(TUNING.BOSS_ATTACK_LEAN_WEIGHTS, rng));
+  let leansPhysical = true;
+  if (emphasizedStat === 'magicAttack') leansPhysical = false;
+  else if (emphasizedStat !== 'physicalAttack' && lean > 0.5) leansPhysical = rng() < 0.5;
+  const physicalShare = leansPhysical ? lean : Math.round((1 - lean) * 100) / 100;
+  const leaningBoss = { ...boss, physicalShare };
+
+  return woundsAbility ? { ...leaningBoss, woundsAbility } : leaningBoss;
 }
 
 /**

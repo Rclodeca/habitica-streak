@@ -368,7 +368,7 @@ export function missHabit(
   boss: Boss;
   updatedHabit: Habit;
   wasCrit: boolean;
-  // Which of the boss's two attacks the coin-flip below picked — surfaced
+  // Which of the boss's two attacks the roll below picked — surfaced
   // for the activity log so a boss hit reads as physical or magic.
   attackType: 'physical' | 'magic';
   // Capped at the boss's maxHealth, so this is the actual health gained,
@@ -379,7 +379,7 @@ export function missHabit(
   woundsApplied?: WoundsStatusEffect;
 } {
   const updatedHabit = resetHabitStreak(habit);
-  const attackType: 'physical' | 'magic' = rng() < 0.5 ? 'physical' : 'magic';
+  const attackType: 'physical' | 'magic' = rng() < (boss.physicalShare ?? 0.5) ? 'physical' : 'magic';
   const attack = attackType === 'physical' ? boss.physicalAttack : boss.magicAttack;
   const wasCrit = rng() < boss.critChance;
   const woundsRollSucceeded = boss.woundsAbility ? rng() < boss.woundsAbility.hitChance : false;

@@ -226,6 +226,11 @@ export const TUNING = {
   // (brute3x hit 100% of max HP by boss 10 at the old ramp), so they need
   // to stay rare for longer, not just cap out early.
   BOSS_PERSONALITY_RAMP_END_INDEX: 50,
+  // How hard a boss's hits lean toward one damage type, rolled once at
+  // generation and hidden from the player: the share of its hits that go to
+  // the favored type (0.5 = an even split). A brute/arcane boss always
+  // favors its own type; every other personality picks a side at random.
+  BOSS_ATTACK_LEAN_WEIGHTS: { '0.5': 50, '0.6': 25, '0.7': 25 },
   // Every boss rolls a crit chance independently of its personality: usually
   // a small 0-3% roll, but a rare 5% chance instead grants a flat 20% —
   // a dangerous outlier rather than a smooth curve.

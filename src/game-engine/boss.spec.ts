@@ -494,6 +494,84 @@ describe('generateBoss — Wounds ability', () => {
   });
 });
 
+describe('generateBoss — hidden attack lean', () => {
+  // generateBoss is passed difficultyModifier 1 so the forced first roll is the personality pick.
+  const bossFor = (personality: Personality, seed: number) =>
+    generateBoss(1, forcedPersonalityRng(FORCED_ROLL_FOR[personality], seed), 1);
+
+  it('always rolls a physicalShare of 0.3, 0.4, 0.5, 0.6 or 0.7', () => {
+    for (let seed = 0; seed < 300; seed++) {
+      const share = generateBoss(1, createRng(seed)).physicalShare;
+      expect([0.3, 0.4, 0.5, 0.6, 0.7].some((allowed) => Math.abs((share as number) - allowed) < 1e-9)).toBe(true);
+    }
+  });
+
+  it('rolls an even split about half the time, 60/40 about a quarter and 70/30 about a quarter', () => {
+    const iterations = 4000;
+    let even = 0;
+    let sixty = 0;
+    let seventy = 0;
+    for (let seed = 0; seed < iterations; seed++) {
+      const share = generateBoss(1, createRng(seed)).physicalShare as number;
+      const favored = Math.max(share, 1 - share);
+      if (Math.abs(favored - 0.5) < 1e-9) even++;
+      else if (Math.abs(favored - 0.6) < 1e-9) sixty++;
+      else seventy++;
+    }
+    expect(even / iterations).toBeGreaterThan(0.45);
+    expect(even / iterations).toBeLessThan(0.55);
+    expect(sixty / iterations).toBeGreaterThan(0.2);
+    expect(sixty / iterations).toBeLessThan(0.3);
+    expect(seventy / iterations).toBeGreaterThan(0.2);
+    expect(seventy / iterations).toBeLessThan(0.3);
+  });
+
+  it.each(['brute', 'brute3x', 'brute4x', 'brute5x'] as const)("never leans a '%s' boss toward magic", (personality) => {
+    for (let seed = 0; seed < 300; seed++) {
+      expect(bossFor(personality, seed).physicalShare).toBeGreaterThanOrEqual(0.5);
+    }
+  });
+
+  it.each(['arcane', 'arcane3x', 'arcane4x', 'arcane5x'] as const)("never leans an '%s' boss toward physical", (personality) => {
+    for (let seed = 0; seed < 300; seed++) {
+      expect(bossFor(personality, seed).physicalShare).toBeLessThanOrEqual(0.5);
+    }
+  });
+
+  it.each(['balanced', 'tank', 'armored', 'warded'] as const)("leans a '%s' boss either way", (personality) => {
+    let towardPhysical = 0;
+    let towardMagic = 0;
+    for (let seed = 0; seed < 600; seed++) {
+      const share = bossFor(personality, seed).physicalShare as number;
+      if (share > 0.5 + 1e-9) towardPhysical++;
+      if (share < 0.5 - 1e-9) towardMagic++;
+    }
+    expect(towardPhysical).toBeGreaterThan(50);
+    expect(towardMagic).toBeGreaterThan(50);
+  });
+
+  it('leaves every other rolled stat exactly as it was before the lean existed, for a given seed', () => {
+    // Rolled after the Wounds ability, so the lean can't shift any earlier rng() draw.
+    // Seed 42 at index 5 was captured before the lean was added.
+    const { physicalShare, ...rest } = generateBoss(5, createRng(42));
+    expect(physicalShare).toBeDefined();
+    expect(rest).toEqual({
+      index: 5,
+      personality: 'warded',
+      maxHealth: 1935.5478662028272,
+      health: 1935.5478662028272,
+      physicalAttack: 634.2983434954642,
+      magicAttack: 664.0939034641902,
+      armor: 229.74824406077414,
+      magicResist: 322.13730417487795,
+      critChance: 0.005244416962377727,
+      reflectPct: 0,
+      lifestealPct: 0,
+      difficultyModifier: 1.0202207503840328,
+    });
+  });
+});
+
 describe('expectedLevelForBossIndex', () => {
   const points = TUNING.EXPECTED_LEVEL_BY_BOSS_INDEX;
 

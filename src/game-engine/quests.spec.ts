@@ -167,6 +167,15 @@ describe('questMissDamage', () => {
     expect(hard).toBeCloseTo(medium * (DIFFICULTY_WEIGHT.hard / DIFFICULTY_WEIGHT.medium), 10);
   });
 
+  it("uses the boss's physicalShare as the cutoff between a physical and a magic hit", () => {
+    const quest = makeQuest({ difficulty: 'medium' });
+    const roll = () => 0.4; // physical at 50/50 and at a 70% physical lean, magic at a 30% one
+    const leansMagic = makeBoss({ physicalAttack: 100, magicAttack: 10, physicalShare: 0.3 });
+    const leansPhysical = makeBoss({ physicalAttack: 100, magicAttack: 10, physicalShare: 0.7 });
+    expect(questMissDamage(quest, leansMagic, roll)).toBeCloseTo(bossMissDamage(10) * TUNING.WEEKLY_MISS_MULTIPLIER, 10);
+    expect(questMissDamage(quest, leansPhysical, roll)).toBeCloseTo(bossMissDamage(100) * TUNING.WEEKLY_MISS_MULTIPLIER, 10);
+  });
+
   it('uses the CURRENT boss and is identical for side quests', () => {
     const quest = makeQuest({ difficulty: 'medium' });
     const boss = makeBoss({ physicalAttack: 100, magicAttack: 100 });
