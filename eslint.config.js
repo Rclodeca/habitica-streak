@@ -35,6 +35,17 @@ export default [
     },
   },
   {
+    // Node build scripts: the item icon pipeline and the item catalog page.
+    files: ['scripts/**/*.cjs', 'scripts/**/*.ts'],
+    languageOptions: {
+      globals: { require: 'readonly', module: 'writable', process: 'readonly', Buffer: 'readonly', __dirname: 'readonly', console: 'readonly' },
+    },
+  },
+  {
+    files: ['scripts/**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs' },
+  },
+  {
     ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
   },
 ];
