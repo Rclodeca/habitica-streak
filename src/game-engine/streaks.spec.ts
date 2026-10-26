@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
+import {
+  completeHabitStreak,
+  migrateHabitRank,
+  nextRankMilestone,
+  rankForStreak,
+  rankMultiplier,
+  resetHabitStreak,
+  streakMultiplier,
+} from './streaks';
 import type { Habit } from './types';
 
 function makeHabit(overrides: Partial<Habit> = {}): Habit {
@@ -126,5 +134,43 @@ describe('resetHabitStreak', () => {
     const result = resetHabitStreak(habit);
     expect(result).not.toBe(habit);
     expect(habit.streakCount).toBe(5);
+  });
+});
+
+describe('skill ranks', () => {
+  it('counts reached milestones per period', () => {
+    expect([9, 10, 49, 50, 500, 9999].map((s) => rankForStreak(s, 'daily'))).toEqual([0, 1, 3, 4, 8, 8]);
+    expect([2, 3, 9, 10, 167].map((s) => rankForStreak(s, 'weekly'))).toEqual([0, 1, 2, 3, 8]);
+  });
+  it('names the next milestone, none past rank 8', () => {
+    expect(nextRankMilestone(0, 'daily')).toBe(10);
+    expect(nextRankMilestone(5, 'daily')).toBe(200);
+    expect(nextRankMilestone(2, 'weekly')).toBe(10);
+    expect(nextRankMilestone(8, 'daily')).toBeUndefined();
+  });
+  it('ranks up on reaching the next milestone, and only then', () => {
+    expect(completeHabitStreak(makeHabit({ streakCount: 9, rank: 0 })).habit.rank).toBe(1);
+    expect(completeHabitStreak(makeHabit({ streakCount: 49, rank: 3 })).habit.rank).toBe(4);
+    expect(completeHabitStreak(makeHabit({ streakCount: 2, period: 'weekly' })).habit.rank).toBe(1);
+    expect(completeHabitStreak(makeHabit({ streakCount: 599, rank: 8 })).habit.rank).toBe(8);
+  });
+  it('a rank III skill rebuilding after a miss keeps rank III through 10, 20 and 30', () => {
+    for (const s of [9, 19, 29]) expect(completeHabitStreak(makeHabit({ streakCount: s, rank: 3 })).habit.rank).toBe(3);
+  });
+  it('a miss resets the streak but never the rank', () => {
+    expect(resetHabitStreak(makeHabit({ streakCount: 40, rank: 3 }))).toMatchObject({ streakCount: 0, rank: 3 });
+  });
+  it('multiplies by 1 + rank + 1% a day (healing +25% a rank, weeklies 3% a week)', () => {
+    expect(rankMultiplier(makeHabit({ rank: 5, streakCount: 112 }))).toBeCloseTo(7.12);
+    expect(rankMultiplier(makeHabit({ rank: 8, streakCount: 500 }))).toBeCloseTo(14);
+    expect(rankMultiplier(makeHabit({ rank: 2, streakCount: 23, damageType: 'healing' }))).toBeCloseTo(1.73);
+    expect(rankMultiplier(makeHabit({ rank: 2, streakCount: 9, period: 'weekly' }))).toBeCloseTo(3.27);
+    expect(rankMultiplier(makeHabit({ streakCount: 0 }))).toBe(1); // no rank field
+  });
+  it('migrates a missing rank from the current streak, and only a missing one', () => {
+    expect(migrateHabitRank(makeHabit({ streakCount: 34 })).rank).toBe(3);
+    expect(migrateHabitRank(makeHabit({ streakCount: 12, period: 'weekly' })).rank).toBe(3);
+    const ranked = makeHabit({ streakCount: 50, rank: 2 });
+    expect(migrateHabitRank(ranked)).toBe(ranked);
   });
 });

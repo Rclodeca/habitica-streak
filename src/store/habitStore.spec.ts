@@ -102,3 +102,26 @@ describe('habitStore.uncheckDailiesCompletedIn', () => {
     expect(store.habits).toEqual(before);
   });
 });
+
+describe('habitStore.initFromSave ranks', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it('ranks a saved habit from before ranks by its streak', () => {
+    const store = useHabitStore();
+    const saved = {
+      id: 'h',
+      name: 'Run',
+      period: 'daily' as const,
+      difficulty: 'medium' as const,
+      damageType: 'physical' as const,
+      isBad: false,
+      streakCount: 21,
+      lastCompletedPeriodKey: null,
+      lastCheckedPeriodKey: null,
+    };
+    store.initFromSave([saved], createRng(1));
+    expect(store.habits[0].rank).toBe(2);
+  });
+});

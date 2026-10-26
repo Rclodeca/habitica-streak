@@ -225,6 +225,8 @@ export interface Habit {
   isOverdrive?: boolean; // can be activated up to OVERDRIVE_MAX_EXTRA_USES extra times per period, each at reduced damage
   overdrivePeriodKey?: string | null; // period key overdriveUsesThisPeriod applies to — a stale key means 0 used
   overdriveUsesThisPeriod?: number;
+  rank?: number; // 0-8, earned at streak milestones and never lost (see rankForStreak); undefined reads as 0
+  createdDayKey?: string; // dailyPeriodKey of the day it was added; undefined (older saves) means it can be removed any time
 }
 
 /** 'regular' quests pay EXP from the weekly curve; 'side' quests (offered by an event) pay an item and no EXP. */

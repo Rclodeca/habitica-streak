@@ -1,4 +1,4 @@
-import type { BossSkillId, Breakpoint } from '../types';
+import type { BossSkillId, Breakpoint, Period } from '../types';
 
 export const TUNING = {
   // Scaled up ~30x from the original 10/10/6/50 (see PROGRESS.md "Balance
@@ -48,6 +48,18 @@ export const TUNING = {
   // Weeklies take much longer to stack a streak (once/week vs. every day),
   // so each streak count is worth 3x as much as a daily's.
   WEEKLY_STREAK_MULTIPLIER_PER_COUNT: 0.30,
+  // Streak milestones that earn a skill's ranks I-VIII (weeklies count weeks).
+  // A rank is permanent: a miss drops the streak to 0, never the rank.
+  RANK_MILESTONES: {
+    daily: [10, 20, 30, 50, 100, 200, 300, 500],
+    weekly: [3, 7, 10, 17, 33, 67, 100, 167],
+  } as Record<Period, number[]>,
+  // A hit's multiplier is 1 + RANK_BONUS * rank + STREAK_BONUS * streak
+  // (see rankMultiplier in streaks.ts). Healing ranks are worth a quarter.
+  RANK_BONUS: 1.0,
+  HEAL_RANK_BONUS: 0.25,
+  STREAK_BONUS: 0.01,
+  WEEKLY_STREAK_BONUS: 0.03,
   // Boss health at index 1, and its per-index exponential growth. Armor and
   // magicResist no longer draw from a shared power budget (a fixed RESIST_K
   // made `resist / (resist + K)` saturate past ~80% by boss 20 for every

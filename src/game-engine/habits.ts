@@ -37,6 +37,7 @@ export function createHabit(
     damageType: pickWeighted<DamageType>(damageTypeWeights(isFirstHabit), rng),
     isBad,
     streakCount: 0,
+    rank: 0,
     lastCompletedPeriodKey: null,
     lastCheckedPeriodKey: null,
     ...(dueDays && { days: dueDays }),

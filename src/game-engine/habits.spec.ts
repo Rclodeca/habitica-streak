@@ -37,6 +37,7 @@ describe('createHabit', () => {
     expect(habit.difficulty).toBe('easy');
     expect(habit.isBad).toBe(false);
     expect(habit.streakCount).toBe(0);
+    expect(habit.rank).toBe(0);
     expect(habit.lastCompletedPeriodKey).toBeNull();
     expect(habit.lastCheckedPeriodKey).toBeNull();
   });

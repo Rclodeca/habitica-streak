@@ -64,7 +64,17 @@ export {
   resetLevelRewards,
 } from './habits';
 
-export { completeHabitStreak, resetHabitStreak, streakMultiplier } from './streaks';
+export {
+  completeHabitStreak,
+  migrateHabitRank,
+  nextRankMilestone,
+  rankBonus,
+  rankForStreak,
+  rankMultiplier,
+  resetHabitStreak,
+  streakBonus,
+  streakMultiplier,
+} from './streaks';
 
 export {
   applyResist,

@@ -2,7 +2,7 @@
 // randomization live here — everything delegates into `game-engine`.
 
 import { defineStore } from 'pinia';
-import { createHabit, migrateHabitDamageType, normalizeDays } from '../game-engine';
+import { createHabit, migrateHabitDamageType, migrateHabitRank, normalizeDays } from '../game-engine';
 import type { DamageType, Difficulty, Habit, Period, Rng } from '../game-engine';
 
 export const useHabitStore = defineStore('habit', {
@@ -29,9 +29,13 @@ export const useHabitStore = defineStore('habit', {
     },
   },
   actions: {
-    /** Hydrates from a save slice (re-rolling any habit whose damage type was removed), or bootstraps an empty habit list. */
+    /**
+     * Hydrates from a save slice (re-rolling any habit whose damage type was
+     * removed, and ranking a habit from before ranks by its streak), or
+     * bootstraps an empty habit list.
+     */
     initFromSave(saved: Habit[] | null, rng: Rng) {
-      this.habits = (saved ?? []).map((habit) => migrateHabitDamageType(habit, rng));
+      this.habits = (saved ?? []).map((habit) => migrateHabitRank(migrateHabitDamageType(habit, rng)));
     },
 
     /**
