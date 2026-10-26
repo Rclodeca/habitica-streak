@@ -9,10 +9,11 @@ import { useHabitStore } from '../../store/habitStore';
 import StatIcon from '../ui/StatIcon.vue';
 import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
 import { MIN_STREAK_SHOWN, streakStyleFor } from './habitDisplay';
+import RankDiamonds from './RankDiamonds.vue';
 import SkillSigil from './SkillSigil.vue';
 
 // A skill row for the Reroll popup: the main list's row (name, sigil, streak,
-// difficulty pips, damage), but a pick marker where the check would be.
+// rank diamonds, damage), but a pick marker where the check would be.
 const props = defineProps<{ habit: Habit; selected: boolean }>();
 defineEmits<{ pick: [] }>();
 
@@ -28,7 +29,6 @@ const effectiveDamage = computed(
 );
 
 const showStreak = computed(() => props.habit.streakCount >= MIN_STREAK_SHOWN);
-const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);
 const hasSigil = computed(() => !!(props.habit.isSpecial || props.habit.isUlt));
 const nameHead = computed(() => props.habit.name.slice(0, props.habit.name.lastIndexOf(' ') + 1));
 const nameTail = computed(() => props.habit.name.slice(nameHead.value.length));
@@ -51,9 +51,7 @@ const nameTail = computed(() => props.habit.name.slice(nameHead.value.length));
         <span class="streak" :style="streakStyleFor(habit.streakCount)">
           <template v-if="showStreak"><StatIcon name="streak" :size="12" />{{ habit.streakCount }}</template>
         </span>
-        <span class="pips" :title="habit.difficulty">
-          <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= difficultyPips }" />
-        </span>
+        <RankDiamonds :rank="habit.rank ?? 0" />
       </span>
       <span class="damage">{{ effectiveDamage.toFixed(0) }}</span>
     </button>
@@ -138,22 +136,6 @@ const nameTail = computed(() => props.habit.name.slice(nameHead.value.length));
   justify-content: flex-end;
   gap: 0.25rem;
   min-width: 3.5rem;
-}
-
-.pips {
-  display: flex;
-  gap: 0.2rem;
-}
-
-.pip {
-  width: 6px;
-  height: 6px;
-  background: var(--border);
-  border-radius: 50%;
-}
-
-.pip.lit {
-  background: var(--accent);
 }
 
 .damage {

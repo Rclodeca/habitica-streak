@@ -5,8 +5,6 @@ import Modal from './Modal.vue';
 
 const { misses, rewards, hasPending, isOverridden, toggleOverride, acknowledge } = useMissedSkillsGate();
 
-const PIPS = { easy: 1, medium: 2, hard: 3 };
-
 // An override flips the detected outcome, so a card's tone/label follows the
 // effective outcome rather than the section it sits in.
 function strikesBack(outcome: 'penalty' | 'reward', habitId: string): boolean {
@@ -34,9 +32,6 @@ const anyBlow = computed(
           <div class="main">
             <span class="name">{{ miss.habitName }}</span>
             <span class="meta">
-              <span class="pips" :title="miss.difficulty">
-                <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= PIPS[miss.difficulty] }" />
-              </span>
               <span>{{ miss.period }}</span>
             </span>
           </div>
@@ -63,9 +58,6 @@ const anyBlow = computed(
           <div class="main">
             <span class="name">{{ reward.habitName }}</span>
             <span class="meta">
-              <span class="pips" :title="reward.difficulty">
-                <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= PIPS[reward.difficulty] }" />
-              </span>
               <span>{{ reward.period }}</span>
             </span>
           </div>
@@ -149,22 +141,6 @@ const anyBlow = computed(
   color: var(--text);
   font-size: 0.8rem;
   text-transform: capitalize;
-}
-
-.pips {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.pip {
-  width: 0.5rem;
-  height: 0.5rem;
-  background: var(--border);
-  border-radius: 50%;
-}
-
-.pip.lit {
-  background: var(--tone);
 }
 
 .side {

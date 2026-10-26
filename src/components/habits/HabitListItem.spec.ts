@@ -2,8 +2,8 @@
 
 import { enableAutoUnmount, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { defineComponent, h } from 'vue';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { defineComponent, h, nextTick } from 'vue';
 import { createRng } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { TUNING } from '../../game-engine/constants/tuning';
@@ -89,5 +89,45 @@ describe('HabitListItem', () => {
     for (let i = 0; i < TUNING.OVERDRIVE_MAX_EXTRA_USES; i++) await check.trigger('click');
     expect(check.classes()).not.toContain('overdrive-ready');
     expect(check.attributes('disabled')).toBeDefined();
+  });
+
+  describe('rank', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('shows one diamond per rank, none unranked, and no difficulty pips', () => {
+      const unranked = mountSkill({ rank: 0 });
+      expect(unranked.find('.rank-diamonds').exists()).toBe(false);
+      expect(unranked.find('.pips').exists()).toBe(false);
+      unranked.unmount();
+      setActivePinia((pinia = createPinia()));
+      const ranked = mountSkill({ rank: 3 });
+      expect(ranked.findAll('.rank-diamonds i')).toHaveLength(3);
+      expect(ranked.find('.rank-diamonds').attributes('aria-label')).toBe('Rank III');
+    });
+
+    it('flares the row once on a rank-up, then clears', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountSkill({ rank: 2 });
+      const habitStore = useHabitStore();
+      habitStore.updateHabit({ ...habitStore.habits[0], rank: 3 });
+      await nextTick();
+      expect(wrapper.find('.habit-item').classes()).toContain('flare');
+      expect(wrapper.find('.rank-ghost').text()).toBe('Rank III');
+      vi.advanceTimersByTime(2400);
+      await nextTick();
+      expect(wrapper.find('.habit-item').classes()).not.toContain('flare');
+      expect(wrapper.find('.rank-ghost').exists()).toBe(false);
+    });
+
+    it('plays nothing on a streak-only change or when mounted ranked', async () => {
+      const wrapper = mountSkill({ rank: 5, streakCount: 60 });
+      expect(wrapper.find('.habit-item').classes()).not.toContain('flare');
+      const habitStore = useHabitStore();
+      habitStore.updateHabit({ ...habitStore.habits[0], streakCount: 61 });
+      await nextTick();
+      expect(wrapper.find('.habit-item').classes()).not.toContain('flare');
+    });
   });
 });

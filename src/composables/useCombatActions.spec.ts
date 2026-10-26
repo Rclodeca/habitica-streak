@@ -21,6 +21,7 @@ import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
 import { useFallenHero } from './useFallenHero';
 import { setHitPlayer } from './useHitFeed';
+import type { Habit } from '../game-engine';
 import type { Hit } from './useHitFeed';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
@@ -870,6 +871,34 @@ describe('useCombatActions', () => {
       expect(amount).toBeGreaterThanOrEqual(expToNextLevel(10) * 0.4 * 0.9);
       expect(amount).toBeLessThanOrEqual(expToNextLevel(10) * 0.4 * 1.1);
       expect(characterStore.character.exp).toBeCloseTo(expToNextLevel(10) * 0.2 + amount, 10);
+    });
+  });
+
+  describe('rank-up log', () => {
+    function checkOff(overrides: Partial<Habit>) {
+      const bossStore = useBossStore();
+      const habitStore = useHabitStore();
+      const { addHabit, checkOffHabit } = useCombatActions();
+      bossStore.setBoss({ ...bossStore.boss, health: 1e9, maxHealth: 1e9 });
+      const habit = addHabit('Run', 'daily', 'medium', false);
+      habitStore.updateHabit({ ...habitStore.habits[0], ...overrides });
+      checkOffHabit(habit.id);
+      return useActivityLogStore().entries;
+    }
+
+    it('logs a rank-up above the skill\'s own entry', () => {
+      const entries = checkOff({ streakCount: 9, rank: 0, damageType: 'physical' });
+      expect(entries[0]).toMatchObject({ kind: 'rank-up', habitName: 'Run', rank: 1 });
+      expect(entries[1]).toMatchObject({ kind: 'skill-damage', habitName: 'Run' });
+    });
+
+    it('logs nothing while a ranked skill rebuilds its streak', () => {
+      expect(checkOff({ streakCount: 29, rank: 3, damageType: 'physical' }).some((e) => e.kind === 'rank-up')).toBe(false);
+    });
+
+    it('logs the next rank once the streak passes it', () => {
+      // Streak 50 is also a milestone, so a level-up may land above it.
+      expect(checkOff({ streakCount: 49, rank: 3, damageType: 'physical' }).find((e) => e.kind === 'rank-up')).toMatchObject({ rank: 4 });
     });
   });
 });

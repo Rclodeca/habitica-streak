@@ -28,3 +28,10 @@ export function streakStyleFor(streakCount: number) {
     color: `color-mix(in srgb, var(--text-h) ${tier.bright}%, var(--text))`,
   };
 }
+
+const RANK_NUMERALS = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+
+/** A rank as a Roman numeral: '' for unranked, then I-VIII. */
+export function rankNumeral(rank: number): string {
+  return RANK_NUMERALS[rank] ?? '';
+}

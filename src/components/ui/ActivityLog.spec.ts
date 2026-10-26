@@ -32,6 +32,7 @@ describe('ActivityLog — boss skills', () => {
     [{ kind: 'boss-skill', skill: 'wounds', outcome: 'resisted' }, 'Wounds resisted'],
     [{ kind: 'boss-skill', skill: 'doom', outcome: 'failed' }, 'A boss skill fails'],
     [{ kind: 'doom-landed', amount: 512.6 }, 'Doom — took 513 damage'],
+    [{ kind: 'rank-up', habitName: 'Run', rank: 5 }, '"Run" · Rank V'],
   ] as const)('renders %o as "%s"', (entry, text) => {
     expect(lineFor(entry)).toBe(text);
   });

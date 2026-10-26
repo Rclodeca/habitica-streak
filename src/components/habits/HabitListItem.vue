@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { dailyPeriodKey, dayOfWeekIndex, habitDamageBreakdown, isDueOn, nextDueDay, overdriveUsesRemaining, periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
@@ -10,7 +10,8 @@ import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
 import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
 import StatIcon from '../ui/StatIcon.vue';
-import { MIN_STREAK_SHOWN, streakStyleFor } from './habitDisplay';
+import { MIN_STREAK_SHOWN, rankNumeral, streakStyleFor } from './habitDisplay';
+import RankDiamonds from './RankDiamonds.vue';
 import SkillSigil from './SkillSigil.vue';
 import { WEEKDAY_SHORT } from './weekdays';
 
@@ -49,7 +50,22 @@ const damageTypeColor = computed(() => DAMAGE_TYPE_COLORS[props.habit.damageType
 
 const showStreak = computed(() => props.habit.streakCount >= MIN_STREAK_SHOWN);
 const streakStyle = computed(() => streakStyleFor(props.habit.streakCount));
-const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);
+
+// A rank-up flares the row once: a gold sweep and the new rank rising off
+// it. Mounting with a rank, or a streak-only change, plays nothing.
+const RANK_FLARE_MS = 2400;
+const flareRank = ref(0);
+let flareTimer: ReturnType<typeof setTimeout> | undefined;
+watch(
+  () => props.habit.rank ?? 0,
+  (rank, before) => {
+    if (rank <= before) return;
+    flareRank.value = rank;
+    clearTimeout(flareTimer);
+    flareTimer = setTimeout(() => (flareRank.value = 0), RANK_FLARE_MS);
+  },
+);
+onBeforeUnmount(() => clearTimeout(flareTimer));
 
 // A Special or Ult skill's sigil travels with the name's last word, so it
 // never wraps onto a line alone.
@@ -80,7 +96,7 @@ function onZoneClick(event: MouseEvent) {
 </script>
 
 <template>
-  <li class="habit-item" :class="{ bad: habit.isBad, resting: isResting }" :style="{ '--c': damageTypeColor }" @click="$emit('open')">
+  <li class="habit-item" :class="{ bad: habit.isBad, resting: isResting, flare: flareRank > 0 }" :style="{ '--c': damageTypeColor }" @click="$emit('open')">
     <label class="check-zone" @click="onZoneClick">
       <input
         type="checkbox"
@@ -100,11 +116,10 @@ function onZoneClick(event: MouseEvent) {
       <span class="streak" :style="streakStyle" :title="showStreak ? `${habit.streakCount} streak` : undefined">
         <template v-if="showStreak"><StatIcon name="streak" :size="12" />{{ habit.streakCount }}</template>
       </span>
-      <span class="pips" :title="habit.difficulty">
-        <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= difficultyPips }" />
-      </span>
+      <RankDiamonds :rank="habit.rank ?? 0" />
     </span>
     <span class="damage">{{ effectiveDamage.toFixed(0) }}</span>
+    <span v-if="flareRank > 0" class="rank-ghost" aria-hidden="true">Rank {{ rankNumeral(flareRank) }}</span>
   </li>
 </template>
 
@@ -301,27 +316,11 @@ function onZoneClick(event: MouseEvent) {
   min-width: 3.5rem;
 }
 
-.pips {
-  display: flex;
-  gap: 0.2rem;
-}
-
 .next-day {
   padding: 0.1rem 0.35rem;
   border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 0.7rem;
-}
-
-.pip {
-  width: 6px;
-  height: 6px;
-  background: var(--border);
-  border-radius: 50%;
-}
-
-.pip.lit {
-  background: var(--accent);
 }
 
 .damage {
@@ -331,6 +330,69 @@ function onZoneClick(event: MouseEvent) {
   color: var(--c);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* The rank-up flare: one sweep across the row, and the new rank rising off
+   it. transform/opacity only. */
+.habit-item.flare {
+  overflow: hidden;
+}
+
+.habit-item.flare::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--accent) 28%, transparent) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: rank-sweep 1.1s ease-out forwards;
+  pointer-events: none;
+}
+
+.rank-ghost {
+  position: absolute;
+  right: 4rem;
+  top: 50%;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+  animation: rank-rise 2.4s ease-out forwards;
+}
+
+@keyframes rank-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes rank-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(-20%);
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-150%);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-180%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .habit-item.flare::after {
+    display: none;
+  }
+
+  .rank-ghost {
+    animation: none;
+    transform: translateY(-50%);
+  }
 }
 
 @media (max-width: 560px) {

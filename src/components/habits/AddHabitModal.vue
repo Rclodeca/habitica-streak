@@ -32,10 +32,10 @@ const periodOptions = computed<{ value: Period; label: string; hint: string }[]>
   { value: 'weekly', label: 'Weekly', hint: 'Every week' },
 ]);
 
-const difficultyOptions: { value: Difficulty; label: string; pips: number }[] = [
-  { value: 'easy', label: 'Easy', pips: 1 },
-  { value: 'medium', label: 'Medium', pips: 2 },
-  { value: 'hard', label: 'Hard', pips: 3 },
+const difficultyOptions: { value: Difficulty; label: string }[] = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'hard', label: 'Hard' },
 ];
 
 const typeOptions: { value: 'good' | 'bad'; label: string; hint: string }[] = [
@@ -113,9 +113,6 @@ function onSubmit() {
           >
             <input v-model="difficulty" type="radio" name="habit-difficulty" :value="opt.value" />
             <span class="card-title">{{ opt.label }}</span>
-            <span class="pips" aria-hidden="true">
-              <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= opt.pips }" />
-            </span>
           </label>
         </div>
       </fieldset>
@@ -256,22 +253,6 @@ function onSubmit() {
 .card-hint {
   color: var(--text);
   font-size: 0.8rem;
-}
-
-.pips {
-  display: flex;
-  gap: 0.3rem;
-}
-
-.pip {
-  width: 0.55rem;
-  height: 0.55rem;
-  background: var(--border);
-  border-radius: 50%;
-}
-
-.pip.lit {
-  background: var(--tone);
 }
 
 .pledge {

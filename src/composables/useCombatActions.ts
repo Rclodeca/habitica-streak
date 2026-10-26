@@ -247,6 +247,9 @@ export function useCombatActions() {
         milestoneExp: result.milestoneExp,
       });
     }
+    if ((result.updatedHabit.rank ?? 0) > (habit.rank ?? 0)) {
+      activityLogStore.addEntry({ kind: 'rank-up', habitName: habit.name, rank: result.updatedHabit.rank ?? 0 });
+    }
 
     // Overdrive uses pay no skill EXP (and no milestone, see completeHabit).
     const skillExp = options.isOverdriveUse

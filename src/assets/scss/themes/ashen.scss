@@ -857,6 +857,23 @@ $caps-lg: 0.85rem; // panel and popup titles
     box-shadow: none;
   }
 
+  // Skill ranks: gold diamonds, one per rank.
+  .rank-diamonds i {
+    background: radial-gradient(circle, var(--accent), var(--accent-solid) 60%, #8a6a2c);
+    box-shadow: 0 0 5px rgba(230, 207, 154, 0.35);
+  }
+
+  // A rank-up: a gold sweep across the row and the new rank rising off it.
+  .habit-item.flare::after {
+    background: linear-gradient(100deg, transparent 20%, rgba(230, 207, 154, 0.28) 50%, transparent 80%);
+  }
+
+  .rank-ghost {
+    @include engraved($caps-xs, 0.22em);
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(230, 207, 154, 0.7);
+  }
+
   // ---------- Quests ----------
 
   .quest-item {
@@ -1309,7 +1326,6 @@ $caps-lg: 0.85rem; // panel and popup titles
     box-shadow: none;
   }
 
-  li.card .pip.lit,
   .miss-card .pip.lit {
     background: var(--tone);
     border-color: var(--tone);

@@ -58,4 +58,11 @@ describe('AddHabitModal', () => {
     await w.setProps({ modelValue: true });
     expect(w.findAll('button.day.on')).toHaveLength(7);
   });
+
+  it('names the difficulties in words, without pips', () => {
+    const w = mountForm();
+    const titles = w.findAll('input[name="habit-difficulty"] + .card-title').map((t) => t.text());
+    expect(titles).toEqual(['Easy', 'Medium', 'Hard']);
+    expect(w.find('.pip').exists()).toBe(false);
+  });
 });

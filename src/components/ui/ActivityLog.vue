@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { bossSkillEffectText } from '../../game-engine';
 import { useActivityLogStore } from '../../store/activityLogStore';
+import { rankNumeral } from '../habits/habitDisplay';
 import StatIcon from './StatIcon.vue';
 
 const activityLogStore = useActivityLogStore();
@@ -64,6 +65,9 @@ const activityLogStore = useActivityLogStore();
         </template>
         <template v-else-if="entry.kind === 'ult-assigned'">
           <StatIcon name="ult" class="log-icon" /> "{{ entry.habitName }}" is now your Ult skill!
+        </template>
+        <template v-else-if="entry.kind === 'rank-up'">
+          <StatIcon name="streak" class="log-icon" /> "{{ entry.habitName }}" · Rank {{ rankNumeral(entry.rank) }}
         </template>
         <template v-else-if="entry.kind === 'overdrive-granted'">
           <StatIcon name="streak" class="log-icon" /> "{{ entry.habitName }}" gained Overdrive!
