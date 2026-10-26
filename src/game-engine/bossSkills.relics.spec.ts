@@ -9,8 +9,8 @@ vi.mock('./constants/itemCatalog', async (importOriginal) => {
   return {
     ITEM_CATALOG: [
       ...mod.ITEM_CATALOG,
-      { id: 'hushing-bell', name: 'Hushing Bell', icon: 'items/hushing-bell', type: 'equipment', rarity: 'relic', unlockLevel: 1, bonuses: [], effect: 'hushing-bell', effectText: 'Boss skills have a 50% chance to fail.' },
-      { id: 'omen-hourglass', name: 'Omen Hourglass', icon: 'items/omen-hourglass', type: 'equipment', rarity: 'relic', unlockLevel: 1, bonuses: [], effect: 'omen-hourglass', effectText: 'Boss skills deal half damage.' },
+      { id: 'hushing-bell', name: 'Hushing Bell', icon: 'items/hushing-bell', type: 'equipment', rarity: 'relic', bonuses: [], effect: 'hushing-bell', effectText: 'Boss skills have a 50% chance to fail.' },
+      { id: 'omen-hourglass', name: 'Omen Hourglass', icon: 'items/omen-hourglass', type: 'equipment', rarity: 'relic', bonuses: [], effect: 'omen-hourglass', effectText: 'Boss skills deal half damage.' },
     ],
   };
 });

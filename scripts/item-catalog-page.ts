@@ -1,8 +1,8 @@
 // Writes docs/mockups/item-catalog.html from the live ITEM_CATALOG.
 // Run: npm run item-catalog-page
 import { writeFileSync } from 'node:fs';
-import { describeItemBonus, describeItemBonusParts, ITEM_CATALOG } from '../src/game-engine/items';
-import type { ItemDef } from '../src/game-engine/items';
+import { describeItemBonus, describeItemBonusParts, dropRarityShares, ITEM_CATALOG } from '../src/game-engine/items';
+import type { DropRarity, ItemDef } from '../src/game-engine/items';
 
 const SPRITES = '../../public/sprites/';
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'relic'];
@@ -18,10 +18,14 @@ function theme(item: ItemDef): string {
   const top = [...item.bonuses].sort((a, b) => weight(b) - weight(a))[0];
   return top ? THEME_OF[top.stat] ?? top.stat : '—';
 }
+const dropNote = (rarity: DropRarity) =>
+  [1, 10, 30].map((level) => `${Math.round(dropRarityShares(level)[rarity] * 100)}% at L${level}`).join(' · ');
 const SECTIONS: { title: string; note: string; match: (i: ItemDef) => boolean }[] = [
-  { title: 'Always droppable', note: 'from any boss', match: (i) => i.rarity !== 'relic' && !i.levelGated && !i.unlockLevel },
-  { title: 'Unlocks at level 10 / 15 / 20', note: 'random per run', match: (i) => !!i.levelGated },
-  { title: 'Unlocks at level 30', note: 'fixed', match: (i) => i.rarity !== 'relic' && i.unlockLevel === 30 },
+  ...(['common', 'uncommon', 'rare', 'epic'] as const).map((rarity) => ({
+    title: rarity[0].toUpperCase() + rarity.slice(1),
+    note: `drops ${dropNote(rarity)}`,
+    match: (i: ItemDef) => i.rarity === rarity,
+  })),
   { title: 'Relics', note: 'side quests only', match: (i) => i.rarity === 'relic' },
 ];
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -33,12 +37,11 @@ function card(item: ItemDef): string {
       : describeItemBonusParts(item)
           .map((p) => `<li class="${p.text.startsWith('−') ? 'neg' : ''}"><b>${esc(p.text)}</b> ${esc(p.label)}</li>`)
           .join('');
-  const unlock = item.rarity === 'relic' ? `<span class="tag">L${item.unlockLevel}</span>` : '';
   return `<article class="card r-${item.rarity}" data-theme="${theme(item)}">
     <div class="icon"><span class="art"><img src="${SPRITES}${item.icon}.png" alt=""></span></div>
     <div class="body">
       <h3>${esc(item.name)}</h3>
-      <div class="meta"><span class="rarity">${item.rarity}</span><span class="tag">${theme(item)}</span>${unlock}</div>
+      <div class="meta"><span class="rarity">${item.rarity}</span><span class="tag">${theme(item)}</span></div>
       <ul>${stats}</ul>
       ${item.effectText ? `<p class="effect">${esc(item.effectText)}</p>` : ''}
     </div>
@@ -116,7 +119,7 @@ li.neg, li.neg b { color: var(--bad); }
 <body>
 <div class="page">
 <h1>Item catalog</h1>
-<p class="sub">${ITEM_CATALOG.length} items · grouped by unlock, sorted by rarity</p>
+<p class="sub">${ITEM_CATALOG.length} items · grouped by rarity, sorted by theme</p>
 <div class="filters">${themes.map((t, i) => `<button type="button" data-t="${t}" class="${i ? '' : 'on'}">${t}</button>`).join('')}</div>
 ${sections}
 </div>

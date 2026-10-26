@@ -111,18 +111,17 @@ describe('rollEventChoices', () => {
 });
 
 describe('side-quest event', () => {
-  const relicIdsAt = (level: number) => ITEM_CATALOG.filter((i) => i.rarity === 'relic' && (i.unlockLevel ?? 1) <= level).map((i) => i.id);
+  const relicIds = ITEM_CATALOG.filter((i) => i.rarity === 'relic').map((i) => i.id);
 
-  it('is ineligible once every relic unlocked at this level is earned, and eligible again at the next unlock', () => {
-    const earnedAllL1 = { earnedRelicIds: relicIdsAt(1) };
-    expect(ids(eligibleEvents(makeCharacter({ level: 1, ...earnedAllL1 }), []))).not.toContain('side-quest');
-    expect(ids(eligibleEvents(makeCharacter({ level: 15, ...earnedAllL1 }), []))).toContain('side-quest');
+  it('is ineligible once every relic is earned, at any level, and eligible while one is left', () => {
+    expect(ids(eligibleEvents(makeCharacter({ level: 1, earnedRelicIds: relicIds }), []))).not.toContain('side-quest');
+    expect(ids(eligibleEvents(makeCharacter({ level: 30, earnedRelicIds: relicIds }), []))).not.toContain('side-quest');
+    expect(ids(eligibleEvents(makeCharacter({ level: 1, earnedRelicIds: relicIds.slice(1) }), []))).toContain('side-quest');
   });
 
-  it('is ineligible once every available relic is owned or promised to a pending side quest', () => {
-    const l1 = relicIdsAt(1);
-    expect(ids(eligibleEvents(makeCharacter({ level: 1, ownedItemIds: l1 }), []))).not.toContain('side-quest');
-    const quests = l1.map((id, i) => createQuest(`q${i}`, 'easy', '2099-01-01', 'side', id));
+  it('is ineligible once every relic is owned or promised to a pending side quest', () => {
+    expect(ids(eligibleEvents(makeCharacter({ level: 1, ownedItemIds: relicIds }), []))).not.toContain('side-quest');
+    const quests = relicIds.map((id, i) => createQuest(`q${i}`, 'easy', '2099-01-01', 'side', id));
     expect(ids(eligibleEvents(makeCharacter({ level: 1 }), [], quests))).not.toContain('side-quest');
     expect(ids(eligibleEvents(makeCharacter({ level: 1 }), [], quests.slice(1)))).toContain('side-quest');
   });

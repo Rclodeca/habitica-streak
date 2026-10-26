@@ -1,5 +1,5 @@
 import { TUNING } from './constants/tuning';
-import { assignNewItemUnlockTiers, backfillUnlockTiers, ITEM_CATALOG } from './items';
+import { ITEM_CATALOG } from './items';
 import { pickRandom, type Rng } from './rng';
 import type { Character } from './types';
 
@@ -29,7 +29,6 @@ export function createCharacter(rng: Rng): Character {
     ownedItemIds: [],
     equippedItemIds: [],
     critChance: TUNING.BASE_CRIT_CHANCE,
-    newItemUnlockTiers: assignNewItemUnlockTiers(rng),
     takenEventIds: [],
     pendingEventPicks: 0,
     questsUnlocked: false,
@@ -76,39 +75,30 @@ export function nameCharacter(character: Character, rawName: string): Character 
  * the field is additive, not a shape break). Rolled the same way
  * `createCharacter` rolls every other stat; idempotent.
  *
- * Also backfills `newItemUnlockTiers` for a run that predates level-gated
- * items (or predates some of them) — without a tier a gated item can never
- * drop for that run —
- * and drops the stray `starterStats.expGain` / `expGainRebalanceApplied` an
- * older save carries from before the expGain skill type was removed, and the
- * `sideOnlyItemIds` pool from before relics.
+ * Also drops the stray `starterStats.expGain` / `expGainRebalanceApplied` an
+ * older save carries from before the expGain skill type was removed, the
+ * `sideOnlyItemIds` pool from before relics, and the `newItemUnlockTiers`
+ * from before every item could drop from level 1.
  */
 export function migrateCharacter(character: Character, rng: Rng): Character {
   const { trueDamage } = character.starterStats as Partial<Character['starterStats']>;
   const hasLegacyExpGain =
     'expGain' in character.starterStats || 'expGainRebalanceApplied' in (character as unknown as Record<string, unknown>);
   const needsStats = trueDamage === undefined;
-  const needsTiers = character.newItemUnlockTiers === undefined;
-  // Gated items added to the catalog after this run started need a tier too,
-  // or they could never drop for it.
-  const backfilledTiers = character.newItemUnlockTiers && backfillUnlockTiers(character.newItemUnlockTiers, rng);
-  const needsTierBackfill = backfilledTiers !== character.newItemUnlockTiers;
   // The pre-relic side-only item pool is gone; drop the stray field (a pending
   // side quest that promised one of those items still pays it).
   const hasLegacySideOnly = 'sideOnlyItemIds' in (character as unknown as Record<string, unknown>);
-  if (!needsStats && !needsTiers && !needsTierBackfill && !hasLegacySideOnly && !hasLegacyExpGain) return character;
+  const hasLegacyTiers = 'newItemUnlockTiers' in (character as unknown as Record<string, unknown>);
+  if (!needsStats && !hasLegacySideOnly && !hasLegacyExpGain && !hasLegacyTiers) return character;
   const starterStats = {
     ...character.starterStats,
     trueDamage: trueDamage ?? randomizeStat(TUNING.BASE_STATS.trueDamage, rng),
   };
-  const migrated = {
-    ...character,
-    starterStats,
-    newItemUnlockTiers: backfilledTiers ?? assignNewItemUnlockTiers(rng),
-  };
+  const migrated = { ...character, starterStats };
   delete (starterStats as { expGain?: number }).expGain;
   delete (migrated as { expGainRebalanceApplied?: boolean }).expGainRebalanceApplied;
   delete (migrated as { sideOnlyItemIds?: string[] }).sideOnlyItemIds;
+  delete (migrated as { newItemUnlockTiers?: unknown }).newItemUnlockTiers;
   return migrated;
 }
 

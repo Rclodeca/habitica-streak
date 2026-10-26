@@ -3,11 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { TUNING } from './constants/tuning';
 import {
-  assignNewItemUnlockTiers,
   availableRelics,
-  backfillUnlockTiers,
   describeItemBonus,
   describeItemBonusParts,
+  dropRarityShares,
   ITEM_CATALOG,
   itemBonusPercent,
   itemFlatBonus,
@@ -17,7 +16,7 @@ import {
   rollItemDrops,
   unownedDroppableItems,
 } from './items';
-import type { BoostableStat, ItemDef } from './items';
+import type { BoostableStat, DropRarity, ItemDef } from './items';
 import { createRng } from './rng';
 import { createQuest } from './quests';
 import type { Character } from './types';
@@ -32,7 +31,6 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     ownedItemIds: [],
     equippedItemIds: [],
     critChance: 0.01,
-    newItemUnlockTiers: {},
     ...overrides,
   };
 }
@@ -51,13 +49,18 @@ function hasPositive(item: ItemDef, stat: BoostableStat): boolean {
 }
 
 describe('ITEM_CATALOG', () => {
-  it('has 90 items with unique ids: 42 always-drop, 28 random-gated, 5 at L30, 15 relics', () => {
+  it('has 90 items with unique ids: 16 common, 17 uncommon, 28 rare, 14 epic, 15 relics', () => {
     expect(ITEM_CATALOG).toHaveLength(90);
     expect(new Set(ITEM_CATALOG.map((i) => i.id)).size).toBe(90);
-    expect(ITEM_CATALOG.filter((i) => i.rarity === 'relic')).toHaveLength(15);
-    expect(ITEM_CATALOG.filter((i) => i.levelGated)).toHaveLength(28);
-    expect(ITEM_CATALOG.filter((i) => i.rarity !== 'relic' && i.unlockLevel === 30)).toHaveLength(5);
-    expect(ITEM_CATALOG.filter((i) => i.rarity !== 'relic' && !i.levelGated && !i.unlockLevel)).toHaveLength(42);
+    const count = (rarity: string) => ITEM_CATALOG.filter((i) => i.rarity === rarity).length;
+    expect(['common', 'uncommon', 'rare', 'epic', 'relic'].map(count)).toEqual([16, 17, 28, 14, 15]);
+  });
+
+  it('has no level gates left on any item', () => {
+    for (const item of ITEM_CATALOG) {
+      expect('levelGated' in item, item.id).toBe(false);
+      expect('unlockLevel' in item, item.id).toBe(false);
+    }
   });
 
   it('never puts a flat bonus on a scaling stat', () => {
@@ -95,19 +98,11 @@ describe('ITEM_CATALOG', () => {
     }
   });
 
-  it('gives every epic an effect and effectText', () => {
+  it('gives every epic an effect and effectText, except the three stat-only epics', () => {
     const epics = ITEM_CATALOG.filter((i) => i.rarity === 'epic');
-    expect(epics.length).toBeGreaterThan(0);
-    for (const item of epics) {
-      expect(item.effect, item.id).toBeDefined();
+    expect(epics.filter((i) => !i.effect).map((i) => i.id).sort()).toEqual(['archons-halo', 'colossus-plate', 'sunpiercer-bow']);
+    for (const item of epics.filter((i) => i.effect)) {
       expect(item.effectText, item.id).toBeTruthy();
-    }
-  });
-
-  it('gives every relic an unlockLevel of 1, 15 or 30, and no relic is level-gated', () => {
-    for (const item of ITEM_CATALOG.filter((i) => i.rarity === 'relic')) {
-      expect([1, 15, 30], item.id).toContain(item.unlockLevel);
-      expect(item.levelGated).toBeUndefined();
     }
   });
 
@@ -115,11 +110,6 @@ describe('ITEM_CATALOG', () => {
     const consumables = ITEM_CATALOG.filter((item) => item.type === 'consumable');
     expect(consumables).toHaveLength(1);
     expect(consumables[0].id).toBe('phoenix-feather');
-  });
-
-  it('has more common items than rare items among the always-drop items', () => {
-    const alwaysDrop = ITEM_CATALOG.filter((i) => i.rarity !== 'relic' && !i.levelGated && !i.unlockLevel);
-    expect(alwaysDrop.filter((i) => i.rarity === 'common').length).toBeGreaterThan(alwaysDrop.filter((i) => i.rarity === 'rare').length);
   });
 
   it('has an icon file for every catalog item', () => {
@@ -146,39 +136,43 @@ describe('itemBonusPercent — drawbacks and enchanting', () => {
   });
 });
 
-describe('assignNewItemUnlockTiers', () => {
-  it('assigns every level-gated item id to exactly one of 10/15/20', () => {
-    const tiers = assignNewItemUnlockTiers(createRng(1));
-    const levelGatedIds = ITEM_CATALOG.filter((item) => item.levelGated).map((item) => item.id);
-    expect(Object.keys(tiers).sort()).toEqual(levelGatedIds.sort());
-    for (const id of levelGatedIds) {
-      expect([10, 15, 20]).toContain(tiers[id]);
+const SHARE_ORDER: DropRarity[] = ['common', 'uncommon', 'rare', 'epic'];
+
+function expectShares(shares: Record<DropRarity, number>, percents: number[]) {
+  SHARE_ORDER.forEach((rarity, i) => expect(shares[rarity] * 100, rarity).toBeCloseTo(percents[i], 6));
+}
+
+describe('dropRarityShares', () => {
+  it('matches the table at each row', () => {
+    expectShares(dropRarityShares(1), [75, 22, 3, 0]);
+    expectShares(dropRarityShares(5), [55, 33, 11, 1]);
+    expectShares(dropRarityShares(10), [30, 40, 25, 5]);
+    expectShares(dropRarityShares(20), [10, 40, 38, 12]);
+    expectShares(dropRarityShares(30), [0, 35, 48, 17]);
+  });
+
+  it('blends linearly between rows', () => {
+    expectShares(dropRarityShares(15), [20, 40, 31.5, 8.5]);
+    expectShares(dropRarityShares(25), [5, 37.5, 43, 14.5]);
+  });
+
+  it('uses the level-30 row for every level past it', () => {
+    expect(dropRarityShares(45)).toEqual(dropRarityShares(30));
+  });
+
+  it('always sums to 1', () => {
+    for (let level = 1; level <= 60; level++) {
+      for (const magpie of [false, true]) {
+        const shares = dropRarityShares(level, magpie);
+        expect(SHARE_ORDER.reduce((sum, rarity) => sum + shares[rarity], 0), `L${level}`).toBeCloseTo(1, 9);
+      }
     }
   });
 
-  it('splits 28 items into groups of 10/10/8 across tiers 10/15/20', () => {
-    const tiers = assignNewItemUnlockTiers(createRng(1));
-    const counts = { 10: 0, 15: 0, 20: 0 };
-    for (const tier of Object.values(tiers)) counts[tier] += 1;
-    expect(counts[10]).toBe(10);
-    expect(counts[15]).toBe(10);
-    expect(counts[20]).toBe(8);
-  });
-
-  it('produces a different assignment for a different seed', () => {
-    const tiersA = assignNewItemUnlockTiers(createRng(1));
-    const tiersB = assignNewItemUnlockTiers(createRng(2));
-    expect(tiersA).not.toEqual(tiersB);
-  });
-});
-
-describe('backfillUnlockTiers', () => {
-  it('keeps existing assignments and assigns every missing gated id to 10/15/20', () => {
-    const tiers = backfillUnlockTiers({ 'chaos-conduit': 15 }, createRng(1));
-    expect(tiers['chaos-conduit']).toBe(15);
-    const gatedIds = ITEM_CATALOG.filter((item) => item.levelGated).map((item) => item.id);
-    expect(Object.keys(tiers).sort()).toEqual(gatedIds.sort());
-    for (const id of gatedIds) expect([10, 15, 20]).toContain(tiers[id]);
+  it("doubles the rare and epic shares for Magpie's Diamond, then scales back to 100%", () => {
+    expectShares(dropRarityShares(1, true), [7500 / 103, 2200 / 103, 600 / 103, 0]);
+    expectShares(dropRarityShares(10, true), [3000 / 130, 4000 / 130, 5000 / 130, 1000 / 130]);
+    expectShares(dropRarityShares(30, true), [0, 3500 / 165, 9600 / 165, 3400 / 165]);
   });
 });
 
@@ -270,14 +264,9 @@ describe('rollItemDrops', () => {
   });
 
   it('never drops an already-owned item, and shrinks the count as the pool depletes', () => {
-    // Scoped to the non-level-gated items: this character's default level 1
-    // / empty newItemUnlockTiers already locks every level-gated item out of
-    // the droppable pool regardless of ownership (see the level-gating tests
-    // below), so slicing against the original (always-droppable) items keeps
-    // this test's ownership/depletion intent independent of that mechanic.
-    const original = ITEM_CATALOG.filter((item) => !item.levelGated && !item.unlockLevel && item.rarity !== 'relic');
-    const owned = original.slice(0, original.length - 2).map((item) => item.id); // 2 remain unowned
-    const character = makeCharacter({ ownedItemIds: owned });
+    const droppable = ITEM_CATALOG.filter((item) => item.rarity !== 'relic');
+    const owned = droppable.slice(0, droppable.length - 2).map((item) => item.id); // 2 remain unowned
+    const character = makeCharacter({ level: 10, ownedItemIds: owned });
     const result = rollItemDrops(character, 50, createRng(1)); // curve wants 3, only 2 remain
     expect(result).toHaveLength(2);
     for (const item of result) {
@@ -296,7 +285,7 @@ describe('rollItemDrops', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('drops far more common items than rare items across many rolls', () => {
+  it('drops far more common items than rare items across many rolls at level 1', () => {
     let commonCount = 0;
     let rareCount = 0;
     for (let seed = 0; seed < 300; seed++) {
@@ -307,55 +296,54 @@ describe('rollItemDrops', () => {
     expect(commonCount).toBeGreaterThan(rareCount * 2);
   });
 
-  it('drops the +50%-damage epic tier far less often than any other rarity, across many rolls', () => {
-    let epicCount = 0;
-    let otherCount = 0;
-    for (let seed = 0; seed < 2000; seed++) {
-      const [item] = rollItemDrops(makeCharacter(), 1, createRng(seed));
-      if (item.rarity === 'epic') epicCount += 1;
-      else otherCount += 1;
+  it("drops each rarity at about its level's share, however many items the rarity has", () => {
+    const counts: Record<string, number> = { common: 0, uncommon: 0, rare: 0, epic: 0 };
+    const rolls = 4000;
+    for (let seed = 0; seed < rolls; seed++) {
+      const [item] = rollItemDrops(makeCharacter({ level: 10 }), 1, createRng(seed));
+      counts[item.rarity] += 1;
     }
-    expect(otherCount).toBeGreaterThan(epicCount * 50);
+    const shares = dropRarityShares(10);
+    for (const rarity of SHARE_ORDER) expect(Math.abs(counts[rarity] / rolls - shares[rarity]), rarity).toBeLessThan(0.03);
   });
 
-  it('never drops a level-gated item before the character reaches its assigned unlock level', () => {
-    const tiers = assignNewItemUnlockTiers(createRng(1));
-    const lockedId = Object.keys(tiers).find((id) => tiers[id] > 1); // true for every id, since tiers are 10/15/20
-    const character = makeCharacter({ level: 1, newItemUnlockTiers: tiers });
-    for (let seed = 0; seed < 100; seed++) {
-      const result = rollItemDrops(character, 50, createRng(seed)); // boss 50: max drop-count curve
-      expect(result.map((item) => item.id)).not.toContain(lockedId);
+  it('never drops an epic at level 1, or a common from level 30', () => {
+    for (let seed = 0; seed < 300; seed++) {
+      expect(rollItemDrops(makeCharacter({ level: 1 }), 50, createRng(seed)).some((item) => item.rarity === 'epic')).toBe(false);
+      expect(rollItemDrops(makeCharacter({ level: 30 }), 50, createRng(seed)).some((item) => item.rarity === 'common')).toBe(false);
     }
   });
 
-  it('drops a level-gated item once the character reaches its assigned unlock level', () => {
-    const tiers = assignNewItemUnlockTiers(createRng(1));
-    const unlockedId = Object.keys(tiers)[0];
-    const unlockLevel = tiers[unlockedId];
-    const character = makeCharacter({ level: unlockLevel, newItemUnlockTiers: tiers, ownedItemIds: ITEM_CATALOG.filter((i) => i.id !== unlockedId).map((i) => i.id) });
-    const result = rollItemDrops(character, 50, createRng(1));
-    expect(result.map((item) => item.id)).toEqual([unlockedId]);
+  it('has no level gates: a former gated or level-30 item can drop at level 5', () => {
+    for (const id of ['chaos-conduit', 'starfall-staff', 'colossus-plate']) {
+      const character = makeCharacter({ level: 5, ownedItemIds: ITEM_CATALOG.filter((i) => i.id !== id).map((i) => i.id) });
+      expect(rollItemDrops(character, 50, createRng(1)).map((item) => item.id), id).toEqual([id]);
+    }
+  });
+
+  it('gives a fully owned rarity\'s share to the others', () => {
+    const owned = ITEM_CATALOG.filter((i) => i.rarity === 'common' || i.rarity === 'uncommon').map((i) => i.id);
+    for (let seed = 0; seed < 50; seed++) {
+      const result = rollItemDrops(makeCharacter({ level: 10, ownedItemIds: owned }), 50, createRng(seed));
+      expect(result).toHaveLength(TUNING.ITEM_DROP_MAX_COUNT);
+      expect(result.every((item) => item.rarity === 'rare' || item.rarity === 'epic')).toBe(true);
+    }
+  });
+
+  it('drops nothing, and offers nothing, when only 0% rarities are left', () => {
+    const allBut = (rarity: string) => ITEM_CATALOG.filter((i) => i.rarity !== rarity).map((i) => i.id);
+    const onlyCommons = makeCharacter({ level: 30, ownedItemIds: allBut('common') });
+    const onlyEpics = makeCharacter({ level: 1, ownedItemIds: allBut('epic') });
+    for (const character of [onlyCommons, onlyEpics]) {
+      expect(rollItemDrops(character, 50, createRng(1))).toEqual([]);
+      expect(unownedDroppableItems(character)).toEqual([]);
+    }
   });
 
   it('never drops a relic, at any level', () => {
-    const character = makeCharacter({ level: 40, newItemUnlockTiers: assignNewItemUnlockTiers(createRng(1)) });
+    const character = makeCharacter({ level: 40 });
     for (let seed = 0; seed < 200; seed++) {
       expect(rollItemDrops(character, 50, createRng(seed)).some((item) => item.rarity === 'relic')).toBe(false);
-    }
-  });
-
-  it('drops an L30-wave item only from level 30', () => {
-    const l30Ids = ITEM_CATALOG.filter((i) => i.rarity !== 'relic' && i.unlockLevel === 30).map((i) => i.id);
-    const others = ITEM_CATALOG.filter((i) => !l30Ids.includes(i.id)).map((i) => i.id);
-    expect(rollItemDrops(makeCharacter({ level: 29, ownedItemIds: others }), 50, createRng(1))).toEqual([]);
-    expect(rollItemDrops(makeCharacter({ level: 30, ownedItemIds: others }), 50, createRng(1)).length).toBeGreaterThan(0);
-  });
-
-  it('treats every level-gated item as locked when newItemUnlockTiers is undefined (old-save compatibility)', () => {
-    const character = makeCharacter({ level: 20, newItemUnlockTiers: undefined });
-    for (let seed = 0; seed < 50; seed++) {
-      const result = rollItemDrops(character, 50, createRng(seed));
-      expect(result.every((item) => !item.levelGated)).toBe(true);
     }
   });
 });
@@ -399,36 +387,38 @@ describe('describeItemBonusParts', () => {
 });
 
 describe('relics', () => {
-  it('Magpie Charm rolls drop rarity as if from a boss 10 indexes later', () => {
-    const epicShare = (equipped: string[]) => {
-      let epics = 0;
+  it("Magpie's Diamond drops rare and epic items at its doubled share", () => {
+    const rareOrEpicShare = (equipped: string[]) => {
+      let hits = 0;
       for (let seed = 0; seed < 3000; seed++) {
-        const [item] = rollItemDrops(makeCharacter({ equippedItemIds: equipped, ownedItemIds: equipped }), 1, createRng(seed));
-        if (item.rarity === 'epic' || item.rarity === 'rare') epics += 1;
+        const [item] = rollItemDrops(makeCharacter({ level: 10, equippedItemIds: equipped, ownedItemIds: equipped }), 1, createRng(seed));
+        if (item.rarity === 'epic' || item.rarity === 'rare') hits += 1;
       }
-      return epics;
+      return hits / 3000;
     };
-    expect(epicShare(['magpie-charm'])).toBeGreaterThan(epicShare([]) * 3);
+    expect(rareOrEpicShare(['magpie-charm'])).toBeCloseTo(6000 / 130 / 100, 1);
+    expect(rareOrEpicShare([])).toBeCloseTo(0.3, 1);
   });
 
-  const relicIdsAt = (level: number) => ITEM_CATALOG.filter((i) => i.rarity === 'relic' && (i.unlockLevel ?? 1) <= level).map((i) => i.id);
+  it("states Magpie's Diamond's effect plainly", () => {
+    expect(itemById('magpie-charm').effectText).toBe('Rare and epic items drop twice as often.');
+  });
 
-  it('availableRelics offers the relics unlocked at the character level', () => {
-    expect(availableRelics(makeCharacter({ level: 1 }), [])).toHaveLength(7);
-    expect(availableRelics(makeCharacter({ level: 15 }), [])).toHaveLength(12);
-    expect(availableRelics(makeCharacter({ level: 30 }), [])).toHaveLength(15);
-    expect(availableRelics(makeCharacter({ level: 1 }), []).every((i) => i.rarity === 'relic')).toBe(true);
+  const relicIds = ITEM_CATALOG.filter((i) => i.rarity === 'relic').map((i) => i.id);
+
+  it('availableRelics offers every relic from level 1', () => {
+    expect(availableRelics(makeCharacter({ level: 1 }), []).map((i) => i.id)).toEqual(relicIds);
   });
 
   it('availableRelics excludes earned, owned, and promised relics', () => {
-    const [a, b, c] = relicIdsAt(1);
+    const [a, b, c] = relicIds;
     const character = makeCharacter({ level: 1, earnedRelicIds: [a], ownedItemIds: [b] });
     const promised = createQuest('q', 'easy', '2099-01-01', 'side', c);
     const ids = availableRelics(character, [promised]).map((i) => i.id);
     expect(ids).not.toContain(a);
     expect(ids).not.toContain(b);
     expect(ids).not.toContain(c);
-    expect(ids).toHaveLength(4);
+    expect(ids).toHaveLength(relicIds.length - 3);
     // Once that quest is gone (missed), its relic is available again.
     expect(availableRelics(character, []).map((i) => i.id)).toContain(c);
   });

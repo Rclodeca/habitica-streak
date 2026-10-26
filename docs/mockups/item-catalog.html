@@ -61,9 +61,9 @@ li.neg, li.neg b { color: var(--bad); }
 <body>
 <div class="page">
 <h1>Item catalog</h1>
-<p class="sub">90 items · grouped by unlock, sorted by rarity</p>
+<p class="sub">90 items · grouped by rarity, sorted by theme</p>
 <div class="filters"><button type="button" data-t="All" class="on">All</button><button type="button" data-t="Physical" class="">Physical</button><button type="button" data-t="Magic" class="">Magic</button><button type="button" data-t="True" class="">True</button><button type="button" data-t="Crit" class="">Crit</button><button type="button" data-t="Tank" class="">Tank</button><button type="button" data-t="Support" class="">Support</button><button type="button" data-t="All damage" class="">All damage</button><button type="button" data-t="Consumable" class="">Consumable</button></div>
-<section><h2>Always droppable <small>42 · from any boss</small></h2><div class="grid"><article class="card r-common" data-theme="Crit">
+<section><h2>Common <small>16 · drops 75% at L1 · 30% at L10 · 0% at L30</small></h2><div class="grid"><article class="card r-common" data-theme="Crit">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/lucky-dagger.png" alt=""></span></div>
     <div class="body">
       <h3>Lucky Dagger</h3>
@@ -191,7 +191,7 @@ li.neg, li.neg b { color: var(--bad); }
       <ul><li class=""><b>+5%</b> True damage</li></ul>
       
     </div>
-  </article><article class="card r-uncommon" data-theme="Crit">
+  </article></div></section><section><h2>Uncommon <small>17 · drops 22% at L1 · 40% at L10 · 35% at L30</small></h2><div class="grid"><article class="card r-uncommon" data-theme="Crit">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/eagle-eye-lens.png" alt=""></span></div>
     <div class="body">
       <h3>Seeker's Compass</h3>
@@ -205,6 +205,22 @@ li.neg, li.neg b { color: var(--bad); }
       <h3>Archmage's Rod</h3>
       <div class="meta"><span class="rarity">uncommon</span><span class="tag">Magic</span></div>
       <ul><li class=""><b>+13%</b> Magic damage</li></ul>
+      
+    </div>
+  </article><article class="card r-uncommon" data-theme="Magic">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/scholars-grimoire.png" alt=""></span></div>
+    <div class="body">
+      <h3>Scholar's Grimoire</h3>
+      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Magic</span></div>
+      <ul><li class=""><b>+10%</b> Magic damage</li><li class=""><b>+5%</b> Magic penetration</li><li class=""><b>+10%</b> EXP gain</li></ul>
+      
+    </div>
+  </article><article class="card r-uncommon" data-theme="Magic">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/hexed-ring.png" alt=""></span></div>
+    <div class="body">
+      <h3>Hexed Ring</h3>
+      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Magic</span></div>
+      <ul><li class=""><b>+16%</b> Magic damage</li><li class="neg"><b>−5%</b> Max health</li></ul>
       
     </div>
   </article><article class="card r-uncommon" data-theme="Physical">
@@ -231,6 +247,14 @@ li.neg, li.neg b { color: var(--bad); }
       <ul><li class=""><b>+6%</b> Physical damage</li><li class=""><b>+3%</b> Lifesteal</li></ul>
       
     </div>
+  </article><article class="card r-uncommon" data-theme="Physical">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/warded-longsword.png" alt=""></span></div>
+    <div class="body">
+      <h3>Warded Longsword</h3>
+      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Physical</span></div>
+      <ul><li class=""><b>+10%</b> Physical damage</li><li class=""><b>+100</b> Magic resist</li></ul>
+      
+    </div>
   </article><article class="card r-uncommon" data-theme="Support">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/sacred-chalice.png" alt=""></span></div>
     <div class="body">
@@ -245,6 +269,30 @@ li.neg, li.neg b { color: var(--bad); }
       <h3>Rebirth Orb</h3>
       <div class="meta"><span class="rarity">uncommon</span><span class="tag">Support</span></div>
       <ul><li class=""><b>+10%</b> EXP gain</li></ul>
+      
+    </div>
+  </article><article class="card r-uncommon" data-theme="Support">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/serene-lotus-charm.png" alt=""></span></div>
+    <div class="body">
+      <h3>Serene Glowcap</h3>
+      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Support</span></div>
+      <ul><li class=""><b>+12%</b> Healing</li><li class=""><b>+12%</b> EXP gain</li></ul>
+      
+    </div>
+  </article><article class="card r-uncommon" data-theme="Support">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/pilgrims-blessing.png" alt=""></span></div>
+    <div class="body">
+      <h3>Pilgrim's Staff</h3>
+      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Support</span></div>
+      <ul><li class=""><b>+15%</b> Healing</li><li class=""><b>+5%</b> Max health</li><li class=""><b>+5%</b> EXP gain</li></ul>
+      
+    </div>
+  </article><article class="card r-uncommon" data-theme="Support">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/stalwart-sages-ring.png" alt=""></span></div>
+    <div class="body">
+      <h3>Stalwart Sage's Ring</h3>
+      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Support</span></div>
+      <ul><li class=""><b>+100</b> Magic resist</li><li class=""><b>+8%</b> Healing</li></ul>
       
     </div>
   </article><article class="card r-uncommon" data-theme="Tank">
@@ -263,6 +311,14 @@ li.neg, li.neg b { color: var(--bad); }
       <ul><li class=""><b>+150</b> Armor</li><li class=""><b>+5%</b> Max health</li></ul>
       
     </div>
+  </article><article class="card r-uncommon" data-theme="Tank">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/warding-sigil.png" alt=""></span></div>
+    <div class="body">
+      <h3>Warding Pendant</h3>
+      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Tank</span></div>
+      <ul><li class=""><b>+10%</b> Max health</li><li class=""><b>+150</b> Magic resist</li></ul>
+      
+    </div>
   </article><article class="card r-uncommon" data-theme="True">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/silver-stiletto.png" alt=""></span></div>
     <div class="body">
@@ -271,7 +327,7 @@ li.neg, li.neg b { color: var(--bad); }
       <ul><li class=""><b>+12%</b> True damage</li></ul>
       
     </div>
-  </article><article class="card r-rare" data-theme="Consumable">
+  </article></div></section><section><h2>Rare <small>28 · drops 3% at L1 · 25% at L10 · 48% at L30</small></h2><div class="grid"><article class="card r-rare" data-theme="Consumable">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/phoenix-feather.png" alt=""></span></div>
     <div class="body">
       <h3>Phoenix Feather</h3>
@@ -319,6 +375,22 @@ li.neg, li.neg b { color: var(--bad); }
       <ul><li class=""><b>+28%</b> Magic damage</li><li class=""><b>+12%</b> True damage</li></ul>
       
     </div>
+  </article><article class="card r-rare" data-theme="Magic">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/chaos-conduit.png" alt=""></span></div>
+    <div class="body">
+      <h3>Chaos Conduit</h3>
+      <div class="meta"><span class="rarity">rare</span><span class="tag">Magic</span></div>
+      <ul><li class=""><b>+34%</b> Magic damage</li><li class=""><b>+20%</b> Magic penetration</li></ul>
+      
+    </div>
+  </article><article class="card r-rare" data-theme="Magic">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/cinder-crown.png" alt=""></span></div>
+    <div class="body">
+      <h3>Cinder Hat</h3>
+      <div class="meta"><span class="rarity">rare</span><span class="tag">Magic</span></div>
+      <ul><li class=""><b>+42%</b> Magic damage</li><li class="neg"><b>−20%</b> Healing</li></ul>
+      
+    </div>
   </article><article class="card r-rare" data-theme="Physical">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/executioners-axe.png" alt=""></span></div>
     <div class="body">
@@ -341,134 +413,6 @@ li.neg, li.neg b { color: var(--bad); }
       <h3>Chaos Blade</h3>
       <div class="meta"><span class="rarity">rare</span><span class="tag">Physical</span></div>
       <ul><li class=""><b>+15%</b> Physical damage</li><li class=""><b>+15%</b> Magic damage</li></ul>
-      
-    </div>
-  </article><article class="card r-rare" data-theme="Support">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/firebird-staff.png" alt=""></span></div>
-    <div class="body">
-      <h3>Firebird Staff</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
-      <ul><li class=""><b>+28%</b> Healing</li><li class=""><b>+4%</b> Lifesteal</li></ul>
-      
-    </div>
-  </article><article class="card r-rare" data-theme="Support">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/crescent-crook.png" alt=""></span></div>
-    <div class="body">
-      <h3>Crescent Crook</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
-      <ul><li class=""><b>+30%</b> Healing</li><li class=""><b>+150</b> Magic resist</li></ul>
-      
-    </div>
-  </article><article class="card r-rare" data-theme="Support">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/tome-of-insight.png" alt=""></span></div>
-    <div class="body">
-      <h3>Tome of Insight</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
-      <ul><li class=""><b>+16%</b> EXP gain</li><li class=""><b>+8%</b> Crit chance</li></ul>
-      
-    </div>
-  </article><article class="card r-rare" data-theme="Tank">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/dragons-heart.png" alt=""></span></div>
-    <div class="body">
-      <h3>Dragon's Heart</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">Tank</span></div>
-      <ul><li class=""><b>+20%</b> Max health</li><li class=""><b>+10%</b> Physical damage</li></ul>
-      
-    </div>
-  </article><article class="card r-rare" data-theme="True">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/truthseekers-bow.png" alt=""></span></div>
-    <div class="body">
-      <h3>Truthseeker's Bow</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">True</span></div>
-      <ul><li class=""><b>+25%</b> True damage</li><li class=""><b>+8%</b> Crit chance</li></ul>
-      
-    </div>
-  </article><article class="card r-epic" data-theme="Magic">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/voidcallers-scepter.png" alt=""></span></div>
-    <div class="body">
-      <h3>Voidcaller's Scepter</h3>
-      <div class="meta"><span class="rarity">epic</span><span class="tag">Magic</span></div>
-      <ul><li class=""><b>+55%</b> Magic damage</li><li class=""><b>+8%</b> Crit chance</li></ul>
-      <p class="effect">Magic crits deal 3× damage.</p>
-    </div>
-  </article><article class="card r-epic" data-theme="Physical">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/godslayer-greatblade.png" alt=""></span></div>
-    <div class="body">
-      <h3>Godslayer Greatblade</h3>
-      <div class="meta"><span class="rarity">epic</span><span class="tag">Physical</span></div>
-      <ul><li class=""><b>+42%</b> Physical damage</li><li class=""><b>+10%</b> Max health</li><li class=""><b>+3%</b> Lifesteal</li></ul>
-      <p class="effect">+30% damage to bosses above 75% HP.</p>
-    </div>
-  </article></div></section><section><h2>Unlocks at level 10 / 15 / 20 <small>28 · random per run</small></h2><div class="grid"><article class="card r-uncommon" data-theme="Magic">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/scholars-grimoire.png" alt=""></span></div>
-    <div class="body">
-      <h3>Scholar's Grimoire</h3>
-      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Magic</span></div>
-      <ul><li class=""><b>+10%</b> Magic damage</li><li class=""><b>+5%</b> Magic penetration</li><li class=""><b>+10%</b> EXP gain</li></ul>
-      
-    </div>
-  </article><article class="card r-uncommon" data-theme="Magic">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/hexed-ring.png" alt=""></span></div>
-    <div class="body">
-      <h3>Hexed Ring</h3>
-      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Magic</span></div>
-      <ul><li class=""><b>+16%</b> Magic damage</li><li class="neg"><b>−5%</b> Max health</li></ul>
-      
-    </div>
-  </article><article class="card r-uncommon" data-theme="Physical">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/warded-longsword.png" alt=""></span></div>
-    <div class="body">
-      <h3>Warded Longsword</h3>
-      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Physical</span></div>
-      <ul><li class=""><b>+10%</b> Physical damage</li><li class=""><b>+100</b> Magic resist</li></ul>
-      
-    </div>
-  </article><article class="card r-uncommon" data-theme="Support">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/serene-lotus-charm.png" alt=""></span></div>
-    <div class="body">
-      <h3>Serene Glowcap</h3>
-      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Support</span></div>
-      <ul><li class=""><b>+12%</b> Healing</li><li class=""><b>+12%</b> EXP gain</li></ul>
-      
-    </div>
-  </article><article class="card r-uncommon" data-theme="Support">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/pilgrims-blessing.png" alt=""></span></div>
-    <div class="body">
-      <h3>Pilgrim's Staff</h3>
-      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Support</span></div>
-      <ul><li class=""><b>+15%</b> Healing</li><li class=""><b>+5%</b> Max health</li><li class=""><b>+5%</b> EXP gain</li></ul>
-      
-    </div>
-  </article><article class="card r-uncommon" data-theme="Support">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/stalwart-sages-ring.png" alt=""></span></div>
-    <div class="body">
-      <h3>Stalwart Sage's Ring</h3>
-      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Support</span></div>
-      <ul><li class=""><b>+100</b> Magic resist</li><li class=""><b>+8%</b> Healing</li></ul>
-      
-    </div>
-  </article><article class="card r-uncommon" data-theme="Tank">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/warding-sigil.png" alt=""></span></div>
-    <div class="body">
-      <h3>Warding Pendant</h3>
-      <div class="meta"><span class="rarity">uncommon</span><span class="tag">Tank</span></div>
-      <ul><li class=""><b>+10%</b> Max health</li><li class=""><b>+150</b> Magic resist</li></ul>
-      
-    </div>
-  </article><article class="card r-rare" data-theme="Magic">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/chaos-conduit.png" alt=""></span></div>
-    <div class="body">
-      <h3>Chaos Conduit</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">Magic</span></div>
-      <ul><li class=""><b>+34%</b> Magic damage</li><li class=""><b>+20%</b> Magic penetration</li></ul>
-      
-    </div>
-  </article><article class="card r-rare" data-theme="Magic">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/cinder-crown.png" alt=""></span></div>
-    <div class="body">
-      <h3>Cinder Hat</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">Magic</span></div>
-      <ul><li class=""><b>+42%</b> Magic damage</li><li class="neg"><b>−20%</b> Healing</li></ul>
       
     </div>
   </article><article class="card r-rare" data-theme="Physical">
@@ -504,6 +448,30 @@ li.neg, li.neg b { color: var(--bad); }
       
     </div>
   </article><article class="card r-rare" data-theme="Support">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/firebird-staff.png" alt=""></span></div>
+    <div class="body">
+      <h3>Firebird Staff</h3>
+      <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
+      <ul><li class=""><b>+28%</b> Healing</li><li class=""><b>+4%</b> Lifesteal</li></ul>
+      
+    </div>
+  </article><article class="card r-rare" data-theme="Support">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/crescent-crook.png" alt=""></span></div>
+    <div class="body">
+      <h3>Crescent Crook</h3>
+      <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
+      <ul><li class=""><b>+30%</b> Healing</li><li class=""><b>+150</b> Magic resist</li></ul>
+      
+    </div>
+  </article><article class="card r-rare" data-theme="Support">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/tome-of-insight.png" alt=""></span></div>
+    <div class="body">
+      <h3>Tome of Insight</h3>
+      <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
+      <ul><li class=""><b>+16%</b> EXP gain</li><li class=""><b>+8%</b> Crit chance</li></ul>
+      
+    </div>
+  </article><article class="card r-rare" data-theme="Support">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/penitents-hauberk.png" alt=""></span></div>
     <div class="body">
       <h3>Penitent's Cuirass</h3>
@@ -525,6 +493,14 @@ li.neg, li.neg b { color: var(--bad); }
       <h3>Adventurer's Crest</h3>
       <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
       <ul><li class=""><b>+15%</b> EXP gain</li><li class=""><b>+10%</b> Max health</li></ul>
+      
+    </div>
+  </article><article class="card r-rare" data-theme="Tank">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/dragons-heart.png" alt=""></span></div>
+    <div class="body">
+      <h3>Dragon's Heart</h3>
+      <div class="meta"><span class="rarity">rare</span><span class="tag">Tank</span></div>
+      <ul><li class=""><b>+20%</b> Max health</li><li class=""><b>+10%</b> Physical damage</li></ul>
       
     </div>
   </article><article class="card r-rare" data-theme="Tank">
@@ -560,12 +536,28 @@ li.neg, li.neg b { color: var(--bad); }
       
     </div>
   </article><article class="card r-rare" data-theme="True">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/truthseekers-bow.png" alt=""></span></div>
+    <div class="body">
+      <h3>Truthseeker's Bow</h3>
+      <div class="meta"><span class="rarity">rare</span><span class="tag">True</span></div>
+      <ul><li class=""><b>+25%</b> True damage</li><li class=""><b>+8%</b> Crit chance</li></ul>
+      
+    </div>
+  </article><article class="card r-rare" data-theme="True">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/ascetics-beads.png" alt=""></span></div>
     <div class="body">
       <h3>Ascetic's Staff</h3>
       <div class="meta"><span class="rarity">rare</span><span class="tag">True</span></div>
       <ul><li class=""><b>+150</b> Armor</li><li class=""><b>+150</b> Magic resist</li><li class=""><b>+15%</b> True damage</li></ul>
       
+    </div>
+  </article></div></section><section><h2>Epic <small>14 · drops 0% at L1 · 5% at L10 · 17% at L30</small></h2><div class="grid"><article class="card r-epic" data-theme="Magic">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/voidcallers-scepter.png" alt=""></span></div>
+    <div class="body">
+      <h3>Voidcaller's Scepter</h3>
+      <div class="meta"><span class="rarity">epic</span><span class="tag">Magic</span></div>
+      <ul><li class=""><b>+55%</b> Magic damage</li><li class=""><b>+8%</b> Crit chance</li></ul>
+      <p class="effect">Magic crits deal 3× damage.</p>
     </div>
   </article><article class="card r-epic" data-theme="Magic">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/runeforged-spellblade.png" alt=""></span></div>
@@ -575,6 +567,22 @@ li.neg, li.neg b { color: var(--bad); }
       <ul><li class=""><b>+55%</b> Magic damage</li><li class=""><b>+15%</b> Magic penetration</li></ul>
       <p class="effect">+5% magic damage per skill used today (max +25%).</p>
     </div>
+  </article><article class="card r-epic" data-theme="Magic">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/starfall-staff.png" alt=""></span></div>
+    <div class="body">
+      <h3>Starfall Staff</h3>
+      <div class="meta"><span class="rarity">epic</span><span class="tag">Magic</span></div>
+      <ul><li class=""><b>+75%</b> Magic damage</li><li class="neg"><b>−20%</b> Max health</li></ul>
+      <p class="effect">First magic skill each day always crits.</p>
+    </div>
+  </article><article class="card r-epic" data-theme="Physical">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/godslayer-greatblade.png" alt=""></span></div>
+    <div class="body">
+      <h3>Godslayer Greatblade</h3>
+      <div class="meta"><span class="rarity">epic</span><span class="tag">Physical</span></div>
+      <ul><li class=""><b>+42%</b> Physical damage</li><li class=""><b>+10%</b> Max health</li><li class=""><b>+3%</b> Lifesteal</li></ul>
+      <p class="effect">+30% damage to bosses above 75% HP.</p>
+    </div>
   </article><article class="card r-epic" data-theme="Physical">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/bloodthorn-blade.png" alt=""></span></div>
     <div class="body">
@@ -582,6 +590,14 @@ li.neg, li.neg b { color: var(--bad); }
       <div class="meta"><span class="rarity">epic</span><span class="tag">Physical</span></div>
       <ul><li class=""><b>+45%</b> Physical damage</li><li class=""><b>+10%</b> Max health</li><li class=""><b>+3%</b> Lifesteal</li></ul>
       <p class="effect">Crits heal 5% of max HP.</p>
+    </div>
+  </article><article class="card r-epic" data-theme="Physical">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/worldbreaker-maul.png" alt=""></span></div>
+    <div class="body">
+      <h3>Worldbreaker Maul</h3>
+      <div class="meta"><span class="rarity">epic</span><span class="tag">Physical</span></div>
+      <ul><li class=""><b>+55%</b> Physical damage</li><li class=""><b>+20%</b> Max health</li><li class=""><b>+3%</b> Lifesteal</li></ul>
+      <p class="effect">Physical hits ignore the extra armor of armored bosses.</p>
     </div>
   </article><article class="card r-epic" data-theme="Support">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/titans-lifeblood.png" alt=""></span></div>
@@ -598,6 +614,14 @@ li.neg, li.neg b { color: var(--bad); }
       <div class="meta"><span class="rarity">epic</span><span class="tag">Support</span></div>
       <ul><li class=""><b>+15%</b> EXP gain</li><li class=""><b>+15%</b> Healing</li></ul>
       <p class="effect">Level-ups heal 40% of max HP instead of 20%.</p>
+    </div>
+  </article><article class="card r-epic" data-theme="Support">
+    <div class="icon"><span class="art"><img src="../../public/sprites/items/archons-halo.png" alt=""></span></div>
+    <div class="body">
+      <h3>Archon's Crown</h3>
+      <div class="meta"><span class="rarity">epic</span><span class="tag">Support</span></div>
+      <ul><li class=""><b>+40%</b> Healing</li><li class=""><b>+15%</b> EXP gain</li></ul>
+      
     </div>
   </article><article class="card r-epic" data-theme="Tank">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/aegis-of-the-unbroken.png" alt=""></span></div>
@@ -623,51 +647,27 @@ li.neg, li.neg b { color: var(--bad); }
       <ul><li class=""><b>+20%</b> Max health</li><li class=""><b>+300</b> Armor</li></ul>
       <p class="effect">First hit each day deals half damage.</p>
     </div>
-  </article></div></section><section><h2>Unlocks at level 30 <small>5 · fixed</small></h2><div class="grid"><article class="card r-rare" data-theme="Support">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/archons-halo.png" alt=""></span></div>
-    <div class="body">
-      <h3>Archon's Crown</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">Support</span></div>
-      <ul><li class=""><b>+40%</b> Healing</li><li class=""><b>+15%</b> EXP gain</li></ul>
-      
-    </div>
-  </article><article class="card r-rare" data-theme="Tank">
+  </article><article class="card r-epic" data-theme="Tank">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/colossus-plate.png" alt=""></span></div>
     <div class="body">
       <h3>Colossus Plate</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">Tank</span></div>
+      <div class="meta"><span class="rarity">epic</span><span class="tag">Tank</span></div>
       <ul><li class=""><b>+45%</b> Max health</li><li class=""><b>+350</b> Armor</li></ul>
       
     </div>
-  </article><article class="card r-rare" data-theme="True">
+  </article><article class="card r-epic" data-theme="True">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/sunpiercer-bow.png" alt=""></span></div>
     <div class="body">
       <h3>Frostpiercer Crossbow</h3>
-      <div class="meta"><span class="rarity">rare</span><span class="tag">True</span></div>
+      <div class="meta"><span class="rarity">epic</span><span class="tag">True</span></div>
       <ul><li class=""><b>+40%</b> True damage</li><li class=""><b>+12%</b> Crit chance</li></ul>
       
-    </div>
-  </article><article class="card r-epic" data-theme="Magic">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/starfall-staff.png" alt=""></span></div>
-    <div class="body">
-      <h3>Starfall Staff</h3>
-      <div class="meta"><span class="rarity">epic</span><span class="tag">Magic</span></div>
-      <ul><li class=""><b>+75%</b> Magic damage</li><li class="neg"><b>−20%</b> Max health</li></ul>
-      <p class="effect">First magic skill each day always crits.</p>
-    </div>
-  </article><article class="card r-epic" data-theme="Physical">
-    <div class="icon"><span class="art"><img src="../../public/sprites/items/worldbreaker-maul.png" alt=""></span></div>
-    <div class="body">
-      <h3>Worldbreaker Maul</h3>
-      <div class="meta"><span class="rarity">epic</span><span class="tag">Physical</span></div>
-      <ul><li class=""><b>+55%</b> Physical damage</li><li class=""><b>+20%</b> Max health</li><li class=""><b>+3%</b> Lifesteal</li></ul>
-      <p class="effect">Physical hits ignore the extra armor of armored bosses.</p>
     </div>
   </article></div></section><section><h2>Relics <small>15 · side quests only</small></h2><div class="grid"><article class="card r-relic" data-theme="All damage">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/glass-crown.png" alt=""></span></div>
     <div class="body">
       <h3>Glass Crown</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">All damage</span><span class="tag">L30</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">All damage</span></div>
       <ul><li class=""><b>+40%</b> All damage</li><li class="neg"><b>−30%</b> Max health</li></ul>
       
     </div>
@@ -675,15 +675,15 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/magpie-charm.png" alt=""></span></div>
     <div class="body">
       <h3>Magpie's Diamond</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Crit</span><span class="tag">L1</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Crit</span></div>
       <ul><li class=""><b>+8%</b> Crit chance</li><li class=""><b>+3%</b> Lifesteal</li></ul>
-      <p class="effect">Item drops are rarer, as if from a boss 10 levels later.</p>
+      <p class="effect">Rare and epic items drop twice as often.</p>
     </div>
   </article><article class="card r-relic" data-theme="Magic">
     <div class="icon"><span class="art"><img src="../../public/sprites/items/dynamo-core.png" alt=""></span></div>
     <div class="body">
       <h3>Dynamo Rod</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Magic</span><span class="tag">L15</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Magic</span></div>
       <ul><li class=""><b>+20%</b> Magic damage</li><li class=""><b>+10%</b> Crit chance</li></ul>
       <p class="effect">Overdrive uses deal full damage.</p>
     </div>
@@ -691,7 +691,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/first-blood.png" alt=""></span></div>
     <div class="body">
       <h3>First Blood</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Physical</span><span class="tag">L1</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Physical</span></div>
       <ul><li class=""><b>+15%</b> Physical damage</li><li class=""><b>+3%</b> Lifesteal</li></ul>
       <p class="effect">First hit on each boss always crits.</p>
     </div>
@@ -699,7 +699,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/headsmans-mark.png" alt=""></span></div>
     <div class="body">
       <h3>Headsman's Axe</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Physical</span><span class="tag">L15</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Physical</span></div>
       <ul><li class=""><b>+15%</b> Physical damage</li><li class=""><b>+20%</b> Armor penetration</li><li class=""><b>+10%</b> Max health</li></ul>
       <p class="effect">+50% damage to bosses below 25% HP.</p>
     </div>
@@ -707,7 +707,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/echoing-blade.png" alt=""></span></div>
     <div class="body">
       <h3>Echoing Blade</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Physical</span><span class="tag">L30</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Physical</span></div>
       <ul><li class=""><b>+20%</b> Physical damage</li><li class=""><b>+20%</b> Magic damage</li></ul>
       <p class="effect">Overkill damage carries into the next boss.</p>
     </div>
@@ -715,7 +715,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/soul-lantern.png" alt=""></span></div>
     <div class="body">
       <h3>Soul Lantern</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Support</span><span class="tag">L1</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Support</span></div>
       <ul><li class=""><b>+12%</b> Healing</li><li class=""><b>+5%</b> EXP gain</li></ul>
       <p class="effect">Heal 15% of max HP when a boss falls.</p>
     </div>
@@ -723,7 +723,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/censer-of-wrath.png" alt=""></span></div>
     <div class="body">
       <h3>Torch of Wrath</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Support</span><span class="tag">L1</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Support</span></div>
       <ul><li class=""><b>+20%</b> Healing</li><li class=""><b>+100</b> Armor</li></ul>
       <p class="effect">Healing skills also hit the boss for half the amount.</p>
     </div>
@@ -731,7 +731,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/quill-of-oaths.png" alt=""></span></div>
     <div class="body">
       <h3>Scroll of Oaths</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Support</span><span class="tag">L1</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Support</span></div>
       <ul><li class=""><b>+10%</b> EXP gain</li><li class=""><b>+10%</b> Magic damage</li></ul>
       <p class="effect">Quests give 50% more EXP.</p>
     </div>
@@ -739,7 +739,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/moonwell.png" alt=""></span></div>
     <div class="body">
       <h3>Moonwell Staff</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Support</span><span class="tag">L15</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Support</span></div>
       <ul><li class=""><b>+20%</b> Healing</li><li class=""><b>+15%</b> Magic damage</li></ul>
       <p class="effect">Weekly skills are 50% stronger.</p>
     </div>
@@ -747,7 +747,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/ember-heart.png" alt=""></span></div>
     <div class="body">
       <h3>Ember Heart</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Tank</span><span class="tag">L1</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Tank</span></div>
       <ul><li class=""><b>+10%</b> Max health</li><li class=""><b>+10%</b> Healing</li></ul>
       <p class="effect">Heal 5% of max HP each day.</p>
     </div>
@@ -755,7 +755,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/banner-of-endurance.png" alt=""></span></div>
     <div class="body">
       <h3>Banner of Endurance</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Tank</span><span class="tag">L15</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Tank</span></div>
       <ul><li class=""><b>+12%</b> Physical damage</li><li class=""><b>+15%</b> Max health</li></ul>
       <p class="effect">Streak milestones give double EXP.</p>
     </div>
@@ -763,7 +763,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/null-mirror.png" alt=""></span></div>
     <div class="body">
       <h3>Null Mirror</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">Tank</span><span class="tag">L30</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">Tank</span></div>
       <ul><li class=""><b>+300</b> Magic resist</li><li class=""><b>+25%</b> Max health</li></ul>
       <p class="effect">Boss reflect can't hurt you.</p>
     </div>
@@ -771,7 +771,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/temperance-seal.png" alt=""></span></div>
     <div class="body">
       <h3>Temperance Seal</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">True</span><span class="tag">L1</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">True</span></div>
       <ul><li class=""><b>+20%</b> True damage</li><li class=""><b>+15%</b> Max health</li></ul>
       <p class="effect">Resisted bad skills hit 50% harder.</p>
     </div>
@@ -779,7 +779,7 @@ li.neg, li.neg b { color: var(--bad); }
     <div class="icon"><span class="art"><img src="../../public/sprites/items/hunters-eye.png" alt=""></span></div>
     <div class="body">
       <h3>Hunter's Eye</h3>
-      <div class="meta"><span class="rarity">relic</span><span class="tag">True</span><span class="tag">L15</span></div>
+      <div class="meta"><span class="rarity">relic</span><span class="tag">True</span></div>
       <ul><li class=""><b>+12%</b> Crit chance</li><li class=""><b>+15%</b> True damage</li></ul>
       <p class="effect">Crits ignore armor and magic resist.</p>
     </div>

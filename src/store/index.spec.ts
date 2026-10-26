@@ -130,35 +130,6 @@ describe('store persistence smoke test', () => {
     expect(characterStore.character.pendingEventPicks).toBe(0);
   });
 
-  it('backfills unlock tiers on a save that predates level-gated items, grants one compensating drop roll once, and persists both', () => {
-    const rng = createRng(1);
-    const staleSave = {
-      schemaVersion: CURRENT_SCHEMA_VERSION,
-      character: { ...createCharacter(rng), level: 11, newItemUnlockTiers: undefined }, // JSON drops the key, like a real pre-feature save
-      boss: generateBoss(16, rng),
-      habits: [],
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(staleSave));
-
-    const first = initializeStores();
-
-    expect(first.characterStore.character.newItemUnlockTiers).toBeDefined();
-    expect(first.backfilledDrops).toHaveLength(3); // boss 15's drop count
-    expect(first.characterStore.character.ownedItemIds).toEqual(first.backfilledDrops.map((item) => item.id));
-    expect(first.bossStore.boss.index).toBe(16); // run is not restarted
-
-    vi.advanceTimersByTime(300);
-    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY) as string);
-    expect(persisted.character.newItemUnlockTiers).toBeDefined();
-    expect(persisted.character.ownedItemIds).toHaveLength(3);
-
-    setActivePinia(createPinia());
-    const second = initializeStores();
-    expect(second.backfilledDrops).toEqual([]); // not granted twice
-    // Drops that were never equipped (popup queue lost to the reload) are discarded back into the pool.
-    expect(second.characterStore.character.ownedItemIds).toEqual([]);
-  });
-
   it('does not accumulate duplicate $subscribe listeners when initializeStores() is called again against the same active pinia', () => {
     const first = initializeStores();
     const second = initializeStores(); // same active pinia — setupPersistence should be a no-op the 2nd time

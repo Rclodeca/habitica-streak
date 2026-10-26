@@ -1,6 +1,5 @@
 import { createApp } from 'vue';
 import App from './App.vue';
-import { useItemDropQueue } from './composables/useItemDropQueue';
 import { initializeStores, pinia } from './store';
 import { applyTheme, useThemeStore } from './store/themeStore';
 // Ashen's typefaces, bundled so the installed PWA doesn't depend on a font CDN.
@@ -18,7 +17,6 @@ const app = createApp(App);
 
 app.use(pinia);
 applyTheme(useThemeStore().theme);
-const { backfilledDrops } = initializeStores();
-if (backfilledDrops.length > 0) useItemDropQueue().enqueueDrops(backfilledDrops);
+initializeStores();
 
 app.mount('#app');

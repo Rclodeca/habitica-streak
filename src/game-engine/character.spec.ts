@@ -12,7 +12,6 @@ import {
   nameCharacter,
   randomizeStat,
 } from './character';
-import { ITEM_CATALOG } from './items';
 import type { Character } from './types';
 import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
@@ -89,12 +88,6 @@ describe('createCharacter', () => {
     expect(character.critChance).toBe(TUNING.BASE_CRIT_CHANCE);
   });
 
-  it('rolls a newItemUnlockTiers assignment covering every level-gated item', () => {
-    const character = createCharacter(createRng(1));
-    const levelGatedIds = ITEM_CATALOG.filter((item) => item.levelGated).map((item) => item.id);
-    expect(Object.keys(character.newItemUnlockTiers ?? {}).sort()).toEqual(levelGatedIds.sort());
-  });
-
   it('is deterministic: the same seed produces the same character', () => {
     const characterA = createCharacter(createRng(12345));
     const characterB = createCharacter(createRng(12345));
@@ -145,27 +138,14 @@ describe('migrateCharacter', () => {
     expect(migrated).toEqual(character);
   });
 
-  it('backfills newItemUnlockTiers on a save that predates level-gated items, leaving existing tiers alone', () => {
+  it('drops the retired newItemUnlockTiers from a save, leaving everything else alone', () => {
     const character = createCharacter(createRng(7));
-    const { newItemUnlockTiers, ...withoutTiers } = character;
+    const legacy = { ...character, newItemUnlockTiers: { 'chaos-conduit': 15 } } as unknown as Character;
 
-    const migrated = migrateCharacter(withoutTiers as typeof character, createRng(8));
-    expect(Object.keys(migrated.newItemUnlockTiers ?? {}).sort()).toEqual(Object.keys(newItemUnlockTiers ?? {}).sort());
-    expect(migrated.starterStats).toEqual(character.starterStats);
+    const migrated = migrateCharacter(legacy, createRng(8));
 
-    expect(migrateCharacter(character, createRng(9)).newItemUnlockTiers).toEqual(newItemUnlockTiers);
-  });
-
-  it('backfills unlock tiers for gated items added after the run started, keeping the old assignments', () => {
-    const character = createCharacter(createRng(7));
-    const tiers = character.newItemUnlockTiers ?? {};
-    const oldIds = Object.keys(tiers).slice(0, 19);
-    const partial = Object.fromEntries(oldIds.map((id) => [id, tiers[id]]));
-
-    const migrated = migrateCharacter({ ...character, newItemUnlockTiers: partial }, createRng(8));
-
-    expect(Object.keys(migrated.newItemUnlockTiers ?? {}).sort()).toEqual(Object.keys(tiers).sort());
-    for (const id of oldIds) expect(migrated.newItemUnlockTiers?.[id]).toBe(partial[id]);
+    expect('newItemUnlockTiers' in migrated).toBe(false);
+    expect(migrated).toEqual(character);
   });
 });
 

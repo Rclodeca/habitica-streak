@@ -1,6 +1,6 @@
 import { ITEM_CATALOG } from './constants/itemCatalog';
 import { TUNING } from './constants/tuning';
-import { pickRandom, shuffle, type Rng } from './rng';
+import { pickRandom, pickWeighted, type Rng } from './rng';
 import type { Character, Quest } from './types';
 
 export { ITEM_CATALOG };
@@ -67,66 +67,48 @@ export interface ItemDef {
   name: string;
   icon: string; // path segment relative to public/sprites/, passed straight to an <img>/Sprite
   type: 'equipment' | 'consumable'; // consumables still occupy an equip slot, but grant no passive bonus
-  rarity: ItemRarity; // rare items are weighted much lower in rollItemDrops
+  rarity: ItemRarity; // its share of drops at the player's level is set by dropRarityShares
   bonuses: ItemBonus[]; // empty for the pure-consumable Phoenix Feather
-  // Gates this item out of rollItemDrops until the character's
-  // rolled-for-this-run unlock tier (see assignNewItemUnlockTiers) is at or
-  // below the character's level.
-  levelGated?: true;
-  // A fixed unlock level instead: the L30 wave, and every relic (where it
-  // gates side-quest offers rather than drops).
-  unlockLevel?: number;
   effect?: ItemEffectId;
   effectText?: string; // short plain line saying what the effect does, e.g. "+30% damage to bosses above 75% HP."
 }
 
-// Each tier is 5x rarer than the one above (common:uncommon:rare:epic ==
-// 125:25:5:1), so a boss-1 roll is overwhelmingly common. Since each boss kill rolls up to
-// ITEM_DROP_MAX_COUNT items without replacement, per-kill odds of at least
-// one non-common item compound higher than that single-roll number — this
-// keeps epic (the new +50%-damage tier) genuinely rare rather than
-// something you stumble into quickly.
-//
-// By boss 20, rarity weights converge to equal (31 each), so all rarities
-// become equally common in the late game as a progression reward.
-const INITIAL_RARITY_WEIGHT: Record<DropRarity, number> = { common: 125, uncommon: 25, rare: 5, epic: 1 };
-const RARITY_CONVERGENCE_BOSS = 20;
-const EQUAL_RARITY_WEIGHT: Record<DropRarity, number> = { common: 31, uncommon: 31, rare: 31, epic: 31 };
+const DROP_RARITIES: DropRarity[] = ['common', 'uncommon', 'rare', 'epic'];
 
-function rarityWeightByBossIndex(bossIndex: number): Record<DropRarity, number> {
-  if (bossIndex >= RARITY_CONVERGENCE_BOSS) {
-    return EQUAL_RARITY_WEIGHT;
-  }
-  const progress = (bossIndex - 1) / (RARITY_CONVERGENCE_BOSS - 1);
-  return {
-    common: Math.round(INITIAL_RARITY_WEIGHT.common + (EQUAL_RARITY_WEIGHT.common - INITIAL_RARITY_WEIGHT.common) * progress),
-    uncommon: Math.round(INITIAL_RARITY_WEIGHT.uncommon + (EQUAL_RARITY_WEIGHT.uncommon - INITIAL_RARITY_WEIGHT.uncommon) * progress),
-    rare: Math.round(INITIAL_RARITY_WEIGHT.rare + (EQUAL_RARITY_WEIGHT.rare - INITIAL_RARITY_WEIGHT.rare) * progress),
-    epic: Math.round(INITIAL_RARITY_WEIGHT.epic + (EQUAL_RARITY_WEIGHT.epic - INITIAL_RARITY_WEIGHT.epic) * progress),
-  };
+/**
+ * Each rarity's share of drops at `level`, as fractions summing to 1:
+ * TUNING.DROP_RARITY_SHARES_BY_LEVEL blended linearly between rows. With
+ * `magpie` (Magpie's Diamond), the rare and epic shares are multiplied by
+ * MAGPIE_RARE_EPIC_MULTIPLIER before everything is scaled back to 1.
+ */
+export function dropRarityShares(level: number, magpie = false): Record<DropRarity, number> {
+  const rows = TUNING.DROP_RARITY_SHARES_BY_LEVEL;
+  const at = Math.min(Math.max(level, rows[0][0]), rows[rows.length - 1][0]);
+  const upper = Math.max(1, rows.findIndex(([rowLevel]) => rowLevel >= at));
+  const [[fromLevel, from], [toLevel, to]] = [rows[upper - 1], rows[upper]];
+  const t = (at - fromLevel) / (toLevel - fromLevel);
+  const boost = (rarity: DropRarity) => (magpie && (rarity === 'rare' || rarity === 'epic') ? TUNING.ITEM_EFFECTS.MAGPIE_RARE_EPIC_MULTIPLIER : 1);
+  const percent = (rarity: DropRarity) => (from[rarity] + (to[rarity] - from[rarity]) * t) * boost(rarity);
+  const total = DROP_RARITIES.reduce((sum, rarity) => sum + percent(rarity), 0);
+  return { common: percent('common') / total, uncommon: percent('uncommon') / total, rare: percent('rare') / total, epic: percent('epic') / total };
 }
 
 /**
- * Weighted sample without replacement: each remaining item's chance is
- * proportional to rarityWeight[item.rarity], recomputed after every pick so
- * removing a common item doesn't skew the remaining rare-vs-common ratio.
+ * Picks up to `count` distinct items from `items`: each pick rolls a rarity
+ * from `shares`, skipping rarities with nothing left (the rest scale back
+ * up), then one item of that rarity, all equally likely. So a rarity's share
+ * of drops doesn't depend on how many items it has.
  */
-function weightedSampleWithoutReplacement(items: ItemDef[], count: number, rarityWeight: Record<DropRarity, number>, rng: Rng): ItemDef[] {
+function pickDrops(items: ItemDef[], count: number, shares: Record<DropRarity, number>, rng: Rng): ItemDef[] {
   const pool = [...items];
   const result: ItemDef[] = [];
-  while (result.length < count && pool.length > 0) {
-    const totalWeight = pool.reduce((sum, item) => sum + rarityWeight[item.rarity as DropRarity], 0);
-    let roll = rng() * totalWeight;
-    let pickedIndex = pool.length - 1;
-    for (let i = 0; i < pool.length; i++) {
-      roll -= rarityWeight[pool[i].rarity as DropRarity];
-      if (roll < 0) {
-        pickedIndex = i;
-        break;
-      }
-    }
-    result.push(pool[pickedIndex]);
-    pool.splice(pickedIndex, 1);
+  while (result.length < count) {
+    const left = DROP_RARITIES.filter((rarity) => shares[rarity] > 0 && pool.some((item) => item.rarity === rarity));
+    if (left.length === 0) break;
+    const rarity = pickWeighted<DropRarity>(Object.fromEntries(left.map((r) => [r, shares[r]])), rng);
+    const picked = pickRandom(pool.filter((item) => item.rarity === rarity), rng);
+    result.push(picked);
+    pool.splice(pool.indexOf(picked), 1);
   }
   return result;
 }
@@ -244,24 +226,18 @@ export function describeItemBonus(item: ItemDef, factor = 1): string {
 
 /**
  * Catalog items the character doesn't own yet and can currently drop: never a
- * relic, L30-wave items only from their unlockLevel, level-gated ones only once unlocked.
+ * relic, and never one whose rarity has a 0% share at the character's level.
  */
 export function unownedDroppableItems(character: Character): ItemDef[] {
-  return ITEM_CATALOG.filter((item) => {
-    if (item.rarity === 'relic') return false;
-    if (character.ownedItemIds.includes(item.id)) return false;
-    if (item.unlockLevel !== undefined && character.level < item.unlockLevel) return false;
-    if (!item.levelGated) return true;
-    const unlockLevel = character.newItemUnlockTiers?.[item.id];
-    return unlockLevel !== undefined && character.level >= unlockLevel;
-  });
+  const shares = dropRarityShares(character.level);
+  return ITEM_CATALOG.filter((item) => item.rarity !== 'relic' && !character.ownedItemIds.includes(item.id) && shares[item.rarity] > 0);
 }
 
 /**
- * Relics a new side quest could offer: unlocked at the character's level, not
- * yet earned this run (earned is earned, even if later dropped), not owned,
- * and not already promised to a pending side quest. A missed side quest
- * leaves the quest list, which returns its relic here.
+ * Relics a new side quest could offer: not yet earned this run (earned is
+ * earned, even if later dropped), not owned, and not already promised to a
+ * pending side quest. A missed side quest leaves the quest list, which
+ * returns its relic here.
  */
 export function availableRelics(character: Character, quests: readonly Quest[]): ItemDef[] {
   const earned = character.earnedRelicIds ?? [];
@@ -269,7 +245,6 @@ export function availableRelics(character: Character, quests: readonly Quest[]):
   return ITEM_CATALOG.filter(
     (item) =>
       item.rarity === 'relic' &&
-      (item.unlockLevel ?? 1) <= character.level &&
       !earned.includes(item.id) &&
       !character.ownedItemIds.includes(item.id) &&
       !promised.includes(item.id),
@@ -290,7 +265,7 @@ export function recordRelicEarned(character: Character, itemId: string): Charact
  * Desired count follows a step curve (more items from later bosses, capped
  * at ITEM_DROP_MAX_COUNT), further capped by how many catalog items this
  * character doesn't already own — returns [] once every item is owned.
- * Rare items are weighted much lower than common ones (see RARITY_WEIGHT).
+ * Rarity odds follow the character's level (see dropRarityShares).
  */
 export function rollItemDrops(character: Character, bossIndex: number, rng: Rng, maxCount: number = TUNING.ITEM_DROP_MAX_COUNT): ItemDef[] {
   const unowned = unownedDroppableItems(character);
@@ -300,43 +275,7 @@ export function rollItemDrops(character: Character, bossIndex: number, rng: Rng,
     maxCount,
   );
   const count = Math.min(desiredCount, unowned.length);
-  // Magpie Charm: rarity rolls as if from a boss MAGPIE_BOSS_INDEX_BONUS indexes later.
-  const rarityIndex = hasItemEffect(character, 'magpie') ? bossIndex + TUNING.ITEM_EFFECTS.MAGPIE_BOSS_INDEX_BONUS : bossIndex;
-  const rarityWeight = rarityWeightByBossIndex(rarityIndex);
-  return weightedSampleWithoutReplacement(unowned, count, rarityWeight, rng);
-}
-
-// Computed once at module load from the catalog itself, so the level-gated
-// set can never drift out of sync with which items actually carry `levelGated`.
-const LEVEL_GATED_ITEM_IDS = ITEM_CATALOG.filter((item) => item.levelGated).map((item) => item.id);
-
-/**
- * Rolls this run's random unlock-tier assignment for every level-gated
- * item: shuffles the ids, then chunks them via Math.ceil(n/3) into three
- * groups (10/10/8 for today's 28) mapped to levels 10/15/20. Called once
- * per run, from createCharacter.
- */
-export function assignNewItemUnlockTiers(rng: Rng): Record<string, 10 | 15 | 20> {
-  const shuffled = shuffle(LEVEL_GATED_ITEM_IDS, rng);
-  const chunkSize = Math.ceil(shuffled.length / 3);
-  const tiers: Record<string, 10 | 15 | 20> = {};
-  shuffled.forEach((id, i) => {
-    tiers[id] = i < chunkSize ? 10 : i < chunkSize * 2 ? 15 : 20;
-  });
-  return tiers;
-}
-
-/**
- * An in-progress run's tiers plus a random 10/15/20 for any level-gated item
- * added to the catalog since the run started; existing assignments are kept.
- * Returns the same object when nothing is missing.
- */
-export function backfillUnlockTiers(tiers: Record<string, 10 | 15 | 20>, rng: Rng): Record<string, 10 | 15 | 20> {
-  const missing = LEVEL_GATED_ITEM_IDS.filter((id) => tiers[id] === undefined);
-  if (missing.length === 0) return tiers;
-  const backfilled = { ...tiers };
-  for (const id of missing) backfilled[id] = pickRandom([10, 15, 20] as const, rng);
-  return backfilled;
+  return pickDrops(unowned, count, dropRarityShares(character.level, hasItemEffect(character, 'magpie')), rng);
 }
 
 /** The most equip slots a character can ever have (the item grid always shows this many, locked or not). */

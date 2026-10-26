@@ -133,9 +133,7 @@ export {
 
 export type { BoostableStat, DropRarity, ItemBonus, ItemDef, ItemEffectId, ItemRarity } from './items';
 export {
-  assignNewItemUnlockTiers,
   availableRelics,
-  backfillUnlockTiers,
   describeItemBonus,
   describeItemBonusParts,
   doublableItems,

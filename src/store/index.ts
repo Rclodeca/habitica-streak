@@ -52,12 +52,6 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   // (index 1) instead of the actually-loaded one.
   setupPersistence(targetPinia);
 
-  // A run saved before level-gated items existed has no unlock tiers, so
-  // migrateCharacter backfills them below — and since its drop pool was
-  // starved until now (nothing dropped once the 30 ungated items ran out),
-  // it gets one compensating roll for the boss it most recently killed.
-  const missedGatedItems = saved?.character !== undefined && saved.character.newItemUnlockTiers === undefined;
-
   characterStore.initFromSave(saved?.character ?? null, rng);
   bossStore.initFromSave(saved?.boss ?? null, rng);
   habitStore.initFromSave(saved?.habits ?? null, rng);
@@ -66,11 +60,9 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   characterStore.setCharacter(migrateEventState(characterStore.character, habitStore.habits));
   characterStore.setCharacter(migrateQuestUnlock(characterStore.character, questStore.quests.length > 0));
 
-  const backfilledDrops = missedGatedItems && bossStore.boss.index > 1 ? characterStore.grantItemDrops(bossStore.boss.index - 1, rng) : [];
-
   setupHighScoreTracking(targetPinia, dailyPeriodKey(useDebugClockStore(targetPinia).now()));
 
-  return { characterStore, bossStore, habitStore, activityLogStore, questStore, backfilledDrops };
+  return { characterStore, bossStore, habitStore, activityLogStore, questStore };
 }
 
 export { useActivityLogStore, useBossStore, useCharacterStore, useHabitStore };

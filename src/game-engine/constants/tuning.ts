@@ -194,10 +194,9 @@ export const TUNING = {
   SIDE_QUEST_GUARANTEE_LEVELS: 5,
   HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.38, magic: 0.38, healing: 0.16, trueDamage: 0.08 },
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates
-  // 2x -> 3x -> 4x -> 5x, and each tier is 5x rarer than the one below it —
-  // the same ratio ITEM_CATALOG's RARITY_WEIGHT uses for
-  // common:uncommon:rare:epic — so a boss with an extreme multiplier is a
-  // rare, memorable spike rather than the norm.
+  // 2x -> 3x -> 4x -> 5x, and each tier is 5x rarer than the one below it,
+  // so a boss with an extreme multiplier is a rare, memorable spike rather
+  // than the norm.
   BOSS_PERSONALITY_WEIGHTS: {
     balanced: 100,
     tank: 100,
@@ -272,6 +271,16 @@ export const TUNING = {
   },
   ITEM_DROP_EVERY_N_BOSSES: 3, // bosses 1-3 drop 1 item, 4-6 drop 2, 7+ drop 3 (capped)
   ITEM_DROP_MAX_COUNT: 3,
+  // Each rarity's percent share of item drops at a player level, blended
+  // linearly between rows; every level past the last row uses it. Commons
+  // fade out and stop at 30, epics never get as common as early commons.
+  DROP_RARITY_SHARES_BY_LEVEL: [
+    [1, { common: 75, uncommon: 22, rare: 3, epic: 0 }],
+    [5, { common: 55, uncommon: 33, rare: 11, epic: 1 }],
+    [10, { common: 30, uncommon: 40, rare: 25, epic: 5 }],
+    [20, { common: 10, uncommon: 40, rare: 38, epic: 12 }],
+    [30, { common: 0, uncommon: 35, rare: 48, epic: 17 }],
+  ] as [number, { common: number; uncommon: number; rare: number; epic: number }][],
   // Physical/magic starting-stat split: createCharacter picks one of these
   // [physical share, magic share] pairs uniformly at random, so some runs
   // are balanced and others lean hard into one damage type. Applied to the
@@ -327,6 +336,6 @@ export const TUNING = {
     EMBER_HEART_HEAL_PCT: 5,
     SOUL_LANTERN_HEAL_PCT: 15,
     QUILL_EXP_MULTIPLIER: 1.5,
-    MAGPIE_BOSS_INDEX_BONUS: 10,
+    MAGPIE_RARE_EPIC_MULTIPLIER: 2,
   },
 } as const;
