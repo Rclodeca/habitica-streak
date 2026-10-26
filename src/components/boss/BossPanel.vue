@@ -1,11 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { bossMissDamage, bossSkillMarks, damageReductionPct, effectiveResistAfterPen, itemBonusPercent, PERSONALITY_NAME } from '../../game-engine';
+import {
+  bloodlustDaysLeft,
+  bossMissDamage,
+  bossSkillMarks,
+  dailyPeriodKey,
+  damageReductionPct,
+  doomDaysLeft,
+  effectiveResistAfterPen,
+  itemBonusPercent,
+  PERSONALITY_NAME,
+  undyingActive,
+} from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
 import { useHitFeed } from '../../composables/useHitFeed';
 import { usePress } from '../../composables/usePress';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
+import { useDebugClockStore } from '../../store/debugClockStore';
 import { BOSS_FACING_RIGHT, PERSONALITY_SPRITE } from './bossSprites';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
@@ -26,6 +38,13 @@ const { shownHp } = useHitFeed();
 const shownHealth = computed(() => shownHp(boss.value.index, boss.value.health, boss.value.maxHealth));
 // Where this boss's skills wait — never which skill (see bossSkillMarks).
 const skillMarks = computed(() => bossSkillMarks(boss.value));
+
+// Skills that have fired and are still running on the boss.
+const debugClockStore = useDebugClockStore();
+const currentDayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
+const bloodlustDays = computed(() => bloodlustDaysLeft(boss.value, currentDayKey.value));
+const undying = computed(() => undyingActive(boss.value, currentDayKey.value));
+const doomDays = computed(() => doomDaysLeft(boss.value, currentDayKey.value));
 
 // The name's last word carries the tap cue's chevron, so a name that only
 // just fits its line never leaves the chevron alone on the next.
@@ -71,6 +90,11 @@ const statTiles = computed<StatTile[]>(() => {
     { icon: 'crit', label: 'Crit chance', value: pct(b.critChance) },
     ...(b.reflectPct > 0 ? [{ icon: 'reflect' as const, label: 'Reflect', value: pct(b.reflectPct) }] : []),
     ...(b.lifestealPct > 0 ? [{ icon: 'lifesteal' as const, label: 'Lifesteal', value: pct(b.lifestealPct) }] : []),
+    ...(bloodlustDays.value !== undefined
+      ? [{ icon: 'bloodlust' as const, label: 'Bloodlust', value: `${bloodlustDays.value}d`, note: '3% max HP per hit' }]
+      : []),
+    ...(undying.value ? [{ icon: 'undying' as const, label: 'Undying', value: 'Today', note: "Can't fall below 10%" }] : []),
+    ...(doomDays.value !== undefined ? [{ icon: 'doom' as const, label: 'Doom', value: `${doomDays.value}d` }] : []),
   ];
 });
 </script>
@@ -101,6 +125,9 @@ const statTiles = computed<StatTile[]>(() => {
         <span><StatIcon name="crit" /> {{ (boss.critChance * 100).toFixed(0) }}%</span>
         <span v-if="boss.reflectPct > 0"><StatIcon name="reflect" /> {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
         <span v-if="boss.lifestealPct > 0"><StatIcon name="lifesteal" /> {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
+        <span v-if="bloodlustDays !== undefined"><StatIcon name="bloodlust" /> <span class="bloodlust">{{ bloodlustDays }}d</span></span>
+        <span v-if="undying"><StatIcon name="undying" class="undying" /></span>
+        <span v-if="doomDays !== undefined"><StatIcon name="doom" /> <span class="doom">{{ doomDays }}d</span></span>
       </p>
     </div>
     <div v-if="phase === 'dying'" class="slain-stamp" role="status">

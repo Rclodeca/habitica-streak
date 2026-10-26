@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, onUpdated, ref } from 'vue';
 import {
+  activeBlind,
   activeCritBoost,
   itemDoubleFactor,
   activeHealBoost,
+  activeSunder,
   activeWoundsEffect,
   dailyPeriodKey,
   damageReductionPct,
   daysBetweenDayKeys,
+  doomDaysLeft,
   describeItemBonus,
   describeItemBonusParts,
   effectiveCritChance,
@@ -25,6 +28,7 @@ import { TUNING } from '../../game-engine/constants/tuning';
 import { useCelebration } from '../../composables/useCelebration';
 import { useHitFeed } from '../../composables/useHitFeed';
 import { usePress } from '../../composables/usePress';
+import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
@@ -99,6 +103,17 @@ const healBoostDaysLeft = computed(() =>
 const woundsDaysLeft = computed(() =>
   woundsEffect.value ? woundsEffect.value.durationDays - daysBetweenDayKeys(woundsEffect.value.appliedDayKey, currentDayKey.value) : 0,
 );
+// Boss skills on the hero: Blind and Sunder, and the boss's Doom counting down to them.
+const blindEffect = computed(() => activeBlind(character.value, currentDayKey.value));
+const blindDaysLeft = computed(() =>
+  blindEffect.value ? blindEffect.value.durationDays - daysBetweenDayKeys(blindEffect.value.appliedDayKey, currentDayKey.value) : 0,
+);
+const sunderEffect = computed(() => activeSunder(character.value, currentDayKey.value));
+const sunderDaysLeft = computed(() =>
+  sunderEffect.value ? sunderEffect.value.durationDays - daysBetweenDayKeys(sunderEffect.value.appliedDayKey, currentDayKey.value) : 0,
+);
+const bossStore = useBossStore();
+const doomDays = computed(() => doomDaysLeft(bossStore.boss, currentDayKey.value));
 
 // Pre-item-bonus values, shown alongside the buffed (post-item) ones in the
 // details modal so the player can see how much their gear is helping.
@@ -184,6 +199,9 @@ const activeEffects = computed(() => {
   if (critBoost.value) effects.push({ icon: 'critBoost', text: `+${(critBoost.value.bonus * 100).toFixed(0)}% crit`, days: critBoostDaysLeft.value, tone: 'boon' });
   if (healBoost.value) effects.push({ icon: 'healBoost', text: `+${(healBoost.value.bonus * 100).toFixed(0)}% heal`, days: healBoostDaysLeft.value, tone: 'boon' });
   if (woundsEffect.value) effects.push({ icon: 'wounds', text: `Wounded · ${(woundsEffect.value.effectRate * 100).toFixed(0)}% heal`, days: woundsDaysLeft.value, tone: 'bane' });
+  if (blindEffect.value) effects.push({ icon: 'blind', text: 'Blinded', days: blindDaysLeft.value, tone: 'bane' });
+  if (sunderEffect.value) effects.push({ icon: 'sunder', text: 'Sundered', days: sunderDaysLeft.value, tone: 'bane' });
+  if (doomDays.value !== undefined) effects.push({ icon: 'doom', text: 'Doom', days: doomDays.value, tone: 'bane' });
   return effects;
 });
 
@@ -267,6 +285,9 @@ onBeforeUnmount(() => {
         <span v-if="critBoost"><StatIcon name="critBoost" />+{{ (critBoost.bonus * 100).toFixed(0) }}% crit · {{ critBoostDaysLeft }}d</span>
         <span v-if="healBoost"><StatIcon name="healBoost" />+{{ (healBoost.bonus * 100).toFixed(0) }}% heal · {{ healBoostDaysLeft }}d</span>
         <span v-if="woundsEffect"><StatIcon name="wounds" />{{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
+        <span v-if="blindEffect"><StatIcon name="blind" />Blinded · {{ blindDaysLeft }}d</span>
+        <span v-if="sunderEffect"><StatIcon name="sunder" />Sundered · {{ sunderDaysLeft }}d</span>
+        <span v-if="doomDays !== undefined"><StatIcon name="doom" />Doom · {{ doomDays }}d</span>
       </p>
     </div>
     <!-- The whole half is one button, clipped to its side of the stage's step. -->

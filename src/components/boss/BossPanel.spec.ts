@@ -4,7 +4,7 @@ import { enableAutoUnmount, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRng, generateBoss } from '../../game-engine';
+import { addDaysToDayKey, createRng, dailyPeriodKey, generateBoss } from '../../game-engine';
 import { useCelebration } from '../../composables/useCelebration';
 import { holdHp, setHitPlayer } from '../../composables/useHitFeed';
 import { useBossStore } from '../../store/bossStore';
@@ -116,4 +116,39 @@ describe('BossPanel', () => {
     expect(wrapper.find('.boss-figure').classes()).toContain('dying');
     expect(wrapper.find('.slain-stamp').exists()).toBe(true);
   });
+
+  describe('active boss-skill effects', () => {
+    const today = () => dailyPeriodKey(new Date());
+    const tileLabels = () => Array.from(document.body.querySelectorAll('.tile-label')).map((e) => e.textContent?.trim());
+
+    it('shows Bloodlust on the stage and in the details', async () => {
+      const store = useBossStore();
+      store.setBoss({ ...store.boss, bloodlustDayKey: today() });
+      const wrapper = mount(BossPanel);
+      expect(wrapper.find('.stat-summary .bloodlust').text()).toBe('2d');
+      await wrapper.find('button.tap-boss').trigger('click');
+      expect(tileLabels()).toContain('Bloodlust');
+      wrapper.unmount();
+    });
+
+    it('shows Undying only on the day it fired', async () => {
+      const store = useBossStore();
+      store.setBoss({ ...store.boss, undyingDayKey: today() });
+      const wrapper = mount(BossPanel);
+      expect(wrapper.find('.stat-summary .undying').exists()).toBe(true);
+      await wrapper.find('button.tap-boss').trigger('click');
+      expect(tileLabels()).toContain('Undying');
+      wrapper.unmount();
+
+      store.setBoss({ ...store.boss, undyingDayKey: addDaysToDayKey(today(), -1) });
+      expect(mount(BossPanel).find('.stat-summary .undying').exists()).toBe(false);
+    });
+
+    it('shows Doom counting down', () => {
+      const store = useBossStore();
+      store.setBoss({ ...store.boss, doomDueDayKey: addDaysToDayKey(today(), 2) });
+      expect(mount(BossPanel).find('.stat-summary .doom').text()).toBe('2d');
+    });
+  });
 });
+

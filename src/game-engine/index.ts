@@ -176,6 +176,7 @@ export {
   activeBlind,
   activeSunder,
   bloodlustActive,
+  bloodlustDaysLeft,
   bossSkillMarks,
   doomDaysLeft,
   hpHitDamage,

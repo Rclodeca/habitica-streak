@@ -69,6 +69,12 @@ export function bloodlustActive(boss: Boss, currentDayKey: string): boolean {
   return boss.bloodlustDayKey !== undefined && daysBetweenDayKeys(boss.bloodlustDayKey, currentDayKey) < S.DURATION_DAYS;
 }
 
+/** Days of Bloodlust left, counting today, or undefined once it's worn off (or never fired). */
+export function bloodlustDaysLeft(boss: Boss, currentDayKey: string): number | undefined {
+  if (!bloodlustActive(boss, currentDayKey)) return undefined;
+  return S.DURATION_DAYS - daysBetweenDayKeys(boss.bloodlustDayKey!, currentDayKey);
+}
+
 /** Whether this boss is Undying today — it only holds the day it fired. */
 export function undyingActive(boss: Boss, currentDayKey: string): boolean {
   return boss.undyingDayKey === currentDayKey;

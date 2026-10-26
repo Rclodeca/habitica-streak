@@ -4,7 +4,8 @@ import { enableAutoUnmount, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { effectiveStat, ITEM_CATALOG } from '../../game-engine';
+import { addDaysToDayKey, dailyPeriodKey, effectiveStat, ITEM_CATALOG } from '../../game-engine';
+import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import Modal from '../ui/Modal.vue';
 import CharacterPanel from './CharacterPanel.vue';
@@ -92,4 +93,33 @@ describe('CharacterPanel', () => {
     expect(document.body.querySelector('.hero-sprite')!.classList).not.toContain('mirrored');
     wrapper.unmount();
   });
+
+  describe('boss-skill effects', () => {
+    const today = () => dailyPeriodKey(new Date());
+
+    it('shows Blind on the stage line for the days it has left', () => {
+      const store = useCharacterStore();
+      store.setCharacter({ ...store.character, statusEffects: [{ type: 'blind', appliedDayKey: today(), durationDays: 2 }] });
+      expect(mount(CharacterPanel).find('.stat-summary').text()).toContain('Blinded · 2d');
+    });
+
+    it('shows a counting-down Doom on the stage line', () => {
+      const bossStore = useBossStore();
+      bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: addDaysToDayKey(today(), 3) });
+      expect(mount(CharacterPanel).find('.stat-summary').text()).toContain('Doom · 3d');
+    });
+
+    it('lists Sunder and Doom among the active effects in the details', async () => {
+      const store = useCharacterStore();
+      const bossStore = useBossStore();
+      store.setCharacter({ ...store.character, statusEffects: [{ type: 'sunder', appliedDayKey: today(), durationDays: 2 }] });
+      bossStore.setBoss({ ...bossStore.boss, doomDueDayKey: addDaysToDayKey(today(), 1) });
+      const wrapper = mount(CharacterPanel);
+      await wrapper.find('button.tap-hero').trigger('click');
+      const effects = Array.from(document.body.querySelectorAll('.effect')).map((e) => e.textContent?.replace(/\s+/g, ' ').trim());
+      expect(effects).toEqual(expect.arrayContaining(['Sundered · 2d', 'Doom · 1d']));
+      wrapper.unmount();
+    });
+  });
 });
+

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoss } from './boss';
 import { completeHabit, overdriveHabit, resolveBossDefeatIfDead } from './combat';
-import { activeBlind, activeSunder, bloodlustActive, bossSkillMarks, doomDaysLeft, hpHitDamage, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
+import { activeBlind, activeSunder, bloodlustActive, bloodlustDaysLeft, bossSkillMarks, doomDaysLeft, hpHitDamage, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
 import { createRng } from './rng';
 import type { Boss, BossSkillSlot, Character, Habit } from './types';
 
@@ -184,6 +184,14 @@ describe('lasting skill effects', () => {
     expect(bloodlustActive(foe(), '2026-01-01')).toBe(false);
     expect(undyingActive(boss, '2026-01-01')).toBe(true);
     expect(undyingActive(boss, '2026-01-02')).toBe(false);
+  });
+
+  it('counts down Bloodlust\'s days', () => {
+    const boss = foe({ bloodlustDayKey: '2026-01-01' });
+    expect(bloodlustDaysLeft(boss, '2026-01-01')).toBe(2);
+    expect(bloodlustDaysLeft(boss, '2026-01-02')).toBe(1);
+    expect(bloodlustDaysLeft(boss, '2026-01-03')).toBeUndefined();
+    expect(bloodlustDaysLeft(foe(), '2026-01-01')).toBeUndefined();
   });
 
   it('counts down Doom to its landing day', () => {
