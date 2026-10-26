@@ -31,8 +31,7 @@ import type { Boss, Character, Habit, WoundsStatusEffect } from './types';
 const noCritRng = () => 0.99;
 const alwaysCritRng = () => 0;
 
-// Placeholder day key for tests that don't exercise Wounds — makeBoss()
-// defaults to no woundsAbility, so this value is never actually read.
+// Placeholder day key for tests that don't exercise day-based effects.
 const DAY_KEY = '2026-01-01';
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
@@ -431,7 +430,7 @@ describe('missHabit', () => {
     const character = makeCharacter({ currentHealth: 100000, equippedItemIds: ['juggernaut-carapace'] }); // +450 flat armor
     const habit = makeHabit({ difficulty: 'medium' });
     const boss = makeBoss({ physicalAttack: 1000, critChance: 0 });
-    const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; also beats critChance 0 and any woundsAbility roll
+    const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; also beats critChance 0
     const result = missHabit(character, habit, boss, DAY_KEY, forcePhysicalNoCrit);
 
     const rawDamage = bossMissDamage(boss.physicalAttack); // medium difficulty, no crit, no weekly multiplier
@@ -1006,78 +1005,12 @@ describe('activeWoundsEffect / healingMultiplier', () => {
   });
 });
 
-describe('missHabit — Wounds ability', () => {
-  it('applies Wounds to the player when the boss has the ability and the hit-chance roll succeeds', () => {
-    const character = makeCharacter({ currentHealth: 100 });
-    const habit = makeHabit({ difficulty: 'medium' });
-    const boss = makeBoss({
-      physicalAttack: 20,
-      magicAttack: 20,
-      woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 }, // hitChance 1 -> always succeeds
-    });
-
-    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
-
-    expect(result.woundsApplied).toEqual({ type: 'wounds', appliedDayKey: DAY_KEY, durationDays: 2, effectRate: 0.5 });
-    expect(result.character.statusEffects).toEqual([result.woundsApplied]);
-  });
-
-  it('does not apply Wounds when the hit-chance roll fails', () => {
-    const character = makeCharacter({ currentHealth: 100 });
-    const habit = makeHabit({ difficulty: 'medium' });
-    const boss = makeBoss({
-      physicalAttack: 20,
-      magicAttack: 20,
-      woundsAbility: { hitChance: 0, durationDays: 2, effectRate: 0.5 }, // hitChance 0 -> never succeeds
-    });
-
-    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
-
-    expect(result.woundsApplied).toBeUndefined();
-    expect(result.character.statusEffects).toBeUndefined();
-  });
-
-  it('does not stack or refresh the duration when the player already has an active Wounds effect', () => {
-    const existing: WoundsStatusEffect = { type: 'wounds', appliedDayKey: '2026-01-01', durationDays: 3, effectRate: 0.25 };
-    const character = makeCharacter({ currentHealth: 100, statusEffects: [existing] });
-    const habit = makeHabit({ difficulty: 'medium' });
-    const boss = makeBoss({
-      physicalAttack: 20,
-      magicAttack: 20,
-      woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 }, // different values than `existing`
-    });
-
-    const result = missHabit(character, habit, boss, '2026-01-02', noCritRng); // still within existing's duration
-
-    expect(result.woundsApplied).toBeUndefined(); // no-op: already active
-    expect(result.character.statusEffects).toEqual([existing]); // unchanged, not overwritten/refreshed
-  });
-
-  it('a fresh application overwrites an expired effect instead of being blocked by it', () => {
-    const expired: WoundsStatusEffect = { type: 'wounds', appliedDayKey: '2026-01-01', durationDays: 1, effectRate: 0.25 };
-    const character = makeCharacter({ currentHealth: 100, statusEffects: [expired] });
-    const habit = makeHabit({ difficulty: 'medium' });
-    const boss = makeBoss({
-      physicalAttack: 20,
-      magicAttack: 20,
-      woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 },
-    });
-
-    const result = missHabit(character, habit, boss, '2026-01-03', noCritRng); // expired's 1-day duration has elapsed
-
-    expect(result.woundsApplied).toEqual({ type: 'wounds', appliedDayKey: '2026-01-03', durationDays: 2, effectRate: 0.5 });
-    expect(result.character.statusEffects).toEqual([result.woundsApplied]);
-  });
-
-  it('never rolls against an ability the boss does not have', () => {
-    const character = makeCharacter({ currentHealth: 100 });
-    const habit = makeHabit({ difficulty: 'medium' });
-    const boss = makeBoss({ physicalAttack: 20, magicAttack: 20 }); // no woundsAbility
-
-    const result = missHabit(character, habit, boss, DAY_KEY, noCritRng);
-
-    expect(result.woundsApplied).toBeUndefined();
-    expect(result.character.statusEffects).toBeUndefined();
+describe('missHabit — no Wounds from boss hits', () => {
+  it('never applies Wounds on a miss, even for a boss saved with the old Wounds ability', () => {
+    const boss = { ...makeBoss({ physicalAttack: 20, magicAttack: 20 }), woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 } } as Boss;
+    const result = missHabit(makeCharacter(), makeHabit(), boss, DAY_KEY, () => 0);
+    expect(result.character.statusEffects ?? []).toEqual([]);
+    expect('woundsApplied' in result).toBe(false);
   });
 });
 
@@ -1321,26 +1254,7 @@ describe('completeHabit — item effects', () => {
 
 describe('missHabit — item effects', () => {
   const E = TUNING.ITEM_EFFECTS;
-  const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; beats critChance 0; < hitChance 1 for Wounds
-  function countingRng(value: number) {
-    const rng = () => {
-      rng.calls += 1;
-      return value;
-    };
-    rng.calls = 0;
-    return rng;
-  }
-
-  it('Aegis of the Unbroken blocks Wounds without changing rng consumption', () => {
-    const boss = makeBoss({ critChance: 0, woundsAbility: { hitChance: 1, durationDays: 2, effectRate: 0.5 } });
-    const withAegis = countingRng(0.4);
-    const without = countingRng(0.4);
-    const blocked = missHabit(makeCharacter({ currentHealth: 1000, equippedItemIds: ['aegis-of-the-unbroken'] }), makeHabit(), boss, DAY_KEY, withAegis);
-    const applied = missHabit(makeCharacter({ currentHealth: 1000 }), makeHabit(), boss, DAY_KEY, without);
-    expect(blocked.woundsApplied).toBeUndefined();
-    expect(applied.woundsApplied).toBeDefined();
-    expect(withAegis.calls).toBe(without.calls);
-  });
+  const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; beats critChance 0
 
   it('Bloodbound Carapace stops boss lifesteal', () => {
     const boss = makeBoss({ critChance: 0, lifestealPct: 1, maxHealth: 1000, health: 100 });

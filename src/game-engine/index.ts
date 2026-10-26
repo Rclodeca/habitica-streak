@@ -14,7 +14,6 @@ export type {
   QuestKind,
   QuestWeek,
   StatusEffect,
-  WoundsAbility,
   CritBoostStatusEffect,
   HealBoostStatusEffect,
   WoundsStatusEffect,

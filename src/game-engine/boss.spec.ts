@@ -464,36 +464,6 @@ describe('PERSONALITY_NAME', () => {
   });
 });
 
-describe('generateBoss — Wounds ability', () => {
-  it('rolls the ability on roughly WOUNDS_ABILITY_CHANCE of bosses across many seeds', () => {
-    const iterations = 2000;
-    let withAbility = 0;
-    for (let seed = 0; seed < iterations; seed++) {
-      if (generateBoss(1, createRng(seed)).woundsAbility) withAbility++;
-    }
-    const rate = withAbility / iterations;
-    expect(rate).toBeGreaterThan(TUNING.WOUNDS_ABILITY_CHANCE * 0.7);
-    expect(rate).toBeLessThan(TUNING.WOUNDS_ABILITY_CHANCE * 1.3);
-  });
-
-  it('rolls hitChance/durationDays/effectRate within their configured ranges whenever the ability is present', () => {
-    for (let seed = 0; seed < 500; seed++) {
-      const boss = generateBoss(1, createRng(seed));
-      if (!boss.woundsAbility) continue;
-      expect(boss.woundsAbility.hitChance).toBeGreaterThanOrEqual(TUNING.WOUNDS_HIT_CHANCE_MIN);
-      expect(boss.woundsAbility.hitChance).toBeLessThanOrEqual(TUNING.WOUNDS_HIT_CHANCE_MAX);
-      expect(TUNING.WOUNDS_DURATION_DAYS_OPTIONS).toContain(boss.woundsAbility.durationDays);
-      expect(TUNING.WOUNDS_EFFECT_RATE_OPTIONS).toContain(boss.woundsAbility.effectRate);
-    }
-  });
-
-  it('is deterministic for a given seed, same as every other boss stat', () => {
-    const bossA = generateBoss(5, createRng(42));
-    const bossB = generateBoss(5, createRng(42));
-    expect(bossA).toEqual(bossB);
-  });
-});
-
 describe('generateBoss — hidden attack lean', () => {
   // generateBoss is passed difficultyModifier 1 so the forced first roll is the personality pick.
   const bossFor = (personality: Personality, seed: number) =>

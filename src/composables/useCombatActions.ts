@@ -302,13 +302,6 @@ export function useCombatActions() {
     if (result.bossLifestealHealed) {
       activityLogStore.addEntry({ kind: 'lifesteal', amount: result.bossLifestealHealed, healedWho: 'boss' });
     }
-    if (result.woundsApplied) {
-      activityLogStore.addEntry({
-        kind: 'wounds-applied',
-        durationDays: result.woundsApplied.durationDays,
-        effectRate: result.woundsApplied.effectRate,
-      });
-    }
     activityLogStore.addEntry({
       kind: 'hit',
       habitName: habit.name,

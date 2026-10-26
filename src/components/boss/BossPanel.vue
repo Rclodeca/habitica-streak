@@ -69,16 +69,6 @@ const statTiles = computed<StatTile[]>(() => {
     { icon: 'crit', label: 'Crit chance', value: pct(b.critChance) },
     ...(b.reflectPct > 0 ? [{ icon: 'reflect' as const, label: 'Reflect', value: pct(b.reflectPct) }] : []),
     ...(b.lifestealPct > 0 ? [{ icon: 'lifesteal' as const, label: 'Lifesteal', value: pct(b.lifestealPct) }] : []),
-    ...(b.woundsAbility
-      ? [
-          {
-            icon: 'wounds' as const,
-            label: 'Wounds chance',
-            value: pct(b.woundsAbility.hitChance),
-            note: `${pct(b.woundsAbility.effectRate)} healing for ${b.woundsAbility.durationDays}d`,
-          },
-        ]
-      : []),
   ];
 });
 </script>
@@ -109,7 +99,6 @@ const statTiles = computed<StatTile[]>(() => {
         <span><StatIcon name="crit" /> {{ (boss.critChance * 100).toFixed(0) }}%</span>
         <span v-if="boss.reflectPct > 0"><StatIcon name="reflect" /> {{ (boss.reflectPct * 100).toFixed(0) }}%</span>
         <span v-if="boss.lifestealPct > 0"><StatIcon name="lifesteal" /> {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
-        <span v-if="boss.woundsAbility"><StatIcon name="wounds" /> {{ (boss.woundsAbility.hitChance * 100).toFixed(0) }}%</span>
       </p>
     </div>
     <div v-if="phase === 'dying'" class="slain-stamp" role="status">

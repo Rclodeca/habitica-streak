@@ -346,16 +346,9 @@ export function bossMissDamage(attackStat: number): number {
  * average — the boss "attacks" with one or the other), scaled by the
  * habit's difficulty and, on a crit roll (using the boss's crit chance),
  * doubled. The boss's own lifesteal% (if any) heals it for a percent of
- * that same damage, capped at its max health.
- *
- * If the boss has a Wounds ability, every hit rolls against its hitChance —
- * unconditionally, regardless of whether the player is already Wounded
- * (mirrors `wasCrit`/`attackType` above, which are also rolled regardless
- * of whether they end up mattering, keeping rng() consumption deterministic
- * and independent of player state). On success, Wounds is only actually
- * applied if the player doesn't already have an active one — no
- * stacking, no duration refresh (see `activeWoundsEffect`). `currentDayKey`
- * must be `dailyPeriodKey(now)`.
+ * that same damage, capped at its max health. Boss hits never apply
+ * Wounds: that's a boss skill now (see bossSkills.ts). `currentDayKey` must
+ * be `dailyPeriodKey(now)`.
  */
 export function missHabit(
   character: Character,
@@ -374,15 +367,11 @@ export function missHabit(
   // Capped at the boss's maxHealth, so this is the actual health gained,
   // not the raw `damage * lifestealPct` — surfaced for the activity log.
   bossLifestealHealed?: number;
-  // Set only when Wounds was newly applied THIS call (not when the roll
-  // succeeds but an effect was already active) — surfaced for the activity log.
-  woundsApplied?: WoundsStatusEffect;
 } {
   const updatedHabit = resetHabitStreak(habit);
   const attackType: 'physical' | 'magic' = rng() < (boss.physicalShare ?? 0.5) ? 'physical' : 'magic';
   const attack = attackType === 'physical' ? boss.physicalAttack : boss.magicAttack;
   const wasCrit = rng() < boss.critChance;
-  const woundsRollSucceeded = boss.woundsAbility ? rng() < boss.woundsAbility.hitChance : false;
   const weeklyMultiplier = habit.period === 'weekly' ? TUNING.WEEKLY_MISS_MULTIPLIER : 1;
   const damage =
     attack * TUNING.MISS_DAMAGE_FACTOR * (DIFFICULTY_WEIGHT[habit.difficulty] / 1.5) *
@@ -397,33 +386,15 @@ export function missHabit(
   const bossLifestealHealed = healedBoss - boss.health;
   const newBoss = healedBoss !== boss.health ? { ...boss, health: healedBoss } : boss;
 
-  let woundsApplied: WoundsStatusEffect | undefined;
   const hitCharacter = dawnguard ? stampEffectDay(character, 'dawnguard', currentDayKey) : character;
-  let newCharacter: Character = { ...hitCharacter, currentHealth: newHealth };
-  // Aegis of the Unbroken: the Wounds roll above still happens (rng
-  // consumption stays the same), it just can't take hold.
-  const woundImmune = hasItemEffect(character, 'wound-immune');
-  if (woundsRollSucceeded && boss.woundsAbility && !woundImmune && !activeWoundsEffect(character, currentDayKey)) {
-    woundsApplied = {
-      type: 'wounds',
-      appliedDayKey: currentDayKey,
-      durationDays: boss.woundsAbility.durationDays,
-      effectRate: boss.woundsAbility.effectRate,
-    };
-    newCharacter = {
-      ...newCharacter,
-      statusEffects: [...(character.statusEffects?.filter((e) => e.type !== 'wounds') ?? []), woundsApplied],
-    };
-  }
 
   return {
-    character: newCharacter,
+    character: { ...hitCharacter, currentHealth: newHealth },
     boss: newBoss,
     updatedHabit,
     wasCrit,
     attackType,
     bossLifestealHealed: bossLifestealHealed > 0 ? bossLifestealHealed : undefined,
-    woundsApplied,
   };
 }
 

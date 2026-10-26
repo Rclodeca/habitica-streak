@@ -50,7 +50,7 @@ export interface Character {
   // starts being droppable. Optional so an existing save (no schema-version
   // bump) still loads — undefined is treated as "every level-gated item is
   // locked" by rollItemDrops, same conservative-default pattern as
-  // difficultyModifier?/statusEffects?/woundsAbility? elsewhere in this file.
+  // difficultyModifier?/statusEffects? elsewhere in this file.
   // The player's next death naturally re-rolls a fresh assignment.
   newItemUnlockTiers?: Record<string, 10 | 15 | 20>;
   critChance: number; // base crit chance (0-1), before item bonuses — see effectiveCritChance
@@ -129,9 +129,9 @@ export interface HealBoostStatusEffect {
 
 export interface WoundsStatusEffect {
   type: 'wounds';
-  appliedDayKey: string; // dailyPeriodKey() at the moment this was applied — see combat.ts/missHabit
-  durationDays: number; // copied from the triggering boss's WoundsAbility at apply-time, not a live reference to that boss
-  effectRate: number; // 0.25 or 0.5 — multiplies healing while active, see combat.ts/healingMultiplier
+  appliedDayKey: string; // dailyPeriodKey() at the moment the Wounds boss skill fired — see bossSkills.ts
+  durationDays: number; // 2 from the boss skill; older saves may hold 1 or 3 from the retired boss trait
+  effectRate: number; // 0.5 from the boss skill (0.25 only on older saves) — multiplies healing while active, see combat.ts/healingMultiplier
 }
 
 export interface Boss {
@@ -152,9 +152,6 @@ export interface Boss {
   // undefined is treated as "roll a fresh one" the next time a boss is
   // generated for this run (see generateBoss).
   difficultyModifier?: number;
-  // Optional so an existing save still loads; undefined means this boss has
-  // no Wounds ability (90% of bosses) — see generateBoss/TUNING.WOUNDS_ABILITY_CHANCE.
-  woundsAbility?: WoundsAbility;
   // Hidden: the chance (0-1) a hit on the player lands physical rather than
   // magic, rolled once at generation and never shown — see generateBoss.
   // Optional so an existing save still loads; undefined means a plain 50/50.
@@ -163,13 +160,6 @@ export interface Boss {
   playerHasHit?: boolean;
   // Damage past 0 health on the killing blow (Echoing Blade carries it over).
   overkill?: number;
-}
-
-/** A boss's Wounds ability: rolled once at generation, then fixed for the boss's lifetime — see generateBoss. */
-export interface WoundsAbility {
-  hitChance: number; // 0.2-0.8, rolled once
-  durationDays: number; // 1 | 2 | 3, rolled once
-  effectRate: number; // 0.25 | 0.5, rolled once
 }
 
 export interface Habit {

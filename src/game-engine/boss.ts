@@ -1,8 +1,8 @@
 import { TUNING } from './constants/tuning';
 import { statAtLevel } from './leveling';
 import type { Rng } from './rng';
-import { pickRandom, pickWeighted } from './rng';
-import type { Boss, Personality, WoundsAbility } from './types';
+import { pickWeighted } from './rng';
+import type { Boss, Personality } from './types';
 
 /**
  * Un-jittered health a balanced boss at the given index starts with. Grows
@@ -302,30 +302,16 @@ export function generateBoss(
     difficultyModifier: resolvedDifficultyModifier,
   };
 
-  // Rolled last, strictly after every other rng() consumption above, so
-  // adding this ability never perturbs the rng() sequence any existing
-  // seed-based test depends on (personality, jitter, crit/reflect/lifesteal
-  // rolls all stay byte-for-byte identical for a given seed).
-  const woundsAbility: WoundsAbility | undefined =
-    rng() < TUNING.WOUNDS_ABILITY_CHANCE
-      ? {
-          hitChance: TUNING.WOUNDS_HIT_CHANCE_MIN + rng() * (TUNING.WOUNDS_HIT_CHANCE_MAX - TUNING.WOUNDS_HIT_CHANCE_MIN),
-          durationDays: pickRandom(TUNING.WOUNDS_DURATION_DAYS_OPTIONS, rng),
-          effectRate: pickRandom(TUNING.WOUNDS_EFFECT_RATE_OPTIONS, rng),
-        }
-      : undefined;
-
-  // Rolled after the Wounds ability for the same reason. A brute/arcane boss
-  // leans toward its own attack; a side-less one picks a side, but only when
-  // it actually leans, so an even split costs no extra roll.
+  // Rolled after every other stat above, so the lean never shifts an earlier
+  // rng() draw. A brute/arcane boss leans toward its own attack; a side-less
+  // one picks a side, but only when it actually leans, so an even split costs
+  // no extra roll.
   const lean = parseFloat(pickWeighted<string>(TUNING.BOSS_ATTACK_LEAN_WEIGHTS, rng));
   let leansPhysical = true;
   if (emphasizedStat === 'magicAttack') leansPhysical = false;
   else if (emphasizedStat !== 'physicalAttack' && lean > 0.5) leansPhysical = rng() < 0.5;
   const physicalShare = leansPhysical ? lean : Math.round((1 - lean) * 100) / 100;
-  const leaningBoss = { ...boss, physicalShare };
-
-  return woundsAbility ? { ...leaningBoss, woundsAbility } : leaningBoss;
+  return { ...boss, physicalShare };
 }
 
 /**
