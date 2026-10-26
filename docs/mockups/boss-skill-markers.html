@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — boss skill markers (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Generic breakpoint markers on the boss HP bar: they say "something waits
+   here", never which skill. Each option shows the fight stage's boss bar and
+   the drop-down bar (which drains toward the boss portrait, on the right). */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8;
+  --bg: #070606;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), var(--bg); font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1760px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 14px; }
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 30px; }
+.controls button { min-height: 44px; padding: 0 14px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+.controls button.on { color: var(--gold-hi); border-color: var(--line-mid); }
+.controls .sep { width: 1px; background: var(--line); margin: 0 6px; }
+
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px 34px; }
+.opt { width: 390px; max-width: 100%; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; min-height: 42px; }
+
+.cap { font: 600 9px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text); opacity: .7; margin: 0 0 8px 2px; }
+
+/* ---------- Fight stage crop ---------- */
+.stage { position: relative; height: 210px; overflow: hidden; margin-bottom: 22px;
+  background:
+    radial-gradient(1.5px 1.5px at 18% 40%, rgba(240,150,80,.9), transparent),
+    radial-gradient(1.5px 1.5px at 40% 22%, rgba(240,150,80,.6), transparent),
+    radial-gradient(1px 1px at 72% 35%, rgba(240,150,80,.8), transparent),
+    radial-gradient(ellipse 45% 55% at 72% 50%, rgba(215,205,185,.15), transparent 72%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 10%, #000 80%, transparent); mask-image: linear-gradient(180deg, transparent, #000 10%, #000 80%, transparent); }
+.stage .sprite { position: absolute; right: 10px; top: 6px; width: 190px; }
+.stage .sprite img { display: block; width: 100%; image-rendering: pixelated; filter: drop-shadow(0 0 14px rgba(0,0,0,.9)) brightness(1.06); }
+.block { position: absolute; left: 16px; top: 30px; width: 196px; z-index: 2; }
+.nm { font-size: 12px; color: var(--text-h); letter-spacing: .16em; text-shadow: 0 0 12px rgba(0,0,0,.9); white-space: nowrap; margin-bottom: 7px; }
+.nm b { color: var(--gold); font-weight: 600; }
+.stats { display: flex; gap: 8px; margin-top: 7px; font-size: 12px; font-weight: 600; color: var(--text); text-shadow: 0 0 8px #000; }
+
+/* ---------- The bar ---------- */
+.bar { position: relative; height: 16px; background: rgba(0,0,0,.7); border: 1px solid rgba(200,169,110,.32); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.bar .ghost, .bar .fill { position: absolute; top: 0; bottom: 0; left: 0; }
+.bar .ghost { background: rgba(240,222,190,.75); transition: width .55s ease-in .45s; }
+.bar .fill { background: linear-gradient(180deg, #cf4a32, #901d19 60%, #6c1411); box-shadow: 0 0 10px rgba(195,58,46,.35); transition: width .15s ease-out; }
+.bar .label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; padding-right: 5px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .1em; color: var(--text-h); text-shadow: 0 0 3px #000, 0 0 2px #000; z-index: 5; }
+.bar.rtl .ghost, .bar.rtl .fill { left: auto; right: 0; }
+.bar.dock { height: 9px; }
+
+/* ---------- The drop-down bar ---------- */
+.dock-wrap { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(20,18,15,.97), rgba(11,10,9,.97)); }
+.dock-wrap .mid { flex: 1; min-width: 0; }
+.dock-wrap .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.dock-wrap .row .nm { margin: 0; font-size: 10px; }
+.dock-wrap .num { font: 600 10px/1 'Cinzel', serif; letter-spacing: .1em; color: var(--text); }
+.port { width: 44px; height: 44px; flex-shrink: 0; border: 1px solid var(--line-mid); overflow: hidden; background: #0d0b09; }
+.port img { width: 140%; margin: -6px 0 0 -10px; image-rendering: pixelated; }
+
+/* ---------- Markers (shared) ---------- */
+.mk { position: absolute; z-index: 4; pointer-events: none; }
+.mk.spent { animation: spent .5s ease-out forwards; }
+.mk.fire { animation: fire .9s ease-out forwards; }
+@keyframes spent { to { opacity: 0; } }
+
+/* A: Notch — a gold hairline cut through the bar, standing just proud of it. */
+.A .mk { top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--gold-hi); box-shadow: 0 0 5px rgba(230,207,154,.8), 0 0 0 1px rgba(0,0,0,.7); }
+.A .dock .mk { top: -3px; bottom: -3px; }
+@keyframes fire { 0% { opacity: 1; } 30% { opacity: 1; transform: scaleY(2.2); box-shadow: 0 0 14px 3px rgba(230,207,154,.9); } 100% { opacity: 0; transform: scaleY(2.6); } }
+
+/* B: Diamond — Ashen's diamond, perched on the bar's top edge. */
+.B .mk { top: -6px; width: 9px; height: 9px; margin-left: -4.5px; transform: rotate(45deg); background: #0b0908; border: 1px solid var(--gold-hi); box-shadow: 0 0 6px rgba(230,207,154,.55); }
+.B .mk::after { content: ''; position: absolute; inset: 2px; background: var(--gold); }
+.B .dock .mk { top: -5px; width: 7px; height: 7px; margin-left: -3.5px; }
+.B .mk.fire { animation: fireB .9s ease-out forwards; }
+@keyframes fireB { 0% { opacity: 1; transform: rotate(45deg) scale(1); } 30% { opacity: 1; transform: rotate(45deg) scale(1.9); box-shadow: 0 0 16px 4px rgba(230,207,154,.9); } 100% { opacity: 0; transform: rotate(45deg) scale(2.3); } }
+
+/* C: Ember — a small glowing ember sitting under the bar. */
+.C .mk { bottom: -8px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #ffb070; box-shadow: 0 0 6px 2px rgba(224,120,58,.85); animation: flicker 2.4s ease-in-out infinite; }
+.C .dock .mk { bottom: -7px; width: 4px; height: 4px; margin-left: -2px; }
+.C .mk.fire { animation: fireC .9s ease-out forwards; }
+@keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+@keyframes fireC { 0% { opacity: 1; } 30% { opacity: 1; transform: scale(2.4); box-shadow: 0 0 16px 6px rgba(224,120,58,.95); } 100% { opacity: 0; transform: scale(3); } }
+
+/* D: Seam — a dark cut through the fill, gold where the track is empty. Quietest. */
+.D .mk { top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.85); box-shadow: 1px 0 0 rgba(230,207,154,.35), -1px 0 0 rgba(230,207,154,.35); }
+.D .mk.fire { animation: fireD .9s ease-out forwards; }
+@keyframes fireD { 0% { opacity: 1; } 30% { opacity: 1; background: var(--gold-hi); box-shadow: 0 0 12px 2px rgba(230,207,154,.9); } 100% { opacity: 0; } }
+
+.note { margin-top: 10px; font-size: 14px; font-style: italic; color: var(--text); min-height: 20px; text-align: center; transition: opacity .3s; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Boss skill markers</h1>
+  <p>Generic marks: something waits at this line, never which skill. Hit the boss to watch one fire.</p>
+  <div class="controls">
+    <button data-count="1">1 skill</button>
+    <button data-count="2">2 skills</button>
+    <button data-count="3" class="on">3 skills</button>
+    <span class="sep"></span>
+    <button data-hit="0.12">Hit</button>
+    <button data-hit="0.55">Big hit</button>
+    <button data-reset>Reset</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+<script>
+const BOSS_IMG = '../../public/sprites/bosses/brute.png';
+const MAX = 9800;
+const OPTIONS = [
+  ['A', 'Notch', 'A gold hairline through the bar, standing just past its edges. Reads clearly at both sizes.'],
+  ['B', 'Diamond', "Ashen's diamond perched on the bar's top edge. The most ornamental."],
+  ['C', 'Ember', 'A small flickering ember under the bar. Feels alive, a little ominous.'],
+  ['D', 'Seam', 'A dark cut through the fill. The quietest: easy to miss on purpose.'],
+];
+const SLOTS = { 1: [0.5], 2: [0.75, 0.25], 3: [0.75, 0.5, 0.25] };
+let count = 3, hp = MAX, spent = new Set();
+
+const fmt = (n) => Math.round(n).toLocaleString('en-US');
+const marks = (rtl) => SLOTS[count].map((at) =>
+  `<i class="mk${spent.has(at) ? ' gone' : ''}" data-at="${at}" style="left:${(rtl ? 1 - at : at) * 100}%"></i>`).join('');
+
+function render() {
+  document.getElementById('grid').innerHTML = OPTIONS.map(([k, name, blurb]) => `
+    <section class="opt ${k}">
+      <h2 class="engraved"><b>${k}</b>${name}</h2>
+      <p>${blurb}</p>
+      <div class="cap">Fight stage</div>
+      <div class="stage">
+        <div class="sprite"><img src="${BOSS_IMG}" alt="" /></div>
+        <div class="block">
+          <div class="nm engraved">Grimjaw <b>· 31</b></div>
+          <div class="bar"><i class="ghost"></i><i class="fill"></i>${marks(false)}<span class="label"></span></div>
+          <div class="stats"><span>⚔ 412</span><span>✦ 188</span><span>◈ 41%</span></div>
+        </div>
+      </div>
+      <div class="cap">Drop-down bar</div>
+      <div class="dock-wrap">
+        <div class="mid">
+          <div class="row"><span class="nm engraved">Grimjaw</span><span class="num"></span></div>
+          <div class="bar dock rtl"><i class="ghost"></i><i class="fill"></i>${marks(true)}</div>
+        </div>
+        <span class="port"><img src="${BOSS_IMG}" alt="" /></span>
+      </div>
+      <div class="note"></div>
+    </section>`).join('');
+  document.querySelectorAll('.mk.gone').forEach((m) => m.remove());
+  paint();
+}
+
+function paint() {
+  const pct = (hp / MAX) * 100 + '%';
+  document.querySelectorAll('.bar .fill, .bar .ghost').forEach((b) => (b.style.width = pct));
+  document.querySelectorAll('.bar .label').forEach((l) => (l.textContent = `${fmt(hp)} / ${fmt(MAX)}`));
+  document.querySelectorAll('.dock-wrap .num').forEach((l) => (l.textContent = `${fmt(hp)} / ${fmt(MAX)}`));
+}
+
+function hit(frac) {
+  const before = hp;
+  hp = Math.max(0, hp - MAX * frac);
+  const crossed = SLOTS[count].filter((at) => !spent.has(at) && before > at * MAX && hp <= at * MAX);
+  crossed.forEach((at) => spent.add(at));
+  // Only the first (highest) line crossed fires; the rest are spent quietly. Nothing fires on a kill.
+  const fired = hp > 0 ? crossed[0] : undefined;
+  document.querySelectorAll('.mk').forEach((m) => {
+    const at = parseFloat(m.dataset.at);
+    if (!crossed.includes(at)) return;
+    m.classList.add(at === fired ? 'fire' : 'spent');
+    m.addEventListener('animationend', () => m.remove(), { once: true });
+  });
+  const note = hp <= 0 ? 'Slain — nothing fires.' : fired !== undefined ? (crossed.length > 1 ? 'One fires; the rest are lost.' : 'A skill fires.') : '';
+  document.querySelectorAll('.note').forEach((n) => (n.textContent = note));
+  paint();
+}
+
+document.querySelectorAll('[data-count]').forEach((b) => b.addEventListener('click', () => {
+  count = +b.dataset.count;
+  document.querySelectorAll('[data-count]').forEach((x) => x.classList.toggle('on', x === b));
+  hp = MAX; spent = new Set(); render();
+}));
+document.querySelectorAll('[data-hit]').forEach((b) => b.addEventListener('click', () => hit(+b.dataset.hit)));
+document.querySelector('[data-reset]').addEventListener('click', () => { hp = MAX; spent = new Set(); render(); document.querySelectorAll('.note').forEach((n) => (n.textContent = '')); });
+render();
+</script>
+</body>
+</html>
