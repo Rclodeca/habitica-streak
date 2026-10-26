@@ -51,7 +51,9 @@ export type ItemEffectId =
   | 'dynamo'
   | 'banner'
   | 'null-mirror'
-  | 'echoing-blade';
+  | 'echoing-blade'
+  | 'hushing-bell'
+  | 'omen-hourglass';
 
 // A negative percent is a drawback (e.g. -10 max health); enchanting never doubles it.
 export interface ItemBonus {

@@ -1,5 +1,6 @@
 import { applyResist, baseResistStatForIndex, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
-import { activeSunder, bloodlustActive } from './bossSkills';
+import { activeSunder, bloodlustActive, resolveBreakpoints, spendPassedBreakpoints } from './bossSkills';
+import type { FiredBossSkill } from './bossSkills';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
@@ -174,6 +175,8 @@ export type CombatResult = {
   // without recomputing this function's formulas themselves.
   lifestealHealed?: number;
   reflectedDamage?: number;
+  // A boss skill this hit made fire (see resolveBreakpoints in bossSkills.ts).
+  bossSkill?: FiredBossSkill;
 };
 
 /**
@@ -198,10 +201,11 @@ export function effectiveResistAfterPen(resistStat: number, penPct: number): num
  * heals the character for a percent of the damage actually dealt, while the
  * boss's own reflect% (if any) damages the character back for a percent of
  * that same damage — both computed off the same `dealt` amount, then netted
- * into a single health change. `currentDayKey` must be `dailyPeriodKey(now)`
- * (never `periodKeyFor(habit.period, now)`) — it's only used to check for an
- * active Wounds effect (see `healingMultiplier`), which always runs in days
- * regardless of the habit's own period.
+ * into a single health change. Any boss skill the hit knocks loose fires
+ * afterward (see `resolveBreakpoints`) and comes back as `bossSkill`.
+ * `currentDayKey` must be `dailyPeriodKey(now)` (never
+ * `periodKeyFor(habit.period, now)`) — day-based effects (Wounds, Blind, the
+ * boss skills) always run in days regardless of the habit's own period.
  */
 export function completeHabit(
   character: Character,
@@ -211,6 +215,21 @@ export function completeHabit(
   currentDayKey: string,
   rng: Rng,
   options: { isOverdriveUse?: boolean } = {},
+): CombatResult {
+  const result = resolveCompletion(character, habit, allHabitsOfSameType, boss, currentDayKey, rng, options);
+  const skill = resolveBreakpoints(boss.health, result.boss, result.character, currentDayKey, rng);
+  return { ...result, boss: skill.boss, character: skill.character, ...(skill.fired && { bossSkill: skill.fired }) };
+}
+
+/** completeHabit's hit itself, before any boss skill fires. */
+function resolveCompletion(
+  character: Character,
+  habit: Habit,
+  allHabitsOfSameType: Habit[],
+  boss: Boss,
+  currentDayKey: string,
+  rng: Rng,
+  options: { isOverdriveUse?: boolean },
 ): CombatResult {
   const isOverdriveUse = options.isOverdriveUse ?? false;
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
@@ -476,7 +495,8 @@ export function resolveBossDefeatIfDead(
   // Echoing Blade: the killing blow's overkill carries into the next boss —
   // that boss only, and never down past 1 health, so kills can't chain.
   const carried = hasItemEffect(withItems, 'echoing-blade') ? Math.min(boss.overkill ?? 0, generated.health - 1) : 0;
-  const nextBoss = carried > 0 ? { ...generated, health: generated.health - carried } : generated;
+  // Breakpoints the carry passes are spent without firing.
+  const nextBoss = carried > 0 ? spendPassedBreakpoints({ ...generated, health: generated.health - carried }) : generated;
   return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped, ...(itemHealed > 0 && { itemHealed }) };
 }
 

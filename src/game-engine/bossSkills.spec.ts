@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoss } from './boss';
-import { activeBlind, activeSunder, bloodlustActive, bossSkillMarks, doomDaysLeft, hpHitDamage, rollBossSkills, undyingActive } from './bossSkills';
+import { completeHabit, overdriveHabit, resolveBossDefeatIfDead } from './combat';
+import { activeBlind, activeSunder, bloodlustActive, bossSkillMarks, doomDaysLeft, hpHitDamage, resolveBreakpoints, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
 import { createRng } from './rng';
-import type { Boss, BossSkillSlot, Character } from './types';
+import type { Boss, BossSkillSlot, Character, Habit } from './types';
 
 const SEEDS = 2000;
 
@@ -205,5 +206,188 @@ describe('bossSkillMarks', () => {
     ]);
     expect(JSON.stringify(marks)).not.toMatch(/mend|doom|blind|skill/);
     expect(bossSkillMarks(foe())).toEqual([]);
+  });
+});
+
+const DAY = '2026-01-01';
+const neverRng = () => 0.99;
+
+/** The boss `foe` after a hit took it from `fromPct` to `toPct` of its max HP. */
+function hitFoe(skills: BossSkillSlot[], fromPct: number, toPct: number, overrides: Partial<Boss> = {}) {
+  const boss = foe({ skills, health: toPct * 1000, ...overrides });
+  return { healthBefore: fromPct * 1000, boss };
+}
+
+describe('resolveBreakpoints', () => {
+  it('fires a skill when a hit crosses its breakpoint', () => {
+    const { healthBefore, boss } = hitFoe([{ at: 0.5, skill: 'mend' }], 0.6, 0.45);
+    const result = resolveBreakpoints(healthBefore, boss, hero(), DAY, neverRng);
+    expect(result.boss.health).toBeCloseTo(550, 10);
+    expect(result.boss.skills).toEqual([{ at: 0.5, skill: 'mend', spent: true, fired: true }]);
+    expect(result.fired).toEqual({ skill: 'mend', outcome: 'landed', amount: 100 });
+  });
+
+  it('fires nothing when no breakpoint is crossed', () => {
+    const { healthBefore, boss } = hitFoe([{ at: 0.5, skill: 'mend' }], 0.8, 0.6);
+    const result = resolveBreakpoints(healthBefore, boss, hero(), DAY, neverRng);
+    expect(result.fired).toBeUndefined();
+    expect(result.boss).toEqual(boss);
+  });
+
+  it('fires only the first of several lines one hit crosses', () => {
+    const { healthBefore, boss } = hitFoe([{ at: 0.75, skill: 'blind' }, { at: 0.25, skill: 'sunder' }], 0.8, 0.2);
+    const result = resolveBreakpoints(healthBefore, boss, hero(), DAY, neverRng);
+    expect(result.fired?.skill).toBe('blind');
+    expect(result.boss.skills).toEqual([
+      { at: 0.75, skill: 'blind', spent: true, fired: true },
+      { at: 0.25, skill: 'sunder', spent: true },
+    ]);
+    expect(activeBlind(result.character, DAY)).toBeDefined();
+    expect(activeSunder(result.character, DAY)).toBeUndefined();
+  });
+
+  it('fires nothing on a kill, but spends every line crossed', () => {
+    const { healthBefore, boss } = hitFoe([{ at: 0.75, skill: 'blind' }, { at: 0.25, skill: 'sunder' }], 0.8, 0);
+    const character = hero();
+    const result = resolveBreakpoints(healthBefore, boss, character, DAY, neverRng);
+    expect(result.fired).toBeUndefined();
+    expect(result.character).toBe(character);
+    expect(result.boss.skills?.every((slot) => slot.spent && !slot.fired)).toBe(true);
+  });
+
+  it('fires each breakpoint once, even after the boss heals back above it', () => {
+    const first = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'mend' }], health: 400 }), hero(), DAY, neverRng);
+    const healed = { ...first.boss, health: 700 };
+    const second = resolveBreakpoints(700, { ...healed, health: 400 }, hero(), DAY, neverRng);
+    expect(second.fired).toBeUndefined();
+  });
+
+  it('Undying stops the hit that triggers it at 10%, and holds the floor all day', () => {
+    const { healthBefore, boss } = hitFoe([{ at: 0.25, skill: 'undying' }], 0.3, 0.05, { overkill: 0 });
+    const fired = resolveBreakpoints(healthBefore, boss, hero(), DAY, neverRng);
+    expect(fired.fired).toEqual({ skill: 'undying', outcome: 'landed' });
+    expect(fired.boss.health).toBe(100);
+    expect(fired.boss.undyingDayKey).toBe(DAY);
+
+    const sameDay = resolveBreakpoints(100, { ...fired.boss, health: 0, overkill: 250 }, hero(), DAY, neverRng);
+    expect(sameDay.boss.health).toBe(100);
+    expect(sameDay.boss.overkill).toBeUndefined();
+
+    const nextDay = resolveBreakpoints(100, { ...fired.boss, health: 0 }, hero(), '2026-01-02', neverRng);
+    expect(nextDay.boss.health).toBe(0);
+  });
+
+  it('Rend and Ravage take 20% and 40% of current HP, never below 1', () => {
+    const rend = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'rend' }], health: 400 }), hero({ currentHealth: 500 }), DAY, neverRng);
+    expect(rend.character.currentHealth).toBeCloseTo(400, 10);
+    expect(rend.fired).toEqual({ skill: 'rend', outcome: 'landed', amount: 100 });
+    const ravage = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'ravage' }], health: 400 }), hero({ currentHealth: 500 }), DAY, neverRng);
+    expect(ravage.character.currentHealth).toBeCloseTo(300, 10);
+    const low = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'ravage' }], health: 400 }), hero({ currentHealth: 1.4 }), DAY, neverRng);
+    expect(low.character.currentHealth).toBeCloseTo(1, 10);
+  });
+
+  it('Rend ignores the hero\'s armor', () => {
+    const armored = hero({ currentHealth: 500, equippedItemIds: ['executioners-axe', 'warding-sigil'] });
+    const rend = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'rend' }], health: 400 }), armored, DAY, neverRng);
+    expect(rend.character.currentHealth).toBeCloseTo(400, 10);
+  });
+
+  it('Doom sets a countdown 3 days out', () => {
+    const doom = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'doom' }], health: 400 }), hero(), DAY, neverRng);
+    expect(doom.boss.doomDueDayKey).toBe('2026-01-04');
+    expect(doom.fired).toEqual({ skill: 'doom', outcome: 'landed' });
+  });
+
+  it('Bloodlust starts on the day it fires', () => {
+    const lust = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'bloodlust' }], health: 400 }), hero(), DAY, neverRng);
+    expect(bloodlustActive(lust.boss, '2026-01-02')).toBe(true);
+  });
+
+  it('Wounds lands at half healing for 2 days, replacing an older one', () => {
+    const old = { type: 'wounds' as const, appliedDayKey: '2025-12-31', durationDays: 3, effectRate: 0.25 };
+    const wounds = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'wounds' }], health: 400 }), hero({ statusEffects: [old] }), DAY, neverRng);
+    expect(wounds.character.statusEffects).toEqual([{ type: 'wounds', appliedDayKey: DAY, durationDays: 2, effectRate: 0.5 }]);
+  });
+
+  it('Aegis of the Unbroken resists Wounds', () => {
+    const character = hero({ equippedItemIds: ['aegis-of-the-unbroken'] });
+    const wounds = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'wounds' }], health: 400 }), character, DAY, neverRng);
+    expect(wounds.fired).toEqual({ skill: 'wounds', outcome: 'resisted' });
+    expect(wounds.character.statusEffects ?? []).toEqual([]);
+    expect(wounds.boss.skills?.[0]).toEqual({ at: 0.5, skill: 'wounds', spent: true, fired: true });
+  });
+
+  it('Blind and Sunder land for 2 days', () => {
+    const sunder = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'sunder' }], health: 400 }), hero(), DAY, neverRng);
+    expect(sunder.character.statusEffects).toEqual([{ type: 'sunder', appliedDayKey: DAY, durationDays: 2 }]);
+  });
+
+  it('only rolls rng for Hushing Bell', () => {
+    const rng = Object.assign(() => {
+      rng.calls += 1;
+      return 0;
+    }, { calls: 0 });
+    resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'mend' }], health: 400 }), hero(), DAY, rng);
+    expect(rng.calls).toBe(0);
+  });
+});
+
+describe('spendPassedBreakpoints', () => {
+  it('spends every line at or above the boss\'s health without firing', () => {
+    const boss = foe({ health: 600, skills: [{ at: 0.75, skill: 'blind' }, { at: 0.25, skill: 'sunder' }] });
+    expect(spendPassedBreakpoints(boss).skills).toEqual([
+      { at: 0.75, skill: 'blind', spent: true },
+      { at: 0.25, skill: 'sunder' },
+    ]);
+  });
+});
+
+describe('boss skills through combat', () => {
+  const habit = (overrides: Partial<Habit> = {}): Habit => ({
+    id: 'h', name: 'Train', period: 'daily', difficulty: 'medium', damageType: 'physical', isBad: false,
+    streakCount: 0, lastCompletedPeriodKey: null, lastCheckedPeriodKey: null, ...overrides,
+  });
+
+  /** A boss sized so one hit dealing `dealt` takes it from 60% to 35% of its max HP. */
+  const sized = (dealt: number, skills: BossSkillSlot[]) => foe({ armor: 0, magicResist: 0, maxHealth: dealt * 4, health: dealt * 2.4, skills });
+
+  it('completeHabit fires a crossed skill and reports it', () => {
+    const h = habit();
+    const dealt = completeHabit(hero(), h, [h], foe({ armor: 0, health: 1e9, maxHealth: 1e9 }), DAY, neverRng).damageDealt!;
+    const result = completeHabit(hero(), h, [h], sized(dealt, [{ at: 0.5, skill: 'doom' }]), DAY, neverRng);
+    expect(result.bossSkill).toEqual({ skill: 'doom', outcome: 'landed' });
+    expect(result.boss.doomDueDayKey).toBe('2026-01-04');
+  });
+
+  it('an Overdrive use fires a crossed skill', () => {
+    const h = habit({ isOverdrive: true, lastCompletedPeriodKey: DAY });
+    const dealt = overdriveHabit(hero(), h, [h], foe({ armor: 0, health: 1e9, maxHealth: 1e9 }), DAY, DAY, neverRng).damageDealt!;
+    const result = overdriveHabit(hero(), h, [h], sized(dealt, [{ at: 0.5, skill: 'bloodlust' }]), DAY, DAY, neverRng);
+    expect(result.bossSkill).toEqual({ skill: 'bloodlust', outcome: 'landed' });
+  });
+
+  it('Torch of Wrath\'s heal-damage fires a crossed skill', () => {
+    const h = habit({ damageType: 'healing' });
+    const torch = hero({ currentHealth: 1, equippedItemIds: ['censer-of-wrath'] });
+    const dealt = completeHabit(torch, h, [h], foe({ health: 1e9, maxHealth: 1e9 }), DAY, neverRng).damageDealt!;
+    const result = completeHabit(torch, h, [h], sized(dealt, [{ at: 0.5, skill: 'mend' }]), DAY, neverRng);
+    expect(result.bossSkill?.skill).toBe('mend');
+  });
+
+  it('Echoing Blade carry spends the lines it passes on the next boss, without firing them', () => {
+    let found = 0;
+    for (let seed = 0; seed < 200 && found < 3; seed++) {
+      const character = hero({ equippedItemIds: ['echoing-blade'] });
+      const dead = foe({ index: 29, health: 0, overkill: 1e12 });
+      const next = resolveBossDefeatIfDead(character, dead, createRng(seed)).boss;
+      if (!next.skills) continue;
+      found++;
+      for (const slot of next.skills) {
+        expect(slot.fired).toBeUndefined();
+        expect(slot.spent).toBe(true); // the carry leaves the new boss at 1 HP, past every line
+      }
+    }
+    expect(found).toBeGreaterThan(0);
   });
 });

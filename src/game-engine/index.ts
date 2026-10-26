@@ -172,4 +172,16 @@ export { createRng, pickRandom, pickWeighted, shuffle } from './rng';
 
 export { addDaysToDayKey, dailyPeriodKey, dayOfWeekIndex, daysBetweenDayKeys, periodKeyFor, weeklyPeriodKey } from './time';
 
-export { activeBlind, activeSunder, bloodlustActive, bossSkillMarks, doomDaysLeft, hpHitDamage, rollBossSkills, undyingActive } from './bossSkills';
+export {
+  activeBlind,
+  activeSunder,
+  bloodlustActive,
+  bossSkillMarks,
+  doomDaysLeft,
+  hpHitDamage,
+  resolveBreakpoints,
+  rollBossSkills,
+  spendPassedBreakpoints,
+  undyingActive,
+} from './bossSkills';
+export type { FiredBossSkill } from './bossSkills';

@@ -4,10 +4,11 @@
 // seams that damage the boss. See docs/superpowers/specs/2026-10-25-boss-skills-design.md.
 
 import { TUNING } from './constants/tuning';
+import { hasItemEffect } from './items';
 import { pickRandom, pickWeighted } from './rng';
 import type { Rng } from './rng';
-import { daysBetweenDayKeys } from './time';
-import type { BlindStatusEffect, Boss, BossSkillId, BossSkillSlot, Breakpoint, Character, SunderStatusEffect } from './types';
+import { addDaysToDayKey, daysBetweenDayKeys } from './time';
+import type { BlindStatusEffect, Boss, BossSkillId, BossSkillSlot, Breakpoint, Character, StatusEffect, SunderStatusEffect } from './types';
 
 const S = TUNING.BOSS_SKILLS;
 const SKILL_IDS = Object.keys(S.UNLOCK_INDEX) as BossSkillId[];
@@ -82,4 +83,102 @@ export function doomDaysLeft(boss: Boss, currentDayKey: string): number | undefi
 /** What the boss bars may show: each breakpoint and whether it's armed, fired or spent — never which skill. */
 export function bossSkillMarks(boss: Boss): { at: Breakpoint; state: 'armed' | 'fired' | 'spent' }[] {
   return (boss.skills ?? []).map((slot) => ({ at: slot.at, state: slot.fired ? 'fired' : slot.spent ? 'spent' : 'armed' }));
+}
+
+/** A skill that just fired: `amount` is the HP it took from the hero (Rend, Ravage) or healed the boss (Mend). */
+export interface FiredBossSkill {
+  skill: BossSkillId;
+  outcome: 'landed' | 'failed' | 'resisted';
+  amount?: number;
+}
+
+/** `effect` in place of any earlier effect of its type. */
+function withStatus(character: Character, effect: StatusEffect): Character {
+  return { ...character, statusEffects: [...(character.statusEffects ?? []).filter((e) => e.type !== effect.type), effect] };
+}
+
+/** The boss held at Undying's floor (10% of max), with no overkill to carry. */
+function heldByUndying(boss: Boss): Boss {
+  const floor = boss.maxHealth * (S.UNDYING_FLOOR_PCT / 100);
+  if (boss.health >= floor && boss.overkill === undefined) return boss;
+  const held = { ...boss, health: Math.max(boss.health, floor) };
+  delete held.overkill;
+  return held;
+}
+
+/** Applies a fired skill's effect to the hero or the boss. */
+function applySkill(skill: BossSkillId, boss: Boss, character: Character, currentDayKey: string): { boss: Boss; character: Character; fired: FiredBossSkill } {
+  const halved = hasItemEffect(character, 'omen-hourglass') ? TUNING.ITEM_EFFECTS.OMEN_HOURGLASS_FACTOR : 1;
+  const landed = (changes: { boss?: Boss; character?: Character; amount?: number } = {}) => ({
+    boss: changes.boss ?? boss,
+    character: changes.character ?? character,
+    fired: { skill, outcome: 'landed' as const, ...(changes.amount !== undefined && { amount: changes.amount }) },
+  });
+  switch (skill) {
+    case 'wounds':
+      // Aegis of the Unbroken: Wounds can't take hold.
+      if (hasItemEffect(character, 'wound-immune')) return { boss, character, fired: { skill, outcome: 'resisted' } };
+      return landed({
+        character: withStatus(character, { type: 'wounds', appliedDayKey: currentDayKey, durationDays: S.DURATION_DAYS, effectRate: S.WOUNDS_EFFECT_RATE }),
+      });
+    case 'blind':
+    case 'sunder':
+      return landed({ character: withStatus(character, { type: skill, appliedDayKey: currentDayKey, durationDays: S.DURATION_DAYS }) });
+    case 'bloodlust':
+      return landed({ boss: { ...boss, bloodlustDayKey: currentDayKey } });
+    case 'mend': {
+      const healed = Math.min(boss.maxHealth - boss.health, boss.maxHealth * (S.MEND_HEAL_PCT / 100));
+      return landed({ boss: { ...boss, health: boss.health + healed }, amount: healed });
+    }
+    case 'rend':
+    case 'ravage': {
+      const taken = hpHitDamage(character.currentHealth, (skill === 'rend' ? S.REND_PCT : S.RAVAGE_PCT) * halved);
+      return landed({ character: { ...character, currentHealth: character.currentHealth - taken }, amount: taken });
+    }
+    case 'doom':
+      return landed({ boss: { ...boss, doomDueDayKey: addDaysToDayKey(currentDayKey, S.DOOM_DELAY_DAYS) } });
+    case 'undying':
+      return landed({ boss: heldByUndying({ ...boss, undyingDayKey: currentDayKey }) });
+  }
+}
+
+/**
+ * Runs after a hit on the boss: `boss` is the boss after the hit, and
+ * `healthBefore` its health before. An Undying boss (fired earlier today)
+ * is held at its floor first. Every unspent breakpoint the hit crossed is
+ * spent, but only the highest fires — a big hit is rewarded — and nothing
+ * fires on a kill. Hushing Bell can make the fired skill fail; that roll is
+ * the only rng() this consumes, so combat's seeded rolls are untouched.
+ */
+export function resolveBreakpoints(
+  healthBefore: number,
+  boss: Boss,
+  character: Character,
+  currentDayKey: string,
+  rng: Rng,
+): { boss: Boss; character: Character; fired?: FiredBossSkill } {
+  const held = undyingActive(boss, currentDayKey) ? heldByUndying(boss) : boss;
+  const line = (slot: BossSkillSlot) => slot.at * held.maxHealth;
+  const crossed = (held.skills ?? []).filter((slot) => !slot.spent && healthBefore > line(slot) && held.health <= line(slot));
+  if (crossed.length === 0) return { boss: held, character };
+
+  const first = crossed.reduce((top, slot) => (slot.at > top.at ? slot : top));
+  const killed = Math.round(held.health) <= 0;
+  const skills = (held.skills ?? []).map((slot): BossSkillSlot => {
+    if (!crossed.includes(slot)) return slot;
+    return slot === first && !killed ? { ...slot, spent: true, fired: true } : { ...slot, spent: true };
+  });
+  const spent = { ...held, skills };
+  if (killed) return { boss: spent, character };
+
+  if (hasItemEffect(character, 'hushing-bell') && rng() < TUNING.ITEM_EFFECTS.HUSHING_BELL_FAIL_CHANCE) {
+    return { boss: spent, character, fired: { skill: first.skill, outcome: 'failed' } };
+  }
+  return applySkill(first.skill, spent, character, currentDayKey);
+}
+
+/** Spends, without firing, every breakpoint at or above the boss's health — for a boss that starts below some (Echoing Blade's carry). */
+export function spendPassedBreakpoints(boss: Boss): Boss {
+  if (!boss.skills) return boss;
+  return { ...boss, skills: boss.skills.map((slot) => (!slot.spent && slot.at * boss.maxHealth >= boss.health ? { ...slot, spent: true } : slot)) };
 }
