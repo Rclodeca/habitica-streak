@@ -272,7 +272,7 @@ onBeforeUnmount(() => {
 
     <Modal v-model="showDetails" :title="heroName" max-width="520px">
       <div class="hero">
-        <div class="hero-sprite">
+        <div class="hero-sprite" :class="{ mirrored: DRAWN_FACING_LEFT[heroClass] }">
           <PlayerSprite :character="character" />
         </div>
         <div class="hero-info">
@@ -618,6 +618,10 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   width: auto;
   height: auto;
+}
+
+.hero-sprite.mirrored :deep(.hero) {
+  scale: -1 1;
 }
 
 .hero-sprite :deep(.hero) {

@@ -59,6 +59,19 @@ describe('BossPanel', () => {
     expect(wrapper.find('.boss-figure').classes()).not.toContain('mirrored');
   });
 
+  it('turns the boss in its details the same way as on the stage', async () => {
+    const store = useBossStore();
+    store.boss = { ...store.boss, personality: 'brute4x' };
+    const wrapper = mount(BossPanel);
+    await wrapper.find('button.tap-boss').trigger('click');
+    expect(document.body.querySelector('.hero-sprite')!.classList).toContain('mirrored');
+
+    store.boss = { ...store.boss, personality: 'warded3x' };
+    await nextTick();
+    expect(document.body.querySelector('.hero-sprite')!.classList).not.toContain('mirrored');
+    wrapper.unmount();
+  });
+
   it('shows the HP numbers under the HP bar', () => {
     const store = useBossStore();
     store.boss = { ...store.boss, health: 474.2, maxHealth: 620 };
