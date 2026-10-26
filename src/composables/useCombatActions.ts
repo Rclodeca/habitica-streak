@@ -421,8 +421,10 @@ export function useCombatActions() {
   function addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, days?: number[]): Habit {
     const created = habitStore.addHabit(name, period, difficulty, isBad, rng, days);
     // Stamped so the next rollover doesn't count the period before this
-    // habit existed as a miss.
-    const habit = { ...created, lastCheckedPeriodKey: periodKeyFor(period, debugClockStore.now()) };
+    // habit existed as a miss, and with its day so it can't be removed until
+    // tomorrow (see removalLocked).
+    const now = debugClockStore.now();
+    const habit = { ...created, lastCheckedPeriodKey: periodKeyFor(period, now), createdDayKey: dailyPeriodKey(now) };
     habitStore.updateHabit(habit);
     return habit;
   }

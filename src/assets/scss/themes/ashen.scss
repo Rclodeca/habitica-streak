@@ -994,6 +994,21 @@ $caps-lg: 0.85rem; // panel and popup titles
     &:hover {
       color: var(--dmg-physical);
     }
+
+    // Added today: ash caps, and an italic "Tomorrow" under them.
+    &.locked,
+    &.locked:hover {
+      color: $ash-deep;
+    }
+
+    small {
+      display: block;
+      margin-top: 5px;
+      font: italic 500 0.85rem/1 var(--sans);
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--text);
+    }
   }
 
   .confirm-remove-button {

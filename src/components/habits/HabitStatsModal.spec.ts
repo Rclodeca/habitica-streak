@@ -4,9 +4,10 @@ import { enableAutoUnmount, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
-import { createRng, dayOfWeekIndex } from '../../game-engine';
+import { createRng, dailyPeriodKey, dayOfWeekIndex } from '../../game-engine';
 import type { Habit, Period } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
+import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
 import HabitStatsModal from './HabitStatsModal.vue';
 
@@ -70,5 +71,29 @@ describe('HabitStatsModal', () => {
     mountPopup();
     expect(q('.skill-sum')?.classList.contains('resting')).toBe(true);
     expect((q('button.overdrive-button') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('a skill added today can\'t be removed until tomorrow', async () => {
+    const clock = useDebugClockStore();
+    addHabit('daily', { createdDayKey: dailyPeriodKey(clock.now()) });
+    mountPopup();
+    const button = q('.remove-button') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Tomorrow');
+    button.click();
+    await nextTick();
+    expect(q('.confirm-text')).toBeNull();
+
+    clock.skipToNextDay();
+    await nextTick();
+    expect((q('.remove-button') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('a skill added yesterday can be removed', () => {
+    const yesterday = new Date(useDebugClockStore().now().getTime() - 24 * 60 * 60 * 1000);
+    addHabit('daily', { createdDayKey: dailyPeriodKey(yesterday) });
+    mountPopup();
+    expect((q('.remove-button') as HTMLButtonElement).disabled).toBe(false);
+    expect(q('.remove-button')?.textContent).not.toContain('Tomorrow');
   });
 });

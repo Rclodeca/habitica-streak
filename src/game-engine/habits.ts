@@ -117,6 +117,11 @@ export function migrateHabitDamageType(habit: Habit, rng: Rng): Habit {
   return VALID_DAMAGE_TYPES.has(habit.damageType) ? habit : rerollDamageType(habit, rng);
 }
 
+/** A skill can't be removed on the day it was added (no add-and-delete to dodge a crowded slot). Older saves without the stamp never lock. */
+export function removalLocked(habit: Habit, currentDayKey: string): boolean {
+  return habit.createdDayKey === currentDayKey;
+}
+
 /** Strips the level-triggered Special/Ult/Overdrive bonuses on a run reset (see `resolvePlayerDeathIfDead`). */
 export function resetLevelRewards(habit: Habit): Habit {
   return {

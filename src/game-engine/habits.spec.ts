@@ -8,6 +8,7 @@ import {
   migrateHabitDamageType,
   nextDueDay,
   normalizeDays,
+  removalLocked,
   rerollAllDamageTypes,
   rerollDamageType,
 } from './habits';
@@ -216,5 +217,13 @@ describe('heal-skill cap', () => {
       expect(out.filter((h) => h.damageType === 'healing').length).toBeLessThanOrEqual(2);
       expect(out.map((h) => [h.id, h.rank, h.streakCount])).toEqual(habits.map((h) => [h.id, h.rank, h.streakCount]));
     }
+  });
+});
+
+describe('removalLocked', () => {
+  it('locks a skill only on the day it was added', () => {
+    expect(removalLocked(makeHabit({ createdDayKey: '2026-10-26' }), '2026-10-26')).toBe(true);
+    expect(removalLocked(makeHabit({ createdDayKey: '2026-10-25' }), '2026-10-26')).toBe(false);
+    expect(removalLocked(makeHabit(), '2026-10-26')).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import {
   overdriveDamagePreview,
   overdriveUsesRemaining,
   periodKeyFor,
+  removalLocked,
 } from '../../game-engine';
 import type { DamageType, Habit } from '../../game-engine';
 import { TUNING } from '../../game-engine/constants/tuning';
@@ -108,8 +109,10 @@ function onOverdrive() {
 }
 
 // Two-tap confirm: the first click just reveals the "really remove?" state,
-// so a single accidental tap on the row never deletes a habit.
+// so a single accidental tap on the row never deletes a habit. A skill added
+// today can't be removed until tomorrow.
 const confirmingRemove = ref(false);
+const removeLocked = computed(() => removalLocked(props.habit, dailyPeriodKey(debugClockStore.now())));
 watch(
   () => props.modelValue,
   (open) => {
@@ -185,8 +188,16 @@ function removeHabit() {
     </button>
 
     <div class="remove-section">
-      <button v-if="!confirmingRemove" type="button" class="remove-button" @click="confirmingRemove = true">
+      <button
+        v-if="!confirmingRemove"
+        type="button"
+        class="remove-button"
+        :class="{ locked: removeLocked }"
+        :disabled="removeLocked"
+        @click="confirmingRemove = true"
+      >
         Remove habit
+        <small v-if="removeLocked">Tomorrow</small>
       </button>
       <template v-else>
         <span class="confirm-text">Remove "{{ habit.name }}" for good?</span>
@@ -383,6 +394,17 @@ function removeHabit() {
   background: transparent;
   border: none;
   font-size: 0.8rem;
+}
+
+.remove-button.locked {
+  color: var(--text);
+  cursor: not-allowed;
+}
+
+.remove-button small {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.85em;
 }
 
 .confirm-text {

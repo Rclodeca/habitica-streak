@@ -62,6 +62,7 @@ export {
   migrateHabitDamageType,
   nextDueDay,
   normalizeDays,
+  removalLocked,
   rerollAllDamageTypes,
   rerollDamageType,
   resetLevelRewards,

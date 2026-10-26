@@ -829,6 +829,11 @@ describe('useCombatActions', () => {
       expect(habitStore.habits[0].overdriveUsesThisPeriod ?? 0).toBe(0);
     });
 
+    it('addHabit stamps the day it was added', () => {
+      const { addHabit } = useCombatActions();
+      expect(addHabit('Gym', 'daily', 'hard', false).createdDayKey).toBe(dailyPeriodKey(useDebugClockStore().now()));
+    });
+
     it('addHabit stores days on a daily', () => {
       const { addHabit } = useCombatActions();
       expect(addHabit('Gym', 'daily', 'hard', false, [0, 2, 5]).days).toEqual([0, 2, 5]);
