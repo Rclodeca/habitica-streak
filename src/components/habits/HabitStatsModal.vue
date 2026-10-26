@@ -5,6 +5,7 @@ import {
   habitDamageBreakdown,
   hasItemEffect,
   isDueOn,
+  nextRankMilestone,
   overdriveDamagePreview,
   overdriveUsesRemaining,
   periodKeyFor,
@@ -23,6 +24,8 @@ import StatIcon from '../ui/StatIcon.vue';
 import type { StatIconName } from '../ui/statIcons';
 import { DAMAGE_TYPE_COLORS } from './damageTypeColors';
 import DayPicker from './DayPicker.vue';
+import { rankNumeral } from './habitDisplay';
+import RankDiamonds from './RankDiamonds.vue';
 import SkillSigil from './SkillSigil.vue';
 import { ALL_DAYS, dayCountLabel } from './weekdays';
 
@@ -43,6 +46,7 @@ const breakdown = computed(() =>
 const baseDamage = computed(() => breakdown.value.baseDamage);
 const itemMultiplier = computed(() => breakdown.value.itemMultiplier);
 const multiplier = computed(() => breakdown.value.rankMultiplier);
+const crowded = computed(() => breakdown.value.crowded);
 const weeklyMultiplier = computed(() => breakdown.value.weeklyMultiplier);
 const bonusMultiplier = computed(() => breakdown.value.bonusMultiplier);
 const effectMultiplier = computed(() => breakdown.value.effectMultiplier);
@@ -56,17 +60,32 @@ const DAMAGE_TYPES: Record<DamageType, { label: string; icon: StatIconName }> = 
 const damageType = computed(() => DAMAGE_TYPES[props.habit.damageType]);
 const damageColor = computed(() => DAMAGE_TYPE_COLORS[props.habit.damageType]);
 const periodLabel = computed(() => (props.habit.period === 'weekly' ? 'Weekly' : 'Daily'));
-const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);
+const DIFFICULTY_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
+
+// The rank block: the rank, its diamonds, and the streak's way to the next
+// one. A weekly counts weeks.
+const rank = computed(() => props.habit.rank ?? 0);
+const nextMilestone = computed(() => nextRankMilestone(rank.value, props.habit.period));
+const unit = computed(() => (props.habit.period === 'weekly' ? ' wk' : ''));
+const rankBarPct = computed(() =>
+  nextMilestone.value === undefined ? 100 : Math.min(100, (props.habit.streakCount * 100) / nextMilestone.value),
+);
+
+/** +500% */
+function formatBonus(bonus: number): string {
+  return `+${Math.round(bonus * 100)}%`;
+}
 
 // The hit, worked out top to bottom: the base, then each multiplier that
 // changes it. Gear only shows once items boost this damage type.
 const multipliers = computed(() => {
-  const rows: { label: string; icon: StatIconName; note?: string; value: number }[] = [
-    { label: 'Streak', icon: 'streak', note: String(props.habit.streakCount), value: multiplier.value },
+  const rows: { label: string; icon: StatIconName; note?: string; text: string }[] = [
+    { label: 'Rank', icon: 'levelUp', note: rankNumeral(rank.value), text: rank.value ? formatBonus(breakdown.value.rankBonus) : '—' },
+    { label: 'Streak', icon: 'streak', note: String(props.habit.streakCount), text: formatBonus(breakdown.value.streakBonus) },
   ];
-  if (itemMultiplier.value !== 1) rows.push({ label: 'Gear', icon: 'gear', value: itemMultiplier.value });
-  if (effectMultiplier.value !== 1) rows.push({ label: 'Effects', icon: 'itemDoubled', value: effectMultiplier.value });
-  if (props.habit.period === 'weekly') rows.push({ label: 'Weekly', icon: 'weekly', value: weeklyMultiplier.value });
+  if (itemMultiplier.value !== 1) rows.push({ label: 'Gear', icon: 'gear', text: formatMultiplier(itemMultiplier.value) });
+  if (effectMultiplier.value !== 1) rows.push({ label: 'Effects', icon: 'itemDoubled', text: formatMultiplier(effectMultiplier.value) });
+  if (props.habit.period === 'weekly') rows.push({ label: 'Weekly', icon: 'weekly', text: formatMultiplier(weeklyMultiplier.value) });
   return rows;
 });
 const bonusLabel = computed(() => (props.habit.isSpecial ? 'Special' : props.habit.isUlt ? 'Ult' : null));
@@ -78,8 +97,8 @@ function formatMultiplier(value: number): string {
   return `×${value.toFixed(2).replace(/0$/, '')}`;
 }
 // Overdrive never gets the Special/Ult bonus, so its preview excludes
-// bonusMultiplier, but still gets the weekly bonus and item effects like any
-// other use (and full damage with Dynamo Core).
+// bonusMultiplier, but still gets the rank, weekly bonus and item effects like
+// any other use (and full damage with Dynamo Core).
 const overdriveDamage = computed(() => {
   const full = baseDamage.value * itemMultiplier.value * multiplier.value * weeklyMultiplier.value * effectMultiplier.value;
   return hasItemEffect(characterStore.character, 'dynamo') ? full : overdriveDamagePreview(full);
@@ -139,10 +158,21 @@ function removeHabit() {
         <span aria-hidden="true">·</span>
         <span>{{ periodLabel }}</span>
       </template>
-      <span class="pips" :title="habit.difficulty">
-        <span v-for="n in 3" :key="n" class="pip" :class="{ lit: n <= difficultyPips }" />
-      </span>
+      <span aria-hidden="true">·</span>
+      <span>{{ DIFFICULTY_LABELS[habit.difficulty] }}</span>
     </p>
+
+    <div class="rank-block">
+      <div class="rank-top">
+        <span class="rank-label">{{ rank ? `Rank ${rankNumeral(rank)}` : 'Unranked' }}</span>
+        <RankDiamonds :rank="rank" />
+      </div>
+      <div class="rank-bar"><i :style="{ width: `${rankBarPct}%` }" /></div>
+      <div class="rank-caption">
+        <span>{{ habit.streakCount }}{{ unit }}</span>
+        <span v-if="nextMilestone !== undefined"><b>{{ rankNumeral(rank + 1) }}</b> at {{ nextMilestone }}{{ unit }}</span>
+      </div>
+    </div>
 
     <div v-if="habit.period === 'daily'" class="skill-days">
       <div class="skill-days-label">
@@ -153,13 +183,13 @@ function removeHabit() {
     </div>
 
     <dl class="skill-sum" :class="{ resting: isResting }">
-      <div class="sum-row base">
-        <dt>Base</dt>
+      <div class="sum-row base" :class="{ crowded }">
+        <dt>Base<small v-if="crowded" class="crowded">crowded</small></dt>
         <dd>{{ baseDamage.toFixed(0) }}</dd>
       </div>
       <div v-for="row in multipliers" :key="row.label" class="sum-row">
         <dt><StatIcon :name="row.icon" />{{ row.label }}<small v-if="row.note">{{ row.note }}</small></dt>
-        <dd>{{ formatMultiplier(row.value) }}</dd>
+        <dd>{{ row.text }}</dd>
       </div>
       <div v-if="bonusLabel" class="sum-row">
         <dt><SkillSigil :habit="habit" :size="14" />{{ bonusLabel }}<small>first hit</small></dt>
@@ -221,20 +251,47 @@ function removeHabit() {
   font-size: 0.85rem;
 }
 
-.pips {
+.rank-block {
+  margin: 0 0 1rem;
+}
+
+.rank-top {
   display: flex;
-  gap: 0.2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
 }
 
-.pip {
-  width: 6px;
-  height: 6px;
+.rank-label {
+  color: var(--text-h);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.rank-bar {
+  height: 4px;
   background: var(--border);
-  border-radius: 50%;
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-.pip.lit {
+.rank-bar i {
+  display: block;
+  height: 100%;
   background: var(--accent);
+}
+
+.rank-caption {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.rank-caption b {
+  color: var(--accent);
 }
 
 .skill-sum {
@@ -273,6 +330,10 @@ function removeHabit() {
 
 .sum-row.base dd {
   color: var(--text-h);
+}
+
+.sum-row.base.crowded dd {
+  color: var(--text);
 }
 
 .sum-total {

@@ -1411,8 +1411,53 @@ $caps-lg: 0.85rem; // panel and popup titles
     font-style: italic;
   }
 
-  .skill-meta .pips {
-    gap: 4px;
+  // Rank block: the rank in caps beside its diamonds, a gold bar to the next.
+  .rank-block {
+    margin: 0 0 14px;
+    padding: 10px 10px 9px;
+    border: 1px solid $line;
+    background: rgba(0, 0, 0, 0.28);
+  }
+
+  .rank-top {
+    margin-bottom: 7px;
+  }
+
+  .rank-label {
+    @include engraved($caps-xs, 0.24em);
+    color: var(--accent);
+  }
+
+  .rank-bar {
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid $line;
+    border-radius: 0;
+
+    i {
+      background: linear-gradient(90deg, #8a6a2c, var(--accent));
+      box-shadow: 0 0 6px rgba(230, 207, 154, 0.4);
+    }
+  }
+
+  .rank-caption {
+    margin-top: 4px;
+    font-style: italic;
+
+    b {
+      font-style: normal;
+      color: var(--accent-solid);
+      font-weight: 600;
+    }
+  }
+
+  // A crowded skill's Base goes ash, with a quiet note.
+  .sum-row.base.crowded dd,
+  .sum-row.base small.crowded {
+    color: $ash-deep;
+  }
+
+  .sum-row.base small.crowded {
+    font-weight: 500;
   }
 
   .skill-sum dt small {

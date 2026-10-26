@@ -34,9 +34,9 @@ describe('HabitStatsModal', () => {
   }
 
   // Renders the popup from the store's live copy of the habit, the way HabitList does.
-  function mountPopup() {
+  function mountPopup(index = 0) {
     const habitStore = useHabitStore();
-    const Host = defineComponent(() => () => h(HabitStatsModal, { modelValue: true, habit: habitStore.habits[0] }));
+    const Host = defineComponent(() => () => h(HabitStatsModal, { modelValue: true, habit: habitStore.habits[index] }));
     return mount(Host, { global: { plugins: [pinia] }, attachTo: document.body });
   }
 
@@ -95,5 +95,74 @@ describe('HabitStatsModal', () => {
     mountPopup();
     expect((q('.remove-button') as HTMLButtonElement).disabled).toBe(false);
     expect(q('.remove-button')?.textContent).not.toContain('Tomorrow');
+  });
+
+  describe('rank and sum', () => {
+    const text = (selector: string) => (q(selector)?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const sumRow = (label: string) =>
+      [...document.body.querySelectorAll('.sum-row')].find((row) => row.querySelector('dt')?.textContent?.startsWith(label));
+    const metaParts = () => text('.skill-meta').split('·').map((part) => part.trim());
+
+    it('names the type, period and difficulty in words, without pips', () => {
+      addHabit('daily', { damageType: 'physical', difficulty: 'hard' });
+      mountPopup();
+      expect(metaParts()).toEqual(['Physical', 'Hard']);
+      expect(q('.skill-meta .pip')).toBeNull();
+    });
+
+    it('a weekly adds its period', () => {
+      addHabit('weekly', { damageType: 'magic', difficulty: 'medium' });
+      mountPopup();
+      expect(metaParts()).toEqual(['Magic', 'Weekly', 'Medium']);
+    });
+
+    it('a ranked skill shows its rank, diamonds, the way to the next, and the Rank and Streak lines', () => {
+      addHabit('daily', { damageType: 'physical', rank: 5, streakCount: 112 });
+      mountPopup();
+      expect(text('.rank-label')).toBe('Rank V');
+      expect(document.body.querySelectorAll('.rank-block .rank-diamonds i')).toHaveLength(5);
+      expect(text('.rank-caption')).toContain('VI at 200');
+      expect((q('.rank-bar i') as HTMLElement).style.width).toBe('56%');
+      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('+500%');
+      expect(sumRow('Streak')?.querySelector('dd')?.textContent).toBe('+112%');
+    });
+
+    it('a weekly counts weeks', () => {
+      addHabit('weekly', { rank: 2, streakCount: 9 });
+      mountPopup();
+      expect(text('.rank-caption')).toContain('9 wk');
+      expect(text('.rank-caption')).toContain('III at 10 wk');
+    });
+
+    it('an unranked skill reads Unranked and shows no rank bonus', () => {
+      addHabit('daily', { rank: 0, streakCount: 4 });
+      mountPopup();
+      expect(text('.rank-label')).toBe('Unranked');
+      expect(text('.rank-caption')).toContain('I at 10');
+      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('—');
+    });
+
+    it('rank VIII fills the bar with nothing left to reach', () => {
+      addHabit('daily', { rank: 8, streakCount: 520 });
+      mountPopup();
+      expect((q('.rank-bar i') as HTMLElement).style.width).toBe('100%');
+      expect(text('.rank-caption')).not.toContain(' at ');
+    });
+
+    it('a healing rank is worth +25%', () => {
+      addHabit('daily', { damageType: 'healing', rank: 2 });
+      mountPopup();
+      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('+50%');
+    });
+
+    it('marks the 16th skill\'s Base crowded, and not the first\'s', () => {
+      const habitStore = useHabitStore();
+      for (let i = 0; i < 16; i++) habitStore.addHabit(`S${i}`, 'daily', 'medium', false, createRng(i + 1));
+      const first = mountPopup(0);
+      expect(sumRow('Base')?.textContent).not.toContain('crowded');
+      first.unmount();
+      mountPopup(15);
+      expect(sumRow('Base')?.querySelector('small.crowded')?.textContent).toBe('crowded');
+    });
   });
 });
