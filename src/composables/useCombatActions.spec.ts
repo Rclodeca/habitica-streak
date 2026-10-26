@@ -598,26 +598,28 @@ describe('useCombatActions', () => {
     expect(activityLogStore.entries[0]).toMatchObject({ kind: 'quest-completed', description: 'Clean garage', amount: expected });
   });
 
-  it('each further regular completion in the same calendar week takes the next, smaller slot', () => {
+  it('each further regular completion in the same calendar week takes the next slot', () => {
     const characterStore = useCharacterStore();
     const questStore = useQuestStore();
     const { completeQuest } = useCombatActions();
     // Level 20 keeps three quests' worth of EXP from levelling the character mid-test.
     characterStore.character = { ...characterStore.character, level: 20, exp: 0 };
 
+    characterStore.character = { ...characterStore.character, questWeek: { weekKey: weeklyPeriodKey(useDebugClockStore().now()), completed: 4 } };
+
     const amounts = [1, 2, 3].map((n) => completeQuest(questStore.addQuest(`Quest ${n}`, 'medium', '2099-01-01').id)?.amount);
 
-    expect(amounts).toEqual([questSlotExp(20, 'medium', 0), questSlotExp(20, 'medium', 1), questSlotExp(20, 'medium', 2)]);
+    expect(amounts).toEqual([questSlotExp(20, 'medium', 4), questSlotExp(20, 'medium', 5), questSlotExp(20, 'medium', 6)]);
     expect(amounts[0]!).toBeGreaterThan(amounts[1]!);
     expect(amounts[1]!).toBeGreaterThan(amounts[2]!);
-    expect(characterStore.character.questWeek).toEqual({ weekKey: weeklyPeriodKey(useDebugClockStore().now()), completed: 3 });
+    expect(characterStore.character.questWeek).toEqual({ weekKey: weeklyPeriodKey(useDebugClockStore().now()), completed: 7 });
   });
 
-  it('slot 8 and beyond pays nothing but still completes and clears the quest', () => {
+  it('slot 12 and beyond pays nothing but still completes and clears the quest', () => {
     const characterStore = useCharacterStore();
     const questStore = useQuestStore();
     const { completeQuest } = useCombatActions();
-    characterStore.character = { ...characterStore.character, level: 20, questWeek: { weekKey: weeklyPeriodKey(useDebugClockStore().now()), completed: 7 } };
+    characterStore.character = { ...characterStore.character, level: 20, questWeek: { weekKey: weeklyPeriodKey(useDebugClockStore().now()), completed: 11 } };
     const expBefore = characterStore.character.exp;
 
     const result = completeQuest(questStore.addQuest('Late one', 'hard', '2099-01-01').id);
@@ -830,6 +832,39 @@ describe('useCombatActions', () => {
     it('addHabit stores days on a daily', () => {
       const { addHabit } = useCombatActions();
       expect(addHabit('Gym', 'daily', 'hard', false, [0, 2, 5]).days).toEqual([0, 2, 5]);
+    });
+  });
+
+  describe('skill and kill EXP', () => {
+    it('checking off the only daily pays a fifth of a level; Overdrive pays none', () => {
+      const characterStore = useCharacterStore();
+      const bossStore = useBossStore();
+      const habitStore = useHabitStore();
+      const { addHabit, checkOffHabit, activateOverdrive } = useCombatActions();
+      bossStore.setBoss({ ...bossStore.boss, health: 1e9, maxHealth: 1e9 });
+      const habit = addHabit('Gym', 'daily', 'medium', false);
+      habitStore.updateHabit({ ...habitStore.habits[0], isOverdrive: true });
+
+      checkOffHabit(habit.id);
+      expect(characterStore.character.exp).toBeCloseTo(expToNextLevel(1) * 0.2, 10);
+      activateOverdrive(habit.id);
+      expect(characterStore.character.exp).toBeCloseTo(expToNextLevel(1) * 0.2, 10);
+    });
+
+    it('a kill logs the EXP the engine paid at the slayer\'s level', () => {
+      const characterStore = useCharacterStore();
+      const bossStore = useBossStore();
+      const { addHabit, checkOffHabit } = useCombatActions();
+      characterStore.character = { ...characterStore.character, level: 10, exp: 0 };
+      bossStore.setBoss({ ...bossStore.boss, health: 0.0001, armor: 0 });
+      const habit = addHabit('Gym', 'daily', 'medium', false);
+
+      checkOffHabit(habit.id);
+      const entry = useActivityLogStore().entries.find((e) => e.kind === 'boss-defeated');
+      const amount = (entry as { amount: number }).amount;
+      expect(amount).toBeGreaterThanOrEqual(expToNextLevel(10) * 0.4 * 0.9);
+      expect(amount).toBeLessThanOrEqual(expToNextLevel(10) * 0.4 * 1.1);
+      expect(characterStore.character.exp).toBeCloseTo(expToNextLevel(10) * 0.2 + amount, 10);
     });
   });
 });

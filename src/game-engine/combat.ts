@@ -471,11 +471,22 @@ export function resolveBossDefeatIfDead(
   character: Character,
   boss: Boss,
   rng: Rng,
-): { character: Character; boss: Boss; defeated: boolean; levelsGained: number; itemsDropped: ItemDef[]; itemHealed?: number } {
+): {
+  character: Character;
+  boss: Boss;
+  defeated: boolean;
+  levelsGained: number;
+  itemsDropped: ItemDef[];
+  itemHealed?: number;
+  /** The pre-item EXP the kill granted at the slayer's level; 0 when the boss isn't dead. */
+  expReward: number;
+} {
   if (Math.round(boss.health) > 0) {
-    return { character, boss, defeated: false, levelsGained: 0, itemsDropped: [] };
+    return { character, boss, defeated: false, levelsGained: 0, itemsDropped: [], expReward: 0 };
   }
-  const { character: leveled, levelsGained } = addExpAndResolveLevelUps(character, bossExpReward(boss.index));
+  // Rolled before the drops, which read the leveled character.
+  const expReward = bossExpReward(character.level, rng);
+  const { character: leveled, levelsGained } = addExpAndResolveLevelUps(character, expReward);
   // Soul Lantern: each fallen boss restores health (capped at max).
   const maxHealth = effectiveStat(leveled, 'health');
   const lanternHealth = hasItemEffect(leveled, 'soul-lantern')
@@ -498,7 +509,7 @@ export function resolveBossDefeatIfDead(
   const carried = hasItemEffect(withItems, 'echoing-blade') ? Math.min(boss.overkill ?? 0, generated.health - 1) : 0;
   // Breakpoints the carry passes are spent without firing.
   const nextBoss = carried > 0 ? spendPassedBreakpoints({ ...generated, health: generated.health - carried }) : generated;
-  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped, ...(itemHealed > 0 && { itemHealed }) };
+  return { character: withItems, boss: nextBoss, defeated: true, levelsGained, itemsDropped, expReward, ...(itemHealed > 0 && { itemHealed }) };
 }
 
 /**

@@ -72,22 +72,20 @@ export const TUNING = {
   // Converts a damage reduction percent to the armor/magicResist stat shown
   // and fed through damageReductionPct: stat = K * r / (1 - r).
   RESIST_K: 1500,
-  // 40 -> 33 (40 / 1.2, rounded down) back when quests were a 40%-per-boss-kill
-  // EXP source. That income no longer exists (quests v2 pays a level-based
-  // weekly curve instead — see QUEST_* below), so this value is deliberately
-  // left as-is for play-testing; recalibrating it against the new quest
-  // slice is a follow-up (docs/superpowers/specs/2026-10-21-quests-v2-design.md,
-  // "Calibration"). BOSS_EXP_GROWTH_RATE is untouched.
-  BASE_BOSS_EXP: 33,
-  // Lowered 1.18 -> 1.12 as part of the same pacing pass as the old boss power
-  // curve: this MUST stay below BOSS_HEALTH_GROWTH_RATE. If EXP income compounds
-  // faster than boss difficulty, an extremely consistent player who chains
-  // same-day kills for long enough can drive boss index — and therefore a
-  // single kill's EXP reward — arbitrarily high, since the two curves race
-  // forever and EXP would eventually win. (`addExpAndResolveLevelUps` also
-  // hard-caps levels-gained-per-grant as defense in depth, but keeping this
-  // rate strictly lower is what actually prevents the runaway in practice.)
-  BOSS_EXP_GROWTH_RATE: 1.12,
+  // A boss kill pays this share of the slayer's next level (see
+  // bossExpReward). Kill EXP now follows level, not boss index, so it can't
+  // run away on its own: a kill adds about 1.06^(share * (1 + EXP bonus)) of
+  // power, and at 0.4 it takes about +270% EXP to match the deepest x1.09
+  // HP band. No kill-speed scaling: faster kills already pay more often, and
+  // each boss still costs more than the last. The ±10% jitter keeps level-ups
+  // from feeling scheduled; the floor keeps the opening kills as they were.
+  BOSS_KILL_LEVEL_SHARE: 0.4,
+  BOSS_KILL_EXP_JITTER_PCT: 0.1,
+  BOSS_KILL_MIN_EXP: 33,
+  // Each day's due dailies share this fraction of a level, and each week's
+  // weeklies this one (see skillCompletionExp). Overdrive uses pay none.
+  DAILY_SKILL_LEVEL_SHARE: 0.2,
+  WEEKLY_SKILL_LEVEL_SHARE: 0.3,
   // Lowered 0.3 -> 0.17, then -> 0.15 in a boss-growth follow-up pass
   // above: a low-completion ("bad") player accumulates far more misses than
   // anyone else, so this specifically stretches their survivable run length
@@ -128,19 +126,19 @@ export const TUNING = {
   // expected level, blended toward the player's real level by
   // BOSS_ATTACK_LEVEL_FOLLOW (0 = ignore the player's level, 1 = always
   // scale to it), so levels above expected shrink each hit as a % of max HP.
-  // Calibrated from a 52-week sim of an ~83%-completion player (1 quest/wk,
-  // normal milestones, no expGain skills): median level at each boss spawn.
-  // Recompute if BASE_BOSS_EXP, BOSS_EXP_GROWTH_RATE, milestone EXP or the
-  // quest curve change.
+  // Calibrated from the median level at each boss spawn in
+  // SKILLS=8 POOLS=0 KILL_SHARE=0.4 DAILY_EXP=0.2 KILL_FLOOR=33 TABLE=1 node scripts/balance-sim.mjs
+  // Recompute if kill, skill or milestone EXP, the HP bands or the quest curve change.
   EXPECTED_LEVEL_BY_BOSS_INDEX: [
     [1, 1],
     [5, 4],
     [10, 7],
-    [15, 12],
-    [20, 19],
-    [25, 30],
-    [30, 45],
-    [40, 82],
+    [15, 11],
+    [20, 15],
+    [25, 20],
+    [30, 25],
+    [40, 38],
+    [50, 49],
   ] as [number, number][],
   BOSS_ATTACK_LEVEL_FOLLOW: 0.5,
   // Unconditional per-level heal on top of any lifesteal-item bonus (see
@@ -184,8 +182,9 @@ export const TUNING = {
   // Floor on the weekly target so early quests (where the fraction is tiny) still pay something.
   QUEST_MIN_TARGET_EXP: 10,
   // Percent of the weekly target paid by the 1st, 2nd, ... completion in a
-  // calendar week; slots past the end pay 0 (hard ceiling: sum is 232).
-  QUEST_SLOT_WEIGHTS: [100, 60, 35, 20, 10, 5, 2],
+  // calendar week: the first five each pay a full slot, then it decays;
+  // slots past the end pay 0 (hard ceiling: sum is 632).
+  QUEST_SLOT_WEIGHTS: [100, 100, 100, 100, 100, 60, 35, 20, 10, 5, 2],
   QUEST_DIFFICULTY_MULT: { easy: 0.7, medium: 1, hard: 1.3 },
   // Level-up picks that can pass with the side-quest event eligible but not
   // offered before it is forced into the next pick.

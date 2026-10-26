@@ -55,33 +55,40 @@ function makeBoss(overrides: Partial<Boss> = {}): Boss {
 // but none is; instead set `fraction` so the weekly target is exactly 100.
 const target100 = (level: number) => 100 / expToNextLevel(level);
 const slots = (n: number, onCurve: number, difficulty: 'easy' | 'medium' | 'hard' = 'medium') =>
-  Array.from({ length: 8 }, (_, i) => questSlotExp(10, difficulty, i, { onCurve, fraction: target100(10) })).slice(0, n);
+  Array.from({ length: 12 }, (_, i) => questSlotExp(10, difficulty, i, { onCurve, fraction: target100(10) })).slice(0, n);
 
 describe('cumulativeSlotWeight', () => {
   it('sums whole slots and interpolates fractional ones', () => {
     expect(cumulativeSlotWeight(1)).toBe(100);
-    expect(cumulativeSlotWeight(1.5)).toBe(130);
-    expect(cumulativeSlotWeight(2)).toBe(160);
-    expect(cumulativeSlotWeight(3)).toBe(195);
+    expect(cumulativeSlotWeight(1.5)).toBe(150);
+    expect(cumulativeSlotWeight(3)).toBe(300);
+    expect(cumulativeSlotWeight(5.5)).toBe(530);
   });
 
   it('stops growing past the last slot', () => {
-    expect(cumulativeSlotWeight(7)).toBe(232);
-    expect(cumulativeSlotWeight(50)).toBe(232);
+    expect(cumulativeSlotWeight(11)).toBe(632);
+    expect(cumulativeSlotWeight(50)).toBe(632);
   });
 });
 
 describe('questSlotExp', () => {
   it('matches the spec table at N = 1, 1.5, 2, 3 (target 100, medium)', () => {
-    const rounded = (onCurve: number) => slots(7, onCurve).map(Math.round);
-    expect(rounded(1)).toEqual([100, 60, 35, 20, 10, 5, 2]);
-    expect(rounded(1.5).slice(0, 3)).toEqual([77, 46, 27]);
-    expect(rounded(2).slice(0, 3)).toEqual([63, 38, 22]);
-    expect(rounded(3).slice(0, 3)).toEqual([51, 31, 18]);
+    const rounded = (onCurve: number) => slots(11, onCurve).map(Math.round);
+    expect(rounded(1)).toEqual([100, 100, 100, 100, 100, 60, 35, 20, 10, 5, 2]);
+    expect(rounded(1.5).slice(0, 3)).toEqual([67, 67, 67]);
+    expect(rounded(2).slice(0, 3)).toEqual([50, 50, 50]);
+    expect(rounded(3).slice(0, 3)).toEqual([33, 33, 33]);
   });
 
-  it('the all-slot total is 232% of target at the default N = 1', () => {
-    expect(slots(8, 1).reduce((a, b) => a + b, 0)).toBeCloseTo(232, 6);
+  it('pays the first five quests of a week a full slot each, then decays', () => {
+    const first = questSlotExp(10, 'medium', 0);
+    for (const k of [1, 2, 3, 4]) expect(questSlotExp(10, 'medium', k)).toBeCloseTo(first, 10);
+    expect(questSlotExp(10, 'medium', 5)).toBeCloseTo(first * 0.6, 10);
+    expect(questSlotExp(10, 'medium', 11)).toBe(0);
+  });
+
+  it('the all-slot total is 632% of target at the default N = 1', () => {
+    expect(slots(12, 1).reduce((a, b) => a + b, 0)).toBeCloseTo(632, 6);
   });
 
   it('the first N slots sum to the weekly target for any N in (0.5, 3]', () => {
@@ -94,8 +101,8 @@ describe('questSlotExp', () => {
     }
   });
 
-  it('slot 8 and beyond pays 0', () => {
-    expect(questSlotExp(10, 'hard', 7)).toBe(0);
+  it('slot 12 and beyond pays 0', () => {
+    expect(questSlotExp(10, 'hard', 11)).toBe(0);
     expect(questSlotExp(10, 'hard', 30)).toBe(0);
   });
 

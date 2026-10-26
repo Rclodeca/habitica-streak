@@ -30,7 +30,6 @@
 import {
   addExpAndResolveLevelUps,
   availableRelics,
-  bossExpReward,
   completeHabit,
   createRng,
   dailyPeriodKey,
@@ -54,6 +53,7 @@ import {
   resolveDoom,
   resolvePlayerDeathIfDead,
   reviveWithFeatherIfEquipped,
+  skillCompletionExp,
   unlockQuests,
   weeklyPeriodKey,
 } from '../game-engine';
@@ -248,9 +248,14 @@ export function useCombatActions() {
       });
     }
 
-    if (result.milestoneExp > 0) {
+    // Overdrive uses pay no skill EXP (and no milestone, see completeHabit).
+    const skillExp = options.isOverdriveUse
+      ? 0
+      : skillCompletionExp(characterStore.character.level, habit, habitStore.habits, debugClockStore.now());
+    const expGained = result.milestoneExp + skillExp;
+    if (expGained > 0) {
       const beforeLevelUp = characterStore.character;
-      const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, result.milestoneExp);
+      const { character, levelsGained } = addExpAndResolveLevelUps(beforeLevelUp, expGained);
       logLevelUpIfAny(beforeLevelUp, character);
       characterStore.setCharacter(character);
       grantEventPicks(levelsGained);
@@ -261,7 +266,7 @@ export function useCombatActions() {
     const defeatResult = resolveBossDefeatIfDead(characterStore.character, slain, rng);
     if (!defeatResult.defeated) return { itemsDropped: [] };
 
-    activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: slain.index, amount: bossExpReward(slain.index) });
+    activityLogStore.addEntry({ kind: 'boss-defeated', bossIndex: slain.index, amount: defeatResult.expReward });
     if (defeatResult.itemHealed) activityLogStore.addEntry({ kind: 'item-heal', itemName: 'Soul Lantern', amount: defeatResult.itemHealed });
     // Queued before the level-up beat below so the panels swap to the slain
     // boss in the same render the store swaps to the next one.

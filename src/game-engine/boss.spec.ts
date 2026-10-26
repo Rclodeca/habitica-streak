@@ -165,11 +165,24 @@ describe('personalityWeightsForIndex', () => {
 });
 
 describe('bossExpReward', () => {
-  it('matches BASE_BOSS_EXP * BOSS_EXP_GROWTH_RATE^(index-1) exactly at index 1, 5, 10', () => {
-    expect(bossExpReward(1)).toBeCloseTo(TUNING.BASE_BOSS_EXP * Math.pow(TUNING.BOSS_EXP_GROWTH_RATE, 0), 10);
-    expect(bossExpReward(5)).toBeCloseTo(TUNING.BASE_BOSS_EXP * Math.pow(TUNING.BOSS_EXP_GROWTH_RATE, 4), 10);
-    expect(bossExpReward(10)).toBeCloseTo(TUNING.BASE_BOSS_EXP * Math.pow(TUNING.BOSS_EXP_GROWTH_RATE, 9), 10);
-    expect(bossExpReward(1)).toBe(33);
+  it('pays 40% of the next level at the slayer\'s level, ±10%', () => {
+    expect(bossExpReward(10, () => 0.5)).toBeCloseTo(104, 10);
+    expect(bossExpReward(10, () => 0)).toBeCloseTo(93.6, 10);
+    expect(bossExpReward(10, () => 0.999999)).toBeCloseTo(114.4, 3);
+    expect(bossExpReward(20, () => 0.5)).toBeCloseTo(176, 10);
+  });
+
+  it('never pays under the 33 EXP floor', () => {
+    expect(bossExpReward(1, () => 0.5)).toBe(33);
+    expect(bossExpReward(3, () => 0.5)).toBe(33);
+  });
+});
+
+describe('expectedLevelForBossIndex — calibration', () => {
+  it('follows the per-skill sim', () => {
+    expect(expectedLevelForBossIndex(20)).toBe(15);
+    expect(expectedLevelForBossIndex(30)).toBe(25);
+    expect(expectedLevelForBossIndex(50)).toBe(49);
   });
 });
 

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, expToNextLevel, itemStatMultiplier, statAtLevel } from './leveling';
+import {
+  addExpAndResolveLevelUps,
+  effectiveCritChance,
+  effectiveStat,
+  expToNextLevel,
+  itemStatMultiplier,
+  skillCompletionExp,
+  statAtLevel,
+} from './leveling';
 import { TUNING } from './constants/tuning';
-import type { Character } from './types';
+import type { Character, Habit } from './types';
 
 describe('expToNextLevel', () => {
   it('matches the formula at level 1', () => {
@@ -283,5 +291,43 @@ describe('effectiveStat — drawbacks and all damage', () => {
   it('keeps max health positive with every health drawback equipped at once', () => {
     const character = makeCharacter({ equippedItemIds: ['glass-crown', 'starfall-staff', 'void-crystal', 'hexed-ring'] });
     expect(effectiveStat(character, 'health')).toBeGreaterThan(0);
+  });
+});
+
+describe('skillCompletionExp', () => {
+  function makeHabit(overrides: Partial<Habit> = {}): Habit {
+    return {
+      id: 'habit-id',
+      name: 'Test Habit',
+      period: 'daily',
+      difficulty: 'medium',
+      damageType: 'physical',
+      isBad: false,
+      streakCount: 0,
+      lastCompletedPeriodKey: null,
+      lastCheckedPeriodKey: null,
+      ...overrides,
+    };
+  }
+  // Level 10, so expToNextLevel is 260.
+  const MONDAY = new Date('2026-10-26T20:00:00Z'); // a Monday in Pacific time, which dayOfWeekIndex reads
+  const TUESDAY_INDEX = 1;
+
+  it('splits a day of dailies into 20% of a level', () => {
+    const dailies = Array.from({ length: 8 }, (_, i) => makeHabit({ id: `d${i}` }));
+    expect(skillCompletionExp(10, dailies[0], dailies, MONDAY)).toBeCloseTo(6.5);
+  });
+  it('counts only the dailies due that day, plus the skill itself', () => {
+    const due = Array.from({ length: 4 }, (_, i) => makeHabit({ id: `d${i}` }));
+    const resting = Array.from({ length: 4 }, (_, i) => makeHabit({ id: `r${i}`, days: [TUESDAY_INDEX] }));
+    expect(skillCompletionExp(10, due[0], [...due, ...resting], MONDAY)).toBeCloseTo(13);
+    expect(skillCompletionExp(10, resting[0], [...due, ...resting], MONDAY)).toBeCloseTo(10.4);
+    expect(skillCompletionExp(10, resting[0], resting, MONDAY)).toBeCloseTo(52);
+  });
+  it('splits a week of weeklies into 30% of a level, apart from the dailies', () => {
+    const weeklies = Array.from({ length: 3 }, (_, i) => makeHabit({ id: `w${i}`, period: 'weekly' }));
+    const daily = makeHabit({ id: 'd' });
+    expect(skillCompletionExp(10, weeklies[0], [daily, ...weeklies], MONDAY)).toBeCloseTo(26);
+    expect(skillCompletionExp(10, daily, [daily, ...weeklies], MONDAY)).toBeCloseTo(52);
   });
 });

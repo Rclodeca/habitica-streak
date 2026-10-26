@@ -879,6 +879,16 @@ describe('reviveWithFeatherIfEquipped', () => {
 });
 
 describe('resolveBossDefeatIfDead', () => {
+  it('pays kill EXP at the slayer\'s level, and none for a live boss', () => {
+    const character = makeCharacter({ level: 10, exp: 0 });
+    const scripted = [0.5];
+    const rng = () => scripted.shift() ?? 0.99;
+    const result = resolveBossDefeatIfDead(character, makeBoss({ health: 0 }), rng);
+    expect(result.expReward).toBeCloseTo(104, 10);
+    expect(result.character.exp).toBeCloseTo(104, 10);
+    expect(resolveBossDefeatIfDead(character, makeBoss({ health: 1 }), createRng(1)).expReward).toBe(0);
+  });
+
   it('is a no-op when boss.health > 0', () => {
     const character = makeCharacter();
     const boss = makeBoss({ health: 1 });
@@ -900,7 +910,7 @@ describe('resolveBossDefeatIfDead', () => {
 
     const result = resolveBossDefeatIfDead(character, boss, rng);
 
-    const leveled = addExpAndResolveLevelUps(character, bossExpReward(3));
+    const leveled = addExpAndResolveLevelUps(character, bossExpReward(character.level, createRng(1)));
     expect(result.defeated).toBe(true);
     expect(result.character.level).toBe(leveled.character.level);
     expect(result.character.exp).toBeCloseTo(leveled.character.exp, 10);

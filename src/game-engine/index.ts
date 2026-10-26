@@ -49,6 +49,7 @@ export {
   effectiveStat,
   expToNextLevel,
   itemStatMultiplier,
+  skillCompletionExp,
   statAtLevel,
 } from './leveling';
 

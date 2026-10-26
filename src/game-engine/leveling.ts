@@ -1,8 +1,9 @@
 import { activeBlind } from './bossSkills';
 import { TUNING } from './constants/tuning';
+import { isDueOn } from './habits';
 import { hasItemEffect, itemBonusPercent, itemFlatBonus } from './items';
 import { daysBetweenDayKeys } from './time';
-import type { Character, CritBoostStatusEffect, HealBoostStatusEffect } from './types';
+import type { Character, CritBoostStatusEffect, Habit, HealBoostStatusEffect } from './types';
 
 export function expToNextLevel(level: number): number {
   if (level < 5) return 25 * level;
@@ -10,15 +11,10 @@ export function expToNextLevel(level: number): number {
   return Math.round((level ** 2 * 0.25 + 10 * level + 139.75) / 10) * 10;
 }
 
-// Safety valve for the level-up loop below: `expToNextLevel` grows only
-// quadratically in level, while a single boss-kill EXP reward can in
-// principle grow exponentially with boss index (see bossExpReward). If boss
-// index ever climbs far enough in one life (e.g. an extremely consistent
-// player chaining same-day kills for months), a single EXP grant could
-// require resolving millions+ of individual level-ups — a `while` loop
-// walking one level at a time would then run for an impractically long
-// time. Capping levels-gained-per-grant makes that a no-op past this point
-// instead, regardless of how large expGained is.
+// Safety valve for the level-up loop below. Kill EXP now follows the
+// player's level (see bossExpReward), so no single grant should ever buy
+// more than a level or two; the cap is only defense in depth against a
+// runaway grant walking the loop one level at a time forever.
 const MAX_LEVEL_UPS_PER_GRANT = 2000;
 
 /**
@@ -53,6 +49,22 @@ export function addExpAndResolveLevelUps(
   }
 
   return { character: { ...character, level, exp, currentHealth }, levelsGained };
+}
+
+/**
+ * EXP for completing a skill: a weekly takes its share of WEEKLY_SKILL_LEVEL_SHARE
+ * of a level, split across every weekly; a daily its share of
+ * DAILY_SKILL_LEVEL_SHARE, split across the dailies due on `date` plus itself
+ * (so a skill resolved on a rest day never divides by zero). Good and bad
+ * skills count alike.
+ */
+export function skillCompletionExp(level: number, habit: Habit, habits: Habit[], date: Date): number {
+  if (habit.period === 'weekly') {
+    const weeklies = habits.filter((h) => h.period === 'weekly').length;
+    return (expToNextLevel(level) * TUNING.WEEKLY_SKILL_LEVEL_SHARE) / Math.max(1, weeklies);
+  }
+  const dailies = habits.filter((h) => h.period === 'daily' && (isDueOn(h, date) || h.id === habit.id)).length;
+  return (expToNextLevel(level) * TUNING.DAILY_SKILL_LEVEL_SHARE) / Math.max(1, dailies);
 }
 
 export function statAtLevel(starterStatValue: number, level: number): number {

@@ -1,6 +1,6 @@
 import { rollBossSkills } from './bossSkills';
 import { TUNING } from './constants/tuning';
-import { statAtLevel } from './leveling';
+import { expToNextLevel, statAtLevel } from './leveling';
 import type { Rng } from './rng';
 import { pickWeighted } from './rng';
 import type { Boss, Personality } from './types';
@@ -69,9 +69,10 @@ export function rollRunDifficultyModifier(rng: Rng): number {
   return 1 + (rng() * 2 - 1) * TUNING.RUN_DIFFICULTY_VARIANCE_PCT;
 }
 
-/** EXP granted to the player for defeating the boss at the given index. */
-export function bossExpReward(index: number): number {
-  return TUNING.BASE_BOSS_EXP * Math.pow(TUNING.BOSS_EXP_GROWTH_RATE, index - 1);
+/** EXP for a boss kill at the slayer's level: BOSS_KILL_LEVEL_SHARE of the next level, ±jitter, floored. One rng() per call. */
+export function bossExpReward(level: number, rng: Rng): number {
+  const jitter = 1 + (rng() * 2 - 1) * TUNING.BOSS_KILL_EXP_JITTER_PCT;
+  return Math.max(TUNING.BOSS_KILL_MIN_EXP, expToNextLevel(level) * TUNING.BOSS_KILL_LEVEL_SHARE * jitter);
 }
 
 type EmphasizedStat = 'health' | 'physicalAttack' | 'magicAttack' | 'armor' | 'magicResist';
