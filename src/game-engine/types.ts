@@ -65,6 +65,10 @@ export interface Character {
   // this character; createCharacter sets it true for the same no-double-cut
   // reason as above.
   healingRebalanceApplied?: boolean;
+  // Same one-time marker for the skill-ranks rebalance (no pools, boss HP
+  // bands): undefined means applyRankRebalance still has to cut physical,
+  // magic and true damage and rescale the boss; createCharacter sets it true.
+  rankRebalanceApplied?: boolean;
   // Events mechanic (see events.ts). `takenEventIds` holds one-time events
   // already picked this run; `pendingEventPicks` is how many level-ups are
   // still waiting for the player to choose an event. Both optional so an

@@ -9,6 +9,7 @@ import {
   generateBoss,
   PERSONALITY_NAME,
   personalityWeightsForIndex,
+  rescaleBossToHealthBands,
   resistPctForIndex,
   rollRunDifficultyModifier,
 } from './boss';
@@ -20,10 +21,28 @@ import type { Personality } from './types';
 type EmphasizedStat = 'health' | 'physicalAttack' | 'magicAttack' | 'armor' | 'magicResist';
 
 describe('bossBaseHealth', () => {
-  it('matches BASE_BOSS_HEALTH * BOSS_HEALTH_GROWTH_RATE^(index-1) exactly at index 1, 5, 10', () => {
-    expect(bossBaseHealth(1)).toBe(TUNING.BASE_BOSS_HEALTH);
-    expect(bossBaseHealth(5)).toBeCloseTo(TUNING.BASE_BOSS_HEALTH * Math.pow(TUNING.BOSS_HEALTH_GROWTH_RATE, 4), 10);
-    expect(bossBaseHealth(10)).toBeCloseTo(TUNING.BASE_BOSS_HEALTH * Math.pow(TUNING.BOSS_HEALTH_GROWTH_RATE, 9), 10);
+  it('grows boss HP in bands', () => {
+    const expected: [number, number][] = [[1, 650], [10, 5586.591], [12, 9010.612], [13, 10542.416], [15, 14431.513],
+      [20, 31640.343], [30, 152089.698], [31, 168819.565], [40, 431846.681], [60, 2902848.388]];
+    for (const [index, hp] of expected) expect(bossBaseHealth(index)).toBeCloseTo(hp, 2);
+    expect(bossBaseHealth(100) / 91176784.359).toBeCloseTo(1, 6);
+    expect(bossBaseHealth(20, 1.1)).toBeCloseTo(31640.343 * 1.1, 2);
+  });
+
+  it('keeps every band rising faster than kills can level', () => {
+    const bands = TUNING.BOSS_HEALTH_GROWTH_BANDS;
+    expect(bands[0][0]).toBe(1);
+    expect(bands.every(([, rate]) => rate > 1.05)).toBe(true);
+  });
+
+  it('rescales a saved boss to the bands, keeping its HP percent', () => {
+    const boss = { ...generateBoss(24, createRng(3)), maxHealth: 170000, health: 85000 };
+    const out = rescaleBossToHealthBands(boss);
+    expect(out.maxHealth).toBeCloseTo(170000 * 0.373754, 0);
+    expect(out.health / out.maxHealth).toBeCloseTo(0.5);
+    expect({ ...out, health: 0, maxHealth: 0 }).toEqual({ ...boss, health: 0, maxHealth: 0 });
+    const early = generateBoss(12, createRng(4));
+    expect(rescaleBossToHealthBands(early).maxHealth).toBeCloseTo(early.maxHealth);
   });
 
   it('scales linearly with an explicit difficultyModifier', () => {
@@ -518,14 +537,15 @@ describe('generateBoss — hidden attack lean', () => {
   it('leaves every other rolled stat exactly as it was before the lean existed, for a given seed', () => {
     // Rolled after the Wounds ability, so the lean can't shift any earlier rng() draw.
     // Seed 42 at index 5 was captured before the lean was added, and re-captured
-    // when Reflect left the roll order and the boss health/attack curves eased.
+    // when Reflect left the roll order, the boss health/attack curves eased, and
+    // health moved to growth bands (a float-rounding change only, at boss 5).
     const { physicalShare, ...rest } = generateBoss(5, createRng(42));
     expect(physicalShare).toBeDefined();
     expect(rest).toEqual({
       index: 5,
       personality: 'warded',
-      maxHealth: 1846.7422666798311,
-      health: 1846.7422666798311,
+      maxHealth: 1846.742266679831,
+      health: 1846.742266679831,
       physicalAttack: 574.6747075954526,
       magicAttack: 616.995697460808,
       armor: 278.1175695000878,

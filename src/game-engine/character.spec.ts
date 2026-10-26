@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyDamagePoolRebalance,
   applyHealingRebalance,
+  applyRankRebalance,
   createCharacter,
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
@@ -14,6 +15,7 @@ import {
 } from './character';
 import type { Character } from './types';
 import { createRng } from './rng';
+import { generateBoss, rescaleBossToHealthBands } from './boss';
 import { TUNING } from './constants/tuning';
 
 describe('createCharacter', () => {
@@ -360,5 +362,33 @@ describe('heroClassFor', () => {
       const expected = share > 0.55 ? 'warrior' : share < 0.45 ? 'cleric' : 'ranger';
       expect(heroClassFor(character)).toBe(expected);
     }
+  });
+});
+
+describe('applyRankRebalance', () => {
+  it('cuts physical, magic and true damage to 60% once and rescales the boss', () => {
+    const character = { ...createCharacter(createRng(1)), rankRebalanceApplied: undefined };
+    const boss = generateBoss(24, createRng(2));
+    const out = applyRankRebalance(character, boss);
+    const before = character.starterStats;
+    expect(out.character.starterStats.physicalDamage).toBeCloseTo(before.physicalDamage * 0.6, 10);
+    expect(out.character.starterStats.magicDamage).toBeCloseTo(before.magicDamage * 0.6, 10);
+    expect(out.character.starterStats.trueDamage).toBeCloseTo(before.trueDamage * 0.6, 10);
+    expect(out.character.starterStats.healing).toBe(before.healing);
+    expect(out.character.starterStats.health).toBe(before.health);
+    expect(out.character.rankRebalanceApplied).toBe(true);
+    expect(out.boss).toEqual(rescaleBossToHealthBands(boss));
+  });
+
+  it('returns a flagged character and its boss untouched', () => {
+    const character = createCharacter(createRng(1));
+    const boss = generateBoss(24, createRng(2));
+    const out = applyRankRebalance(character, boss);
+    expect(out.character).toBe(character);
+    expect(out.boss).toBe(boss);
+  });
+
+  it('flags a fresh character', () => {
+    expect(createCharacter(createRng(1)).rankRebalanceApplied).toBe(true);
   });
 });

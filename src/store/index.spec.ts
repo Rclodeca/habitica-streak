@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createCharacter, createHabit, createRng, generateBoss } from '../game-engine';
+import { bossBaseHealth, createCharacter, createHabit, createRng, generateBoss } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
 import { initializeStores } from './index';
 import { CURRENT_SCHEMA_VERSION, STORAGE_KEY } from './plugins/saveState';
@@ -76,6 +76,31 @@ describe('store persistence smoke test', () => {
     expect(parsed.character.starterStats.physicalDamage).toBeCloseTo(character.starterStats.physicalDamage * factor, 10);
     expect(parsed.character.starterStats.trueDamage).toBe(character.starterStats.trueDamage); // exempt, unchanged
     expect(parsed.character.damagePoolRebalanceApplied).toBe(true);
+  });
+
+  it('applies the rank rebalance once, persisted, and never again on a reload', () => {
+    const rng = createRng(1);
+    const character = { ...createCharacter(rng), rankRebalanceApplied: undefined };
+    const boss = generateBoss(24, rng);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, character, boss, habits: [] }));
+
+    initializeStores();
+    vi.advanceTimersByTime(300);
+
+    const factor = bossBaseHealth(24) / (TUNING.BASE_BOSS_HEALTH * Math.pow(TUNING.LEGACY_BOSS_HEALTH_GROWTH_RATE, 23));
+    const first = JSON.parse(localStorage.getItem(STORAGE_KEY) as string);
+    expect(first.character.starterStats.physicalDamage).toBeCloseTo(character.starterStats.physicalDamage * 0.6, 10);
+    expect(first.character.starterStats.trueDamage).toBeCloseTo(character.starterStats.trueDamage * 0.6, 10);
+    expect(first.character.rankRebalanceApplied).toBe(true);
+    expect(first.boss.maxHealth).toBeCloseTo(boss.maxHealth * factor, 6);
+
+    setActivePinia(createPinia());
+    initializeStores();
+    vi.advanceTimersByTime(300);
+
+    const second = JSON.parse(localStorage.getItem(STORAGE_KEY) as string);
+    expect(second.character.starterStats.physicalDamage).toBeCloseTo(first.character.starterStats.physicalDamage, 10);
+    expect(second.boss.maxHealth).toBeCloseTo(first.boss.maxHealth, 6);
   });
 
   it('persists the quest and expGain-removal migrations on hydration, without a later mutation', () => {

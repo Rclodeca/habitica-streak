@@ -27,6 +27,7 @@ export type {
 export {
   applyDamagePoolRebalance,
   applyHealingRebalance,
+  applyRankRebalance,
   createCharacter,
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
@@ -80,10 +81,12 @@ export {
   bossAttackAnchorHealth,
   bossExpReward,
   bossBaseHealth,
+  bossHealthGrowthRate,
   damageReductionPct,
   expectedLevelForBossIndex,
   generateBoss,
   PERSONALITY_NAME,
+  rescaleBossToHealthBands,
   resistPctForIndex,
   rollRunDifficultyModifier,
 } from './boss';

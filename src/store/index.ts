@@ -3,7 +3,7 @@
 // fresh) and wire up debounced localStorage persistence.
 
 import { createPinia, getActivePinia, setActivePinia, type Pinia } from 'pinia';
-import { createRng, dailyPeriodKey, migrateEventState, migrateQuestUnlock } from '../game-engine';
+import { applyRankRebalance, createRng, dailyPeriodKey, migrateEventState, migrateQuestUnlock } from '../game-engine';
 import { useActivityLogStore } from './activityLogStore';
 import { useBossStore } from './bossStore';
 import { useCharacterStore } from './characterStore';
@@ -40,8 +40,8 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
 
   // Wired up BEFORE the initFromSave calls below (not after), so a
   // one-time, in-place migration those calls perform (e.g.
-  // applyDamagePoolRebalance, migrateCharacter's trueDamage
-  // backfill, migrateHabitDamageType) gets captured by the debounced writer immediately instead of
+  // applyDamagePoolRebalance, applyRankRebalance, migrateCharacter's trueDamage
+  // backfill, migrateHabitDamageType, migrateHabitRank) gets captured by the debounced writer immediately instead of
   // only persisting on some later, unrelated mutation — otherwise a player
   // who closes the tab right after load, before anything else mutates
   // state, would never persist the migration and it would silently
@@ -57,6 +57,9 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   habitStore.initFromSave(saved?.habits ?? null, rng);
   activityLogStore.initFromSave(saved?.activityLog ?? null);
   questStore.initFromSave(saved?.quests ?? null);
+  const rebalanced = applyRankRebalance(characterStore.character, bossStore.boss);
+  characterStore.setCharacter(rebalanced.character);
+  bossStore.setBoss(rebalanced.boss);
   characterStore.setCharacter(migrateEventState(characterStore.character, habitStore.habits));
   characterStore.setCharacter(migrateQuestUnlock(characterStore.character, questStore.quests.length > 0));
 

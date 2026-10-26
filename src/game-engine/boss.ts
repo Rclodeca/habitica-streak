@@ -5,14 +5,30 @@ import type { Rng } from './rng';
 import { pickWeighted } from './rng';
 import type { Boss, Personality } from './types';
 
+/** The health growth from boss `index - 1` to `index`: the rate of the last BOSS_HEALTH_GROWTH_BANDS row starting at or before it. */
+export function bossHealthGrowthRate(index: number): number {
+  let rate = TUNING.BOSS_HEALTH_GROWTH_BANDS[0][1];
+  for (const [start, bandRate] of TUNING.BOSS_HEALTH_GROWTH_BANDS) if (start <= index) rate = bandRate;
+  return rate;
+}
+
 /**
  * Un-jittered health a balanced boss at the given index starts with. Grows
- * exponentially forever so the game never runs out of challenge.
- * `difficultyModifier` (default 1, i.e. no change) is the current run's
- * hidden per-run scaling — see `generateBoss`.
+ * exponentially forever, band by band, so the game never runs out of
+ * challenge. `difficultyModifier` (default 1, i.e. no change) is the current
+ * run's hidden per-run scaling — see `generateBoss`.
  */
 export function bossBaseHealth(index: number, difficultyModifier = 1): number {
-  return TUNING.BASE_BOSS_HEALTH * Math.pow(TUNING.BOSS_HEALTH_GROWTH_RATE, index - 1) * difficultyModifier;
+  let health = TUNING.BASE_BOSS_HEALTH;
+  for (let k = 2; k <= index; k++) health *= bossHealthGrowthRate(k);
+  return health * difficultyModifier;
+}
+
+/** Rescales a saved boss from the old flat ×1.27 growth to the bands, keeping its HP percent. Every other field is untouched. */
+export function rescaleBossToHealthBands(boss: Boss): Boss {
+  const legacy = TUNING.BASE_BOSS_HEALTH * Math.pow(TUNING.LEGACY_BOSS_HEALTH_GROWTH_RATE, boss.index - 1);
+  const factor = bossBaseHealth(boss.index) / legacy;
+  return { ...boss, health: boss.health * factor, maxHealth: boss.maxHealth * factor };
 }
 
 /**

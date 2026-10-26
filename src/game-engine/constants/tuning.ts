@@ -30,16 +30,26 @@ export const TUNING = {
   HEAL_RANK_BONUS: 0.25,
   STREAK_BONUS: 0.01,
   WEEKLY_STREAK_BONUS: 0.03,
-  // Boss health at index 1, and its per-index exponential growth. Armor and
-  // magicResist no longer draw from a shared power budget (a fixed RESIST_K
-  // made `resist / (resist + K)` saturate past ~80% by boss 20 for every
-  // boss regardless of personality) — they're authored directly as damage
-  // reduction percents below, so health grows faster to keep effective HP
-  // (health / (1 - reduction)) close to the old curve through boss ~20.
-  // Eased 1.285 -> 1.27 after play-testing: past boss ~20 the compounding got
-  // out of hand (-20% health at boss 20, -29% at boss 30, -5% at boss 5).
+  // Boss health at index 1, and its growth bands: each row's rate applies
+  // from that boss on (see bossHealthGrowthRate). Armor and magicResist are
+  // authored as damage reduction percents (see BOSS_RESIST_* below), not
+  // drawn from a power budget. x1.15 was the first pick for 13+; x1.16 is the
+  // in-between if x1.17 drags. Every band must stay well above ~x1.05, or
+  // kill EXP (BOSS_KILL_LEVEL_SHARE) can buy levels faster than bosses grow.
   BASE_BOSS_HEALTH: 650,
-  BOSS_HEALTH_GROWTH_RATE: 1.27,
+  BOSS_HEALTH_GROWTH_BANDS: [
+    [1, 1.27],
+    [13, 1.17],
+    [31, 1.11],
+    [51, 1.09],
+  ] as [number, number][],
+  // The old flat growth, kept only to rescale a saved boss once (see
+  // rescaleBossToHealthBands).
+  LEGACY_BOSS_HEALTH_GROWTH_RATE: 1.27,
+  // The per-skill cut (no pools, see BASE_STATS), applied once to an
+  // in-progress run's physical, magic and true damage via
+  // character.ts's applyRankRebalance. Healing and health untouched.
+  ONE_TIME_RANK_REBALANCE_DAMAGE_FACTOR: 0.6,
   // Tank personality's health multiplier over a balanced boss.
   BOSS_TANK_HEALTH_MULTIPLIER: 1.5,
   // Non-emphasized armor/magicResist damage reduction: a straight line from

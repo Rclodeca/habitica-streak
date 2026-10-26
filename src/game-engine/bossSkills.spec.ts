@@ -100,14 +100,15 @@ describe('generateBoss — skills', () => {
 
   it('leaves every other stat as it was before skills existed, for a given seed', () => {
     // Seed 7 at boss 30, captured before skills were added, and re-captured when
-    // Reflect left the roll order and the boss health/attack curves eased.
+    // Reflect left the roll order, the boss health/attack curves eased, and
+    // health moved to growth bands.
     const rest = generateBoss(30, createRng(7));
     delete rest.skills;
     expect(rest).toEqual({
       index: 30,
       personality: 'balanced',
-      maxHealth: 657896.1485506399,
-      health: 657896.1485506399,
+      maxHealth: 150326.61496487504,
+      health: 150326.61496487504,
       physicalAttack: 3293.486617755793,
       magicAttack: 3143.404935716983,
       armor: 819.1077991395447,

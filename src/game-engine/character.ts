@@ -1,7 +1,8 @@
+import { rescaleBossToHealthBands } from './boss';
 import { TUNING } from './constants/tuning';
 import { ITEM_CATALOG } from './items';
 import { pickRandom, type Rng } from './rng';
-import type { Character } from './types';
+import type { Boss, Character } from './types';
 
 export function randomizeStat(base: number, rng: Rng): number {
   const jitter = (rng() * 2 - 1) * TUNING.STAT_RANDOMIZATION_PCT; // in [-0.05, 0.05]
@@ -38,6 +39,7 @@ export function createCharacter(rng: Rng): Character {
     // time it's saved and reloaded.
     damagePoolRebalanceApplied: true,
     healingRebalanceApplied: true,
+    rankRebalanceApplied: true,
   };
 }
 
@@ -188,5 +190,30 @@ export function applyHealingRebalance(character: Character): Character {
       healing: character.starterStats.healing * factor,
     },
     healingRebalanceApplied: true,
+  };
+}
+
+/**
+ * One-time migration for the skill-ranks rebalance: every skill now hits for
+ * its type's full stat, so a saved run's physical, magic and true damage are
+ * cut to ONE_TIME_RANK_REBALANCE_DAMAGE_FACTOR (healing and health
+ * untouched), and its boss is rescaled to the new HP bands. A no-op, returning
+ * both objects as-is, once `rankRebalanceApplied` is set.
+ */
+export function applyRankRebalance(character: Character, boss: Boss): { character: Character; boss: Boss } {
+  if (character.rankRebalanceApplied) return { character, boss };
+  const factor = TUNING.ONE_TIME_RANK_REBALANCE_DAMAGE_FACTOR;
+  return {
+    character: {
+      ...character,
+      starterStats: {
+        ...character.starterStats,
+        physicalDamage: character.starterStats.physicalDamage * factor,
+        magicDamage: character.starterStats.magicDamage * factor,
+        trueDamage: character.starterStats.trueDamage * factor,
+      },
+      rankRebalanceApplied: true,
+    },
+    boss: rescaleBossToHealthBands(boss),
   };
 }
