@@ -35,10 +35,9 @@ const debugClockStore = useDebugClockStore();
 const { activateOverdrive } = useCombatActions();
 const { enqueueDrops } = useItemDropQueue();
 
-const breakdown = computed(() => {
-  const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.period);
-  return habitDamageBreakdown(characterStore.character, props.habit, siblings, bossStore.boss, dailyPeriodKey(debugClockStore.now()));
-});
+const breakdown = computed(() =>
+  habitDamageBreakdown(characterStore.character, props.habit, habitStore.habits, bossStore.boss, dailyPeriodKey(debugClockStore.now())),
+);
 
 const baseDamage = computed(() => breakdown.value.baseDamage);
 const itemMultiplier = computed(() => breakdown.value.itemMultiplier);

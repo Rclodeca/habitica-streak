@@ -50,11 +50,6 @@ export function normalizeDays(days: number[] | undefined): number[] | undefined 
   return unique.length === 0 || unique.length === 7 ? undefined : unique;
 }
 
-/** The share of the week a habit is due: days/7 for a set-day daily, 1 for a plain daily or any weekly. */
-export function dueFraction(habit: Habit): number {
-  return habit.period === 'daily' && habit.days ? habit.days.length / 7 : 1;
-}
-
 /** Whether `habit` can be used on `date`'s day — false only on a set-day daily's rest days. */
 export function isDueOn(habit: Habit, date: Date): boolean {
   if (habit.period !== 'daily' || !habit.days) return true;
@@ -99,40 +94,30 @@ export function resetLevelRewards(habit: Habit): Habit {
   };
 }
 
-/**
- * How much a damage-type pool grows with the total difficulty weight in it:
- * 1.0 for a single medium habit, +POOL_GROWTH_PER_MEDIUM_HABIT of base per
- * extra medium-equivalent habit (easy/hard scaled by weight, so spamming
- * easy habits isn't a shortcut). Never below 1.
- */
-export function poolSizeMultiplier(totalWeight: number): number {
-  const growth = TUNING.POOL_GROWTH_PER_MEDIUM_HABIT;
-  return Math.max(1, 1 - growth + (growth * totalWeight) / DIFFICULTY_WEIGHT.medium);
+/** A skill's difficulty weight around medium: easy ×2/3, medium ×1, hard ×4/3. */
+export function difficultyFactor(difficulty: Difficulty): number {
+  return DIFFICULTY_WEIGHT[difficulty] / DIFFICULTY_WEIGHT.medium;
 }
 
 /**
- * Damage-split formula (the core balancing formula): given a base stat value
- * `S` for a damage type and the list of habits of that type, the pool is
- * `S * poolSizeMultiplier(W)` and each hit is proportional to the habit's
- * difficulty weight, with set-day habits counted in W by their dueFraction:
- *   W = Σ w_j * f_j,   d_i = S * poolMultiplier * (w_i / max(W, w_i))
- * A set-day habit hits like a daily of its difficulty on its due days; the
- * max() caps a hit at the whole pool, so a pool of sparse habits can't pack
- * a week's damage into one check.
- *
- * This is a pure computation over the current habit list every time — a
- * habit's damage value is never stored/cached on the Habit object itself.
+ * Crowding by creation order: the FULL_POWER_SKILLS oldest skills hit in
+ * full, later ones by CROWDED_SKILL_FACTORS (the last factor for every one
+ * past the end). A habit not in `allHabits` counts as the next one added.
  */
-export function computeDamageSplit(habitsOfType: Habit[], statValue: number): Map<string, number> {
-  const result = new Map<string, number>();
-  if (habitsOfType.length === 0) {
-    return result;
-  }
-  const totalWeight = habitsOfType.reduce((sum, habit) => sum + DIFFICULTY_WEIGHT[habit.difficulty] * dueFraction(habit), 0);
-  const pool = statValue * poolSizeMultiplier(totalWeight);
-  for (const habit of habitsOfType) {
-    const weight = DIFFICULTY_WEIGHT[habit.difficulty];
-    result.set(habit.id, pool * (weight / Math.max(totalWeight, weight)));
-  }
-  return result;
+export function crowdingFactor(habit: Habit, allHabits: Habit[]): number {
+  const found = allHabits.findIndex((h) => h.id === habit.id);
+  const index = found === -1 ? allHabits.length : found;
+  if (index < TUNING.FULL_POWER_SKILLS) return 1;
+  const factors = TUNING.CROWDED_SKILL_FACTORS;
+  return factors[Math.min(index - TUNING.FULL_POWER_SKILLS, factors.length - 1)];
+}
+
+/**
+ * What a skill hits for before items, rank, streak and bonuses: its type's
+ * full stat, weighted by difficulty and crowding. No pools — adding a skill
+ * never changes another skill's number, unless it's crowded past the 15th.
+ * Computed fresh every time; never stored on the Habit.
+ */
+export function skillBaseDamage(habit: Habit, allHabits: Habit[], statValue: number): number {
+  return statValue * difficultyFactor(habit.difficulty) * crowdingFactor(habit, allHabits);
 }

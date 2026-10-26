@@ -17,6 +17,16 @@ import { createRng } from './rng';
 import { TUNING } from './constants/tuning';
 
 describe('createCharacter', () => {
+  it('starts at the per-skill stats: 672 physical + magic and 288 true damage, ±5%', () => {
+    for (let seed = 1; seed <= 50; seed++) {
+      const { starterStats } = createCharacter(createRng(seed));
+      expect(starterStats.physicalDamage + starterStats.magicDamage).toBeGreaterThanOrEqual(672 * 0.95);
+      expect(starterStats.physicalDamage + starterStats.magicDamage).toBeLessThanOrEqual(672 * 1.05);
+      expect(starterStats.trueDamage).toBeGreaterThanOrEqual(288 * 0.95);
+      expect(starterStats.trueDamage).toBeLessThanOrEqual(288 * 1.05);
+    }
+  });
+
   it('every starter stat falls within its possible range (split ratio + ±5% jitter) across many real-RNG runs', () => {
     const rng = createRng();
     const damagePool = TUNING.BASE_STATS.physicalDamage + TUNING.BASE_STATS.magicDamage;

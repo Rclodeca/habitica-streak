@@ -52,16 +52,16 @@ export {
 } from './leveling';
 
 export {
-  computeDamageSplit,
   createHabit,
-  dueFraction,
+  crowdingFactor,
+  difficultyFactor,
   isDueOn,
   migrateHabitDamageType,
   nextDueDay,
   normalizeDays,
-  poolSizeMultiplier,
   rerollDamageType,
   resetLevelRewards,
+  skillBaseDamage,
 } from './habits';
 
 export {

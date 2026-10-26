@@ -21,11 +21,11 @@ const bossStore = useBossStore();
 const habitStore = useHabitStore();
 const debugClockStore = useDebugClockStore();
 
-const effectiveDamage = computed(() => {
-  const siblings = habitStore.habitsOfType(props.habit.damageType, props.habit.period);
-  return habitDamageBreakdown(characterStore.character, props.habit, siblings, bossStore.boss, dailyPeriodKey(debugClockStore.now()))
-    .effectiveDamage;
-});
+const effectiveDamage = computed(
+  () =>
+    habitDamageBreakdown(characterStore.character, props.habit, habitStore.habits, bossStore.boss, dailyPeriodKey(debugClockStore.now()))
+      .effectiveDamage,
+);
 
 const showStreak = computed(() => props.habit.streakCount >= MIN_STREAK_SHOWN);
 const difficultyPips = computed(() => ({ easy: 1, medium: 2, hard: 3 })[props.habit.difficulty]);

@@ -163,7 +163,6 @@ export function useCombatActions() {
     const habit = habitStore.habits.find((h) => h.id === habitId);
     if (!habit) return { itemsDropped: [] };
 
-    const habitsInPool = habitStore.habitsOfType(habit.damageType, habit.period);
     const healthBefore = characterStore.character.currentHealth;
     const bossBefore = bossStore.boss;
     const currentPeriodKey = periodKeyFor(habit.period, debugClockStore.now());
@@ -172,8 +171,8 @@ export function useCombatActions() {
     // healingMultiplier/activeWoundsEffect in game-engine/combat.ts.
     const currentDayKey = dailyPeriodKey(debugClockStore.now());
     const result = options.isOverdriveUse
-      ? overdriveHabit(characterStore.character, habit, habitsInPool, bossStore.boss, currentDayKey, currentPeriodKey, rng)
-      : completeHabit(characterStore.character, habit, habitsInPool, bossStore.boss, currentDayKey, rng);
+      ? overdriveHabit(characterStore.character, habit, habitStore.habits, bossStore.boss, currentDayKey, currentPeriodKey, rng)
+      : completeHabit(characterStore.character, habit, habitStore.habits, bossStore.boss, currentDayKey, rng);
 
     const updatedHabit: Habit = stampPeriodKey
       ? { ...result.updatedHabit, lastCompletedPeriodKey: stampPeriodKey, lastCheckedPeriodKey: stampPeriodKey }

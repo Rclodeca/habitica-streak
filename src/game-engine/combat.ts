@@ -4,7 +4,7 @@ import type { FiredBossSkill } from './bossSkills';
 import { createCharacter } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
-import { computeDamageSplit, dueFraction, poolSizeMultiplier, rerollDamageType, resetLevelRewards } from './habits';
+import { crowdingFactor, rerollDamageType, resetLevelRewards, skillBaseDamage } from './habits';
 import { activeHealBoost, addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { bumpSpellweave, critMultiplierFor, effectDamageMultiplier, effectUsedToday, hasItemEffect, isForcedCrit, stampEffectDay, starfallReady } from './itemEffects';
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
@@ -29,9 +29,8 @@ export const DAMAGE_TYPE_STARTER_STAT: Record<DamageType, keyof Character['start
  * A flat bonus multiplier for weekly habits — separate from (never folded
  * into) `baseDamage`, unlike the old periodRewardMultiplier it replaces, so
  * it can be surfaced to the player as its own line in the stats modal
- * rather than hidden inside the base number. Daily/weekly pools are
- * already split (see `habitStore.habitsOfType`), so this is purely a
- * reward bump for weeklies, not compensation for pool dilution.
+ * rather than hidden inside the base number. Purely a reward bump for
+ * weeklies, which are used a seventh as often.
  */
 export function weeklyBonusMultiplier(period: Period): number {
   return period === 'weekly' ? TUNING.WEEKLY_BONUS_MULTIPLIER : 1;
@@ -91,8 +90,10 @@ export function healingMultiplier(character: Character, currentDayKey: string): 
 }
 
 export type HabitDamageBreakdown = {
-  /** This habit's share of the character's stat pool (by difficulty weight, within its own daily-or-weekly pool) — before items, streak, weekly bonus, or Special/Ult. */
+  /** The type's full stat × difficulty × crowding (see skillBaseDamage) — before items, streak, weekly bonus, or Special/Ult. */
   baseDamage: number;
+  /** True when the skill is past the FULL_POWER_SKILLS oldest, so its base is cut. */
+  crowded: boolean;
   itemMultiplier: number;
   streakMultiplier: number;
   /** WEEKLY_BONUS_MULTIPLIER for a weekly habit, 1 (no-op) for a daily one — see `weeklyBonusMultiplier`. */
@@ -117,13 +118,13 @@ export type HabitDamageBreakdown = {
 export function habitDamageBreakdown(
   character: Character,
   habit: Habit,
-  allHabitsOfSameType: Habit[],
+  allHabits: Habit[],
   boss?: Boss,
   currentDayKey?: string,
 ): HabitDamageBreakdown {
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
-  const baseDamage = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
+  const baseDamage = skillBaseDamage(habit, allHabits, rawStat);
   const itemMultiplier = itemStatMultiplier(character, statField);
   const streakMult = streakMultiplier(habit.streakCount, habit.period);
   const weeklyMult = weeklyBonusMultiplier(habit.period);
@@ -131,6 +132,7 @@ export function habitDamageBreakdown(
   const effectMultiplier = boss && currentDayKey ? effectDamageMultiplier(character, habit, boss, currentDayKey) : 1;
   return {
     baseDamage,
+    crowded: crowdingFactor(habit, allHabits) < 1,
     itemMultiplier,
     streakMultiplier: streakMult,
     weeklyMultiplier: weeklyMult,
@@ -141,26 +143,14 @@ export function habitDamageBreakdown(
 }
 
 /**
- * What a NEW medium daily habit of `damageType` would deal if added right now
- * — no crit, no streak bonus, no Special/Ult. The new habit joins
- * `habitsOfType`, so the pool grows by its weight and it takes a medium
- * weight's share of the new total (a lone habit gets the whole pool).
- * Existing set-day habits count by their dueFraction, as in computeDamageSplit.
- *
- * Callers must pass `habitsOfType` already scoped to the daily period
- * (e.g. `habitStore.habitsOfType(damageType, 'daily')`) — daily and weekly
- * are separate pools, so a weekly habit of this same damage type must NOT
- * be included here.
+ * What a medium rank-0, streak-0 skill of `damageType` hits for right now:
+ * the raw stat (level and flat items) × the item multiplier. No crit, no
+ * Special/Ult, no crowding.
  */
-export function expectedMediumDailyDamage(character: Character, damageType: DamageType, habitsOfType: Habit[]): number {
+export function expectedMediumDailyDamage(character: Character, damageType: DamageType): number {
   const statField = DAMAGE_TYPE_STARTER_STAT[damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
-  const itemMultiplier = itemStatMultiplier(character, statField);
-  const totalWeight =
-    habitsOfType.reduce((sum, h) => sum + DIFFICULTY_WEIGHT[h.difficulty] * dueFraction(h), 0) + DIFFICULTY_WEIGHT.medium;
-  const mediumShareRatio = DIFFICULTY_WEIGHT.medium / totalWeight;
-  const poolMultiplier = poolSizeMultiplier(totalWeight);
-  return rawStat * itemMultiplier * poolMultiplier * mediumShareRatio;
+  return rawStat * itemStatMultiplier(character, statField);
 }
 
 export type CombatResult = {
@@ -193,9 +183,10 @@ export function effectiveResistAfterPen(resistStat: number, penPct: number): num
 }
 
 /**
- * Resolves completing a habit: computes the habit's share of damage/healing
- * for its type, applies the streak multiplier, bumps the streak, and either
- * heals the character (healing type — boss untouched) or damages the boss
+ * Resolves completing a habit: computes the habit's base damage/healing
+ * (its type's full stat, see skillBaseDamage; `allHabits` is every owned
+ * habit in store order, for crowding), applies the streak multiplier, bumps
+ * the streak, and either heals the character (healing type — boss untouched) or damages the boss
  * (physical/magic type — reduced by the boss's matching resist stat and, on
  * a crit roll, doubled). Healing habits never crit. A lifesteal item bonus
  * heals the character for a percent of the damage actually dealt, while the
@@ -210,13 +201,13 @@ export function effectiveResistAfterPen(resistStat: number, penPct: number): num
 export function completeHabit(
   character: Character,
   habit: Habit,
-  allHabitsOfSameType: Habit[],
+  allHabits: Habit[],
   boss: Boss,
   currentDayKey: string,
   rng: Rng,
   options: { isOverdriveUse?: boolean } = {},
 ): CombatResult {
-  const result = resolveCompletion(character, habit, allHabitsOfSameType, boss, currentDayKey, rng, options);
+  const result = resolveCompletion(character, habit, allHabits, boss, currentDayKey, rng, options);
   const skill = resolveBreakpoints(boss.health, result.boss, result.character, currentDayKey, rng);
   return { ...result, boss: skill.boss, character: skill.character, ...(skill.fired && { bossSkill: skill.fired }) };
 }
@@ -225,7 +216,7 @@ export function completeHabit(
 function resolveCompletion(
   character: Character,
   habit: Habit,
-  allHabitsOfSameType: Habit[],
+  allHabits: Habit[],
   boss: Boss,
   currentDayKey: string,
   rng: Rng,
@@ -234,7 +225,7 @@ function resolveCompletion(
   const isOverdriveUse = options.isOverdriveUse ?? false;
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
   const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
-  const baseDamage = computeDamageSplit(allHabitsOfSameType, rawStat).get(habit.id) ?? 0;
+  const baseDamage = skillBaseDamage(habit, allHabits, rawStat);
   const itemMultiplier = itemStatMultiplier(character, statField);
   // An Overdrive activation is an extra use of an already-checked-off habit:
   // it doesn't touch the streak or grant milestone EXP again, and never
@@ -339,13 +330,13 @@ function resolveCompletion(
 export function overdriveHabit(
   character: Character,
   habit: Habit,
-  allHabitsOfSameType: Habit[],
+  allHabits: Habit[],
   boss: Boss,
   currentDayKey: string,
   overdrivePeriodKey: string,
   rng: Rng,
 ): CombatResult {
-  const result = completeHabit(character, habit, allHabitsOfSameType, boss, currentDayKey, rng, { isOverdriveUse: true });
+  const result = completeHabit(character, habit, allHabits, boss, currentDayKey, rng, { isOverdriveUse: true });
   return { ...result, updatedHabit: bumpOverdriveUse(result.updatedHabit, overdrivePeriodKey) };
 }
 

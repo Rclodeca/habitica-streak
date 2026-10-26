@@ -1,44 +1,21 @@
 import type { BossSkillId, Breakpoint, Period } from '../types';
 
 export const TUNING = {
-  // Scaled up ~30x from the original 10/10/6/50 (see PROGRESS.md "Balance
-  // rescale") so that a 1% streak/item bonus moves the displayed (rounded)
-  // damage number by more than a rounding error, and so one day of fully
-  // completing physical+magic habits can actually kill boss 1.
-  // healing cut 480 -> 384 (-20%) alongside merging good/bad habit pools
-  // (see HABIT_DAMAGE_TYPE_WEIGHTS/habitsOfType) — more habits now draw from
-  // one healing budget instead of a good-only one, so the per-habit share
-  // would otherwise have gone up instead of staying flat.
-  // trueDamage was originally sized at 30% of the combined
-  // physicalDamage+magicDamage pool (0.3 * 1600 = 480).
-  // physicalDamage/magicDamage/healing cut ~30% (800/800/384 -> 560/560/269)
-  // when daily/weekly pools were split (see habitStore.habitsOfType) —
-  // splitting one shared pool into two lets a player with both a daily and
-  // a weekly habit of the same type draw from the full stat on two
-  // independent schedules instead of splitting one, a net damage/healing
-  // buff that needed offsetting at the source. trueDamage is deliberately
-  // exempted (kept at its original 480) — its ratio comment above no longer
-  // holds exactly as a result, by choice.
-  // healing cut a further ~30% (269 -> 188) after the item catalog's healing
-  // bonuses piled up and healing skills outpaced the other damage types.
-  // The expGain skill type was removed (a long streak on one scaled income to
-  // 3-7x the reference pace in simulation); EXP now comes from boss kills,
-  // streak milestones, and quests, plus the equipped-item EXP bonus.
-  BASE_STATS: { physicalDamage: 560, magicDamage: 560, healing: 188, health: 1250, trueDamage: 480 },
-  // The same ~30% cut as the BASE_STATS change above, applied once to an
-  // in-progress run's existing physicalDamage/magicDamage/healing via
-  // character.ts's applyDamagePoolRebalance — a fresh character already
-  // gets the reduced BASE_STATS value, but an existing save's starterStats
-  // were rolled before this cut and need retroactively scaling down to
-  // match (health/trueDamage untouched, same exemption as above).
+  // Per-skill stats: every skill hits for its type's full stat (no pools),
+  // at 60% of the old pooled values; 8 skills is the reference loadout.
+  // Sim: SKILLS=8 POOLS=0 node scripts/balance-sim.mjs
+  BASE_STATS: { physicalDamage: 336, magicDamage: 336, healing: 188, health: 1250, trueDamage: 288 },
+  // An earlier ~30% cut (from the daily/weekly pool split), applied once to
+  // an in-progress run's physicalDamage/magicDamage/healing via
+  // character.ts's applyDamagePoolRebalance. health/trueDamage untouched.
   ONE_TIME_DAMAGE_POOL_REBALANCE_PCT: 30,
-  // The healing-only cut above (269 -> 188), applied once to an in-progress
+  // An earlier healing-only cut (269 -> 188), applied once to an in-progress
   // run's existing healing via character.ts's applyHealingRebalance.
   ONE_TIME_HEALING_REBALANCE_PCT: 30,
-  // Each additional medium-weight habit (easy/hard scale proportionally) in a
-  // damage-type pool grows that pool by this fraction of its base size — see
-  // `poolSizeMultiplier`.
-  POOL_GROWTH_PER_MEDIUM_HABIT: 0.2,
+  // Crowding: the FULL_POWER_SKILLS oldest skills hit in full; the next ones
+  // hit for these factors, the last for every later one (see crowdingFactor).
+  FULL_POWER_SKILLS: 15,
+  CROWDED_SKILL_FACTORS: [0.7, 0.5, 0.35, 0.25],
   STAT_RANDOMIZATION_PCT: 0.05, // ±5% at character creation
   LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level
   // Bumped from 0.01 (+1%/streak) to 0.10 (+10%/streak) so a well-kept

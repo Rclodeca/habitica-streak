@@ -33,7 +33,6 @@ import { usePress } from '../../composables/usePress';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
-import { useHabitStore } from '../../store/habitStore';
 import ExpBar from '../ui/ExpBar.vue';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
@@ -51,7 +50,6 @@ const showDetails = ref(false);
 
 const characterStore = useCharacterStore();
 const debugClockStore = useDebugClockStore();
-const habitStore = useHabitStore();
 
 const baseUrl = import.meta.env.BASE_URL;
 
@@ -130,22 +128,11 @@ function gain(buffed: number, base: number, scale = 1) {
   return Math.round((buffed - base) * scale);
 }
 
-// What a new medium DAILY habit of each type would deal right now, computed
-// against this character's real daily habits of that type only — the daily
-// pool and weekly pool are separate (see habitStore.habitsOfType), so a
-// weekly habit of the same type never factors into this number.
-const expectedPhysicalDamage = computed(() =>
-  expectedMediumDailyDamage(character.value, 'physical', habitStore.habitsOfType('physical', 'daily')),
-);
-const expectedMagicDamage = computed(() =>
-  expectedMediumDailyDamage(character.value, 'magic', habitStore.habitsOfType('magic', 'daily')),
-);
-const expectedHealing = computed(() =>
-  expectedMediumDailyDamage(character.value, 'healing', habitStore.habitsOfType('healing', 'daily')),
-);
-const expectedTrueDamage = computed(() =>
-  expectedMediumDailyDamage(character.value, 'trueDamage', habitStore.habitsOfType('trueDamage', 'daily')),
-);
+// What a medium rank-0, streak-0 skill of each type hits for right now.
+const expectedPhysicalDamage = computed(() => expectedMediumDailyDamage(character.value, 'physical'));
+const expectedMagicDamage = computed(() => expectedMediumDailyDamage(character.value, 'magic'));
+const expectedHealing = computed(() => expectedMediumDailyDamage(character.value, 'healing'));
+const expectedTrueDamage = computed(() => expectedMediumDailyDamage(character.value, 'trueDamage'));
 
 // Sized to the character's current slot cap (4, 6 or 8 — see maxEquipSlots),
 // in whatever order they were equipped; the details' Equipment list shows

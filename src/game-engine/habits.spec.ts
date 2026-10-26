@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  computeDamageSplit,
   createHabit,
-  dueFraction,
+  crowdingFactor,
+  difficultyFactor,
   isDueOn,
   migrateHabitDamageType,
   nextDueDay,
   normalizeDays,
-  poolSizeMultiplier,
   rerollDamageType,
 } from './habits';
 import { createRng } from './rng';
@@ -114,84 +113,22 @@ describe('rerollDamageType', () => {
   });
 });
 
-describe('computeDamageSplit', () => {
-  it('reproduces the seed doc worked example: 5 easy same-type habits, S=100 -> each exactly 20', () => {
-    const habits = Array.from({ length: 5 }, (_, i) =>
-      makeHabit({ id: `habit-${i}`, difficulty: 'easy', damageType: 'physical' }),
-    );
-    const split = computeDamageSplit(habits, 100);
-    const poolMultiplier = poolSizeMultiplier(5);
-    expect(split.size).toBe(5);
-    for (const habit of habits) {
-      expect(split.get(habit.id)).toBeCloseTo((100 * poolMultiplier) / 5, 10);
-    }
+describe('per-skill base damage', () => {
+  it('weights difficulty around medium', () => {
+    expect(difficultyFactor('easy')).toBeCloseTo(2 / 3);
+    expect(difficultyFactor('medium')).toBe(1);
+    expect(difficultyFactor('hard')).toBeCloseTo(4 / 3);
   });
-
-  it('splits mixed difficulty (3 easy + 2 hard) proportionally to weight and sums to S', () => {
-    const easyHabits = Array.from({ length: 3 }, (_, i) =>
-      makeHabit({ id: `easy-${i}`, difficulty: 'easy', damageType: 'physical' }),
-    );
-    const hardHabits = Array.from({ length: 2 }, (_, i) =>
-      makeHabit({ id: `hard-${i}`, difficulty: 'hard', damageType: 'physical' }),
-    );
-    const habits = [...easyHabits, ...hardHabits];
-    const split = computeDamageSplit(habits, 100);
-
-    const pool = 100 * poolSizeMultiplier(3 * 1 + 2 * 2);
-    for (const habit of easyHabits) {
-      expect(split.get(habit.id)).toBeCloseTo(pool / 7, 4);
-    }
-    for (const habit of hardHabits) {
-      expect(split.get(habit.id)).toBeCloseTo((pool * 2) / 7, 4);
-    }
-
-    const total = [...split.values()].reduce((sum, value) => sum + value, 0);
-    expect(total).toBeCloseTo(pool, 10);
+  it('crowds only the newest skills past 15', () => {
+    const habits = Array.from({ length: 20 }, (_, i) => makeHabit({ id: `h${i}` }));
+    expect(habits.map((h) => crowdingFactor(h, habits))).toEqual([...Array(15).fill(1), 0.7, 0.5, 0.35, 0.25, 0.25]);
+    expect(crowdingFactor(makeHabit({ id: 'new' }), habits.slice(0, 15))).toBe(0.7);
   });
-
-  it('gives a single habit the full stat value', () => {
-    const habit = makeHabit({ id: 'solo', difficulty: 'medium' });
-    const split = computeDamageSplit([habit], 42);
-    expect(split.get('solo')).toBe(42);
-  });
-
-  it('the approved example: a lone medium daily at 100 and a Mon-Wed-Sat medium both hit ~76', () => {
-    const reading = makeHabit({ id: 'reading', difficulty: 'medium' });
-    const gym = makeHabit({ id: 'gym', difficulty: 'medium', days: [0, 2, 5] });
-    expect(computeDamageSplit([reading], 100).get('reading')).toBe(100);
-    const split = computeDamageSplit([reading, gym], 100);
-    expect(split.get('reading')).toBeCloseTo(76, 6);
-    expect(split.get('gym')).toBeCloseTo(76, 6);
-  });
-
-  it('caps a hit at the whole pool, so a lone one-day habit hits like a lone daily', () => {
-    const split = computeDamageSplit([makeHabit({ id: 'once', difficulty: 'medium', days: [3] })], 100);
-    expect(split.get('once')).toBeCloseTo(100, 6);
-  });
-
-  it('returns an empty map without dividing by zero when there are no habits of that type', () => {
-    const split = computeDamageSplit([], 100);
-    expect(split.size).toBe(0);
-    expect(split instanceof Map).toBe(true);
-  });
-});
-
-describe('poolSizeMultiplier', () => {
-  it('is exactly 1 for a single medium habit', () => {
-    expect(poolSizeMultiplier(1.5)).toBe(1);
-  });
-
-  it('grows 20% of base per extra medium-equivalent habit', () => {
-    expect(poolSizeMultiplier(1.5 * 2)).toBeCloseTo(1.2, 10);
-    expect(poolSizeMultiplier(1.5 * 10)).toBeCloseTo(2.8, 10);
-  });
-
-  it('weights growth by difficulty — an easy habit adds less than a hard one', () => {
-    expect(poolSizeMultiplier(1.5 + 1)).toBeLessThan(poolSizeMultiplier(1.5 + 2));
-  });
-
-  it('never drops below 1 (a lone easy habit is not penalized)', () => {
-    expect(poolSizeMultiplier(1)).toBe(1);
+  it('deleting one of the 15 oldest moves the 16th up to full power', () => {
+    const habits = Array.from({ length: 16 }, (_, i) => makeHabit({ id: `h${i}` }));
+    const after = habits.filter((h) => h.id !== 'h3');
+    expect(crowdingFactor(habits[15], after)).toBe(1);
+    expect(after.slice(0, 14).map((h) => crowdingFactor(h, after))).toEqual(Array(14).fill(1));
   });
 });
 
@@ -224,12 +161,6 @@ describe('set days', () => {
     expect(normalizeDays([0, 1, 2, 3, 4, 5, 6])).toBeUndefined();
     expect(normalizeDays([])).toBeUndefined();
     expect(normalizeDays(undefined)).toBeUndefined();
-  });
-
-  it('dueFraction is days/7 for a set-day daily and 1 otherwise', () => {
-    expect(dueFraction(makeHabit({ days: [0, 2, 5] }))).toBeCloseTo(3 / 7, 10);
-    expect(dueFraction(makeHabit())).toBe(1);
-    expect(dueFraction(makeHabit({ period: 'weekly', days: [0] }))).toBe(1);
   });
 
   it('isDueOn follows the Pacific business day', () => {
