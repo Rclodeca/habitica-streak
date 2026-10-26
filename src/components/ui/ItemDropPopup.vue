@@ -82,7 +82,7 @@ const isCurrentEquipped = computed(
 }
 
 .rarity-relic {
-  --rarity: var(--side-quest-color);
+  --rarity: var(--rarity-relic);
 }
 
 .dropped-by {

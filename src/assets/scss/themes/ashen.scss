@@ -166,6 +166,8 @@ $caps-lg: 0.85rem; // panel and popup titles
   --rarity-uncommon: #86b08b;
   --rarity-rare: #7f9fd1;
   --rarity-epic: #ae8bd6;
+  // Ember, not gold: gold is Ashen's own chrome and blended into common.
+  --rarity-relic: #ec8338;
   --soon-color: #d49a46;
   --side-quest-color: #c8a96e;
   --overdrive-color: #{$ember};

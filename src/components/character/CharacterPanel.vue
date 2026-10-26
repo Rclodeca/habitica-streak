@@ -576,7 +576,7 @@ onBeforeUnmount(() => {
 }
 
 .rarity-relic {
-  --rarity: var(--side-quest-color);
+  --rarity: var(--rarity-relic);
 }
 
 .hero {
