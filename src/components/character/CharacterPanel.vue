@@ -17,7 +17,6 @@ import {
   describeItemBonusParts,
   effectiveCritChance,
   effectiveStat,
-  expectedMediumDailyDamage,
   expToNextLevel,
   formatCompact,
   heroClassFor,
@@ -44,9 +43,8 @@ import { DRAWN_FACING_LEFT, HERO_PLACEMENT } from './heroArt';
 import PlayerSprite from './PlayerSprite.vue';
 
 // A condensed, always-visible emoji stat line (Buffed numbers) sits under
-// the bars; the Base/Buffed breakdown, the gear, and what a new medium daily
-// would deal live in a modal behind the hero's half of the stage. See
-// BossPanel.vue for the same pattern.
+// the bars; the Base/Buffed breakdown and the gear live in a modal behind the
+// hero's half of the stage. See BossPanel.vue for the same pattern.
 const showDetails = ref(false);
 
 const characterStore = useCharacterStore();
@@ -129,12 +127,6 @@ function gain(buffed: number, base: number, scale = 1) {
   return Math.round((buffed - base) * scale);
 }
 
-// What a medium rank-0, streak-0 skill of each type hits for right now.
-const expectedPhysicalDamage = computed(() => expectedMediumDailyDamage(character.value, 'physical'));
-const expectedMagicDamage = computed(() => expectedMediumDailyDamage(character.value, 'magic'));
-const expectedHealing = computed(() => expectedMediumDailyDamage(character.value, 'healing'));
-const expectedTrueDamage = computed(() => expectedMediumDailyDamage(character.value, 'trueDamage'));
-
 // Sized to the character's current slot cap (4, 6 or 8 — see maxEquipSlots),
 // in whatever order they were equipped; the details' Equipment list shows
 // the empty ones after the gear. Slots not yet unlocked aren't shown anywhere.
@@ -200,13 +192,6 @@ const activeEffects = computed(() => {
   if (doomDays.value !== undefined) effects.push({ icon: 'doom', text: effectText('Doom', 'doom', doomPct(character.value)), days: doomDays.value, tone: 'bane' });
   return effects;
 });
-
-const newHabitTiles = computed(() => [
-  { icon: 'physical' as const, label: 'Physical', value: expectedPhysicalDamage.value, color: 'var(--dmg-physical)' },
-  { icon: 'magic' as const, label: 'Magic', value: expectedMagicDamage.value, color: 'var(--dmg-magic)' },
-  { icon: 'healing' as const, label: 'Healing', value: expectedHealing.value, color: 'var(--dmg-healing)' },
-  { icon: 'true' as const, label: 'True', value: expectedTrueDamage.value, color: 'var(--dmg-true)' },
-]);
 
 const equippedItems = computed(() => equippedSlots.value.flatMap((item) => (item ? [item] : [])));
 const emptySlotCount = computed(() => slotCount.value - equippedItems.value.length);
@@ -352,17 +337,6 @@ onBeforeUnmount(() => {
             <span v-if="stat.note" class="tile-note">{{ stat.note }}</span>
           </div>
         </div>
-      </section>
-
-      <section class="stat-group">
-        <h4 class="group-label">A new medium daily would deal</h4>
-        <div class="tiles five">
-          <div v-for="entry in newHabitTiles" :key="entry.label" class="stat-tile" :style="{ '--tone': entry.color }">
-            <span class="tile-label"><StatIcon :name="entry.icon" badge />{{ entry.label }}</span>
-            <span class="tile-value tinted">{{ formatCompact(entry.value) }}</span>
-          </div>
-        </div>
-        <p class="stat-note">Habits of the same type share a pool.</p>
       </section>
     </Modal>
   </div>
@@ -878,21 +852,7 @@ onBeforeUnmount(() => {
   gap: 0.5rem;
 }
 
-.tiles.five {
-  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
-}
-
-.tiles.five .stat-tile {
-  padding: 0.55rem 0.5rem;
-}
-
-.tiles.five .tile-label {
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-
 .stat-tile {
-  --tone: var(--accent);
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -919,10 +879,6 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-.tile-value.tinted {
-  color: var(--tone);
-}
-
 .tile-gain {
   padding: 0 0.4rem;
   background: var(--accent-bg);
@@ -937,12 +893,6 @@ onBeforeUnmount(() => {
 .tile-note {
   color: var(--text);
   font-size: 0.75rem;
-}
-
-.stat-note {
-  margin: 0.4rem 0 0;
-  font-size: 0.75rem;
-  color: var(--text);
 }
 
 /* ---------- A level-up: ring, "Level up", the number ticks over ---------- */
