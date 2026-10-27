@@ -53,7 +53,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'blessed-censer', name: 'Sunstaff', icon: 'items/blessed-censer', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'healing', percent: 6 }] },
   { id: 'sacred-chalice', name: 'Sacred Cauldron', icon: 'items/sacred-chalice', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'healing', percent: 10 }] },
   { id: 'lucky-coin', name: 'Lucky Coffer', icon: 'items/lucky-coin', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'expGain', percent: 3 }] },
-  { id: 'shining-star', name: 'Shining Star', icon: 'items/shining-star', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'expGain', percent: 6 }] },
+  { id: 'shining-star', name: 'Star Wand', icon: 'items/shining-star', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'expGain', percent: 6 }] },
   { id: 'rebirth-orb', name: 'Rebirth Orb', icon: 'items/rebirth-orb', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'expGain', percent: 10 }] },
   { id: 'firebird-staff', name: 'Firebird Staff', icon: 'items/firebird-staff', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'healing', percent: 28 }, { stat: 'lifesteal', percent: 4 }] },
   { id: 'crescent-crook', name: 'Crescent Crook', icon: 'items/crescent-crook', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'healing', percent: 30 }, { stat: 'magicResist', flat: 150 }] },
@@ -97,7 +97,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'sages-codex', name: "Sage's Codex", icon: 'items/sages-codex', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'expGain', percent: 15 }, { stat: 'healing', percent: 15 }], effect: 'sages-insight', effectText: 'Level-ups heal 40% of max HP instead of 20%.' },
 
   // --- Endgame epics: the two strongest, and three stat-only ---
-  { id: 'starfall-staff', name: 'Starfall Staff', icon: 'items/starfall-staff', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'magicDamage', percent: 75 }, { stat: 'health', percent: -20 }], effect: 'starfall', effectText: 'First magic skill each day always crits.' },
+  { id: 'starfall-staff', name: 'Moonstar Staff', icon: 'items/starfall-staff', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'magicDamage', percent: 75 }, { stat: 'health', percent: -20 }], effect: 'starfall', effectText: 'First magic skill each day always crits.' },
   { id: 'worldbreaker-maul', name: 'Worldbreaker Maul', icon: 'items/worldbreaker-maul', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 55 }, { stat: 'health', percent: 20 }, { stat: 'lifesteal', percent: 3 }], effect: 'worldbreaker', effectText: 'Physical hits ignore the extra armor of armored bosses.' },
   { id: 'colossus-plate', name: 'Colossus Plate', icon: 'items/colossus-plate', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'health', percent: 45 }, { stat: 'armor', flat: 350 }] },
   { id: 'archons-halo', name: "Archon's Crown", icon: 'items/archons-halo', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'healing', percent: 40 }, { stat: 'expGain', percent: 15 }] },

@@ -56,15 +56,15 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/chaos-conduit.png` | `rpg-dark-staff-purple-shadowy-163-v4-2026-03-03T17-02-45.png` |
 | `items/cinder-crown.png` | `wizard-hat-tall-pointed-red-flame-pattern_20260225_184859.png` |
 | `items/runeforged-spellblade.png` | `crystal-kris-dagger.png` |
-| `items/starfall-staff.png` | `rpg-starfish-staff-ocean-star-080-v2-2026-03-03T17-02-45.png` |
+| `items/starfall-staff.png` | `crystal-boomerang.png` |
 | `items/bone-needle.png` | `crystal-punch-dagger.png` |
 | `items/silver-stiletto.png` | `crystal-lance.png` |
 | `items/truthseekers-bow.png` | `enchanted-bow-ice-enchantment-frozen-limbs-frost-string-icy_20260217_161201.png` |
 | `items/lucky-dagger.png` | `8bit-dagger-thief-weapon-005-2026-03-10T18-57-54.png` |
-| `items/assassins-edge.png` | `enchanted-sword-void-enchantment-dark-blade-purple-swirling_20260217_160345.png` |
+| `items/assassins-edge.png` | `scimitar.png` |
 | `items/sunpiercer-bow.png` | `crystal-hand-crossbow.png` |
 | `items/battlemage-gauntlets.png` | `8bit-gloves-hand-armor-028-v2-2026-03-10T18-57-54.png` |
-| `items/chaos-blade.png` | `scimitar.png` |
+| `items/chaos-blade.png` | `enchanted-sword-void-enchantment-dark-blade-purple-swirling_20260217_160345.png` |
 | `items/padded-vest.png` | `rpg-hardened-leather-armor-thick-165-v4-2026-03-03T17-02-45.png` |
 | `items/chainmail-hauberk.png` | `rpg-chainmail-shirt-metal-ring-052-v2-2026-03-03T17-02-45.png` |
 | `items/iron-buckler.png` | `rpg-champion-armor-heroic-warrior-089-v2-2026-03-03T17-02-45.png` |
@@ -77,7 +77,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/dawnguard-helm.png` | `mediev-knight-helmet-head-protection-094-v10-2026-03-25T19-14-54.png` |
 | `items/colossus-plate.png` | `rpg-black-iron-armor-dark-164-v4-2026-03-03T17-02-45.png` |
 | `items/blessed-censer.png` | `enchanted-staff-lightning-enchantment-charged-orb-top_20260217_162530.png` |
-| `items/shining-star.png` | `crystal-boomerang.png` |
+| `items/shining-star.png` | `rpg-starfish-staff-ocean-star-080-v2-2026-03-03T17-02-45.png` |
 | `items/rebirth-orb.png` | `crystal-orb-blue-sphere-water-swirling-inside_20260225_183429.png` |
 | `items/pilgrims-blessing.png` | `rpg-bear-staff-bear-claw-172-v4-2026-03-03T17-02-45.png` |
 | `items/font-of-renewal.png` | `rpg-vine-staff-wrapped-living-175-v4-2026-03-03T17-02-45.png` |
