@@ -1957,24 +1957,8 @@ $caps-lg: 0.85rem; // panel and popup titles
       0 0 2px #000;
   }
 
-  .death .stone {
-    width: 116px;
-    background: linear-gradient(180deg, #3d3933, #22201c);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 240, 210, 0.09),
-      inset 0 0 0 1px rgba(200, 169, 110, 0.16),
-      0 14px 30px -12px #000;
-  }
-
-  .death .rip {
-    font-family: var(--heading);
-    font-size-adjust: none;
-    color: var(--text);
-  }
-
-  .death .cross::before,
-  .death .cross::after {
-    background: linear-gradient(180deg, #d8cdb5, #9b917d);
+  .death .fallen img {
+    filter: grayscale(1) brightness(0.45) contrast(1.1);
   }
 
   .death h2 {
@@ -1982,9 +1966,62 @@ $caps-lg: 0.85rem; // panel and popup titles
     color: var(--text-h);
   }
 
-  .death .meta,
-  .death .lines {
+  .death .meta {
     font-style: italic;
+  }
+
+  // The kept skills' header, between two fading gold rules.
+  .death .kept {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    @include engraved($caps-xs, 0.22em);
+    color: var(--accent);
+  }
+
+  .death .kept::before,
+  .death .kept::after {
+    content: '';
+    flex: 1;
+    min-width: 0.75rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, $line-mid);
+  }
+
+  .death .kept::after {
+    transform: scaleX(-1);
+  }
+
+  // Each kept skill an ember still lit; a broken streak leaves it cold.
+  .death .gem::before {
+    inset: 4px;
+    border: 1px solid var(--accent-solid);
+    border-radius: 0;
+    background: radial-gradient(circle, rgba(230, 150, 80, 0.45), rgba(60, 30, 15, 0.6) 75%);
+    box-shadow: 0 0 14px rgba(224, 120, 58, 0.45);
+  }
+
+  .death .ember.cold .gem::before {
+    opacity: 1;
+    border-color: #8a6d3c;
+    background: radial-gradient(circle, rgba(200, 169, 110, 0.25), rgba(30, 25, 20, 0.6) 75%);
+    box-shadow: 0 0 8px rgba(200, 169, 110, 0.25);
+  }
+
+  .death .numeral {
+    font-family: var(--heading);
+    font-size-adjust: none;
+    color: var(--accent);
+  }
+
+  .death .streak {
+    font-family: var(--heading);
+    font-size-adjust: none;
+    color: $ember;
+  }
+
+  .death .ember.cold .streak {
+    color: $ash-deep;
   }
 }
 

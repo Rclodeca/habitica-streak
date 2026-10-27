@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — death popup (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Four takes on the "You died" popup, phone width. Goal: make it obvious that
+   skill ranks and streaks carry over, while the run (hero, level, gear) ends
+   and the climb restarts at Boss 1. Sample data: a level 34 warrior who fell
+   to Boss 23; a couple of streaks already broke on the misses that killed them. */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --gold-deep: #8a6d3c; --ember: #e0783a; --blood: #a8231d; --ash: #5c554a;
+  --dmg-physical: #d0604f; --dmg-magic: #ab8dd8; --dmg-healing: #92bf88; --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1700px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin: 0 auto 26px; max-width: 760px; }
+.opts { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; }
+.opt { width: 375px; max-width: 100%; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; min-height: 62px; }
+
+/* The phone: the app's black band across a darkened screen. */
+.screen { position: relative; display: flex; align-items: center; min-height: 740px; padding: 0 0; background: radial-gradient(ellipse 80% 50% at 50% 30%, rgba(60,40,30,.25), transparent 70%), #0b0a09; border: 1px solid rgba(200,169,110,.18); border-radius: 22px; overflow: hidden; }
+.band { width: 100%; padding: 34px 22px 30px; text-align: center; background: linear-gradient(180deg, transparent, rgba(0,0,0,.96) 6%, rgba(0,0,0,.96) 94%, transparent); }
+
+.died { font: 500 38px/1 'Cinzel', serif; letter-spacing: .1em; text-indent: .1em; text-transform: uppercase; color: var(--blood); text-shadow: 0 0 22px rgba(168,35,29,.55), 0 0 2px #000; margin-bottom: 18px; }
+.stone { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 104px; margin: 0 auto 14px; padding: 20px 8px 14px; border-radius: 60px 60px 6px 6px; background: linear-gradient(180deg, #3d3933, #22201c); box-shadow: inset 0 1px 0 rgba(255,240,210,.09), inset 0 0 0 1px rgba(200,169,110,.16), 0 14px 30px -12px #000; }
+.stone .rip { font: 600 9px/1 'Cinzel', serif; letter-spacing: .35em; text-indent: .35em; color: var(--text); }
+.cross { position: relative; width: 20px; height: 28px; }
+.cross::before, .cross::after { content: ''; position: absolute; background: linear-gradient(180deg, #d8cdb5, #9b917d); }
+.cross::before { left: 50%; top: 0; width: 4px; height: 100%; transform: translateX(-50%); }
+.cross::after { left: 0; top: 7px; width: 100%; height: 4px; }
+.who { font: 600 13px/1.2 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--text-h); }
+.fell { font-style: italic; color: var(--text); font-size: 15px; margin-top: 2px; }
+
+.sec { display: flex; align-items: center; gap: 10px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .26em; text-transform: uppercase; color: var(--gold-hi); margin: 20px 0 10px; }
+.sec::before, .sec::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.sec::after { transform: scaleX(-1); }
+.sec.dim { color: var(--text); }
+.sec.dim::before, .sec.dim::after { background: linear-gradient(90deg, transparent, var(--line)); }
+
+.btn { display: block; width: 100%; min-height: 46px; margin-top: 22px; font: 600 12px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-hi); border: 1px solid var(--line-mid); background: linear-gradient(180deg, rgba(200,169,110,.12), rgba(200,169,110,.03)); box-shadow: 0 0 18px -6px rgba(230,199,127,.45); }
+
+/* Shared bits: rank diamonds (one line, as built) and the streak flame. */
+.rk { display: inline-flex; gap: 3px; align-items: center; }
+.rk i { width: 6px; height: 6px; transform: rotate(45deg); background: radial-gradient(circle, var(--gold-hi), var(--gold) 60%, var(--gold-deep)); box-shadow: 0 0 5px rgba(230,207,154,.35); }
+.streak { display: inline-flex; align-items: center; gap: 2px; font-size: 15px; font-weight: 600; color: var(--ember); }
+.streak svg { width: 11px; height: 11px; }
+.streak.out { color: var(--ash); font-weight: 500; font-style: italic; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex-shrink: 0; opacity: .85; }
+
+/* ---------- A: Kept / Lost ---------- */
+.A .ledger { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0 14px; margin-top: 20px; text-align: left; }
+.A .rule { background: linear-gradient(180deg, transparent, var(--line-mid), transparent); }
+.A .col h3 { font: 600 10px/1 'Cinzel', serif; letter-spacing: .26em; text-transform: uppercase; margin-bottom: 10px; }
+.A .kept h3 { color: var(--gold-hi); }
+.A .lost h3 { color: var(--text); }
+.A .col li { display: flex; align-items: center; gap: 8px; min-height: 26px; font-size: 16px; }
+.A .kept li { color: var(--text-h); font-weight: 600; }
+.A .kept li .mark { width: 8px; height: 8px; transform: rotate(45deg); background: var(--gold); box-shadow: 0 0 8px rgba(230,207,154,.5); }
+.A .kept li .streak svg { width: 13px; height: 13px; }
+.A .lost li { color: var(--ash); text-decoration: line-through; text-decoration-color: rgba(168,35,29,.6); }
+.A .lost li .mark { width: 8px; height: 8px; transform: rotate(45deg); border: 1px solid var(--ash); }
+.A .restart { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); font-style: italic; color: var(--text); font-size: 16px; }
+.A .restart b { font: 600 13px/1 'Cinzel', serif; font-style: normal; letter-spacing: .16em; text-transform: uppercase; color: var(--text-h); }
+
+/* ---------- B: Your skills endure ---------- */
+.B .skills { text-align: left; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(200,169,110,.07), rgba(0,0,0,.2)); padding: 6px 12px; }
+.B .skills li { display: flex; align-items: center; gap: 9px; min-height: 32px; font-size: 16px; color: var(--text-h); border-bottom: 1px solid rgba(200,169,110,.08); }
+.B .skills li:last-child { border-bottom: 0; }
+.B .skills .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.B .skills .streak { width: 42px; justify-content: flex-end; }
+.B .skills .rk { width: 62px; justify-content: flex-end; }
+.B .more { font-style: italic; color: var(--text); font-size: 14px; margin-top: 6px; }
+.B .climb { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 4px; }
+.B .climb .b { font: 600 12px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; }
+.B .climb .from { color: var(--ash); text-decoration: line-through; text-decoration-color: rgba(168,35,29,.6); }
+.B .climb .to { color: var(--text-h); }
+.B .climb svg { width: 34px; height: 10px; color: var(--gold); }
+.B .gone { font-style: italic; color: var(--text); font-size: 15px; margin-top: 8px; }
+
+/* ---------- C: The road back ---------- */
+.C .road { position: relative; height: 76px; margin: 18px 4px 0; }
+.C .road svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.C .lab { position: absolute; top: 54px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; transform: translateX(-50%); white-space: nowrap; }
+.C .lab.start { left: 6%; color: var(--gold-hi); }
+.C .lab.end { left: 94%; color: var(--blood); }
+.C .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.C .tot { padding: 12px 6px 10px; border: 1px solid var(--line-mid); background: linear-gradient(180deg, rgba(200,169,110,.1), rgba(0,0,0,.25)); }
+.C .tot .n { display: flex; align-items: center; justify-content: center; gap: 6px; font: 700 26px/1 'Cinzel', serif; color: var(--gold-hi); }
+.C .tot .n .d { width: 11px; height: 11px; transform: rotate(45deg); background: var(--gold); box-shadow: 0 0 8px rgba(230,207,154,.5); }
+.C .tot .n svg { width: 18px; height: 18px; color: var(--ember); }
+.C .tot.flame .n { color: var(--ember); }
+.C .tot .l { font: 600 9px/1 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; color: var(--text); margin-top: 8px; }
+.C .gone { font-style: italic; color: var(--ash); font-size: 15px; margin-top: 12px; }
+
+/* ---------- D: Ash and ember ---------- */
+.D .hero { position: relative; width: 120px; height: 120px; margin: 0 auto 6px; }
+.D .hero img { width: 120px; height: 120px; object-fit: contain; image-rendering: pixelated; transform: scaleX(-1); filter: grayscale(1) brightness(.45) contrast(1.1); -webkit-mask: linear-gradient(180deg, #000 30%, transparent 92%); mask: linear-gradient(180deg, #000 30%, transparent 92%); }
+.D .hero::after { content: ''; position: absolute; left: 16px; right: 16px; bottom: 6px; height: 14px; border-radius: 50%; background: radial-gradient(ellipse, rgba(120,110,95,.4), transparent 70%); }
+.D .embers { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 8px; margin-top: 4px; }
+.D .em { display: grid; justify-items: center; gap: 6px; width: 50px; }
+.D .gem { position: relative; width: 30px; height: 30px; display: grid; place-items: center; }
+.D .gem::before { content: ''; position: absolute; inset: 4px; transform: rotate(45deg); border: 1px solid var(--gold); background: radial-gradient(circle, rgba(230,150,80,.45), rgba(60,30,15,.6) 75%); box-shadow: 0 0 14px rgba(224,120,58,.45); }
+.D .em.cold .gem::before { border-color: var(--gold-deep); background: radial-gradient(circle, rgba(200,169,110,.25), rgba(30,25,20,.6) 75%); box-shadow: 0 0 8px rgba(200,169,110,.25); }
+.D .gem span { position: relative; font: 700 11px/1 'Cinzel', serif; color: var(--gold-hi); letter-spacing: .02em; }
+.D .em .s { font-size: 13px; line-height: 1; font-weight: 600; color: var(--ember); display: inline-flex; align-items: center; gap: 1px; }
+.D .em .s svg { width: 9px; height: 9px; }
+.D .em.cold .s { color: var(--ash); }
+.D .verse { font-style: italic; color: var(--text-h); font-size: 18px; margin-top: 16px; }
+.D .next { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; }
+.D .next img { width: 54px; height: 54px; object-fit: contain; image-rendering: pixelated; filter: brightness(.55) drop-shadow(0 0 10px rgba(224,120,58,.3)); }
+.D .next .t { text-align: left; }
+.D .next .t b { display: block; font: 600 12px/1 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--text-h); }
+.D .next .t span { font-style: italic; color: var(--text); font-size: 14px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="flame" viewBox="0 0 12 12"><path d="M6 1c1 2 3 3 3 6a3 3 0 0 1-6 0c0-1.5.8-2.3 1.4-3 .2 1 .7 1.5 1.2 1.6C5.4 4 5.4 2.6 6 1z" fill="currentColor"/></symbol>
+  <symbol id="arrow" viewBox="0 0 34 10"><path d="M1 5h30M26 1l5 4-5 4" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+</svg>
+
+<div class="page">
+  <h1 class="engraved">Death popup · round 3</h1>
+  <p>D picked, restart section removed; top row: four plainer headers for the embers. Round 1 below. Same death in each: a level 34 warrior falls to Boss 23. Ranks and streaks carry over; hero, level and gear are lost, and the climb restarts at Boss 1. Two streaks broke on the misses that killed them, so the popup shows rank surviving even where the streak didn't.</p>
+  <div class="opts" id="opts"></div>
+</div>
+
+<script>
+const SPR = '../../public/sprites/';
+const flame = '<svg><use href="#flame"/></svg>';
+const SKILLS = [
+  { name: 'Morning run', type: 'physical', rank: 5, streak: 112 },
+  { name: 'Cold shower', type: 'magic', rank: 4, streak: 61 },
+  { name: 'Read 20 pages', type: 'magic', rank: 3, streak: 0 },
+  { name: 'Meditate', type: 'healing', rank: 2, streak: 23 },
+  { name: 'No soda', type: 'physical', rank: 1, streak: 12 },
+  { name: 'Stretch', type: 'true', rank: 1, streak: 0 },
+  { name: 'Floss', type: 'physical', rank: 0, streak: 6 },
+];
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const rk = (n) => `<span class="rk">${'<i></i>'.repeat(n)}</span>`;
+const streak = (s) => (s > 0 ? `<span class="streak">${flame}${s}</span>` : '<span class="streak out">—</span>');
+const totalRanks = SKILLS.reduce((a, s) => a + s.rank, 0);
+const liveStreaks = SKILLS.filter((s) => s.streak > 0).length;
+const stone = `<div class="stone"><span class="rip">R · I · P</span><span class="cross"></span></div>
+  <h2 class="who">Level 34 Warrior</h2><p class="fell">Fell to Boss 23</p>`;
+const btn = (label) => `<button class="btn">${label}</button>`;
+
+const OPTS = [
+  {
+    key: 'A', title: 'Kept / Lost',
+    note: 'Two short columns under the stone. Gold for what carries over, struck-through ash for what ends. One line names the restart.',
+    body: () => `${stone}
+      <div class="ledger">
+        <ul class="col kept"><h3>Kept</h3>
+          <li><span class="mark"></span>Ranks</li>
+          <li><span class="streak">${flame}</span>Streaks</li>
+        </ul>
+        <span class="rule"></span>
+        <ul class="col lost"><h3>Lost</h3>
+          <li><span class="mark"></span>Hero</li>
+          <li><span class="mark"></span>Level</li>
+          <li><span class="mark"></span>Gear</li>
+        </ul>
+      </div>
+      <p class="restart">The climb begins again at <b>Boss 1</b></p>
+      ${btn('Rise again')}`,
+  },
+  {
+    key: 'B', title: 'Your skills endure',
+    note: 'Shows the player’s own skills with their ranks and streaks, so the carry-over is concrete, not a promise. Below it, Boss 23 is struck out for Boss 1.',
+    body: () => `${stone}
+      <div class="sec">Your skills endure</div>
+      <ul class="skills">${SKILLS.slice(0, 5).map((s) => `<li><span class="dot" style="--c:var(--dmg-${s.type})"></span><span class="nm">${s.name}</span>${streak(s.streak)}${rk(s.rank)}</li>`).join('')}</ul>
+      <p class="more">+${SKILLS.length - 5} more</p>
+      <div class="sec dim">The climb begins again</div>
+      <div class="climb"><span class="b from">Boss 23</span><svg><use href="#arrow"/></svg><span class="b to">Boss 1</span></div>
+      <p class="gone">New hero. Level and gear are gone.</p>
+      ${btn('Rise again')}`,
+  },
+  {
+    key: 'C', title: 'The road back',
+    note: 'A path of boss markers from 1 to where you fell; a gold line runs back to the start. Two big totals underneath carry the "kept" part.',
+    body: () => {
+      const n = 12;
+      const pts = Array.from({ length: n }, (_, i) => [6 + (88 * i) / (n - 1), 26 + Math.sin(i * 0.9) * 8]);
+      const marks = pts.map(([x, y], i) => {
+        const last = i === n - 1, first = i === 0;
+        const r = first || last ? 5 : 2.5;
+        const fill = last ? 'var(--blood)' : first ? 'var(--gold-hi)' : 'var(--ash)';
+        return `<rect x="${x - r}" y="${y - r}" width="${r * 2}" height="${r * 2}" transform="rotate(45 ${x} ${y})" fill="${fill}" ${first ? 'style="filter:drop-shadow(0 0 6px rgba(230,207,154,.8))"' : ''}/>`;
+      }).join('');
+      const path = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ');
+      return `${stone}
+      <div class="road">
+        <svg viewBox="0 0 100 60" preserveAspectRatio="none">
+          <path d="${path}" fill="none" stroke="var(--line-mid)" stroke-width=".5" stroke-dasharray="1.5 1.5" vector-effect="non-scaling-stroke"/>
+          <path d="M94 ${pts[n - 1][1]} C 70 0, 30 0, 6 ${pts[0][1]}" fill="none" stroke="var(--gold)" stroke-width="1.2" vector-effect="non-scaling-stroke" opacity=".85"/>
+        </svg>
+        <svg viewBox="0 0 100 60">${marks}</svg>
+        <span class="lab start">Boss 1</span><span class="lab end">Boss 23</span>
+      </div>
+      <div class="sec">Carried back</div>
+      <div class="totals">
+        <div class="tot"><div class="n"><span class="d"></span>${totalRanks}</div><div class="l">Ranks</div></div>
+        <div class="tot flame"><div class="n">${flame}${liveStreaks}</div><div class="l">Streaks alive</div></div>
+      </div>
+      <p class="gone">Hero, level and gear lie here.</p>
+      ${btn('Rise again')}`;
+    },
+  },
+  {
+    key: 'D', title: 'Ash and ember',
+    note: 'No stone: the hero itself goes grey. Each ranked skill is an ember that stays lit, numeral inside, streak below. Boss 1 waits at the bottom. The most atmospheric, least literal.',
+    body: () => `<div class="died" style="margin-bottom:10px">You died</div>
+      <div class="hero"><img src="${SPR}player/warrior.png" alt=""></div>
+      <h2 class="who">Level 34 Warrior</h2><p class="fell">Fell to Boss 23</p>
+      <div class="sec">The embers remain</div>
+      <div class="embers">${SKILLS.filter((s) => s.rank > 0).map((s) => `<div class="em ${s.streak ? '' : 'cold'}"><div class="gem"><span>${ROMAN[s.rank]}</span></div><span class="s">${s.streak ? flame + s.streak : '—'}</span></div>`).join('')}</div>
+      <p class="verse">The body falls. The habits stay.</p>
+      <div class="next"><img src="${SPR}bosses/brute.png" alt=""><div class="t"><b>Boss 1</b><span>awaits a new hero</span></div></div>
+      ${btn('Rise again')}`,
+  },
+];
+
+// D picked: the verse and the "Boss 1 awaits" block are gone.
+const dTop = () => `<div class="died" style="margin-bottom:10px">You died</div>
+  <div class="hero"><img src="${SPR}player/warrior.png" alt=""></div>
+  <h2 class="who">Level 34 Warrior</h2><p class="fell">Fell to Boss 23</p>
+  <div class="sec">The embers remain</div>
+  <div class="embers">${SKILLS.filter((s) => s.rank > 0).map((s) => `<div class="em ${s.streak ? '' : 'cold'}"><div class="gem"><span>${ROMAN[s.rank]}</span></div><span class="s">${s.streak ? flame + s.streak : '—'}</span></div>`).join('')}</div>`;
+// Round 3: no restart section. Four plainer headers for the embers.
+const D_HEADS = [
+  { key: 'D1', head: 'Ranks & streaks kept', note: 'Says exactly what carries over.' },
+  { key: 'D2', head: 'Your skills keep their power', note: 'What it means for play, not which numbers.' },
+  { key: 'D3', head: 'Carried into the next life', note: 'Keeps some of the mood, still says they carry over.' },
+  { key: 'D4', head: 'Kept', note: 'One word; the diamonds and flames say the rest.' },
+];
+document.getElementById('opts').innerHTML = D_HEADS.map((o) => `
+  <section class="opt D">
+    <h2 class="engraved"><b>${o.key}</b>${o.head}</h2>
+    <p>${o.note}</p>
+    <div class="screen"><div class="band">${dTop().replace('The embers remain', o.head)}${btn('Rise again')}</div></div>
+  </section>`).join('') + '<div style="flex-basis:100%;height:30px"></div>' + OPTS.map((o) => `
+  <section class="opt ${o.key}">
+    <h2 class="engraved"><b>${o.key}</b>${o.title}</h2>
+    <p>${o.note}</p>
+    <div class="screen"><div class="band">${o.key === 'D' ? '' : '<div class="died">You died</div>'}${o.body()}</div></div>
+  </section>`).join('');
+</script>
+</body>
+</html>
