@@ -1,4 +1,4 @@
-import type { BossSkillId, Breakpoint, Period } from '../types';
+import type { BossSkillId, BossStat, Breakpoint, Period } from '../types';
 
 export const TUNING = {
   // Per-skill stats: every skill hits for its type's full stat (no pools),
@@ -261,11 +261,13 @@ export const TUNING = {
   ARMOR_MAGIC_PEN_CAP_PCT: 90,
   // Late-game boss skills, fired at HP breakpoints (see bossSkills.ts).
   BOSS_SKILLS: {
-    UNLOCK_INDEX: { wounds: 15, bloodlust: 15, blind: 15, mend: 15, reflect: 15, rend: 20, doom: 20, sunder: 20, undying: 20, ravage: 25 } as Record<BossSkillId, number>,
+    UNLOCK_INDEX: { wounds: 15, bloodlust: 15, blind: 15, mend: 15, reflect: 15, rend: 20, doom: 20, sunder: 20, undying: 20, ravage: 25, empower: 20, ascend: 25 } as Record<BossSkillId, number>,
     // [first boss index of the band, weights for 0/1/2/3 skills]; fixed bands, no blending.
     COUNT_BANDS: [[15, [65, 35, 0, 0]], [20, [45, 35, 20, 0]], [25, [30, 40, 30, 0]], [30, [25, 30, 35, 10]]] as [number, number[]][],
     SLOTS: { 1: [0.5], 2: [0.75, 0.25], 3: [0.75, 0.5, 0.25] } as Record<number, Breakpoint[]>,
     HP_HIT_SKILLS: ['rend', 'ravage', 'doom'] as BossSkillId[],
+    LAST_SLOT_SKILLS: ['empower', 'ascend'] as BossSkillId[], // only roll in a boss's lowest breakpoint
+    DOUBLED_STATS: ['physicalAttack', 'magicAttack', 'armor', 'magicResist'] as BossStat[], // what Empower picks from and Ascend doubles
     DURATION_DAYS: 2, // Wounds, Bloodlust, Reflect, Blind, Sunder
     WOUNDS_EFFECT_RATE: 0.5,
     BLOODLUST_HEAL_PCT: 3, // of the boss's max HP, per hit it lands

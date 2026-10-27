@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoss } from './boss';
-import { completeHabit, overdriveHabit, resolveBossDefeatIfDead } from './combat';
+import { completeHabit, missHabit, overdriveHabit, resolveBossDefeatIfDead } from './combat';
 import { activeBlind, activeSunder, bloodlustActive, bloodlustDaysLeft, bossSkillEffectText, bossSkillMarks, doomDaysLeft, doomPct, hpHitDamage, reflectActive, reflectDaysLeft, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
 import { createRng } from './rng';
-import type { Boss, BossSkillSlot, Character, Habit } from './types';
+import type { Boss, BossSkillId, BossSkillSlot, Character, Habit } from './types';
 
 const SEEDS = 2000;
 
@@ -69,6 +69,28 @@ describe('rollBossSkills', () => {
       for (const slot of slots) expect(slot.skill).not.toBe('ravage');
     }
     expect(sample(30).flat().some((slot) => slot.skill === 'ravage')).toBe(true);
+  });
+
+  it('unlocks Empower at boss 20 and Ascend at boss 25', () => {
+    const picked = (index: number) => new Set(sample(index).flat().map((slot) => slot.skill));
+    expect(picked(19).has('empower')).toBe(false);
+    expect(picked(19).has('ascend')).toBe(false);
+    expect(picked(24).has('empower')).toBe(true);
+    expect(picked(24).has('ascend')).toBe(false);
+    expect(picked(30).has('empower')).toBe(true);
+    expect(picked(30).has('ascend')).toBe(true);
+  });
+
+  it('puts Empower and Ascend only in a boss\'s last slot', () => {
+    let seen = 0;
+    for (const slots of sample(30)) {
+      slots.forEach((slot, i) => {
+        if (slot.skill !== 'empower' && slot.skill !== 'ascend') return;
+        seen += 1;
+        expect(i).toBe(slots.length - 1);
+      });
+    }
+    expect(seen).toBeGreaterThan(0);
   });
 
   it('puts Undying only in the 25% slot', () => {
@@ -334,6 +356,25 @@ describe('resolveBreakpoints', () => {
     expect(reflectActive(mirror.boss, '2026-01-02')).toBe(true);
   });
 
+  it.each([
+    [0, 'physicalAttack', { physicalAttack: 40, magicAttack: 20, armor: 10, magicResist: 10 }],
+    [0.3, 'magicAttack', { physicalAttack: 20, magicAttack: 40, armor: 10, magicResist: 10 }],
+    [0.6, 'armor', { physicalAttack: 20, magicAttack: 20, armor: 20, magicResist: 10 }],
+    [0.99, 'magicResist', { physicalAttack: 20, magicAttack: 20, armor: 10, magicResist: 20 }],
+  ] as const)('Empower on a roll of %s doubles the boss\'s %s and nothing else', (roll, stat, expected) => {
+    const boss = foe({ skills: [{ at: 0.5, skill: 'empower' }], health: 400, critChance: 0.1, lifestealPct: 0.05 });
+    const result = resolveBreakpoints(600, boss, hero(), DAY, () => roll);
+    expect(result.boss).toMatchObject({ ...expected, health: 400, maxHealth: 1000, critChance: 0.1, lifestealPct: 0.05 });
+    expect(result.fired).toEqual({ skill: 'empower', outcome: 'landed', stat });
+  });
+
+  it('Ascend doubles all four of the boss\'s stats and nothing else', () => {
+    const boss = foe({ skills: [{ at: 0.25, skill: 'ascend' }], health: 200, critChance: 0.1, lifestealPct: 0.05 });
+    const result = resolveBreakpoints(300, boss, hero(), DAY, neverRng);
+    expect(result.boss).toMatchObject({ physicalAttack: 40, magicAttack: 40, armor: 20, magicResist: 20, health: 200, maxHealth: 1000, critChance: 0.1, lifestealPct: 0.05 });
+    expect(result.fired).toEqual({ skill: 'ascend', outcome: 'landed' });
+  });
+
   it('Wounds lands at half healing for 2 days, replacing an older one', () => {
     const old = { type: 'wounds' as const, appliedDayKey: '2025-12-31', durationDays: 3, effectRate: 0.25 };
     const wounds = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'wounds' }], health: 400 }), hero({ statusEffects: [old] }), DAY, neverRng);
@@ -353,13 +394,18 @@ describe('resolveBreakpoints', () => {
     expect(sunder.character.statusEffects).toEqual([{ type: 'sunder', appliedDayKey: DAY, durationDays: 2 }]);
   });
 
-  it('only rolls rng for Hushing Bell', () => {
-    const rng = Object.assign(() => {
-      rng.calls += 1;
-      return 0;
-    }, { calls: 0 });
-    resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'mend' }], health: 400 }), hero(), DAY, rng);
-    expect(rng.calls).toBe(0);
+  it('only rolls rng for Hushing Bell and for the stat Empower doubles', () => {
+    const rolls = (skill: BossSkillId) => {
+      const rng = Object.assign(() => {
+        rng.calls += 1;
+        return 0;
+      }, { calls: 0 });
+      resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill }], health: 400 }), hero(), DAY, rng);
+      return rng.calls;
+    };
+    expect(rolls('mend')).toBe(0);
+    expect(rolls('ascend')).toBe(0);
+    expect(rolls('empower')).toBe(1);
   });
 });
 
@@ -403,6 +449,15 @@ describe('boss skills through combat', () => {
     const dealt = completeHabit(torch, h, [h], foe({ health: 1e9, maxHealth: 1e9 }), DAY, neverRng).damageDealt!;
     const result = completeHabit(torch, h, [h], sized(dealt, [{ at: 0.5, skill: 'mend' }]), DAY, neverRng);
     expect(result.bossSkill?.skill).toBe('mend');
+  });
+
+  it('Ascend makes the boss hit twice as hard, and still does weeks later', () => {
+    const h = habit();
+    const lost = (boss: Boss, day: string) => 500 - missHabit(hero({ currentHealth: 500 }), h, boss, day, neverRng).character.currentHealth;
+    const base = foe();
+    const risen = resolveBreakpoints(600, { ...base, skills: [{ at: 0.5, skill: 'ascend' }], health: 400 }, hero(), DAY, neverRng).boss;
+    expect(lost(base, DAY)).toBeGreaterThan(0);
+    expect(lost(risen, '2026-02-15')).toBeCloseTo(2 * lost(base, DAY), 10);
   });
 
   it('Echoing Blade carry spends the lines it passes on the next boss, without firing them', () => {
@@ -460,6 +515,14 @@ describe('bossSkillEffectText', () => {
     expect(bossSkillEffectText('blind')).toBe('No crits');
     expect(bossSkillEffectText('sunder')).toBe('Armor & resist halved');
     expect(bossSkillEffectText('undying')).toBe("Can't fall below 10%");
+  });
+
+  it('says which stat Empower doubled, and that Ascend doubles them all', () => {
+    expect(bossSkillEffectText('empower', undefined, 'physicalAttack')).toBe('Physical attack doubled');
+    expect(bossSkillEffectText('empower', undefined, 'magicAttack')).toBe('Magic attack doubled');
+    expect(bossSkillEffectText('empower', undefined, 'armor')).toBe('Armor doubled');
+    expect(bossSkillEffectText('empower', undefined, 'magicResist')).toBe('Magic resist doubled');
+    expect(bossSkillEffectText('ascend')).toBe('All stats doubled');
   });
 
   it('words Doom by its share of HP', () => {

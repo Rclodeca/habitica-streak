@@ -5,6 +5,7 @@
 export type {
   Boss,
   BossSkillId,
+  BossStat,
   BossSkillSlot,
   Breakpoint,
   Character,

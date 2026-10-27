@@ -41,6 +41,8 @@ function previewBossSkills() {
   showBossSkill({ skill: 'ravage', outcome: 'landed', amount: 1240 });
   showBossSkill({ skill: 'blind', outcome: 'landed' });
   showBossSkill({ skill: 'doom', outcome: 'landed', pct: 50 });
+  showBossSkill({ skill: 'empower', outcome: 'landed', stat: 'armor' });
+  showBossSkill({ skill: 'ascend', outcome: 'landed' });
   showBossSkill({ skill: 'rend', outcome: 'failed' });
 }
 

@@ -1,4 +1,5 @@
 import {
+  ArrowBigUpDash,
   Backpack,
   BellOff,
   Bandage,
@@ -77,6 +78,8 @@ export const STAT_ICONS = {
   bossHit: { icon: Swords, color: 'var(--dmg-physical)' },
   doom: { icon: Hourglass, color: 'var(--icon-violet)' },
   undying: { icon: InfinityIcon, color: 'var(--icon-steel)' },
+  empower: { icon: ArrowBigUpDash, color: 'var(--dmg-physical)' },
+  ascend: { icon: ChevronsUp, color: 'var(--dmg-physical)' },
   skillFailed: { icon: BellOff, color: 'var(--icon-gold)' },
 } as const;
 

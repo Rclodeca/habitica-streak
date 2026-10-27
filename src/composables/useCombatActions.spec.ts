@@ -157,6 +157,23 @@ describe('useCombatActions', () => {
       expect((entries[1] as { amount: number }).amount).toBeCloseTo(hurt.amount);
     });
 
+    it('logs which stat an Empower doubled, and the boss keeps it', () => {
+      const habitStore = useHabitStore();
+      const bossStore = useBossStore();
+      const { checkOffHabit } = useCombatActions();
+      const habit = habitStore.addHabit('Lift', 'daily', 'medium', false, createRng());
+      habitStore.updateHabit({ ...habit, damageType: 'physical' });
+      bossStore.setBoss({ ...bossStore.boss, health: 50001, maxHealth: 100000, skills: [{ at: 0.5, skill: 'empower' }] });
+      const before = { ...bossStore.boss };
+
+      checkOffHabit(habit.id);
+
+      const entry = useActivityLogStore().entries.find((e) => e.kind === 'boss-skill');
+      if (entry?.kind !== 'boss-skill' || !entry.stat) throw new Error('no Empower entry with a stat');
+      expect(entry).toMatchObject({ skill: 'empower', outcome: 'landed' });
+      expect(bossStore.boss[entry.stat]).toBe(before[entry.stat] * 2);
+    });
+
     it("opens a fired skill's card once the blow that set it off lands", () => {
       vi.useFakeTimers();
       try {
@@ -528,6 +545,7 @@ describe('useCombatActions', () => {
         damageType: habitAtDeath.damageType,
         isBad: false,
         streakCount: habitAtDeath.streakCount,
+        rank: habitAtDeath.rank ?? 0,
       },
     ]);
     expect(run.items).toEqual([]); // no items dropped in this test

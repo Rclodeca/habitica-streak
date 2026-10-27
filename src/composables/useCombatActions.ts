@@ -134,7 +134,7 @@ export function useCombatActions() {
       activityLogStore.addEntry({ kind: 'wounds-applied', durationDays: TUNING.BOSS_SKILLS.DURATION_DAYS, effectRate: TUNING.BOSS_SKILLS.WOUNDS_EFFECT_RATE });
       return;
     }
-    activityLogStore.addEntry({ kind: 'boss-skill', skill: fired.skill, outcome: fired.outcome, ...(fired.amount !== undefined && { amount: fired.amount }), ...(fired.pct !== undefined && { pct: fired.pct }) });
+    activityLogStore.addEntry({ kind: 'boss-skill', skill: fired.skill, outcome: fired.outcome, ...(fired.amount !== undefined && { amount: fired.amount }), ...(fired.pct !== undefined && { pct: fired.pct }), ...(fired.stat !== undefined && { stat: fired.stat }) });
   }
 
   /** Queues one event pick per level gained; the player resolves them in EventChoiceModal. */
@@ -463,6 +463,7 @@ export function useCombatActions() {
           damageType: h.damageType,
           isBad: h.isBad,
           streakCount: h.streakCount,
+          rank: h.rank ?? 0,
         })),
         items: character.ownedItemIds.flatMap((id) => {
           const item = ITEM_CATALOG.find((i) => i.id === id);

@@ -140,6 +140,10 @@ const activityLogStore = useActivityLogStore();
           <StatIcon name="undying" class="log-icon" /> Undying · today
           <span class="log-effect">{{ bossSkillEffectText('undying') }}</span>
         </template>
+        <template v-else-if="entry.kind === 'boss-skill' && (entry.skill === 'empower' || entry.skill === 'ascend')">
+          <StatIcon :name="entry.skill" class="log-icon" /> {{ entry.skill === 'empower' ? 'Empower' : 'Ascend' }}
+          <span class="log-effect">{{ bossSkillEffectText(entry.skill, undefined, entry.stat) }}</span>
+        </template>
         <template v-else-if="entry.kind === 'doom-landed'">
           <StatIcon name="doom" class="log-icon" /> Doom — took <span class="log-damage">{{ formatCompact(entry.amount) }}</span> damage
         </template>

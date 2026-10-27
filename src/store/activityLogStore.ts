@@ -4,7 +4,7 @@
 // after each engine call resolves.
 
 import { defineStore } from 'pinia';
-import type { BossSkillId } from '../game-engine';
+import type { BossSkillId, BossStat } from '../game-engine';
 
 export type ActivityLogEntry =
   // isTrueDamage is set only for a 'trueDamage'-type habit, so ActivityLog
@@ -52,8 +52,8 @@ export type ActivityLogEntry =
   | { id: string; kind: 'quest-completed'; description: string; amount: number; itemName?: string }
   | { id: string; kind: 'quest-failed'; description: string; amount: number }
   | { id: string; kind: 'doom-landed'; amount: number }
-  // A boss skill a blow made fire (a landed Wounds logs 'wounds-applied' instead); amount is HP taken or, for Mend, healed; pct is the share of HP a Doom will take.
-  | { id: string; kind: 'boss-skill'; skill: BossSkillId; outcome: 'landed' | 'failed' | 'resisted'; amount?: number; pct?: number };
+  // A boss skill a blow made fire (a landed Wounds logs 'wounds-applied' instead); amount is HP taken or, for Mend, healed; pct is the share of HP a Doom will take; stat is the one an Empower doubled.
+  | { id: string; kind: 'boss-skill'; skill: BossSkillId; outcome: 'landed' | 'failed' | 'resisted'; amount?: number; pct?: number; stat?: BossStat };
 
 // Plain `Omit<ActivityLogEntry, 'id'>` collapses the discriminated union
 // down to its common properties (losing the per-`kind` fields) since `Omit`

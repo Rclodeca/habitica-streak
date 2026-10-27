@@ -189,8 +189,12 @@ export interface Boss {
   doomDueDayKey?: string;
 }
 
-// Rend is the 20% HP hit, Ravage the 40% one.
-export type BossSkillId = 'wounds' | 'bloodlust' | 'reflect' | 'blind' | 'mend' | 'rend' | 'doom' | 'sunder' | 'undying' | 'ravage';
+// Rend is the 20% HP hit, Ravage the 40% one. Empower doubles one boss stat for
+// good, Ascend all four; both only roll in a boss's last slot.
+export type BossSkillId = 'wounds' | 'bloodlust' | 'reflect' | 'blind' | 'mend' | 'rend' | 'doom' | 'sunder' | 'undying' | 'ravage' | 'empower' | 'ascend';
+
+/** The boss stats Empower and Ascend double. */
+export type BossStat = 'physicalAttack' | 'magicAttack' | 'armor' | 'magicResist';
 
 /** A boss's HP breakpoints, as a fraction of its max health. */
 export type Breakpoint = 0.75 | 0.5 | 0.25;

@@ -25,6 +25,8 @@ const SKILL: Record<BossSkillId, { name: string; icon: StatIconName }> = {
   sunder: { name: 'Sunder', icon: 'sunder' },
   undying: { name: 'Undying', icon: 'undying' },
   ravage: { name: 'Ravage', icon: 'bossHit' },
+  empower: { name: 'Empower', icon: 'empower' },
+  ascend: { name: 'Ascend', icon: 'ascend' },
 };
 
 interface Card {
@@ -53,6 +55,9 @@ function cardFor(fired: FiredBossSkill): Card {
       return { name, icon, line: `${bossSkillEffectText('doom', fired.pct)} · ${S.DOOM_DELAY_DAYS} days` };
     case 'undying':
       return { name, icon, line: `${bossSkillEffectText('undying')} · today` };
+    case 'empower':
+    case 'ascend':
+      return { name, icon, line: bossSkillEffectText(fired.skill, undefined, fired.stat) };
     default:
       return { name, icon, line: `${bossSkillEffectText(fired.skill)} · ${days}` };
   }

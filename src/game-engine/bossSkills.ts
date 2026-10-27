@@ -8,9 +8,10 @@ import { hasItemEffect } from './items';
 import { pickRandom, pickWeighted } from './rng';
 import type { Rng } from './rng';
 import { addDaysToDayKey, daysBetweenDayKeys } from './time';
-import type { BlindStatusEffect, Boss, BossSkillId, BossSkillSlot, Breakpoint, Character, StatusEffect, SunderStatusEffect } from './types';
+import type { BlindStatusEffect, Boss, BossSkillId, BossSkillSlot, BossStat, Breakpoint, Character, StatusEffect, SunderStatusEffect } from './types';
 
 const S = TUNING.BOSS_SKILLS;
+const STAT_LABEL: Record<BossStat, string> = { physicalAttack: 'Physical attack', magicAttack: 'Magic attack', armor: 'Armor', magicResist: 'Magic resist' };
 const SKILL_IDS = Object.keys(S.UNLOCK_INDEX) as BossSkillId[];
 const FIRST_SKILL_INDEX = Math.min(...Object.values(S.UNLOCK_INDEX));
 
@@ -20,7 +21,8 @@ const FIRST_SKILL_INDEX = Math.min(...Object.values(S.UNLOCK_INDEX));
  * count comes from the last band starting at or below `index`; slots fill
  * from the highest breakpoint down, each picking uniformly among skills that
  * are unlocked, not yet on this boss, not a second HP hit, and — for Undying —
- * only the 25% slot (from higher up it would almost never matter).
+ * only the 25% slot (from higher up it would almost never matter). Empower and
+ * Ascend only take a boss's last (lowest) slot, so a boss can't carry both.
  */
 export function rollBossSkills(index: number, rng: Rng): BossSkillSlot[] {
   if (index < FIRST_SKILL_INDEX) return [];
@@ -29,6 +31,7 @@ export function rollBossSkills(index: number, rng: Rng): BossSkillSlot[] {
   const count = Number(pickWeighted<string>(Object.fromEntries(band[1].map((weight, n) => [n, weight])), rng));
 
   const slots: BossSkillSlot[] = [];
+  const lastAt = S.SLOTS[count]?.at(-1);
   for (const at of S.SLOTS[count] ?? []) {
     const hasHpHit = slots.some((slot) => S.HP_HIT_SKILLS.includes(slot.skill));
     const eligible = SKILL_IDS.filter(
@@ -36,7 +39,8 @@ export function rollBossSkills(index: number, rng: Rng): BossSkillSlot[] {
         S.UNLOCK_INDEX[skill] <= index &&
         !slots.some((slot) => slot.skill === skill) &&
         !(hasHpHit && S.HP_HIT_SKILLS.includes(skill)) &&
-        (skill !== 'undying' || at === 0.25),
+        (skill !== 'undying' || at === 0.25) &&
+        (!S.LAST_SLOT_SKILLS.includes(skill) || at === lastAt),
     );
     if (eligible.length > 0) slots.push({ at, skill: pickRandom(eligible, rng) });
   }
@@ -110,11 +114,15 @@ export function doomPct(character: Character): number {
 /**
  * One plain line on what a fired skill does, for the log, the hero's effect
  * chips and the boss's stat tiles. `doomShare` is the % of HP a Doom takes
- * (see doomPct). Skills whose hit or heal is logged with a number (Wounds,
- * Mend, Rend, Ravage) have no line.
+ * (see doomPct); `stat` is the one an Empower doubled. Skills whose hit or heal
+ * is logged with a number (Wounds, Mend, Rend, Ravage) have no line.
  */
-export function bossSkillEffectText(skill: BossSkillId, doomShare: number = S.DOOM_PCT): string | undefined {
+export function bossSkillEffectText(skill: BossSkillId, doomShare: number = S.DOOM_PCT, stat?: BossStat): string | undefined {
   switch (skill) {
+    case 'empower':
+      return stat && `${STAT_LABEL[stat]} doubled`;
+    case 'ascend':
+      return 'All stats doubled';
     case 'bloodlust':
       return `Boss heals ${S.BLOODLUST_HEAL_PCT}% per hit`;
     case 'reflect':
@@ -132,12 +140,13 @@ export function bossSkillEffectText(skill: BossSkillId, doomShare: number = S.DO
   }
 }
 
-/** A skill that just fired: `amount` is the HP it took from the hero (Rend, Ravage) or healed the boss (Mend); `pct` is the share of HP a Doom will take. */
+/** A skill that just fired: `amount` is the HP it took from the hero (Rend, Ravage) or healed the boss (Mend); `pct` is the share of HP a Doom will take; `stat` is the one an Empower doubled. */
 export interface FiredBossSkill {
   skill: BossSkillId;
   outcome: 'landed' | 'failed' | 'resisted';
   amount?: number;
   pct?: number;
+  stat?: BossStat;
 }
 
 /** `effect` in place of any earlier effect of its type. */
@@ -154,10 +163,17 @@ function heldByUndying(boss: Boss): Boss {
   return held;
 }
 
+/** The boss with each of `stats` doubled — for good, there's no timer to run out. */
+function doubleStats(boss: Boss, stats: readonly BossStat[]): Boss {
+  const doubled = { ...boss };
+  for (const stat of stats) doubled[stat] = boss[stat] * 2;
+  return doubled;
+}
+
 /** Applies a fired skill's effect to the hero or the boss. */
-function applySkill(skill: BossSkillId, boss: Boss, character: Character, currentDayKey: string): { boss: Boss; character: Character; fired: FiredBossSkill } {
+function applySkill(skill: BossSkillId, boss: Boss, character: Character, currentDayKey: string, rng: Rng): { boss: Boss; character: Character; fired: FiredBossSkill } {
   const halved = hasItemEffect(character, 'omen-hourglass') ? TUNING.ITEM_EFFECTS.OMEN_HOURGLASS_FACTOR : 1;
-  const landed = (changes: { boss?: Boss; character?: Character; amount?: number; pct?: number } = {}) => ({
+  const landed = (changes: { boss?: Boss; character?: Character; amount?: number; pct?: number; stat?: BossStat } = {}) => ({
     boss: changes.boss ?? boss,
     character: changes.character ?? character,
     fired: {
@@ -165,6 +181,7 @@ function applySkill(skill: BossSkillId, boss: Boss, character: Character, curren
       outcome: 'landed' as const,
       ...(changes.amount !== undefined && { amount: changes.amount }),
       ...(changes.pct !== undefined && { pct: changes.pct }),
+      ...(changes.stat !== undefined && { stat: changes.stat }),
     },
   });
   switch (skill) {
@@ -194,6 +211,12 @@ function applySkill(skill: BossSkillId, boss: Boss, character: Character, curren
       return landed({ boss: { ...boss, doomDueDayKey: addDaysToDayKey(currentDayKey, S.DOOM_DELAY_DAYS) }, pct: doomPct(character) });
     case 'undying':
       return landed({ boss: heldByUndying({ ...boss, undyingDayKey: currentDayKey }) });
+    case 'empower': {
+      const stat = pickRandom(S.DOUBLED_STATS, rng);
+      return landed({ boss: doubleStats(boss, [stat]), stat });
+    }
+    case 'ascend':
+      return landed({ boss: doubleStats(boss, S.DOUBLED_STATS) });
   }
 }
 
@@ -202,8 +225,9 @@ function applySkill(skill: BossSkillId, boss: Boss, character: Character, curren
  * `healthBefore` its health before. An Undying boss (fired earlier today)
  * is held at its floor first. Every unspent breakpoint the hit crossed is
  * spent, but only the highest fires — a big hit is rewarded — and nothing
- * fires on a kill. Hushing Bell can make the fired skill fail; that roll is
- * the only rng() this consumes, so combat's seeded rolls are untouched.
+ * fires on a kill. Hushing Bell can make the fired skill fail, and Empower
+ * rolls which stat it doubles; those are the only rng() calls this makes, so
+ * combat's seeded rolls are untouched.
  */
 export function resolveBreakpoints(
   healthBefore: number,
@@ -229,7 +253,7 @@ export function resolveBreakpoints(
   if (hasItemEffect(character, 'hushing-bell') && rng() < TUNING.ITEM_EFFECTS.HUSHING_BELL_FAIL_CHANCE) {
     return { boss: spent, character, fired: { skill: first.skill, outcome: 'failed' } };
   }
-  return applySkill(first.skill, spent, character, currentDayKey);
+  return applySkill(first.skill, spent, character, currentDayKey, rng);
 }
 
 /** Spends, without firing, every breakpoint at or above the boss's health — for a boss that starts below some (Echoing Blade's carry). */
