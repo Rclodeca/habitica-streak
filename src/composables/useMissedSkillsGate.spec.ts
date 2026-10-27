@@ -7,6 +7,7 @@ import { useBossStore } from '../store/bossStore';
 import { useCharacterStore } from '../store/characterStore';
 import { useHabitStore } from '../store/habitStore';
 import { useQuestStore } from '../store/questStore';
+import { useDeathScreen } from './useDeathScreen';
 import { useMissedSkillsGate } from './useMissedSkillsGate';
 import { useQuestMissGate } from './useQuestMissGate';
 
@@ -20,6 +21,8 @@ describe('useMissedSkillsGate', () => {
     // useMissedSkillsGate() (by design) — so it also persists across
     // `it()` blocks in this file. Reset it after each.
     useMissedSkillsGate().acknowledge();
+    // Same reason: `isDead` is a module-scope singleton too.
+    useDeathScreen().dismiss();
   });
 
   it('starts with no pending misses or rewards', () => {
@@ -164,6 +167,54 @@ describe('useMissedSkillsGate', () => {
     toggleOverride(habit.id);
     acknowledge();
     expect(isOverridden(habit.id)).toBe(false); // overrides reset once acknowledged
+  });
+
+  /**
+   * A boss whose medium-habit miss deals exactly 150 (attack * MISS_DAMAGE_FACTOR),
+   * against a hero with 5 HP, 1000 max HP and a heal that fills the bar — so a
+   * miss is lethal on its own and survivable once the heal has landed.
+   */
+  function setUpLethalMissAndFullHeal() {
+    const habitStore = useHabitStore();
+    const characterStore = useCharacterStore();
+    const bossStore = useBossStore();
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, critChance: 0, lifestealPct: 0 });
+    characterStore.setCharacter({
+      ...characterStore.character,
+      starterStats: { ...characterStore.character.starterStats, health: 1000, healing: 100_000 },
+      currentHealth: 5,
+    });
+    const bible = habitStore.addHabit('Bible', 'daily', 'medium', false, createRng());
+    const floss = habitStore.addHabit('Floss', 'daily', 'medium', false, createRng());
+    habitStore.updateHabit({ ...floss, damageType: 'healing' });
+    return { bible, floss };
+  }
+
+  it('acknowledge resolves rewards before penalties, whatever order they were queued in', () => {
+    const { bible, floss } = setUpLethalMissAndFullHeal();
+
+    const { queueMiss, toggleOverride, acknowledge } = useMissedSkillsGate();
+    queueMiss(bible, '2024-01-02'); // queued first, but a penalty
+    queueMiss(floss, '2024-01-02');
+    toggleOverride(floss.id); // "I did this" — the heal is a reward
+    acknowledge();
+
+    // Newest first: the heal landing before the hit puts it later in the list.
+    const kinds = useActivityLogStore().entries.map((e) => e.kind);
+    expect(kinds.indexOf('heal')).toBeGreaterThan(kinds.indexOf('hit'));
+  });
+
+  it('acknowledge does not show the death screen when a heal in the same batch keeps the hero alive', () => {
+    const { bible, floss } = setUpLethalMissAndFullHeal();
+
+    const { queueMiss, toggleOverride, acknowledge } = useMissedSkillsGate();
+    queueMiss(bible, '2024-01-02');
+    queueMiss(floss, '2024-01-02');
+    toggleOverride(floss.id);
+    acknowledge();
+
+    expect(useCharacterStore().character.currentHealth).toBeGreaterThan(0);
+    expect(useDeathScreen().isDead.value).toBe(false);
   });
 
   it('acknowledge lands a due Doom after the day\'s misses', () => {

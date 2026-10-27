@@ -106,13 +106,26 @@ export function useMissedSkillsGate() {
    * An item flagged via `toggleOverride` resolves as the *opposite* outcome
    * from the one detected — the player is correcting a habit they forgot to
    * check off rather than actually missing/avoiding it.
+   *
+   * Rewards resolve before penalties, whatever order they were queued in: the
+   * day's heals and kills happened during the day, the boss strikes at the
+   * turnover — the same order a live tap gets. Otherwise a lethal miss queued
+   * ahead of a heal would raise the death screen for a hero the heal then
+   * brings back above 0 HP, and burn a Phoenix Feather doing it.
    */
   function acknowledge() {
-    for (const item of pending.value) {
-      const effectiveOutcome: PendingOutcome['outcome'] = overridden.value.has(item.habitId)
+    const resolving = pending.value.map((item) => ({
+      item,
+      effectiveOutcome: (overridden.value.has(item.habitId)
         ? item.outcome === 'penalty' ? 'reward' : 'penalty'
-        : item.outcome;
+        : item.outcome) as PendingOutcome['outcome'],
+    }));
+    const rewardsFirst = [
+      ...resolving.filter((r) => r.effectiveOutcome === 'reward'),
+      ...resolving.filter((r) => r.effectiveOutcome === 'penalty'),
+    ];
 
+    for (const { item, effectiveOutcome } of rewardsFirst) {
       if (effectiveOutcome === 'penalty') {
         checkMissedHabit(item.habitId);
       } else {
