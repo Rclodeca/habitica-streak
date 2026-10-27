@@ -3,10 +3,10 @@
 // state lives here. Consumers pass their content via the default slot and
 // control visibility via the `modelValue` prop (v-model:modelValue / v-model).
 
-import { onBeforeUnmount, watch } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 import { lockBodyScroll } from '../../composables/useBodyScrollLock';
 
-const props = withDefaults(defineProps<{ modelValue: boolean; title?: string; dismissible?: boolean; maxWidth?: string }>(), {
+const props = withDefaults(defineProps<{ modelValue: boolean; title?: string; dismissible?: boolean; maxWidth?: string; scrollKey?: unknown }>(), {
   dismissible: true,
   maxWidth: '420px',
 });
@@ -28,6 +28,19 @@ watch(
 );
 onBeforeUnmount(unlock);
 
+// A popup that shows queued entries one after another passes the entry as
+// `scrollKey`, so each new one opens at the top, not where the last was left.
+// Either box can be the one scrolling (see `.has-footer`), so reset both.
+const contentEl = ref<HTMLElement | null>(null);
+const scrollEl = ref<HTMLElement | null>(null);
+watch(
+  () => props.scrollKey,
+  () => {
+    for (const el of [contentEl.value, scrollEl.value]) if (el) el.scrollTop = 0;
+  },
+  { flush: 'post' },
+);
+
 function close() {
   if (!props.dismissible) return;
   emit('update:modelValue', false);
@@ -37,13 +50,18 @@ function close() {
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="modal-backdrop" @click="close">
-      <div class="modal-content" :style="{ maxWidth }" @click.stop>
-        <div class="modal-header">
-          <h3 v-if="title">{{ title }}</h3>
-          <button v-if="dismissible" type="button" class="modal-close" aria-label="Close" @click="close">×</button>
+      <div ref="contentEl" class="modal-content" :class="{ 'has-footer': $slots.footer }" :style="{ maxWidth }" @click.stop>
+        <div ref="scrollEl" class="modal-scroll">
+          <div class="modal-header">
+            <h3 v-if="title">{{ title }}</h3>
+            <button v-if="dismissible" type="button" class="modal-close" aria-label="Close" @click="close">×</button>
+          </div>
+          <div class="modal-body">
+            <slot />
+          </div>
         </div>
-        <div class="modal-body">
-          <slot />
+        <div v-if="$slots.footer" class="modal-footer">
+          <slot name="footer" />
         </div>
       </div>
     </div>
@@ -73,6 +91,28 @@ function close() {
   overflow-y: auto;
   overscroll-behavior: contain;
   box-shadow: var(--shadow);
+}
+
+/* With a footer, only the header and body scroll; the footer stays pinned
+   to the bottom edge. */
+.modal-content.has-footer {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.has-footer .modal-scroll {
+  min-height: 0;
+  padding: 1rem 1.25rem 0.75rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modal-footer {
+  flex-shrink: 0;
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid var(--border);
 }
 
 .modal-header {

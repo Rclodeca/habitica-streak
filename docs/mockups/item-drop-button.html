@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — item drop button (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* With 6–8 items equipped, "Drop" sits under the whole replace list. Four
+   places to put it. Every phone frame scrolls like the real 80vh modal. Tap
+   Drop or Replace to bring up the next item. */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ash: #5c554a;
+  --rarity-common: #8d8475; --rarity-uncommon: #86b08b; --rarity-rare: #7f9fd1; --rarity-epic: #ae8bd6;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+button { font: inherit; cursor: pointer; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1600px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.cards { display: flex; flex-wrap: wrap; gap: 28px; justify-content: center; }
+.opt { width: 340px; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; min-height: 80px; }
+
+/* A 340×720 phone; the modal gets 80% of it, like max-height: 80vh. */
+.phone { position: relative; width: 340px; height: 720px; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(0,0,0,.6); border: 1px solid rgba(200,169,110,.18); border-radius: 26px; overflow: hidden; }
+.modal { position: relative; width: 100%; max-height: 80%; display: flex; flex-direction: column; background: linear-gradient(180deg, rgba(27,24,21,.98), rgba(14,13,11,.99)); border: 1px solid var(--line); box-shadow: 0 20px 40px -24px rgba(0,0,0,.95); }
+.modal::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75; z-index: 3;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat; }
+.scroll { overflow-y: auto; padding: 14px 12px 12px; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--ash) transparent; }
+.title { text-align: center; font-size: 12px; letter-spacing: .24em; color: var(--gold-hi); margin-bottom: 4px; }
+.by { text-align: center; font-size: 15px; color: var(--text); margin-bottom: 10px; }
+.by b { color: var(--text-h); font-weight: 600; }
+
+/* The new item, as ItemHero shows it. */
+.hero { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 12px 14px; border: 1px solid color-mix(in srgb, var(--r) 45%, transparent); box-shadow: 0 0 24px -10px var(--r); background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--r) 10%, transparent), transparent 70%), rgba(0,0,0,.25); text-align: center; }
+.frame { width: 96px; height: 96px; margin: 1.4rem 0 1.5rem; transform: rotate(45deg); display: grid; place-items: center; border: 1px solid var(--r);
+  background: radial-gradient(circle, color-mix(in srgb, var(--r) 24%, transparent), rgba(0,0,0,.45) 75%);
+  box-shadow: 0 0 30px -8px var(--r), inset 0 0 0 4px rgba(0,0,0,.55), inset 0 0 0 5px color-mix(in srgb, var(--r) 35%, transparent); }
+.frame img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; transform: rotate(-45deg) scale(1.4); }
+.rar { font: 600 9px/1 'Cinzel', serif; letter-spacing: .28em; text-transform: uppercase; color: var(--r); }
+.name { font-size: 22px; font-weight: 600; color: var(--text-h); line-height: 1.1; }
+.stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 12px; font-size: 15px; color: var(--text-h); font-weight: 600; }
+.stats span i { font-style: normal; color: var(--text); font-weight: 500; }
+.fx { color: var(--r); font-size: 15px; font-style: italic; line-height: 1.2; }
+
+/* Equipped rows, as the gear list shows them. */
+.list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: rgba(0,0,0,.3); border: 1px solid var(--line); border-left: 3px solid var(--r); }
+.slot { position: relative; flex-shrink: 0; width: 64px; height: 64px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--r) 55%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--r) 22%, transparent), rgba(0,0,0,.55) 72%);
+  box-shadow: inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px color-mix(in srgb, var(--r) 22%, transparent); }
+.slot img { position: absolute; left: 50%; top: 50%; width: 128px; height: 128px; transform: translate(-50%, -50%); image-rendering: pixelated; }
+.rtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.rname { color: var(--text-h); font-weight: 600; font-size: 16px; line-height: 1.1; }
+.rname em { margin-left: 5px; font: 600 8px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; font-style: normal; color: var(--r); vertical-align: 2px; }
+.rstat { font-size: 13px; color: var(--text-h); }
+.rstat i { font-style: normal; color: var(--text); }
+.rfx { font-size: 13px; font-style: italic; color: var(--r); line-height: 1.15; }
+
+.btn { height: 34px; padding: 0 10px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--bone); border: 1px solid var(--line-mid); background: rgba(200,169,110,.06); }
+.btn:active { background: rgba(200,169,110,.18); }
+.drop { display: block; width: 100%; height: 44px; margin-top: 10px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text-h); border: 1px solid var(--line-mid); background: transparent; }
+.drop:active { background: rgba(200,169,110,.12); }
+.divider { display: flex; align-items: center; gap: 10px; margin: 14px 2px 0; font: 600 9px/1 'Cinzel', serif; letter-spacing: .26em; text-transform: uppercase; color: var(--text); }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.queue { text-align: center; font: 600 8px/1 'Cinzel', serif; letter-spacing: .24em; color: var(--ash); margin-top: 8px; text-transform: uppercase; }
+
+/* B: a footer pinned to the modal's bottom edge. */
+.foot { flex-shrink: 0; padding: 10px 12px 12px; border-top: 1px solid var(--line); background: linear-gradient(180deg, rgba(14,13,11,.96), rgba(10,9,8,1)); box-shadow: 0 -14px 18px -12px rgba(0,0,0,.9); }
+.foot .drop { margin-top: 0; }
+
+/* C: the new item shrinks into a strip pinned at the top, Drop on it. */
+.strip { position: sticky; top: -14px; z-index: 2; margin: 0 -12px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; background: rgba(16,14,12,.98); border-bottom: 1px solid var(--line); box-shadow: 0 12px 16px -12px rgba(0,0,0,.95); opacity: 0; pointer-events: none; transition: opacity .15s; }
+.strip.on { opacity: 1; pointer-events: auto; }
+.strip .slot { width: 44px; height: 44px; }
+.strip .slot img { width: 88px; height: 88px; }
+.strip .rname { font-size: 15px; }
+.strip .btn { height: 36px; }
+.c-wrap { position: relative; display: flex; flex-direction: column; min-height: 0; }
+.c-wrap .strip { position: absolute; top: 0; left: 0; right: 0; margin: 0; }
+
+/* D: the hero carries both choices; Drop sits in its corner. */
+.hero-d { position: relative; }
+.corner { position: absolute; top: 8px; right: 8px; height: 34px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text-h); border: 1px solid var(--line-mid); background: rgba(0,0,0,.45); }
+.hint { margin-top: 12px; text-align: center; font-size: 14px; font-style: italic; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Item found: where Drop goes</h1>
+  <p>Eight items equipped. Each frame scrolls like the real modal. Tap Drop or Replace to go to the next item; in every option the next item opens at the top.</p>
+  <div class="cards" id="root"></div>
+</div>
+
+<script>
+const P = '../../public/sprites/items/';
+const DROPS = [
+  { name: 'Godslayer Greatblade', icon: 'godslayer-greatblade', rarity: 'epic', stats: [['+42%', 'Physical damage'], ['+10%', 'Max health'], ['+3%', 'Lifesteal']], fx: '+30% damage to bosses above 75% HP.', by: 'Ashen Wyrm' },
+  { name: 'Chaos Conduit', icon: 'chaos-conduit', rarity: 'rare', stats: [['+24%', 'Magic damage'], ['+8%', 'Crit chance']], by: 'Ashen Wyrm' },
+  { name: 'Ember Heart', icon: 'ember-heart', rarity: 'uncommon', stats: [['+12%', 'Max health']], by: 'Ashen Wyrm' },
+];
+const EQUIPPED = [
+  { name: 'Arcane Staff', icon: 'arcane-staff', rarity: 'uncommon', stat: ['+12%', 'Magic damage'] },
+  { name: 'Bulwark Plate', icon: 'bulwark-plate', rarity: 'rare', stat: ['+18%', 'Armor'] },
+  { name: 'Chainmail Hauberk', icon: 'chainmail-hauberk', rarity: 'common', stat: ['+6%', 'Armor'] },
+  { name: 'Dawnguard Helm', icon: 'dawnguard-helm', rarity: 'rare', stat: ['+10%', 'Max health'], fx: 'Heal 5% when a quest is done.' },
+  { name: 'Duelist’s Signet', icon: 'duelists-signet', rarity: 'uncommon', stat: ['+8%', 'Crit chance'] },
+  { name: 'Banner of Endurance', icon: 'banner-of-endurance', rarity: 'common', stat: ['+5%', 'Max health'] },
+  { name: 'Bloodthorn Blade', icon: 'bloodthorn-blade', rarity: 'rare', stat: ['+16%', 'Physical damage'], fx: '+2% lifesteal.' },
+  { name: 'Echoing Blade', icon: 'echoing-blade', rarity: 'epic', stat: ['+30%', 'Physical damage'] },
+];
+
+const R = (rarity) => `--r:var(--rarity-${rarity})`;
+const hero = (it, extra = '', cls = '') => `<div class="hero ${cls}" style="${R(it.rarity)}">${extra}
+  <div class="frame"><img src="${P}${it.icon}.png" alt="" /></div>
+  <span class="rar">${it.rarity}</span><strong class="name">${it.name}</strong>
+  <div class="stats">${it.stats.map(([n, l]) => `<span>${n} <i>${l}</i></span>`).join('')}</div>
+  ${it.fx ? `<p class="fx">${it.fx}</p>` : ''}
+</div>`;
+const rows = () => `<ul class="list">${EQUIPPED.map((e) => `<li class="row" style="${R(e.rarity)}">
+  <span class="slot"><img src="${P}${e.icon}.png" alt="" /></span>
+  <span class="rtext"><span class="rname">${e.name}<em>${e.rarity}</em></span><span class="rstat">${e.stat[0]} <i>${e.stat[1]}</i></span>${e.fx ? `<span class="rfx">${e.fx}</span>` : ''}</span>
+  <button class="btn" data-next>Replace</button></li>`).join('')}</ul>`;
+const head = (it) => `<h3 class="engraved title">Item found!</h3><p class="by">Spoils of the <b>${it.by}</b></p>`;
+const queue = (i) => `<p class="queue">${i + 1} of ${DROPS.length}</p>`;
+const dropBtn = (it) => `<button class="drop" data-next>Drop ${it.name}</button>`;
+
+const OPTIONS = [
+  { id: 'Now', title: 'Today', note: 'For comparison: Drop is under all eight rows, so you scroll down to drop and back up for the next item.',
+    body: (it, i) => `<div class="scroll">${head(it)}${hero(it)}${rows()}${dropBtn(it)}${queue(i)}</div>` },
+  { id: 'A', title: 'Drop under the item', note: 'Drop sits right under the new item, before the list. “Or replace” splits it from the rows. One tap, no scrolling; to replace, you scroll as now.',
+    body: (it, i) => `<div class="scroll">${head(it)}${hero(it)}${dropBtn(it)}<div class="divider">or replace</div>${rows()}${queue(i)}</div>` },
+  { id: 'B', title: 'Pinned footer', note: 'Drop is pinned to the modal’s bottom edge and the list scrolls behind it. It stays put while you read the rows, so you can compare and still drop from anywhere.',
+    body: (it, i) => `<div class="scroll">${head(it)}${hero(it)}<div class="divider">replace</div>${rows()}${queue(i)}</div><div class="foot">${dropBtn(it)}</div>` },
+  { id: 'C', title: 'Item pins on scroll', note: 'Drop under the item, as in A. Once the item scrolls away, a strip with its icon, name and Drop pins at the top, so the new item stays in view while you pick which row to replace.',
+    body: (it, i) => `<div class="c-wrap"><div class="strip" style="${R(it.rarity)}"><span class="slot"><img src="${P}${it.icon}.png" alt="" /></span><span class="rtext"><span class="rname">${it.name}</span><span class="rstat">${it.stats[0][0]} <i>${it.stats[0][1]}</i></span></span><button class="btn" data-next>Drop</button></div>
+      <div class="scroll">${head(it)}${hero(it)}${dropBtn(it)}<div class="divider">or replace</div>${rows()}${queue(i)}</div></div>` },
+  { id: 'D', title: 'Drop in the item’s corner', note: 'A small Drop sits in the new item’s top corner, like a discard. Lightest, but it’s easier to hit by accident and stays out of reach once you scroll.',
+    body: (it, i) => `<div class="scroll">${head(it)}${hero(it, `<button class="corner" data-next>✕ Drop</button>`, 'hero-d')}<div class="divider">or replace</div>${rows()}${queue(i)}</div>` },
+];
+
+const root = document.getElementById('root');
+root.innerHTML = OPTIONS.map((o, k) => `<section class="opt"><h2 class="engraved"><b>${o.id}</b>${o.title}</h2><p>${o.note}</p>
+  <div class="phone"><div class="modal" data-k="${k}" data-i="0"></div></div></section>`).join('');
+
+// "Now" keeps its scroll position on the next item, which is today's annoyance.
+function render(modal, keepScroll) {
+  const o = OPTIONS[+modal.dataset.k], i = +modal.dataset.i;
+  const prev = modal.querySelector('.scroll')?.scrollTop ?? 0;
+  modal.innerHTML = o.body(DROPS[i], i);
+  const sc = modal.querySelector('.scroll');
+  if (keepScroll) sc.scrollTop = prev;
+  const strip = modal.querySelector('.strip');
+  if (strip) {
+    const hero = modal.querySelector('.hero');
+    const sync = () => strip.classList.toggle('on', sc.scrollTop > hero.offsetTop + hero.offsetHeight - 30);
+    sc.addEventListener('scroll', sync); sync();
+  }
+}
+document.querySelectorAll('.modal').forEach((m) => render(m, false));
+root.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-next]')) return;
+  const m = e.target.closest('.modal');
+  m.dataset.i = (+m.dataset.i + 1) % DROPS.length;
+  render(m, m.dataset.k === '0');
+});
+</script>
+</body>
+</html>

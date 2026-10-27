@@ -36,6 +36,7 @@ const isCurrentEquipped = computed(
   <Modal
     :model-value="current !== null && !celebrating"
     :dismissible="isCurrentEquipped"
+    :scroll-key="current"
     title="Item found!"
     max-width="460px"
     @update:model-value="dismiss"
@@ -45,6 +46,7 @@ const isCurrentEquipped = computed(
       <ItemHero :item="current" />
 
       <template v-if="!isCurrentEquipped">
+        <p class="replace-label">Replace</p>
         <ul class="replace-list">
           <li
             v-for="item in equippedItems"
@@ -74,13 +76,17 @@ const isCurrentEquipped = computed(
             <button type="button" class="replace-button" @click="replace(item.id)">Replace</button>
           </li>
         </ul>
-        <button type="button" class="drop-button" @click="dismiss">Drop {{ current.name }}</button>
       </template>
 
       <template v-else>
         <p class="equipped-note">✓ Equipped</p>
         <button type="button" class="dismiss-button primary-button" @click="dismiss">Nice!</button>
       </template>
+    </template>
+
+    <!-- Pinned below the list, so Drop is in reach without scrolling past every row. -->
+    <template v-if="current && !isCurrentEquipped" #footer>
+      <button type="button" class="drop-button" @click="dismiss">Drop {{ current.name }}</button>
     </template>
   </Modal>
 </template>
@@ -118,9 +124,29 @@ const isCurrentEquipped = computed(
   font-weight: 600;
 }
 
+/* "Replace", centred between two hairlines. */
+.replace-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.9rem 0 0;
+  color: var(--text);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.replace-label::before,
+.replace-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 .replace-list {
   list-style: none;
-  margin: 0.75rem 0 0;
+  margin: 0.5rem 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -269,7 +295,6 @@ const isCurrentEquipped = computed(
 .drop-button {
   display: block;
   width: 100%;
-  margin-top: 0.75rem;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-h);

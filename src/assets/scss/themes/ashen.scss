@@ -1097,6 +1097,10 @@ $caps-lg: 0.85rem; // panel and popup titles
     @include corner-brackets(0);
   }
 
+  .modal-footer {
+    border-top-color: $line;
+  }
+
   // Title centred between two fading gold rules — centred across the whole
   // popup: the close button is taken out of the flow (with matching padding
   // on both sides of the title) so it can't push the title off-centre.
@@ -1315,6 +1319,15 @@ $caps-lg: 0.85rem; // panel and popup titles
 
   .equipped-note {
     @include engraved($caps-sm, 0.2em);
+  }
+
+  .replace-label {
+    @include engraved($caps-xs, 0.26em);
+  }
+
+  .replace-label::before,
+  .replace-label::after {
+    background: $line;
   }
 
   // Daily update + missed deadlines.
