@@ -71,11 +71,11 @@ const showHighScores = ref(false);
       <div class="layout">
         <FightStage />
         <main class="main">
-          <ProgressSummary class="progress" />
           <HabitList />
+          <QuestSection />
         </main>
         <aside class="side">
-          <QuestSection />
+          <ProgressSummary class="progress" />
           <ActivityLog />
         </aside>
       </div>
@@ -124,9 +124,9 @@ const showHighScores = ref(false);
   align-items: start;
 }
 
-/* The fight runs across the page as a banner, then skills on the left and
-   quests and the log on the right. Nothing sticks: the banner scrolls away
-   and the drop-down bar takes over. */
+/* The fight runs across the page as a banner, then skills and quests on the
+   left and progress and the log on the right. Nothing sticks: the banner
+   scrolls away and the drop-down bar takes over. */
 .layout > .fight-stage {
   grid-column: 1 / -1;
 }

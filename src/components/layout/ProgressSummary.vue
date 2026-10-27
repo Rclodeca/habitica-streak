@@ -53,7 +53,6 @@ const bestStreak = computed(() => Math.max(0, ...habitStore.habits.map((h) => h.
 <style scoped>
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
 }
 
