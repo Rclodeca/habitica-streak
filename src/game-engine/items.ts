@@ -1,5 +1,6 @@
 import { ITEM_CATALOG } from './constants/itemCatalog';
 import { TUNING } from './constants/tuning';
+import { formatCompact } from './format';
 import { pickRandom, pickWeighted, type Rng } from './rng';
 import type { Character, Quest } from './types';
 
@@ -206,9 +207,10 @@ const STAT_LABEL: Record<BoostableStat, string> = {
   allDamage: 'All damage',
 };
 
-/** "+5" / "−5" (U+2212 for drawbacks), with `unit` appended. */
+/** "+5" / "−5" (U+2212 for drawbacks), with `unit` appended. From 1000 up it reads "+1.3K". */
 function signedAmount(amount: number, unit: string): string {
-  return `${amount < 0 ? '\u2212' : '+'}${Math.abs(amount)}${unit}`;
+  const size = Math.abs(amount);
+  return `${amount < 0 ? '−' : '+'}${size >= 1000 ? formatCompact(size) : size}${unit}`;
 }
 
 /** One entry per stat bonus on `item`: the stat, its short amount text (e.g. "+25%", "−10%"), and a plain-English label for the stat. Enchanting (`factor`) scales positive bonuses only. */

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, watchEffect } from 'vue';
+import { formatCompact } from '../../game-engine';
 import type { EventId } from '../../game-engine';
 import { useEventChoice } from '../../composables/useEventChoice';
 import { useModalPriority } from '../../composables/useModalPriority';
@@ -88,7 +89,7 @@ function onPick(id: EventId) {
     <template v-if="step === 'choose'">
       <div class="level-emblem"><span class="level-emblem-number">{{ level }}</span></div>
       <p v-if="statGains.length" class="gains">
-        <span v-for="gain in statGains" :key="gain.stat"><StatIcon :name="BOOST_STAT_ICON[gain.stat]" />+{{ gain.amount }}</span>
+        <span v-for="gain in statGains" :key="gain.stat"><StatIcon :name="BOOST_STAT_ICON[gain.stat]" />+{{ formatCompact(gain.amount) }}</span>
       </p>
     </template>
     <p class="subtitle">{{ subtitle }}</p>

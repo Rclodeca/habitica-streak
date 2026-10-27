@@ -147,6 +147,8 @@ export {
   spellweaveStacks,
 } from './itemEffects';
 
+export { formatCompact } from './format';
+
 export type { BoostableStat, DropRarity, ItemBonus, ItemDef, ItemEffectId, ItemRarity } from './items';
 export {
   availableRelics,

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { formatCompact } from '../../game-engine';
 
 // Simple proportional health bar. `variant` only swaps the fill color so
 // player vs. boss bars read as visually distinct at a glance. A hit drops the
@@ -40,7 +41,7 @@ const percent = computed(() => {
       :style="{ left: `${mark.at * 100}%` }"
       aria-hidden="true"
     />
-    <span class="health-bar-label">{{ Math.round(current) }} / {{ Math.round(max) }}</span>
+    <span class="health-bar-label">{{ formatCompact(current) }} / {{ formatCompact(max) }}</span>
   </div>
 </template>
 

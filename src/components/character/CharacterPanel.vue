@@ -19,6 +19,7 @@ import {
   effectiveStat,
   expectedMediumDailyDamage,
   expToNextLevel,
+  formatCompact,
   heroClassFor,
   ITEM_CATALOG,
   itemBonusPercent,
@@ -154,7 +155,7 @@ interface StatTile {
 
 function tile(icon: StatIconName, label: string, value: number, base?: number): StatTile {
   const gained = base === undefined ? 0 : gain(value, base);
-  return { icon, label, value: value.toFixed(0), gain: gained > 0 ? `+${gained}` : undefined };
+  return { icon, label, value: formatCompact(value), gain: gained > 0 ? `+${formatCompact(gained)}` : undefined };
 }
 
 const statTiles = computed<StatTile[]>(() => {
@@ -172,10 +173,10 @@ const statTiles = computed<StatTile[]>(() => {
       gain: crit > 0 ? `+${crit}%` : undefined,
     },
     ...(armor.value > 0
-      ? [{ icon: 'armor' as const, label: 'Armor', value: armor.value.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` }]
+      ? [{ icon: 'armor' as const, label: 'Armor', value: formatCompact(armor.value), note: `${armorReduction.value.toFixed(1)}% less damage` }]
       : []),
     ...(magicResist.value > 0
-      ? [{ icon: 'magicResist' as const, label: 'Magic resist', value: magicResist.value.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` }]
+      ? [{ icon: 'magicResist' as const, label: 'Magic resist', value: formatCompact(magicResist.value), note: `${magicResistReduction.value.toFixed(1)}% less damage` }]
       : []),
     ...(lifesteal.value > 0 ? [{ icon: 'lifesteal' as const, label: 'Lifesteal', value: `${lifesteal.value.toFixed(0)}%` }] : []),
     ...(armorPen.value > 0 ? [{ icon: 'armorPen' as const, label: 'Armor pen', value: `${armorPen.value.toFixed(0)}%` }] : []),
@@ -267,13 +268,13 @@ onBeforeUnmount(() => {
         <ExpBar :key="displayLevel" :current="displayExp" :max="expNeeded" />
       </div>
       <p ref="statLine" class="stat-summary">
-        <span><StatIcon name="physical" />{{ physicalDamage.toFixed(0) }}</span>
-        <span><StatIcon name="magic" />{{ magicDamage.toFixed(0) }}</span>
-        <span><StatIcon name="healing" />{{ healing.toFixed(0) }}</span>
-        <span><StatIcon name="true" />{{ trueDamage.toFixed(0) }}</span>
+        <span><StatIcon name="physical" />{{ formatCompact(physicalDamage) }}</span>
+        <span><StatIcon name="magic" />{{ formatCompact(magicDamage) }}</span>
+        <span><StatIcon name="healing" />{{ formatCompact(healing) }}</span>
+        <span><StatIcon name="true" />{{ formatCompact(trueDamage) }}</span>
         <span><StatIcon name="crit" />{{ (critChance * 100).toFixed(0) }}%</span>
-        <span v-if="armor > 0"><StatIcon name="armor" />{{ armor.toFixed(0) }}</span>
-        <span v-if="magicResist > 0"><StatIcon name="magicResist" />{{ magicResist.toFixed(0) }}</span>
+        <span v-if="armor > 0"><StatIcon name="armor" />{{ formatCompact(armor) }}</span>
+        <span v-if="magicResist > 0"><StatIcon name="magicResist" />{{ formatCompact(magicResist) }}</span>
         <span v-if="lifesteal > 0"><StatIcon name="lifesteal" />{{ lifesteal.toFixed(0) }}%</span>
         <span v-if="armorPen > 0"><StatIcon name="armorPen" />{{ armorPen.toFixed(0) }}%</span>
         <span v-if="magicPen > 0"><StatIcon name="magicPen" />{{ magicPen.toFixed(0) }}%</span>
@@ -358,7 +359,7 @@ onBeforeUnmount(() => {
         <div class="tiles five">
           <div v-for="entry in newHabitTiles" :key="entry.label" class="stat-tile" :style="{ '--tone': entry.color }">
             <span class="tile-label"><StatIcon :name="entry.icon" badge />{{ entry.label }}</span>
-            <span class="tile-value tinted">{{ entry.value.toFixed(0) }}</span>
+            <span class="tile-value tinted">{{ formatCompact(entry.value) }}</span>
           </div>
         </div>
         <p class="stat-note">Habits of the same type share a pool.</p>

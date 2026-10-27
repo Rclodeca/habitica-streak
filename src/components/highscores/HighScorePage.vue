@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { describeItemBonus, ITEM_CATALOG } from '../../game-engine';
+import { describeItemBonus, formatCompact, ITEM_CATALOG } from '../../game-engine';
 import type { DamageType } from '../../game-engine';
 import type { HighScoreRunItem } from '../../store/highScoreStore';
 import { useHighScoreStore } from '../../store/highScoreStore';
@@ -57,10 +57,10 @@ const DAMAGE_TYPE_ICON: Record<DamageType, StatIconName> = {
 
         <div v-if="expanded[run.id]" class="run-details">
           <p class="stat-summary">
-            <span><StatIcon name="physical" /> {{ run.stats.physicalDamage.toFixed(0) }}</span>
-            <span><StatIcon name="magic" /> {{ run.stats.magicDamage.toFixed(0) }}</span>
-            <span><StatIcon name="healing" /> {{ run.stats.healing.toFixed(0) }}</span>
-            <span><StatIcon name="true" /> {{ run.stats.trueDamage.toFixed(0) }}</span>
+            <span><StatIcon name="physical" /> {{ formatCompact(run.stats.physicalDamage) }}</span>
+            <span><StatIcon name="magic" /> {{ formatCompact(run.stats.magicDamage) }}</span>
+            <span><StatIcon name="healing" /> {{ formatCompact(run.stats.healing) }}</span>
+            <span><StatIcon name="true" /> {{ formatCompact(run.stats.trueDamage) }}</span>
             <span><StatIcon name="crit" /> {{ (run.stats.critChance * 100).toFixed(0) }}%</span>
           </p>
 

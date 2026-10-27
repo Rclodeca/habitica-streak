@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { dailyPeriodKey, habitDamageBreakdown } from '../../game-engine';
+import { dailyPeriodKey, formatCompact, habitDamageBreakdown } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
@@ -53,7 +53,7 @@ const nameTail = computed(() => props.habit.name.slice(nameHead.value.length));
         </span>
         <RankDiamonds :rank="habit.rank ?? 0" />
       </span>
-      <span class="damage">{{ effectiveDamage.toFixed(0) }}</span>
+      <span class="damage">{{ formatCompact(effectiveDamage) }}</span>
     </button>
   </li>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { dailyPeriodKey, dayOfWeekIndex, habitDamageBreakdown, isDueOn, nextDueDay, overdriveUsesRemaining, periodKeyFor } from '../../game-engine';
+import { dailyPeriodKey, dayOfWeekIndex, formatCompact, habitDamageBreakdown, isDueOn, nextDueDay, overdriveUsesRemaining, periodKeyFor } from '../../game-engine';
 import type { Habit } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useItemDropQueue } from '../../composables/useItemDropQueue';
@@ -118,7 +118,7 @@ function onZoneClick(event: MouseEvent) {
       </span>
       <RankDiamonds :rank="habit.rank ?? 0" />
     </span>
-    <span class="damage">{{ effectiveDamage.toFixed(0) }}</span>
+    <span class="damage">{{ formatCompact(effectiveDamage) }}</span>
     <span v-if="flareRank > 0" class="rank-ghost" aria-hidden="true">Rank {{ rankNumeral(flareRank) }}</span>
   </li>
 </template>

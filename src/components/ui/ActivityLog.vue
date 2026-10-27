@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { bossSkillEffectText } from '../../game-engine';
+import { bossSkillEffectText, formatCompact } from '../../game-engine';
 import { useActivityLogStore } from '../../store/activityLogStore';
 import { rankNumeral } from '../habits/habitDisplay';
 import StatIcon from './StatIcon.vue';
@@ -14,34 +14,34 @@ const activityLogStore = useActivityLogStore();
       <li v-for="entry in activityLogStore.entries" :key="entry.id">
         <template v-if="entry.kind === 'skill-damage'">
           <StatIcon :name="entry.isTrueDamage ? 'true' : 'physical'" class="log-icon" /> Used "{{ entry.habitName }}" — dealt
-          <span :class="entry.isTrueDamage ? 'log-true-damage' : 'log-damage'">{{ Math.round(entry.amount) }}</span>
+          <span :class="entry.isTrueDamage ? 'log-true-damage' : 'log-damage'">{{ formatCompact(entry.amount) }}</span>
           damage
           <template v-if="entry.milestoneExp">
-            · <span class="log-exp">+{{ Math.round(entry.milestoneExp) }}</span> EXP
+            · <span class="log-exp">+{{ formatCompact(entry.milestoneExp) }}</span> EXP
           </template>
         </template>
         <template v-else-if="entry.kind === 'heal'">
-          <StatIcon name="healing" class="log-icon" /> Healed <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP using "{{ entry.habitName }}"
+          <StatIcon name="healing" class="log-icon" /> Healed <span class="log-heal">+{{ formatCompact(entry.amount) }}</span> HP using "{{ entry.habitName }}"
           <template v-if="entry.milestoneExp">
-            · <span class="log-exp">+{{ Math.round(entry.milestoneExp) }}</span> EXP
+            · <span class="log-exp">+{{ formatCompact(entry.milestoneExp) }}</span> EXP
           </template>
         </template>
         <template v-else-if="entry.kind === 'hit'">
           <StatIcon :name="entry.attackType === 'physical' ? 'physical' : 'magic'" class="log-icon" /> {{ entry.attackType === 'physical' ? 'Physical' : 'Magic' }} hit for
-          <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage (missed "{{ entry.habitName }}")
+          <span class="log-damage">{{ formatCompact(entry.amount) }}</span> damage (missed "{{ entry.habitName }}")
         </template>
         <template v-else-if="entry.kind === 'level-up'">
           <StatIcon name="levelUp" class="log-icon" /> Leveled up to Lv. {{ entry.newLevel }}! Healed
-          <span class="log-heal">+{{ Math.round(entry.healthRestored) }}</span> HP · Physical Dmg
-          <span class="log-stat">+{{ Math.round(entry.statDeltas.physicalDamage) }}</span>
+          <span class="log-heal">+{{ formatCompact(entry.healthRestored) }}</span> HP · Physical Dmg
+          <span class="log-stat">+{{ formatCompact(entry.statDeltas.physicalDamage) }}</span>
           · Magic Dmg
-          <span class="log-stat">+{{ Math.round(entry.statDeltas.magicDamage) }}</span>
+          <span class="log-stat">+{{ formatCompact(entry.statDeltas.magicDamage) }}</span>
           · Healing
-          <span class="log-stat">+{{ Math.round(entry.statDeltas.healing) }}</span>
+          <span class="log-stat">+{{ formatCompact(entry.statDeltas.healing) }}</span>
           · Health
-          <span class="log-stat">+{{ Math.round(entry.statDeltas.health) }}</span>
+          <span class="log-stat">+{{ formatCompact(entry.statDeltas.health) }}</span>
           · True Dmg
-          <span class="log-true-damage">+{{ Math.round(entry.statDeltas.trueDamage) }}</span>
+          <span class="log-true-damage">+{{ formatCompact(entry.statDeltas.trueDamage) }}</span>
         </template>
         <template v-else-if="entry.kind === 'crit'">
           <StatIcon name="crit" class="log-icon" /> {{ entry.by === 'player' ? 'Critical hit!' : "Boss lands a critical hit!" }}
@@ -49,15 +49,15 @@ const activityLogStore = useActivityLogStore();
         <template v-else-if="entry.kind === 'lifesteal'">
           <StatIcon name="lifesteal" class="log-icon" /> Lifesteal
           {{ entry.healedWho === 'player' ? 'healed you' : 'restored the boss' }} for
-          <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP
+          <span class="log-heal">+{{ formatCompact(entry.amount) }}</span> HP
         </template>
         <template v-else-if="entry.kind === 'reflect'">
-          <StatIcon name="reflect" class="log-icon" /> Boss reflected <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage back at you
+          <StatIcon name="reflect" class="log-icon" /> Boss reflected <span class="log-damage">{{ formatCompact(entry.amount) }}</span> damage back at you
         </template>
         <template v-else-if="entry.kind === 'boss-defeated'">
           <StatIcon name="skull" class="log-icon" /> Boss #{{ entry.bossIndex }} defeated!
           <template v-if="entry.amount">
-            <span class="log-exp">+{{ Math.round(entry.amount) }}</span> EXP
+            <span class="log-exp">+{{ formatCompact(entry.amount) }}</span> EXP
           </template>
         </template>
         <template v-else-if="entry.kind === 'special-assigned'">
@@ -73,10 +73,10 @@ const activityLogStore = useActivityLogStore();
           <StatIcon name="streak" class="log-icon" /> "{{ entry.habitName }}" gained Overdrive!
         </template>
         <template v-else-if="entry.kind === 'event-heal'">
-          <StatIcon name="healing" class="log-icon" /> Restored <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP
+          <StatIcon name="healing" class="log-icon" /> Restored <span class="log-heal">+{{ formatCompact(entry.amount) }}</span> HP
         </template>
         <template v-else-if="entry.kind === 'item-heal'">
-          <StatIcon name="healing" class="log-icon" /> {{ entry.itemName }} <span class="log-heal">+{{ Math.round(entry.amount) }}</span> HP
+          <StatIcon name="healing" class="log-icon" /> {{ entry.itemName }} <span class="log-heal">+{{ formatCompact(entry.amount) }}</span> HP
         </template>
         <template v-else-if="entry.kind === 'item-doubled'">
           <StatIcon name="itemDoubled" class="log-icon" /> "{{ entry.itemName }}" now has double stats!
@@ -104,10 +104,10 @@ const activityLogStore = useActivityLogStore();
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && (entry.skill === 'rend' || entry.skill === 'ravage')">
           <StatIcon name="bossHit" class="log-icon" /> {{ entry.skill === 'rend' ? 'Rend' : 'Ravage' }} — took
-          <span class="log-damage">{{ Math.round(entry.amount ?? 0) }}</span> damage
+          <span class="log-damage">{{ formatCompact(entry.amount ?? 0) }}</span> damage
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'mend'">
-          <StatIcon name="mend" class="log-icon" /> The boss mends <span class="log-heal">+{{ Math.round(entry.amount ?? 0) }}</span>
+          <StatIcon name="mend" class="log-icon" /> The boss mends <span class="log-heal">+{{ formatCompact(entry.amount ?? 0) }}</span>
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && entry.skill === 'bloodlust'">
           <StatIcon name="bloodlust" class="log-icon" /> Bloodlust · 2 days
@@ -134,15 +134,15 @@ const activityLogStore = useActivityLogStore();
           <span class="log-effect">{{ bossSkillEffectText('undying') }}</span>
         </template>
         <template v-else-if="entry.kind === 'doom-landed'">
-          <StatIcon name="doom" class="log-icon" /> Doom — took <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage
+          <StatIcon name="doom" class="log-icon" /> Doom — took <span class="log-damage">{{ formatCompact(entry.amount) }}</span> damage
         </template>
         <template v-else-if="entry.kind === 'quest-completed'">
           <StatIcon name="quest" class="log-icon" /> Completed quest "{{ entry.description }}" —
           <template v-if="entry.itemName">found {{ entry.itemName }}</template>
-          <template v-else>gained <span class="log-exp">+{{ Math.round(entry.amount) }}</span> EXP</template>
+          <template v-else>gained <span class="log-exp">+{{ formatCompact(entry.amount) }}</span> EXP</template>
         </template>
         <template v-else-if="entry.kind === 'quest-failed'">
-          <StatIcon name="quest" class="log-icon" /> Missed quest "{{ entry.description }}" — took <span class="log-damage">{{ Math.round(entry.amount) }}</span> damage
+          <StatIcon name="quest" class="log-icon" /> Missed quest "{{ entry.description }}" — took <span class="log-damage">{{ formatCompact(entry.amount) }}</span> damage
         </template>
       </li>
     </ul>

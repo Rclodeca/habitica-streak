@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import {
   dailyPeriodKey,
+  formatCompact,
   habitDamageBreakdown,
   hasItemEffect,
   isDueOn,
@@ -71,17 +72,15 @@ const rankBarPct = computed(() =>
   nextMilestone.value === undefined ? 100 : Math.min(100, (props.habit.streakCount * 100) / nextMilestone.value),
 );
 
-/** +500% */
-function formatBonus(bonus: number): string {
-  return `+${Math.round(bonus * 100)}%`;
-}
-
 // The hit, worked out top to bottom: the base, then each multiplier that
-// changes it. Gear only shows once items boost this damage type.
+// changes it. Gear only shows once items boost this damage type. Rank and
+// streak add into one multiplier (see rankMultiplier), so the streak row is
+// what it adds on top of the rank row: the rows multiply out to the real hit.
 const multipliers = computed(() => {
+  const rankFactor = 1 + breakdown.value.rankBonus;
   const rows: { label: string; icon: StatIconName; note?: string; text: string }[] = [
-    { label: 'Rank', icon: 'levelUp', note: rankNumeral(rank.value), text: rank.value ? formatBonus(breakdown.value.rankBonus) : '—' },
-    { label: 'Streak', icon: 'streak', note: String(props.habit.streakCount), text: formatBonus(breakdown.value.streakBonus) },
+    { label: 'Rank', icon: 'levelUp', note: rankNumeral(rank.value), text: rank.value ? formatMultiplier(rankFactor) : '—' },
+    { label: 'Streak', icon: 'streak', note: String(props.habit.streakCount), text: formatMultiplier(multiplier.value / rankFactor) },
   ];
   if (itemMultiplier.value !== 1) rows.push({ label: 'Gear', icon: 'gear', text: formatMultiplier(itemMultiplier.value) });
   if (effectMultiplier.value !== 1) rows.push({ label: 'Effects', icon: 'itemDoubled', text: formatMultiplier(effectMultiplier.value) });
@@ -185,19 +184,19 @@ function removeHabit() {
     <dl class="skill-sum" :class="{ resting: isResting }">
       <div class="sum-row base" :class="{ crowded }">
         <dt>Base<small v-if="crowded" class="crowded">crowded</small></dt>
-        <dd>{{ baseDamage.toFixed(0) }}</dd>
+        <dd>{{ formatCompact(baseDamage) }}</dd>
       </div>
       <div v-for="row in multipliers" :key="row.label" class="sum-row">
         <dt><StatIcon :name="row.icon" />{{ row.label }}<small v-if="row.note">{{ row.note }}</small></dt>
         <dd>{{ row.text }}</dd>
       </div>
       <div v-if="bonusLabel" class="sum-row">
-        <dt><SkillSigil :habit="habit" :size="14" />{{ bonusLabel }}<small>first hit</small></dt>
+        <dt><SkillSigil :habit="habit" :size="14" />{{ bonusLabel }}</dt>
         <dd>{{ formatMultiplier(bonusMultiplier) }}</dd>
       </div>
       <div class="sum-total" :style="{ '--c': damageColor }">
         <dt>{{ totalLabel }}</dt>
-        <dd>{{ effectiveDamage.toFixed(0) }}</dd>
+        <dd>{{ formatCompact(effectiveDamage) }}</dd>
       </div>
     </dl>
 
@@ -214,7 +213,7 @@ function removeHabit() {
       <span class="charges" aria-hidden="true">
         <span v-for="n in TUNING.OVERDRIVE_MAX_EXTRA_USES" :key="n" class="charge" :class="chargeState(n)" />
       </span>
-      <small>{{ overdriveDamage.toFixed(0) }}</small>
+      <small>{{ formatCompact(overdriveDamage) }}</small>
     </button>
 
     <div class="remove-section">

@@ -16,6 +16,7 @@
 // (jsdom) or the stage has gone.
 
 import { holdHp } from '../../composables/useHitFeed';
+import { formatCompact } from '../../game-engine';
 import type { Fighter, Hit, HitPlayer, StrikeType } from '../../composables/useHitFeed';
 
 export interface StageParts {
@@ -151,7 +152,7 @@ class Scene {
     const el = document.createElement('span');
     el.className = `fx-pop${o.size ? ` ${o.size}` : ''}`;
     el.style.setProperty('--c', color);
-    el.textContent = `${sign}${n}${o.size === 'crit' ? '!' : ''}`;
+    el.textContent = `${sign}${formatCompact(n)}${o.size === 'crit' ? '!' : ''}`;
     Object.assign(el.style, { left: `${on.cx + (o.dx ?? 0)}px`, top: `${on.y + on.h * 0.16 + (o.dy ?? 0)}px` });
     this.parts.layer.appendChild(el);
     const frames: Frame[] = this.reduced

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { formatCompact } from '../../game-engine';
 
 // Same proportional-fill pattern as HealthBar, styled distinctly for exp.
 const props = defineProps<{ current: number; max: number }>();
@@ -19,7 +20,7 @@ const percent = computed(() => {
     :aria-valuemax="Math.round(max)"
   >
     <div class="exp-bar-fill" :style="{ width: `${percent}%` }" />
-    <span class="exp-bar-label">{{ Math.round(current) }} / {{ Math.round(max) }}</span>
+    <span class="exp-bar-label">{{ formatCompact(current) }} / {{ formatCompact(max) }}</span>
   </div>
 </template>
 

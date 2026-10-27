@@ -4,7 +4,7 @@ import { enableAutoUnmount, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { addDaysToDayKey, dailyPeriodKey, effectiveStat, ITEM_CATALOG } from '../../game-engine';
+import { addDaysToDayKey, dailyPeriodKey, effectiveStat, formatCompact, ITEM_CATALOG } from '../../game-engine';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import Modal from '../ui/Modal.vue';
@@ -67,7 +67,7 @@ describe('CharacterPanel', () => {
     store.character.currentHealth = 980.4;
     const wrapper = mount(CharacterPanel);
     const bars = wrapper.find('.hero-block .bars');
-    expect(bars.find('.health-bar .health-bar-label').text()).toBe(`980 / ${Math.round(effectiveStat(store.character, 'health'))}`);
+    expect(bars.find('.health-bar .health-bar-label').text()).toBe(`980 / ${formatCompact(effectiveStat(store.character, 'health'))}`);
     expect(bars.find('.exp-bar').exists()).toBe(true);
   });
 

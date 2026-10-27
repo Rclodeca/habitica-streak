@@ -123,8 +123,9 @@ describe('HabitStatsModal', () => {
       expect(document.body.querySelectorAll('.rank-block .rank-diamonds i')).toHaveLength(5);
       expect(text('.rank-caption')).toContain('VI at 200');
       expect((q('.rank-bar i') as HTMLElement).style.width).toBe('56%');
-      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('+500%');
-      expect(sumRow('Streak')?.querySelector('dd')?.textContent).toBe('+112%');
+      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('×6.0');
+      // Rank and streak add into 1 + 5 + 1.12 = 7.12; the streak row is 7.12 / 6.
+      expect(sumRow('Streak')?.querySelector('dd')?.textContent).toBe('×1.19');
     });
 
     it('a weekly counts weeks', () => {
@@ -149,10 +150,10 @@ describe('HabitStatsModal', () => {
       expect(text('.rank-caption')).not.toContain(' at ');
     });
 
-    it('a healing rank is worth +25%', () => {
+    it('a healing rank is worth a quarter', () => {
       addHabit('daily', { damageType: 'healing', rank: 2 });
       mountPopup();
-      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('+50%');
+      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('×1.5');
     });
 
     it('marks the 16th skill\'s Base crowded, and not the first\'s', () => {

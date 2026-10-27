@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { formatCompact } from '../../game-engine';
 import type { HeroClass } from '../../game-engine';
 import type { CelebrationPhase } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
@@ -61,12 +62,12 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
         <img class="hero" :src="`${baseUrl}sprites/player/${heroClass}.png`" alt="" />
       </span>
       <span class="level"><span>{{ heroLevel }}</span></span>
-      <span v-for="popup in heroPopups" :key="popup.id" class="damage-popup" aria-hidden="true">-{{ popup.amount }}</span>
+      <span v-for="popup in heroPopups" :key="popup.id" class="damage-popup" aria-hidden="true">-{{ formatCompact(popup.amount) }}</span>
     </span>
     <span class="who">
       <span class="label">
         <span v-if="phase === 'dying'" class="slain">Slain</span>
-        <span v-else class="numbers">{{ Math.round(current) }} / {{ Math.round(max) }}</span>
+        <span v-else class="numbers">{{ formatCompact(current) }} / {{ formatCompact(max) }}</span>
         <span class="name">{{ name }}</span>
       </span>
       <HealthBar :current="current" :max="max" variant="boss" :marks="mirroredMarks" />
@@ -75,7 +76,7 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
       <Sprite :image-name="sprite" alt="" />
     </span>
     <span class="hit-layer" aria-hidden="true">
-      <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ popup.amount }}</span>
+      <span v-for="popup in popups" :key="popup.id" class="damage-popup">-{{ formatCompact(popup.amount) }}</span>
     </span>
   </div>
 </template>

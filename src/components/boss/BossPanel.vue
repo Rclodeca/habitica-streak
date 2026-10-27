@@ -9,6 +9,7 @@ import {
   damageReductionPct,
   doomDaysLeft,
   doomPct,
+  formatCompact,
   effectiveResistAfterPen,
   itemBonusPercent,
   PERSONALITY_NAME,
@@ -87,10 +88,10 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const statTiles = computed<StatTile[]>(() => {
   const b = boss.value;
   return [
-    { icon: 'physical', label: 'Physical attack', value: physicalAttack.value.toFixed(0) },
-    { icon: 'magic', label: 'Magic attack', value: magicAttack.value.toFixed(0) },
-    { icon: 'armor', label: 'Armor', value: b.armor.toFixed(0), note: `${armorReduction.value.toFixed(1)}% less damage` },
-    { icon: 'magicResist', label: 'Magic resist', value: b.magicResist.toFixed(0), note: `${magicResistReduction.value.toFixed(1)}% less damage` },
+    { icon: 'physical', label: 'Physical attack', value: formatCompact(physicalAttack.value) },
+    { icon: 'magic', label: 'Magic attack', value: formatCompact(magicAttack.value) },
+    { icon: 'armor', label: 'Armor', value: formatCompact(b.armor), note: `${armorReduction.value.toFixed(1)}% less damage` },
+    { icon: 'magicResist', label: 'Magic resist', value: formatCompact(b.magicResist), note: `${magicResistReduction.value.toFixed(1)}% less damage` },
     { icon: 'crit', label: 'Crit chance', value: pct(b.critChance) },
     ...(b.lifestealPct > 0 ? [{ icon: 'lifesteal' as const, label: 'Lifesteal', value: pct(b.lifestealPct) }] : []),
     ...(reflectDays.value !== undefined
@@ -124,10 +125,10 @@ const statTiles = computed<StatTile[]>(() => {
       <h2 class="boss-name">{{ nameHead }}<span class="name-tail">{{ nameTail }}</span></h2>
       <HealthBar :current="shownHealth" :max="boss.maxHealth" variant="boss" :marks="skillMarks" />
       <p class="stat-summary">
-        <span><StatIcon name="physical" /> {{ physicalAttack.toFixed(0) }}</span>
-        <span><StatIcon name="magic" /> {{ magicAttack.toFixed(0) }}</span>
-        <span><StatIcon name="armor" /> {{ boss.armor.toFixed(0) }}</span>
-        <span><StatIcon name="magicResist" /> {{ boss.magicResist.toFixed(0) }}</span>
+        <span><StatIcon name="physical" /> {{ formatCompact(physicalAttack) }}</span>
+        <span><StatIcon name="magic" /> {{ formatCompact(magicAttack) }}</span>
+        <span><StatIcon name="armor" /> {{ formatCompact(boss.armor) }}</span>
+        <span><StatIcon name="magicResist" /> {{ formatCompact(boss.magicResist) }}</span>
         <span><StatIcon name="crit" /> {{ (boss.critChance * 100).toFixed(0) }}%</span>
         <span v-if="boss.lifestealPct > 0"><StatIcon name="lifesteal" /> {{ (boss.lifestealPct * 100).toFixed(0) }}%</span>
         <span v-if="reflectDays !== undefined"><StatIcon name="reflect" /> <span class="reflect">{{ reflectDays }}d</span></span>
