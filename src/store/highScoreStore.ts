@@ -8,7 +8,7 @@
 //     with the pre-reset character/boss/habits).
 
 import { defineStore } from 'pinia';
-import { daysBetweenDayKeys, DEFAULT_HERO_NAME, heroClassFor } from '../game-engine';
+import { daysBetweenDayKeys, DEFAULT_HERO_NAME, heroClassFor, rankForStreak } from '../game-engine';
 import type { DamageType, HeroClass, Period, Personality } from '../game-engine';
 
 const STORAGE_KEY = 'habitica-streak:highscore:v1';
@@ -22,6 +22,7 @@ export interface HighScoreRunHabit {
   damageType: DamageType;
   isBad: boolean;
   streakCount: number;
+  rank?: number; // older runs didn't save one; see runHabitRank
 }
 
 export interface HighScoreRunItem {
@@ -78,6 +79,11 @@ export function runHero(run: HighScoreRun): { name: string; heroClass: HeroClass
     name: run.heroName ?? DEFAULT_HERO_NAME,
     heroClass: run.heroClass ?? heroClassFor({ starterStats: run.stats }),
   };
+}
+
+/** A skill's rank at the end of its run. Older runs didn't save one: they get the rank their saved streak earns, as migrateHabitRank does. */
+export function runHabitRank(habit: HighScoreRunHabit): number {
+  return habit.rank ?? rankForStreak(habit.streakCount, habit.period);
 }
 
 function loadHighestBossIndex(): number {

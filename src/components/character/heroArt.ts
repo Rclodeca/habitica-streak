@@ -1,8 +1,7 @@
 import type { HeroClass } from '../../game-engine';
 
-// The warrior and cleric art faces left; turned around, they face the boss.
-// The ranger is drawn facing right already.
-export const DRAWN_FACING_LEFT: Record<HeroClass, boolean> = { warrior: true, cleric: true, ranger: false };
+// Every hero's art file is stored facing right, toward the boss, so nothing
+// turns it around in code.
 
 // Where each hero stands on the fight stage, in px on its 390px-wide phone
 // design: drawn width, then left and bottom offsets. Every hero draws at 0.87x

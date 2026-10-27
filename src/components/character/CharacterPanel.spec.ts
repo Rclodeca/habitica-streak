@@ -71,27 +71,13 @@ describe('CharacterPanel', () => {
     expect(bars.find('.exp-bar').exists()).toBe(true);
   });
 
-  it('turns the warrior and cleric to face the boss and places each by its class', async () => {
+  it('places each hero by its class', async () => {
     setClass(600, 300);
     const wrapper = mount(CharacterPanel);
-    expect(wrapper.find('.hero-figure').classes()).toContain('mirrored');
+    expect(wrapper.find('.hero-figure').attributes('style')).toContain('--hero-w: 160');
     setClass(300, 600);
     await nextTick();
     expect(wrapper.find('.hero-figure').attributes('style')).toContain('--hero-w: 174');
-    setClass(450, 450);
-    await nextTick();
-    expect(wrapper.find('.hero-figure').classes()).not.toContain('mirrored');
-  });
-
-  it('turns the warrior and cleric in the details the same way as on the stage', async () => {
-    setClass(600, 300);
-    const wrapper = mount(CharacterPanel);
-    await wrapper.find('button.tap-hero').trigger('click');
-    expect(document.body.querySelector('.hero-sprite')!.classList).toContain('mirrored');
-    setClass(450, 450);
-    await nextTick();
-    expect(document.body.querySelector('.hero-sprite')!.classList).not.toContain('mirrored');
-    wrapper.unmount();
   });
 
   describe('boss-skill effects', () => {

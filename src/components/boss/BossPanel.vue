@@ -22,7 +22,7 @@ import { usePress } from '../../composables/usePress';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import { useDebugClockStore } from '../../store/debugClockStore';
-import { BOSS_FACING_RIGHT, PERSONALITY_SPRITE } from './bossSprites';
+import { PERSONALITY_SPRITE } from './bossSprites';
 import HealthBar from '../ui/HealthBar.vue';
 import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
@@ -111,10 +111,7 @@ const statTiles = computed<StatTile[]>(() => {
        each piece sits straight on the stage. -->
   <div class="boss-panel" :class="{ pressed }">
     <div class="boss-plat" aria-hidden="true" />
-    <div
-      class="boss-figure"
-      :class="{ dying: phase === 'dying', arriving: phase === 'arriving', mirrored: BOSS_FACING_RIGHT[boss.personality] }"
-    >
+    <div class="boss-figure" :class="{ dying: phase === 'dying', arriving: phase === 'arriving' }">
       <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
       <template v-if="phase === 'dying'">
         <span class="death-flash" aria-hidden="true" />
@@ -146,7 +143,7 @@ const statTiles = computed<StatTile[]>(() => {
 
     <Modal v-model="showDetails" title="Boss" max-width="520px">
       <div class="hero">
-        <div class="hero-sprite" :class="{ mirrored: BOSS_FACING_RIGHT[boss.personality] }">
+        <div class="hero-sprite">
           <Sprite :image-name="PERSONALITY_SPRITE[boss.personality]" alt="Boss" />
         </div>
         <div class="hero-info">
@@ -511,13 +508,6 @@ const statTiles = computed<StatTile[]>(() => {
   width: 200px;
   height: 200px;
   margin-bottom: 6px;
-}
-
-/* Faces the hero, on the stage and in the details; `scale` composes with the
-   hit and kill animations' transforms. */
-.boss-figure.mirrored :deep(.sprite),
-.hero-sprite.mirrored :deep(.sprite) {
-  scale: -1 1;
 }
 
 /* ---------- A kill: flash, fall into the fog, "Slain" ---------- */

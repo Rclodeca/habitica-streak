@@ -39,7 +39,7 @@ import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
 import { BOOST_STAT_ICON } from '../ui/statIcons';
 import type { StatIconName } from '../ui/statIcons';
-import { DRAWN_FACING_LEFT, HERO_PLACEMENT } from './heroArt';
+import { HERO_PLACEMENT } from './heroArt';
 import PlayerSprite from './PlayerSprite.vue';
 
 // A condensed, always-visible emoji stat line (Buffed numbers) sits under
@@ -236,7 +236,7 @@ onBeforeUnmount(() => {
   <!-- The hero's half of the fight stage (FightStage), facing the boss's. -->
   <div class="character-panel" :class="{ leveling, pressed }">
     <div class="hero-plat" aria-hidden="true" />
-    <div class="hero-figure" :class="{ mirrored: DRAWN_FACING_LEFT[heroClass] }" :style="placement">
+    <div class="hero-figure" :style="placement">
       <PlayerSprite :character="character" />
       <span v-if="leveling" class="level-ring" aria-hidden="true" />
     </div>
@@ -276,7 +276,7 @@ onBeforeUnmount(() => {
 
     <Modal v-model="showDetails" :title="heroName" max-width="520px">
       <div class="hero">
-        <div class="hero-sprite" :class="{ mirrored: DRAWN_FACING_LEFT[heroClass] }">
+        <div class="hero-sprite">
           <PlayerSprite :character="character" />
         </div>
         <div class="hero-info">
@@ -378,11 +378,6 @@ onBeforeUnmount(() => {
 
 .hero-figure :deep(.hero) {
   transition: filter 0.3s ease;
-}
-
-/* `scale` composes with the hit shake's transform. */
-.hero-figure.mirrored :deep(.hero) {
-  scale: -1 1;
 }
 
 /* Floats on the stage to the hero's right. Its left edge sits at the same
@@ -633,10 +628,6 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   width: auto;
   height: auto;
-}
-
-.hero-sprite.mirrored :deep(.hero) {
-  scale: -1 1;
 }
 
 .hero-sprite :deep(.hero) {

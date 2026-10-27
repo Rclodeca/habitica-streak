@@ -47,14 +47,6 @@ describe('BossBar', () => {
     expect(wrapper.emitted('open')).toBeUndefined();
   });
 
-  it("turns the boss's portrait when its art faces away from the hero", async () => {
-    const wrapper = mount(BossBar, { props });
-    expect(wrapper.find('.portrait').classes()).not.toContain('mirrored');
-
-    await wrapper.setProps({ spriteMirrored: true });
-    expect(wrapper.find('.portrait').classes()).toContain('mirrored');
-  });
-
   it('pops each hit the boss takes', async () => {
     const wrapper = mount(BossBar, { props: { ...props, shown: true } });
     await wrapper.setProps({ current: 331.4 });
@@ -89,16 +81,5 @@ describe('BossBar', () => {
     await wrapper.setProps({ heroCurrent: 917 });
     expect(wrapper.find('.ring .damage-popup').text()).toBe('-63');
     expect(wrapper.find('.hit-layer .damage-popup').exists()).toBe(false);
-  });
-
-  it('turns the warrior and cleric to face the boss, and leaves the ranger as drawn', async () => {
-    const wrapper = mount(BossBar, { props });
-    expect(wrapper.find('.ring-face').classes()).toContain('mirrored');
-
-    await wrapper.setProps({ heroClass: 'cleric' });
-    expect(wrapper.find('.ring-face').classes()).toContain('mirrored');
-
-    await wrapper.setProps({ heroClass: 'ranger' });
-    expect(wrapper.find('.ring-face').classes()).not.toContain('mirrored');
   });
 });

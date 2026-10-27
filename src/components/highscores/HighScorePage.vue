@@ -7,9 +7,9 @@ import { computed, ref } from 'vue';
 import { describeItemBonus, formatCompact, ITEM_CATALOG, PERSONALITY_NAME } from '../../game-engine';
 import type { DamageType } from '../../game-engine';
 import type { HighScoreRun, HighScoreRunItem } from '../../store/highScoreStore';
-import { runHero, useHighScoreStore } from '../../store/highScoreStore';
-import { BOSS_FACING_RIGHT, PERSONALITY_SPRITE } from '../boss/bossSprites';
-import { DRAWN_FACING_LEFT } from '../character/heroArt';
+import { runHabitRank, runHero, useHighScoreStore } from '../../store/highScoreStore';
+import { PERSONALITY_SPRITE } from '../boss/bossSprites';
+import RankDiamonds from '../habits/RankDiamonds.vue';
 import Modal from '../ui/Modal.vue';
 import StatIcon from '../ui/StatIcon.vue';
 import type { StatIconName } from '../ui/statIcons';
@@ -102,16 +102,10 @@ const DAMAGE_TYPE_ICON: Record<DamageType, StatIconName> = {
     <Modal v-model="sheetOpen" :title="openIndex === null ? undefined : `Rank ${openIndex + 1}`" :scroll-key="openRun?.id">
       <div v-if="openRun && openHero" class="run-sheet">
         <div class="duel">
-          <img
-            class="duel-hero"
-            :class="{ flip: DRAWN_FACING_LEFT[openHero.heroClass] }"
-            :src="`${baseUrl}sprites/player/${openHero.heroClass}.png`"
-            alt=""
-          />
+          <img class="duel-hero" :src="heroArt(openRun)" alt="" />
           <img
             v-if="openRun.bossPersonality"
             class="duel-boss"
-            :class="{ flip: BOSS_FACING_RIGHT[openRun.bossPersonality] }"
             :src="`${baseUrl}sprites/${PERSONALITY_SPRITE[openRun.bossPersonality]}.png`"
             alt=""
           />
@@ -158,6 +152,7 @@ const DAMAGE_TYPE_ICON: Record<DamageType, StatIconName> = {
               {{ habit.name }}
               <span class="run-skill-period">{{ habit.period }}</span>
               <span class="run-skill-streak"><StatIcon name="streak" :size="13" />{{ habit.streakCount }}</span>
+              <RankDiamonds :rank="runHabitRank(habit)" />
             </li>
           </ul>
         </template>
@@ -350,10 +345,6 @@ const DAMAGE_TYPE_ICON: Record<DamageType, StatIconName> = {
 /* A hero with no boss saved (an older run) stands alone, centred. */
 .duel-hero:only-child {
   left: calc(50% - 46px);
-}
-
-.duel .flip {
-  transform: scaleX(-1);
 }
 
 .run-hero {

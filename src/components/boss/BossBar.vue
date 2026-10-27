@@ -6,7 +6,6 @@ import type { CelebrationPhase } from '../../composables/useCelebration';
 import { useDamagePopup } from '../../composables/useDamagePopup';
 import HealthBar from '../ui/HealthBar.vue';
 import Sprite from '../ui/Sprite.vue';
-import { DRAWN_FACING_LEFT } from '../character/heroArt';
 
 // Once the fight stage has scrolled off the top, at every width, this bar
 // drops in so every hit stays in view while ticking skills (FightStage decides
@@ -27,8 +26,6 @@ const props = defineProps<{
   heroLevel: number;
   shown: boolean;
   phase?: CelebrationPhase;
-  /** Turns the boss's portrait around, for art drawn facing away from the hero. */
-  spriteMirrored?: boolean;
   /** The boss's skill breakpoints (see bossSkillMarks); mirrored below, since this bar drains to the right. */
   marks?: { at: number; state: 'armed' | 'fired' | 'spent' }[];
 }>();
@@ -58,7 +55,7 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
         <circle class="track" cx="22" cy="22" :r="RING_RADIUS" />
         <circle class="arc" cx="22" cy="22" :r="RING_RADIUS" :stroke-dasharray="RING_LENGTH" :stroke-dashoffset="ringOffset" />
       </svg>
-      <span class="ring-face" :class="{ mirrored: DRAWN_FACING_LEFT[heroClass] }">
+      <span class="ring-face">
         <img class="hero" :src="`${baseUrl}sprites/player/${heroClass}.png`" alt="" />
       </span>
       <span class="level"><span>{{ heroLevel }}</span></span>
@@ -72,7 +69,7 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
       </span>
       <HealthBar :current="current" :max="max" variant="boss" :marks="mirroredMarks" />
     </span>
-    <span class="portrait" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving', mirrored: spriteMirrored }">
+    <span class="portrait" :class="{ hit: isHit, dying: phase === 'dying', arriving: phase === 'arriving' }">
       <Sprite :image-name="sprite" alt="" />
     </span>
     <span class="hit-layer" aria-hidden="true">
@@ -120,10 +117,6 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
   width: 42px;
   height: 42px;
   image-rendering: pixelated;
-}
-
-.portrait.mirrored :deep(.sprite) {
-  scale: -1 1;
 }
 
 .portrait.hit :deep(.sprite) {
@@ -180,10 +173,6 @@ const { popups: heroPopups, isHit: heroHit } = useDamagePopup(() => props.heroCu
   overflow: hidden;
   background: var(--code-bg);
   border-radius: 50%;
-}
-
-.ring-face.mirrored {
-  transform: scaleX(-1);
 }
 
 .hero {

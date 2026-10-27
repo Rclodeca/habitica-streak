@@ -5,7 +5,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { runHero, useHighScoreStore } from './highScoreStore';
+import { runHabitRank, runHero, useHighScoreStore } from './highScoreStore';
 
 describe('highScoreStore', () => {
   beforeEach(() => {
@@ -116,6 +116,13 @@ describe('highScoreStore', () => {
     // magicDamage 2 vs physicalDamage 1 reads as a magic lean.
     expect(runHero(store.topRuns[0])).toEqual({ name: 'Nameless', heroClass: 'cleric' });
     expect(store.topRuns[0].bossPersonality).toBeUndefined();
+  });
+
+  it('runHabitRank uses the saved rank, and the streak for a run that saved none', () => {
+    const habit = { name: 'Run', period: 'daily' as const, damageType: 'physical' as const, isBad: false, streakCount: 0 };
+    expect(runHabitRank({ ...habit, rank: 3 })).toBe(3); // a rank outlives its streak's reset
+    expect(runHabitRank(habit)).toBe(0);
+    expect(runHabitRank({ ...habit, streakCount: 10_000 })).toBeGreaterThan(0);
   });
 
   it('reloads topRuns and currentRunStartedDayKey from localStorage on a fresh store instance', () => {

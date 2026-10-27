@@ -8,7 +8,7 @@ import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
 import BossBar from '../boss/BossBar.vue';
 import BossPanel from '../boss/BossPanel.vue';
-import { BOSS_FACING_RIGHT, PERSONALITY_SPRITE } from '../boss/bossSprites';
+import { PERSONALITY_SPRITE } from '../boss/bossSprites';
 import CharacterPanel from '../character/CharacterPanel.vue';
 import { createHitPlayer } from './hitFx';
 
@@ -97,7 +97,6 @@ onBeforeUnmount(() => {
       <BossBar
         ref="bar"
         :sprite="PERSONALITY_SPRITE[boss.personality]"
-        :sprite-mirrored="BOSS_FACING_RIGHT[boss.personality]"
         :name="PERSONALITY_NAME[boss.personality]"
         :current="bossHp"
         :max="boss.maxHealth"
