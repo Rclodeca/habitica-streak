@@ -1,7 +1,7 @@
 import { applyResist, baseResistStatForIndex, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
 import { activeSunder, bloodlustActive, reflectActive, resolveBreakpoints, spendPassedBreakpoints } from './bossSkills';
 import type { FiredBossSkill } from './bossSkills';
-import { createCharacter } from './character';
+import { createCharacter, heroClassFor } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { crowdingFactor, rerollAllDamageTypes, resetLevelRewards, skillBaseDamage } from './habits';
@@ -538,7 +538,7 @@ export function resolvePlayerDeathIfDead(
   return {
     character: freshCharacter,
     boss: generateBoss(1, rng, undefined, bossAttackAnchorHealth(1, freshCharacter.starterStats.health, freshCharacter.level)),
-    habits: rerollAllDamageTypes(habits, rng).map(resetLevelRewards),
+    habits: rerollAllDamageTypes(habits, rng, heroClassFor(freshCharacter)).map(resetLevelRewards),
     died: true,
   };
 }

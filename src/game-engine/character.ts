@@ -15,13 +15,17 @@ export function createCharacter(rng: Rng): Character {
   // TUNING.DAMAGE_SPLIT_RATIOS.
   const [physicalShare, magicShare] = pickRandom(TUNING.DAMAGE_SPLIT_RATIOS, rng);
   const damagePool = TUNING.BASE_STATS.physicalDamage + TUNING.BASE_STATS.magicDamage;
-  const starterStats = {
+  const rolled = {
     physicalDamage: randomizeStat(damagePool * physicalShare, rng),
     magicDamage: randomizeStat(damagePool * magicShare, rng),
     healing: randomizeStat(TUNING.BASE_STATS.healing, rng),
     health: randomizeStat(TUNING.BASE_STATS.health, rng),
     trueDamage: randomizeStat(TUNING.BASE_STATS.trueDamage, rng),
   };
+  const starterStats =
+    heroClassFor({ starterStats: rolled }) === 'ranger'
+      ? { ...rolled, trueDamage: rolled.trueDamage * TUNING.RANGER_TRUE_DAMAGE_MULTIPLIER }
+      : rolled;
   return {
     level: 1,
     exp: 0,

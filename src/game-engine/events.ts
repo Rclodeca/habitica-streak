@@ -2,6 +2,7 @@
 // events. To add an event, append an EventDef to EVENT_DEFS and handle its
 // id in useEventChoice (src/composables).
 
+import type { HeroClass } from './character';
 import { TUNING } from './constants/tuning';
 import { healingAllowed, rerollDamageType } from './habits';
 import { availableRelics, doublableItems, equippedDoubledItemIds, unownedDroppableItems } from './items';
@@ -228,10 +229,10 @@ export function applyHealBoostEvent(character: Character, dayKey: string): Chara
   return { ...character, statusEffects: [...(character.statusEffects ?? []).filter((e) => e.type !== 'healBoost'), boost] };
 }
 
-/** Re-rolls the chosen skill's damage type to one different from its current type, kept off healing past the cap. */
-export function applyRerollSkillEvent(habits: Habit[], habitId: string, rng: Rng): Habit[] {
+/** Re-rolls the chosen skill's damage type to one different from its current type at `heroClass`'s odds, kept off healing past the cap. */
+export function applyRerollSkillEvent(habits: Habit[], habitId: string, rng: Rng, heroClass?: HeroClass): Habit[] {
   const excludeHealing = !healingAllowed(habits.filter((h) => h.id !== habitId), habits.length);
-  return habits.map((h) => (h.id === habitId ? rerollDamageType(h, rng, true, excludeHealing) : h));
+  return habits.map((h) => (h.id === habitId ? rerollDamageType(h, rng, true, excludeHealing, heroClass) : h));
 }
 
 /**

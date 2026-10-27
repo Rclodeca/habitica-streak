@@ -37,6 +37,7 @@ import {
   effectiveCritChance,
   effectiveStat,
   describeItemBonus,
+  heroClassFor,
   ITEM_CATALOG,
   isDueOn,
   itemDoubleFactor,
@@ -422,7 +423,7 @@ export function useCombatActions() {
    * Thin wrapper around `habitStore.addHabit`, sharing this module's Rng.
    */
   function addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, days?: number[]): Habit {
-    const created = habitStore.addHabit(name, period, difficulty, isBad, rng, days);
+    const created = habitStore.addHabit(name, period, difficulty, isBad, rng, days, heroClassFor(characterStore.character));
     // Stamped so the next rollover doesn't count the period before this
     // habit existed as a miss, and with its day so it can't be removed until
     // tomorrow (see removalLocked).

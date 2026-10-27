@@ -20,14 +20,20 @@ import { generateBoss, rescaleBossToHealthBands } from './boss';
 import { TUNING } from './constants/tuning';
 
 describe('createCharacter', () => {
-  it('starts at the per-skill stats: 672 physical + magic and 288 true damage, ±5%', () => {
+  it('starts at the per-skill stats: 672 physical + magic and 288 true damage (360 for a ranger), ±5%', () => {
+    const seen = new Set<string>();
     for (let seed = 1; seed <= 50; seed++) {
-      const { starterStats } = createCharacter(createRng(seed));
+      const character = createCharacter(createRng(seed));
+      const { starterStats } = character;
+      const heroClass = heroClassFor(character);
+      seen.add(heroClass);
+      const trueBase = heroClass === 'ranger' ? 360 : 288;
       expect(starterStats.physicalDamage + starterStats.magicDamage).toBeGreaterThanOrEqual(672 * 0.95);
       expect(starterStats.physicalDamage + starterStats.magicDamage).toBeLessThanOrEqual(672 * 1.05);
-      expect(starterStats.trueDamage).toBeGreaterThanOrEqual(288 * 0.95);
-      expect(starterStats.trueDamage).toBeLessThanOrEqual(288 * 1.05);
+      expect(starterStats.trueDamage).toBeGreaterThanOrEqual(trueBase * 0.95);
+      expect(starterStats.trueDamage).toBeLessThanOrEqual(trueBase * 1.05);
     }
+    expect(seen).toEqual(new Set(['warrior', 'cleric', 'ranger']));
   });
 
   it('every starter stat falls within its possible range (split ratio + ±5% jitter) across many real-RNG runs', () => {
@@ -58,8 +64,10 @@ describe('createCharacter', () => {
       expect(health).toBeGreaterThanOrEqual(TUNING.BASE_STATS.health * 0.95);
       expect(health).toBeLessThanOrEqual(TUNING.BASE_STATS.health * 1.05);
 
-      expect(trueDamage).toBeGreaterThanOrEqual(TUNING.BASE_STATS.trueDamage * 0.95);
-      expect(trueDamage).toBeLessThanOrEqual(TUNING.BASE_STATS.trueDamage * 1.05);
+      const trueBase =
+        TUNING.BASE_STATS.trueDamage * (heroClassFor(character) === 'ranger' ? TUNING.RANGER_TRUE_DAMAGE_MULTIPLIER : 1);
+      expect(trueDamage).toBeGreaterThanOrEqual(trueBase * 0.95);
+      expect(trueDamage).toBeLessThanOrEqual(trueBase * 1.05);
     }
   });
 

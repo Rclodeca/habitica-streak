@@ -19,6 +19,7 @@ import {
   createRng,
   dailyPeriodKey,
   eligibleEvents,
+  heroClassFor,
   maxEquipSlots,
   recordSideQuestOffer,
   rollEventChoices,
@@ -114,7 +115,7 @@ export function useEventChoice() {
   }
 
   function chooseReroll(habitId: string) {
-    const habits = applyRerollSkillEvent(habitStore.habits, habitId, rng);
+    const habits = applyRerollSkillEvent(habitStore.habits, habitId, rng, heroClassFor(characterStore.character));
     habitStore.setHabits(habits);
     const rerolled = habits.find((h) => h.id === habitId);
     if (rerolled) activityLogStore.addEntry({ kind: 'skill-rerolled', habitName: rerolled.name, damageType: rerolled.damageType });

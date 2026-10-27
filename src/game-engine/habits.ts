@@ -1,5 +1,6 @@
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
+import type { HeroClass } from './character';
 import { pickWeighted, type Rng } from './rng';
 import { dayOfWeekIndex } from './time';
 import type { DamageType, Difficulty, Habit, Period } from './types';
@@ -11,10 +12,16 @@ import type { DamageType, Difficulty, Habit, Period } from './types';
  */
 const FIRST_HABIT_DAMAGE_TYPES: readonly DamageType[] = ['physical', 'magic'];
 
-function damageTypeWeights(isFirstHabit: boolean, excludeHealing: boolean): Record<string, number> {
+/** The damage type roll odds for `heroClass`: a ranger rolls true damage more often. */
+function classDamageTypeWeights(heroClass?: HeroClass): Record<DamageType, number> {
+  return heroClass === 'ranger' ? TUNING.RANGER_HABIT_DAMAGE_TYPE_WEIGHTS : TUNING.HABIT_DAMAGE_TYPE_WEIGHTS;
+}
+
+function damageTypeWeights(isFirstHabit: boolean, excludeHealing: boolean, heroClass?: HeroClass): Record<string, number> {
+  const classWeights = classDamageTypeWeights(heroClass);
   const weights: Record<string, number> = isFirstHabit
-    ? Object.fromEntries(FIRST_HABIT_DAMAGE_TYPES.map((type) => [type, TUNING.HABIT_DAMAGE_TYPE_WEIGHTS[type]]))
-    : { ...TUNING.HABIT_DAMAGE_TYPE_WEIGHTS };
+    ? Object.fromEntries(FIRST_HABIT_DAMAGE_TYPES.map((type) => [type, classWeights[type]]))
+    : { ...classWeights };
   if (excludeHealing) delete weights.healing;
   return weights;
 }
@@ -33,7 +40,8 @@ export function healingAllowed(otherHabits: Habit[], skillCount: number): boolea
 /**
  * `isFirstHabit` limits the damage type to physical or magic; pass it only
  * when the player has no habits yet. `excludeHealing` keeps it off healing
- * (see healingAllowed).
+ * (see healingAllowed). `heroClass` picks the roll odds (see
+ * classDamageTypeWeights).
  */
 export function createHabit(
   name: string,
@@ -44,6 +52,7 @@ export function createHabit(
   days?: number[],
   isFirstHabit = false,
   excludeHealing = false,
+  heroClass?: HeroClass,
 ): Habit {
   const dueDays = period === 'daily' ? normalizeDays(days) : undefined;
   return {
@@ -51,7 +60,7 @@ export function createHabit(
     name,
     period,
     difficulty,
-    damageType: pickWeighted<DamageType>(damageTypeWeights(isFirstHabit, excludeHealing), rng),
+    damageType: pickWeighted<DamageType>(damageTypeWeights(isFirstHabit, excludeHealing, heroClass), rng),
     isBad,
     streakCount: 0,
     rank: 0,
@@ -85,10 +94,16 @@ export function nextDueDay(days: number[], today: number): number {
 /**
  * Re-rolls a habit's damage type; with `excludeCurrent`, the result is
  * guaranteed to differ from the current type, and with `excludeHealing` it's
- * never healing.
+ * never healing. `heroClass` picks the roll odds.
  */
-export function rerollDamageType(habit: Habit, rng: Rng, excludeCurrent = false, excludeHealing = false): Habit {
-  const weights: Record<string, number> = { ...TUNING.HABIT_DAMAGE_TYPE_WEIGHTS };
+export function rerollDamageType(
+  habit: Habit,
+  rng: Rng,
+  excludeCurrent = false,
+  excludeHealing = false,
+  heroClass?: HeroClass,
+): Habit {
+  const weights: Record<string, number> = { ...classDamageTypeWeights(heroClass) };
   if (excludeCurrent) delete weights[habit.damageType];
   if (excludeHealing) delete weights.healing;
   return {
@@ -98,14 +113,14 @@ export function rerollDamageType(habit: Habit, rng: Rng, excludeCurrent = false,
 }
 
 /**
- * Re-rolls every habit's damage type in order (a run reset), keeping healing
- * out once the habits rerolled so far fill the cap for `habits.length`.
- * Order, ranks and streaks are kept.
+ * Re-rolls every habit's damage type in order (a run reset) at `heroClass`'s
+ * odds, keeping healing out once the habits rerolled so far fill the cap for
+ * `habits.length`. Order, ranks and streaks are kept.
  */
-export function rerollAllDamageTypes(habits: Habit[], rng: Rng): Habit[] {
+export function rerollAllDamageTypes(habits: Habit[], rng: Rng, heroClass?: HeroClass): Habit[] {
   const rerolled: Habit[] = [];
   for (const habit of habits) {
-    rerolled.push(rerollDamageType(habit, rng, false, !healingAllowed(rerolled, habits.length)));
+    rerolled.push(rerollDamageType(habit, rng, false, !healingAllowed(rerolled, habits.length), heroClass));
   }
   return rerolled;
 }

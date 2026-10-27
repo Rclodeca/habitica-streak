@@ -74,6 +74,21 @@ describe('createHabit', () => {
     expect(Object.keys(counts)).not.toContain('expGain');
   });
 
+  it('rolls true damage about twice as often for a ranger, 34/34/16/16', () => {
+    const rng = createRng(123);
+    const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0, trueDamage: 0 };
+    const iterations = 4000;
+    for (let i = 0; i < iterations; i++) {
+      const habit = createHabit('H', 'daily', 'easy', false, rng, undefined, false, false, 'ranger');
+      counts[habit.damageType] += 1;
+    }
+    expect(counts.physical / iterations).toBeCloseTo(0.34, 1);
+    expect(counts.magic / iterations).toBeCloseTo(0.34, 1);
+    expect(counts.healing / iterations).toBeCloseTo(0.16, 1);
+    expect(counts.trueDamage / iterations).toBeGreaterThan(0.13);
+    expect(counts.trueDamage / iterations).toBeLessThan(0.19);
+  });
+
   it('only picks physical or magic, split evenly, for a first habit', () => {
     const rng = createRng(123);
     const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0, trueDamage: 0 };
@@ -106,6 +121,17 @@ describe('rerollDamageType', () => {
       const rerolled = rerollDamageType(makeHabit({ damageType: 'physical' }), createRng(seed), true);
       expect(rerolled.damageType).not.toBe('physical');
     }
+  });
+
+  it('rerolls at a ranger\'s odds, alone and across a whole loadout', () => {
+    let alone = 0;
+    for (let seed = 0; seed < 2000; seed++) {
+      if (rerollDamageType(makeHabit(), createRng(seed), false, false, 'ranger').damageType === 'trueDamage') alone++;
+    }
+    const loadout = Array.from({ length: 2000 }, (_, i) => makeHabit({ id: `h${i}` }));
+    const all = rerollAllDamageTypes(loadout, createRng(7), 'ranger').filter((h) => h.damageType === 'trueDamage').length;
+    expect(alone / 2000).toBeGreaterThan(0.13);
+    expect(all / 2000).toBeGreaterThan(0.13);
   });
 
   it('does not mutate the original habit', () => {

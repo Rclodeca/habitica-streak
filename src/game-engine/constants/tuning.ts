@@ -15,6 +15,9 @@ export const TUNING = {
   // The later healing boost (188 -> 235), applied once to an in-progress
   // run's existing healing via character.ts's applyHealBoost.
   ONE_TIME_HEAL_BOOST_FACTOR: 1.25,
+  // A ranger's (an even physical/magic split, see heroClassFor) starting
+  // true damage multiplier.
+  RANGER_TRUE_DAMAGE_MULTIPLIER: 1.25,
   // Crowding: the FULL_POWER_SKILLS oldest skills hit in full; the next ones
   // hit for these factors, the last for every later one (see crowdingFactor).
   FULL_POWER_SKILLS: 15,
@@ -193,6 +196,9 @@ export const TUNING = {
   // offered before it is forced into the next pick.
   SIDE_QUEST_GUARANTEE_LEVELS: 5,
   HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.38, magic: 0.38, healing: 0.16, trueDamage: 0.08 },
+  // A ranger rolls true damage twice as often, taken equally from physical
+  // and magic.
+  RANGER_HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.34, magic: 0.34, healing: 0.16, trueDamage: 0.16 },
   // At most this share of skills (rounded up) can roll healing — on new rolls
   // only (see healingAllowed).
   HEAL_SKILL_CAP_SHARE: 0.25,
