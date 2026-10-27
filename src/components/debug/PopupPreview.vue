@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { createHabit, createQuest, createRng } from '../../game-engine';
+import { useBossSkillCard } from '../../composables/useBossSkillCard';
 import { useCelebration } from '../../composables/useCelebration';
 import { useDeathScreen } from '../../composables/useDeathScreen';
 import { useMissedSkillsGate } from '../../composables/useMissedSkillsGate';
@@ -13,6 +14,7 @@ const { queueMiss } = useQuestMissGate();
 const missedSkills = useMissedSkillsGate();
 const { triggerDeath } = useDeathScreen();
 const { celebrateBossKill, celebrateLevelUp } = useCelebration();
+const { showBossSkill } = useBossSkillCard();
 const bossStore = useBossStore();
 const characterStore = useCharacterStore();
 
@@ -35,6 +37,13 @@ function previewKill() {
   celebrateLevelUp(Math.max(1, characterStore.character.level - 1));
 }
 
+function previewBossSkills() {
+  showBossSkill({ skill: 'ravage', outcome: 'landed', amount: 1240 });
+  showBossSkill({ skill: 'blind', outcome: 'landed' });
+  showBossSkill({ skill: 'doom', outcome: 'landed', pct: 50 });
+  showBossSkill({ skill: 'rend', outcome: 'failed' });
+}
+
 function previewDaily() {
   const rng = createRng();
   missedSkills.queueMiss(createHabit('Meditate', 'daily', 'medium', false, rng), 'preview');
@@ -50,6 +59,7 @@ function previewDaily() {
     <button type="button" @click="previewMiss">Preview quest failed (testing)</button>
     <button type="button" @click="triggerDeath">Preview death screen (testing)</button>
     <button type="button" @click="previewKill">Preview boss kill (testing)</button>
+    <button type="button" @click="previewBossSkills">Preview boss skills (testing)</button>
   </div>
 </template>
 

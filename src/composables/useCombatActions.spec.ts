@@ -16,6 +16,7 @@ import { useDebugClockStore } from '../store/debugClockStore';
 import { useHabitStore } from '../store/habitStore';
 import { useHighScoreStore } from '../store/highScoreStore';
 import { useQuestStore } from '../store/questStore';
+import { useBossSkillCard } from './useBossSkillCard';
 import { useCelebration } from './useCelebration';
 import { useCombatActions } from './useCombatActions';
 import { useDeathScreen } from './useDeathScreen';
@@ -39,6 +40,7 @@ describe('useCombatActions', () => {
     useDeathScreen().dismiss();
     useReviveNotice().visible.value = false;
     useCelebration().clear();
+    useBossSkillCard().clear();
     setHitPlayer(null);
   });
 
@@ -150,6 +152,28 @@ describe('useCombatActions', () => {
       expect(entries[0]).toMatchObject({ kind: 'skill-damage' });
       expect(entries[1]).toMatchObject({ kind: 'boss-skill', skill: 'rend', outcome: 'landed' });
       expect((entries[1] as { amount: number }).amount).toBeCloseTo(hurt.amount);
+    });
+
+    it("opens a fired skill's card once the blow that set it off lands", () => {
+      vi.useFakeTimers();
+      try {
+        const habitStore = useHabitStore();
+        const bossStore = useBossStore();
+        const { checkOffHabit } = useCombatActions();
+        const habit = habitStore.addHabit('Lift', 'daily', 'medium', false, createRng());
+        habitStore.updateHabit({ ...habit, damageType: 'physical' });
+        bossStore.setBoss({ ...bossStore.boss, health: 50001, maxHealth: 100000, skills: [{ at: 0.5, skill: 'blind' }] });
+
+        checkOffHabit(habit.id);
+
+        const { current } = useBossSkillCard();
+        vi.advanceTimersByTime(479);
+        expect(current.value).toBeNull();
+        vi.advanceTimersByTime(1);
+        expect(current.value).toMatchObject({ skill: 'blind', outcome: 'landed' });
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('logs a Wounds skill as the familiar Wounds entry', () => {

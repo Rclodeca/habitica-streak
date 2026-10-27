@@ -10,12 +10,13 @@
 // buttons (confirmed via manual testing — see the quests design spec's
 // review notes). This centralizes the precedence order so it's declared
 // once instead of re-derived pairwise per modal:
-// death > item drop > habit miss > quest miss > quest complete > quest unlock > event choice.
-// Quest unlock and event choice also wait out a kill or level-up still
-// playing on the panels (useCelebration), as does the item drop popup itself.
+// death > item drop > habit miss > quest miss > boss skill > quest complete > quest unlock > event choice.
+// Boss skill, quest unlock and event choice also wait out a kill or level-up
+// still playing on the panels (useCelebration), as does the item drop popup itself.
 
 import { computed } from 'vue';
 import { questUnlockPending } from '../game-engine';
+import { useBossSkillCard } from './useBossSkillCard';
 import { useCelebration } from './useCelebration';
 import { useDeathScreen } from './useDeathScreen';
 import { useItemDropQueue } from './useItemDropQueue';
@@ -34,9 +35,21 @@ export function useModalPriority() {
   const { revealed } = useEventChoice();
   const { current: questCompleteCurrent } = useQuestCompleteQueue();
   const { celebrating } = useCelebration();
+  const { current: bossSkillCurrent } = useBossSkillCard();
 
   /** True only when a quest miss is pending and nothing higher-priority (death, habit miss) is. */
   const questMissVisible = computed(() => questMissPending.value && !isDead.value && !habitMissPending.value);
+
+  /** True when a fired boss skill's card is queued and nothing higher-priority (death, item drop, habit miss, quest miss, a celebration) is. */
+  const bossSkillVisible = computed(
+    () =>
+      bossSkillCurrent.value !== null &&
+      !celebrating.value &&
+      !isDead.value &&
+      itemDropCurrent.value === null &&
+      !habitMissPending.value &&
+      !questMissPending.value,
+  );
 
   /** True when the "Quests unlocked" popup is due and nothing higher-priority is up — it comes before the level-up pick, which may offer a side quest. */
   const questUnlockVisible = computed(
@@ -47,10 +60,11 @@ export function useModalPriority() {
       itemDropCurrent.value === null &&
       !habitMissPending.value &&
       !questMissPending.value &&
+      bossSkillCurrent.value === null &&
       questCompleteCurrent.value === null,
   );
 
-  /** True only when an event pick (or an enchant reveal) is pending and nothing higher-priority (death, item drop, habit miss, quest miss, quest unlock, a celebration) is. */
+  /** True only when an event pick (or an enchant reveal) is pending and nothing higher-priority (death, item drop, habit miss, quest miss, boss skill, quest unlock, a celebration) is. */
   const eventChoiceVisible = computed(
     () =>
       ((characterStore.character.pendingEventPicks ?? 0) > 0 || revealed.value !== null) &&
@@ -59,14 +73,20 @@ export function useModalPriority() {
       itemDropCurrent.value === null &&
       !habitMissPending.value &&
       !questMissPending.value &&
+      bossSkillCurrent.value === null &&
       questCompleteCurrent.value === null &&
       !questUnlockPending(characterStore.character),
   );
 
   /** True while a quest-completion celebration is queued — it shows before any level-up pick its EXP triggered. */
   const questCompleteVisible = computed(
-    () => questCompleteCurrent.value !== null && !isDead.value && !habitMissPending.value && !questMissPending.value,
+    () =>
+      questCompleteCurrent.value !== null &&
+      !isDead.value &&
+      !habitMissPending.value &&
+      !questMissPending.value &&
+      bossSkillCurrent.value === null,
   );
 
-  return { questMissVisible, questUnlockVisible, eventChoiceVisible, questCompleteVisible };
+  return { bossSkillVisible, questMissVisible, questUnlockVisible, eventChoiceVisible, questCompleteVisible };
 }

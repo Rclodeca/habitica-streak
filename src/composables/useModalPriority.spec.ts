@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { useBossSkillCard } from './useBossSkillCard';
 import { useCelebration } from './useCelebration';
 import { useDeathScreen } from './useDeathScreen';
 import { useEventChoice } from './useEventChoice';
@@ -27,6 +28,7 @@ describe('useModalPriority', () => {
     useMissedSkillsGate().acknowledge();
     useQuestMissGate().acknowledge();
     useCelebration().clear();
+    useBossSkillCard().clear();
   });
 
   describe('eventChoiceVisible', () => {
@@ -87,6 +89,16 @@ describe('useModalPriority', () => {
       useQuestMissGate().queueMiss(quest);
       const { eventChoiceVisible } = useModalPriority();
       expect(eventChoiceVisible.value).toBe(false);
+    });
+
+    it("waits for a boss skill's card", () => {
+      givePendingPick();
+      const { showBossSkill, dismiss } = useBossSkillCard();
+      showBossSkill({ skill: 'blind', outcome: 'landed' });
+      const { eventChoiceVisible } = useModalPriority();
+      expect(eventChoiceVisible.value).toBe(false);
+      dismiss();
+      expect(eventChoiceVisible.value).toBe(true);
     });
 
     it('waits for the level-up beat to finish playing', () => {
@@ -172,6 +184,35 @@ describe('useModalPriority', () => {
       reachUnlockLevel();
       useItemDropQueue().enqueueDrops([ITEM_CATALOG[0]]);
       expect(useModalPriority().questUnlockVisible.value).toBe(false);
+    });
+  });
+
+  describe('bossSkillVisible', () => {
+    it('is true when a fired skill is queued and nothing else is blocking', () => {
+      useBossSkillCard().showBossSkill({ skill: 'rend', outcome: 'landed', amount: 12 });
+      expect(useModalPriority().bossSkillVisible.value).toBe(true);
+    });
+
+    it('is false while a habit miss is pending', () => {
+      useBossSkillCard().showBossSkill({ skill: 'rend', outcome: 'landed', amount: 12 });
+      const habit = useHabitStore().addHabit('Meditate', 'daily', 'medium', false, createRng());
+      useMissedSkillsGate().queueMiss(habit, '2024-01-02');
+      expect(useModalPriority().bossSkillVisible.value).toBe(false);
+    });
+
+    it('waits for the level-up beat to finish playing', () => {
+      useBossSkillCard().showBossSkill({ skill: 'rend', outcome: 'landed', amount: 12 });
+      useCelebration().celebrateLevelUp(1);
+      const { bossSkillVisible } = useModalPriority();
+      expect(bossSkillVisible.value).toBe(false);
+      useCelebration().clear();
+      expect(bossSkillVisible.value).toBe(true);
+    });
+
+    it('is false while the character is dead', () => {
+      useBossSkillCard().showBossSkill({ skill: 'rend', outcome: 'landed', amount: 12 });
+      useDeathScreen().triggerDeath();
+      expect(useModalPriority().bossSkillVisible.value).toBe(false);
     });
   });
 });

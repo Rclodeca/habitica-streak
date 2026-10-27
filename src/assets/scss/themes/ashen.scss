@@ -1581,6 +1581,27 @@ $caps-lg: 0.85rem; // panel and popup titles
     color: var(--accent);
   }
 
+  // Boss skill card.
+  .skill-card.hero:has(> .seal) {
+    background:
+      radial-gradient(circle at 50% 30%, rgba(200, 64, 47, 0.14), transparent 60%),
+      rgba(0, 0, 0, 0.3);
+  }
+
+  .skill-name {
+    @include engraved(1.35rem, 0.22em);
+    font-weight: 700;
+  }
+
+  .skill-line {
+    font-style: italic;
+  }
+
+  .skill-line.damage,
+  .skill-line.heal {
+    font-style: normal;
+  }
+
   // High scores.
   .run-card {
     background: rgba(0, 0, 0, 0.2);

@@ -19,6 +19,7 @@ import QuestMissPopup from '../quests/QuestMissPopup.vue';
 import QuestUnlockPopup from '../quests/QuestUnlockPopup.vue';
 import EventChoiceModal from '../events/EventChoiceModal.vue';
 import ReviveNotice from '../ui/ReviveNotice.vue';
+import BossSkillPopup from '../boss/BossSkillPopup.vue';
 import { useCelebration } from '../../composables/useCelebration';
 import { useBossStore } from '../../store/bossStore';
 import { useCharacterStore } from '../../store/characterStore';
@@ -60,6 +61,7 @@ const showHighScores = ref(false);
     <MissedSkillsPopup />
     <EventChoiceModal />
     <QuestMissPopup />
+    <BossSkillPopup />
     <QuestCompletePopup />
     <QuestUnlockPopup />
     <ReviveNotice />

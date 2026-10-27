@@ -70,6 +70,7 @@ import { useQuestStore } from '../store/questStore';
 import { useCelebration } from './useCelebration';
 import { useDeathScreen } from './useDeathScreen';
 import { useFallenHero } from './useFallenHero';
+import { useBossSkillCard } from './useBossSkillCard';
 import { playHit } from './useHitFeed';
 import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
@@ -98,6 +99,7 @@ export function useCombatActions() {
   const { showReviveNotice } = useReviveNotice();
   const { enqueueDrops, clear: clearItemDrops } = useItemDropQueue();
   const { celebrateBossKill, celebrateLevelUp, clear: clearCelebration } = useCelebration();
+  const { showBossSkill, clear: clearBossSkills } = useBossSkillCard();
 
   /**
    * Writes a `level-up` log entry and queues the hero panel's level-up beat
@@ -216,6 +218,7 @@ export function useCombatActions() {
       });
     }
     if (skillHit > 0) landsInMs = playHit({ kind: 'hurt', amount: skillHit, hp: -skillHit });
+    if (bossSkill) showBossSkill(bossSkill, landsInMs);
 
     if (habit.damageType === 'healing') {
       // Censer of Wrath: the heal also hit the boss (as true damage).
@@ -497,6 +500,7 @@ export function useCombatActions() {
       // Drops and beats from a boss kill on the fatal pass belong to the dead run.
       clearItemDrops();
       clearCelebration();
+      clearBossSkills();
     }
     dismissDeathScreen();
   }

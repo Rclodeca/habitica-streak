@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — boss skill callout (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* How a fired boss skill makes itself seen. Every phone is scrolled down to
+   the habit list (the usual spot when you tap a habit), so the stage is off
+   screen and only the pinned drop-down bar shows. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+  --damage: #c8402f; --heal: #92bf88; --steel: #9fb2c4;
+  --bg: #0b0a09; --panel: #14120f;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), var(--bg); font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, p { margin: 0; font-weight: inherit; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+button { font: inherit; color: inherit; }
+
+.page { max-width: 1700px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 18px; }
+
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 30px; }
+.controls button { padding: 8px 12px; min-height: 36px; background: rgba(0,0,0,.4); border: 1px solid var(--line-mid); cursor: pointer; font: 600 10px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--text); }
+.controls button.on { color: var(--gold-hi); border-color: var(--gold); background: rgba(200,169,110,.1); }
+.controls .replay { color: var(--gold-hi); border-color: var(--gold); }
+
+.row { display: flex; flex-wrap: wrap; justify-content: center; gap: 34px 28px; }
+.opt { width: 340px; }
+.opt h2 { font-size: 12px; letter-spacing: .22em; color: var(--text-h); margin-bottom: 4px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; min-height: 60px; }
+
+/* ---------- Phone ---------- */
+.phone { position: relative; width: 340px; height: 640px; overflow: hidden; border: 1px solid var(--line-mid); background: var(--bg); }
+.list { position: absolute; inset: 64px 0 0; padding: 10px 12px; }
+.sec-h { font: 600 10px/1 'Cinzel', serif; letter-spacing: .22em; color: var(--gold); text-transform: uppercase; margin: 8px 2px 8px; }
+.habit { display: flex; align-items: center; gap: 10px; padding: 11px 12px; margin-bottom: 7px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(20,18,15,.97), rgba(11,10,9,.97)); }
+.habit .box { width: 22px; height: 22px; border: 1px solid var(--line-mid); flex-shrink: 0; }
+.habit.done .box { background: var(--gold); border-color: var(--gold); }
+.habit.done .nm { color: var(--text); text-decoration: line-through; }
+.habit .nm { flex: 1; font-size: 16px; }
+.habit .tag { font: 600 8px/1 'Cinzel', serif; letter-spacing: .14em; color: var(--text); }
+
+/* Pinned drop-down bar */
+.bar { position: absolute; top: 0; left: 0; right: 0; height: 64px; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(11,10,9,.96); border-bottom: 1px solid var(--line-mid); }
+.ring { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; background: conic-gradient(var(--damage) 0 64%, rgba(200,40,47,.15) 64% 100%); display: grid; place-items: center; }
+.ring::after { content: '31'; width: 34px; height: 34px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; font: 600 11px/1 'Cinzel', serif; color: var(--gold-hi); }
+.bmid { flex: 1; min-width: 0; position: relative; }
+.bname { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+.bname .n { font: 600 10px/1.4 'Cinzel', serif; letter-spacing: .14em; color: var(--text-h); text-transform: uppercase; }
+.bname .hp { color: var(--text); font-size: 13px; }
+.hbar { position: relative; height: 10px; background: rgba(200,40,47,.15); border: 1px solid rgba(200,64,47,.4); }
+.hbar .fill { position: absolute; inset: 0 0 0 auto; width: 46%; background: linear-gradient(90deg, #8f2a1f, var(--damage)); transition: width .5s; }
+.mark { position: absolute; top: 50%; width: 9px; height: 9px; transform: translate(-50%, -50%) rotate(45deg); border: 1px solid var(--gold); background: var(--bg); z-index: 1; }
+.mark.fired { background: var(--gold); opacity: .45; }
+.portrait { width: 46px; height: 46px; flex-shrink: 0; border: 1px solid var(--line-mid); background: #1a1611 url(../../public/sprites/bosses/brute.png) center/140% no-repeat; image-rendering: pixelated; }
+.bar.shake { animation: shake .35s; }
+@keyframes shake { 20% { transform: translateX(-3px); } 40% { transform: translateX(3px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(1px); } }
+
+/* Skill initial in a ring (the build uses the StatIcons) */
+.ic { display: inline-grid; place-items: center; flex-shrink: 0; border: 1px solid currentColor; border-radius: 50%; font: 600 9px/1 'Cinzel', serif; }
+.bane { color: var(--damage); } .gold { color: var(--gold); } .heal { color: var(--heal); } .dull { color: var(--text); }
+
+/* ---------- A: modal card ---------- */
+.veil { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(5,4,3,.72); opacity: 0; pointer-events: none; transition: opacity .25s; }
+.veil.show { opacity: 1; pointer-events: auto; }
+.mcard { width: 270px; padding: 22px 18px 16px; text-align: center; border: 1px solid var(--line-mid); background: linear-gradient(180deg, #1a1611, #0d0b09); box-shadow: 0 0 40px rgba(200,40,47,.25), inset 0 0 0 1px rgba(0,0,0,.6); transform: scale(.9); transition: transform .3s cubic-bezier(.2,1.4,.4,1); }
+.veil.show .mcard { transform: none; }
+.mcard .kick { font: 600 9px/1 'Cinzel', serif; letter-spacing: .26em; color: var(--text); text-transform: uppercase; }
+.mcard .ic { width: 54px; height: 54px; font-size: 22px; margin: 14px auto 10px; border-width: 2px; }
+.mcard .nm { font: 700 22px/1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text-h); }
+.mcard .fx { margin-top: 8px; font-size: 18px; font-style: italic; color: var(--bone); }
+.mcard .fx b { font-style: normal; }
+.mcard .ok { margin-top: 18px; width: 100%; min-height: 44px; border: 1px solid var(--gold); background: rgba(200,169,110,.08); cursor: pointer; font: 600 11px/1 'Cinzel', serif; letter-spacing: .22em; color: var(--gold-hi); text-transform: uppercase; }
+.mcard .new { display: none; margin: -6px auto 0; width: max-content; padding: 3px 8px; border: 1px solid var(--gold); font: 600 8px/1 'Cinzel', serif; letter-spacing: .22em; color: var(--gold-hi); text-transform: uppercase; background: var(--bg); position: relative; top: -16px; }
+.mcard.first .new { display: block; }
+
+/* ---------- B: banner under the bar ---------- */
+.banner { position: absolute; top: 64px; left: 0; right: 0; z-index: 4; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line-mid); background: linear-gradient(90deg, rgba(200,64,47,.28), rgba(20,18,15,.97) 55%); box-shadow: 0 8px 20px rgba(0,0,0,.6); transform: translateY(-110%); opacity: 0; transition: transform .3s cubic-bezier(.2,1.2,.4,1), opacity .3s; cursor: pointer; }
+.banner::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent, var(--damage)); }
+.banner.show { transform: none; opacity: 1; }
+.banner .ic { width: 34px; height: 34px; font-size: 14px; border-width: 2px; }
+.banner .t { min-width: 0; }
+.banner .nm { font: 700 15px/1.1 'Cinzel', serif; letter-spacing: .22em; text-transform: uppercase; color: var(--text-h); }
+.banner .fx { font-size: 16px; font-style: italic; color: var(--bone); }
+.banner .fx b { font-style: normal; }
+.banner .timer { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--accent, var(--damage)); width: 100%; transform-origin: left; }
+.banner.show .timer { animation: drain 3s linear forwards; }
+@keyframes drain { to { transform: scaleX(0); } }
+
+/* ---------- C: bar takeover ---------- */
+.bmid .take { position: absolute; inset: 0 0 auto 0; height: 19px; display: flex; align-items: center; gap: 6px; background: rgba(11,10,9,1); opacity: 0; transition: opacity .2s; }
+.bmid .take .ic { width: 16px; height: 16px; font-size: 8px; }
+.bmid .take .nm { font: 700 11px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--accent, var(--damage)); }
+.bmid .take .fx { font-size: 13px; font-style: italic; color: var(--bone); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar.taken .take { opacity: 1; }
+.bar.taken { box-shadow: inset 0 -2px 0 var(--accent, var(--damage)), 0 0 24px rgba(200,40,47,.35); }
+
+/* ---------- D: lasting markers ---------- */
+.mark.sk { width: 17px; height: 17px; transform: translate(-50%, -50%); border-radius: 50%; border: 1px solid currentColor; background: var(--bg); display: grid; place-items: center; font: 600 8px/1 'Cinzel', serif; }
+.bossmodal { position: absolute; left: 10px; right: 10px; top: 150px; z-index: 10; padding: 14px; border: 1px solid var(--line-mid); background: linear-gradient(180deg, #1a1611, #0d0b09); box-shadow: 0 10px 40px rgba(0,0,0,.8); }
+.bossmodal .h { font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; color: var(--gold-hi); text-transform: uppercase; margin-bottom: 10px; }
+.bossmodal ul { list-style: none; margin: 0; padding: 0; }
+.bossmodal li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
+.bossmodal li:last-child { border-bottom: 0; }
+.bossmodal li .ic { width: 20px; height: 20px; }
+.bossmodal li .at { margin-left: auto; color: var(--text); font-size: 13px; }
+.bossmodal li .sub { display: block; color: var(--text); font-size: 14px; font-style: italic; }
+.bossmodal li.wait { color: var(--text); font-style: italic; }
+.bossmodal li.wait .ic { border-style: dashed; }
+.dim-bg { position: absolute; inset: 0; z-index: 9; background: rgba(5,4,3,.6); }
+
+.note { max-width: 760px; margin: 40px auto 0; padding: 14px 18px; border: 1px solid var(--line); font-size: 16px; color: var(--text); }
+.note b { color: var(--text-h); font-weight: 600; }
+.note p + p { margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">Boss skill callout</h1>
+  <p>Scrolled down to the habits, where you usually are when a hit sets off a skill. Pick a skill, then replay.</p>
+
+  <div class="controls" id="skills"></div>
+  <div class="controls"><button class="replay" id="replay">▶ Replay</button><button id="first">First time: on</button></div>
+
+  <div class="row">
+    <div class="opt">
+      <h2 class="engraved">A · Card</h2>
+      <p>A modal over everything; tap OK to close. You can't miss it, and it stops you mid-list. With "first time" on, it gets a New tag.</p>
+      <div class="phone" data-opt="a"></div>
+    </div>
+    <div class="opt">
+      <h2 class="engraved">B · Banner</h2>
+      <p>Drops in under the pinned bar as the hit lands, holds 3s (thin timer line), then slides away. Tap to close early. Doesn't block taps below it.</p>
+      <div class="phone" data-opt="b"></div>
+    </div>
+    <div class="opt">
+      <h2 class="engraved">C · Bar takeover</h2>
+      <p>No new element: the bar's name line becomes the skill for 3s, with a shake and a red glow. Quietest one, but also the easiest to miss.</p>
+      <div class="phone" data-opt="c"></div>
+    </div>
+    <div class="opt">
+      <h2 class="engraved">D · Lasting markers</h2>
+      <p>An add-on to any of the above. A fired diamond turns into its skill's icon and stays. The boss modal lists what fired; markers still waiting stay hidden.</p>
+      <div class="phone" data-opt="d"></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><b>Suggested mix:</b> A the first time you ever meet each skill (with the New tag), B every time after that, and D always.</p>
+    <p><b>Failed</b> (Hushing Bell) uses the same callout, greyed out: "Rend · Failed". <b>Doom</b> landing at rollover would join the rollover popups rather than use the banner.</p>
+  </div>
+</div>
+
+<template id="phone-tpl">
+  <div class="bar">
+    <div class="ring"></div>
+    <div class="bmid">
+      <div class="bname"><span class="n">Gorrak the Brute</span><span class="hp">46,210 / 98,000</span></div>
+      <div class="hbar"><div class="fill"></div><span class="mark" style="left:25%"></span><span class="mark m50" style="left:50%"></span><span class="mark" style="left:75%"></span></div>
+      <div class="take"><span class="ic"></span><span class="nm"></span><span class="fx"></span></div>
+    </div>
+    <div class="portrait"></div>
+  </div>
+  <div class="list">
+    <div class="sec-h">Dailies</div>
+    <div class="habit done"><span class="box"></span><span class="nm">Morning run</span><span class="tag">Physical</span></div>
+    <div class="habit done"><span class="box"></span><span class="nm">Read 20 pages</span><span class="tag">Magic</span></div>
+    <div class="habit hit"><span class="box"></span><span class="nm">Stretch</span><span class="tag">Physical</span></div>
+    <div class="habit"><span class="box"></span><span class="nm">Meditate</span><span class="tag">Healing</span></div>
+    <div class="habit"><span class="box"></span><span class="nm">Journal</span><span class="tag">Magic</span></div>
+    <div class="sec-h">Quests</div>
+    <div class="habit"><span class="box"></span><span class="nm">Clean the garage</span><span class="tag">True</span></div>
+    <div class="habit"><span class="box"></span><span class="nm">Call the bank</span><span class="tag">Physical</span></div>
+    <div class="habit"><span class="box"></span><span class="nm">Fix the bike</span><span class="tag">Physical</span></div>
+  </div>
+</template>
+
+<script>
+// Effect lines follow bossSkillEffectText / the log's wording.
+const SKILLS = {
+  ravage:    { name: 'Ravage',    ic: 'R', cls: 'bane', accent: 'var(--damage)', fx: '<b class="bane">−1,240</b> HP' },
+  rend:      { name: 'Rend',      ic: 'R', cls: 'bane', accent: 'var(--damage)', fx: '<b class="bane">−620</b> HP' },
+  mend:      { name: 'Mend',      ic: 'M', cls: 'heal', accent: 'var(--heal)',   fx: 'Boss <b class="heal">+9,800</b> HP' },
+  blind:     { name: 'Blind',     ic: 'B', cls: 'bane', accent: 'var(--damage)', fx: 'No crits · 2 days' },
+  sunder:    { name: 'Sunder',    ic: 'S', cls: 'bane', accent: 'var(--damage)', fx: 'Armor &amp; resist halved · 2 days' },
+  bloodlust: { name: 'Bloodlust', ic: 'B', cls: 'gold', accent: 'var(--gold)',   fx: 'Boss heals 3% per hit · 2 days' },
+  doom:      { name: 'Doom',      ic: 'D', cls: 'bane', accent: 'var(--damage)', fx: 'Half your HP in 3 days' },
+  undying:   { name: 'Undying',   ic: 'U', cls: 'gold', accent: 'var(--gold)',   fx: "Can't fall below 10% today" },
+  failed:    { name: 'Rend',      ic: 'R', cls: 'dull', accent: 'var(--text)',   fx: 'Failed' },
+};
+let current = 'ravage';
+let first = true;
+const timers = [];
+
+const skillBar = document.getElementById('skills');
+for (const [id, s] of Object.entries(SKILLS)) {
+  const b = document.createElement('button');
+  b.textContent = id === 'failed' ? 'Rend (failed)' : s.name;
+  b.dataset.id = id;
+  b.onclick = () => { current = id; render(); play(); };
+  skillBar.appendChild(b);
+}
+document.getElementById('replay').onclick = play;
+document.getElementById('first').onclick = (e) => { first = !first; e.target.textContent = 'First time: ' + (first ? 'on' : 'off'); play(); };
+
+const tpl = document.getElementById('phone-tpl');
+const phones = [...document.querySelectorAll('.phone')];
+for (const p of phones) {
+  p.appendChild(tpl.content.cloneNode(true));
+  const opt = p.dataset.opt;
+  if (opt === 'a') {
+    p.insertAdjacentHTML('beforeend', `<div class="veil"><div class="mcard"><div class="new">New</div><div class="kick">Gorrak unleashes</div><span class="ic"></span><div class="nm"></div><div class="fx"></div><button class="ok">OK</button></div></div>`);
+    p.querySelector('.ok').onclick = () => p.querySelector('.veil').classList.remove('show');
+  }
+  if (opt === 'b') {
+    p.insertAdjacentHTML('beforeend', `<div class="banner"><span class="ic"></span><div class="t"><div class="nm"></div><div class="fx"></div></div><span class="timer"></span></div>`);
+    p.querySelector('.banner').onclick = (e) => e.currentTarget.classList.remove('show');
+  }
+  if (opt === 'd') {
+    p.insertAdjacentHTML('beforeend', `<div class="dim-bg"></div><div class="bossmodal"><div class="h">Skills</div><ul>
+      <li class="fired"><span class="ic"></span><span><span class="nm"></span><span class="sub fx"></span></span><span class="at">at 50%</span></li>
+      <li class="wait"><span class="ic dull">?</span><span>Waiting</span><span class="at">at 25%</span></li>
+    </ul></div>`);
+  }
+}
+
+function fill(root, s) {
+  root.querySelectorAll('.ic').forEach((el) => { if (el.closest('.wait')) return; el.textContent = s.ic; el.className = 'ic ' + s.cls; });
+  root.querySelectorAll('.nm').forEach((el) => { if (el.closest('.habit')) return; el.textContent = s.name; });
+  root.querySelectorAll('.fx').forEach((el) => { el.innerHTML = s.fx; });
+  root.style.setProperty('--accent', s.accent);
+}
+
+function render() {
+  const s = SKILLS[current];
+  skillBar.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.id === current));
+  for (const p of phones) {
+    fill(p.querySelector('.take'), s);
+    const opt = p.dataset.opt;
+    if (opt === 'a') { fill(p.querySelector('.mcard'), s); p.querySelector('.mcard').classList.toggle('first', first); p.querySelector('.kick').textContent = current === 'failed' ? 'Gorrak falters' : 'Gorrak unleashes'; }
+    if (opt === 'b') fill(p.querySelector('.banner'), s);
+    if (opt === 'd') {
+      fill(p.querySelector('.bossmodal li.fired'), s);
+      const m = p.querySelector('.m50');
+      m.className = 'mark m50 sk ' + s.cls; m.textContent = s.ic;
+    }
+  }
+}
+
+function play() {
+  timers.splice(0).forEach(clearTimeout);
+  for (const p of phones) {
+    const opt = p.dataset.opt;
+    if (opt === 'd') continue;
+    const bar = p.querySelector('.bar');
+    const fill = p.querySelector('.fill');
+    const hit = p.querySelector('.habit.hit');
+    const m = p.querySelector('.m50');
+    p.querySelector('.veil')?.classList.remove('show');
+    p.querySelector('.banner')?.classList.remove('show');
+    bar.classList.remove('taken', 'shake');
+    hit.classList.remove('done');
+    fill.style.width = '54%'; m.classList.remove('fired');
+    // Tap the habit, the blow crosses 50%, then the skill shows.
+    timers.push(setTimeout(() => { hit.classList.add('done'); }, 500));
+    timers.push(setTimeout(() => { fill.style.width = current === 'mend' ? '56%' : '46%'; m.classList.add('fired'); }, 800));
+    timers.push(setTimeout(() => {
+      if (current !== 'failed' && current !== 'mend') { void bar.offsetWidth; bar.classList.add('shake'); }
+      if (opt === 'a') p.querySelector('.veil').classList.add('show');
+      if (opt === 'b') { const b = p.querySelector('.banner'); void b.offsetWidth; b.classList.add('show'); timers.push(setTimeout(() => b.classList.remove('show'), 3000)); }
+      if (opt === 'c') { bar.classList.add('taken'); timers.push(setTimeout(() => bar.classList.remove('taken'), 3000)); }
+    }, 1300));
+  }
+}
+
+render();
+play();
+</script>
+</body>
+</html>
