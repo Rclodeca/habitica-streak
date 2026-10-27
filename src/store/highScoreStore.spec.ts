@@ -5,7 +5,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useHighScoreStore } from './highScoreStore';
+import { runHero, useHighScoreStore } from './highScoreStore';
 
 describe('highScoreStore', () => {
   beforeEach(() => {
@@ -50,6 +50,9 @@ describe('highScoreStore', () => {
     stats: { physicalDamage: 1, magicDamage: 2, healing: 3, health: 4, trueDamage: 5, critChance: 0.1 },
     habits: [{ name: 'Run', period: 'daily' as const, damageType: 'physical' as const, isBad: false, streakCount: 3 }],
     items: [{ id: 'rusty-blade', name: 'Rusty Blade', icon: 'items/rusty-blade', equipped: true }],
+    heroName: 'Aldric',
+    heroClass: 'warrior' as const,
+    bossPersonality: 'brute4x' as const,
   };
 
   it('ensureRunStarted only sets the start day once', () => {
@@ -86,6 +89,33 @@ describe('highScoreStore', () => {
 
     const persisted = JSON.parse(localStorage.getItem('habitica-streak:highscore:runs:v1') as string);
     expect(persisted).toHaveLength(10);
+  });
+
+  it('recordRunEnd saves the hero and the boss that ended the run', () => {
+    const store = useHighScoreStore();
+    store.recordRunEnd({ ...SAMPLE_RUN, endedDayKey: '2026-01-02' });
+
+    const run = store.topRuns[0];
+    expect(run.heroName).toBe('Aldric');
+    expect(run.heroClass).toBe('warrior');
+    expect(run.bossPersonality).toBe('brute4x');
+    expect(runHero(run)).toEqual({ name: 'Aldric', heroClass: 'warrior' }); // the saved class, not one read off the stats
+  });
+
+  it('runHero falls back for a run saved before the hero was recorded', () => {
+    const older: Partial<typeof SAMPLE_RUN> = { ...SAMPLE_RUN };
+    delete older.heroName;
+    delete older.heroClass;
+    delete older.bossPersonality;
+    localStorage.setItem(
+      'habitica-streak:highscore:runs:v1',
+      JSON.stringify([{ ...older, id: 'old', startedDayKey: '2026-01-01', endedDayKey: '2026-01-02', daysLived: 2 }]),
+    );
+    const store = useHighScoreStore();
+
+    // magicDamage 2 vs physicalDamage 1 reads as a magic lean.
+    expect(runHero(store.topRuns[0])).toEqual({ name: 'Nameless', heroClass: 'cleric' });
+    expect(store.topRuns[0].bossPersonality).toBeUndefined();
   });
 
   it('reloads topRuns and currentRunStartedDayKey from localStorage on a fresh store instance', () => {

@@ -8,8 +8,8 @@
 //     with the pre-reset character/boss/habits).
 
 import { defineStore } from 'pinia';
-import { daysBetweenDayKeys } from '../game-engine';
-import type { DamageType, Period } from '../game-engine';
+import { daysBetweenDayKeys, DEFAULT_HERO_NAME, heroClassFor } from '../game-engine';
+import type { DamageType, HeroClass, Period, Personality } from '../game-engine';
 
 const STORAGE_KEY = 'habitica-streak:highscore:v1';
 const RUNS_KEY = 'habitica-streak:highscore:runs:v1';
@@ -52,6 +52,11 @@ export interface HighScoreRun {
   stats: HighScoreRunStats;
   habits: HighScoreRunHabit[];
   items: HighScoreRunItem[];
+  // Runs saved before these were recorded have none of them: see runHero for
+  // the hero, and the boss is left out of the run's sheet.
+  heroName?: string;
+  heroClass?: HeroClass;
+  bossPersonality?: Personality; // the boss that ended the run; gives its name and art
 }
 
 /** Everything `recordRunEnd` needs about the run that just ended — the start date is tracked internally (see `currentRunStartedDayKey`). */
@@ -62,6 +67,17 @@ export interface HighScoreRunInput {
   stats: HighScoreRunStats;
   habits: HighScoreRunHabit[];
   items: HighScoreRunItem[];
+  heroName: string;
+  heroClass: HeroClass;
+  bossPersonality: Personality;
+}
+
+/** The hero who made a run. Older runs didn't save one: they read as "Nameless", with the class read off the run's final stats. */
+export function runHero(run: HighScoreRun): { name: string; heroClass: HeroClass } {
+  return {
+    name: run.heroName ?? DEFAULT_HERO_NAME,
+    heroClass: run.heroClass ?? heroClassFor({ starterStats: run.stats }),
+  };
 }
 
 function loadHighestBossIndex(): number {
@@ -135,6 +151,9 @@ export const useHighScoreStore = defineStore('highScore', {
         stats: input.stats,
         habits: input.habits,
         items: input.items,
+        heroName: input.heroName,
+        heroClass: input.heroClass,
+        bossPersonality: input.bossPersonality,
       };
       this.topRuns = rankRuns([...this.topRuns, run]);
       localStorage.setItem(RUNS_KEY, JSON.stringify(this.topRuns));

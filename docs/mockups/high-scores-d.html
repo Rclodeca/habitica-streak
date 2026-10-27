@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — high scores (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Four takes on the High Scores page, phone width. Sample data. Icons are the
+   app's lucide StatIcon glyphs; item and sprite art is the real public/ art.
+   The first card in each list is shown expanded. */
+:root {
+  --bg: #0b0a09; --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a; --blood: #c8402f; --ash: #5c554a;
+  --common: #8d8475; --uncommon: #86b08b; --rare: #7f9fd1; --epic: #ae8bd6; --relic: #ec8338;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+ul, ol { list-style: none; margin: 0; padding: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1700px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.opts { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; }
+.opt { width: 375px; max-width: 100%; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; min-height: 60px; }
+.screen { padding: 14px 12px 22px; background: rgba(0,0,0,.55); border: 1px solid rgba(200,169,110,.18); border-radius: 22px; min-height: 760px; }
+
+/* Page title between two fading gold rules, like the popup headers. */
+.title { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 13px; letter-spacing: .28em; color: var(--gold-hi); margin: 6px 0 4px; }
+.title::before, .title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.title::after { transform: scaleX(-1); }
+.subtitle { text-align: center; font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 14px; }
+
+.ic { display: inline-grid; place-items: center; flex-shrink: 0; color: var(--k, currentColor); line-height: 0; }
+.ic svg { width: var(--s, 14px); height: var(--s, 14px); }
+.item { --s: 22px; width: var(--s); height: var(--s); flex-shrink: 0; border: 1px solid color-mix(in srgb, var(--r) 55%, transparent); background: radial-gradient(circle, color-mix(in srgb, var(--r) 18%, transparent), rgba(0,0,0,.4) 75%); display: grid; place-items: center; }
+.item img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; transform: scale(1.4); }
+.item.dim { opacity: .45; }
+.diamond { width: 6px; height: 6px; transform: rotate(45deg); background: var(--gold); display: inline-block; flex-shrink: 0; }
+
+/* ---------- A: Ledger ---------- */
+.A .row { border-bottom: 1px solid var(--line); }
+.A .sum { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 4px 10px; width: 100%; padding: 10px 4px; min-height: 56px; }
+.A .rank { font: 600 20px/1 'Cinzel', serif; color: var(--ash); text-align: center; }
+.A .row:nth-child(-n+3) .rank { color: var(--gold); }
+.A .row:first-child .rank { color: var(--gold-hi); text-shadow: 0 0 14px rgba(230,207,154,.4); }
+.A .head { font: 600 13px/1.1 'Cinzel', serif; letter-spacing: .14em; text-transform: uppercase; color: var(--text-h); }
+.A .meta { font-size: 14px; font-style: italic; color: var(--text); }
+.A .lv { font: 600 11px/1 'Cinzel', serif; letter-spacing: .14em; color: var(--gold); text-align: right; }
+.A .lv span { display: block; font: italic 500 13px/1.2 'Cormorant Garamond', serif; letter-spacing: 0; color: var(--text); margin-top: 3px; }
+.A .det { padding: 4px 4px 14px 52px; }
+.statline { display: flex; flex-wrap: wrap; gap: 4px 14px; font-weight: 600; font-size: 16px; color: var(--text-h); }
+.statline > span { display: inline-flex; align-items: center; gap: 5px; }
+.sec { font: 600 9px/1 'Cinzel', serif; letter-spacing: .26em; text-transform: uppercase; color: var(--text); margin: 14px 0 7px; display: flex; align-items: center; gap: 8px; }
+.sec::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.strip { display: flex; flex-wrap: wrap; gap: 5px; }
+.skills li { display: flex; align-items: center; gap: 7px; font-size: 15px; padding: 2px 0; color: var(--bone); }
+.skills .streak { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; color: var(--ember); font-weight: 600; font-size: 14px; }
+.skills .per { color: var(--ash); font-style: italic; font-size: 13px; }
+
+/* ---------- B: Ledger with gear strip ---------- */
+.B .row { position: relative; margin-bottom: 8px; border: 1px solid var(--line); background: rgba(0,0,0,.22); }
+.B .row:first-child { border-color: var(--line-mid); background: linear-gradient(180deg, rgba(200,169,110,.08), rgba(0,0,0,.22)); }
+.B .sum { display: grid; grid-template-columns: 30px 1fr auto; gap: 2px 10px; align-items: center; width: 100%; padding: 10px 10px 10px 8px; }
+.B .rank { grid-row: span 2; font: 600 17px/1 'Cinzel', serif; color: var(--gold); text-align: center; }
+.B .row:first-child .rank { color: var(--gold-hi); font-size: 20px; }
+.B .head { font: 600 12px/1.1 'Cinzel', serif; letter-spacing: .14em; text-transform: uppercase; color: var(--text-h); }
+.B .meta { font-size: 14px; font-style: italic; color: var(--text); text-align: right; }
+.B .gear { grid-column: 2 / span 2; display: flex; gap: 3px; margin-top: 6px; }
+.B .gear .item { --s: 20px; }
+.B .gear .more { font: 600 10px/20px 'Cinzel', serif; color: var(--text); padding-left: 3px; letter-spacing: .06em; }
+.B .det { padding: 0 10px 14px 48px; border-top: 1px solid var(--line); }
+.B .det .statline { margin-top: 10px; }
+.B .gearlist li { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 15px; }
+.B .gearlist .item { --s: 26px; }
+.B .gearlist .nm { color: var(--text-h); font-weight: 600; line-height: 1.1; }
+.B .gearlist .bn { display: block; color: var(--text); font-size: 13px; font-style: italic; font-weight: 500; }
+.B .gearlist .bn.ench { color: var(--gold); }
+
+/* ---------- C: Champion + list ---------- */
+.C .champ { position: relative; padding: 14px 14px 14px; margin-bottom: 14px; border: 1px solid var(--line-mid); background: radial-gradient(ellipse 60% 70% at 78% 40%, rgba(200,64,47,.14), transparent 70%), linear-gradient(180deg, rgba(27,24,21,.95), rgba(14,13,11,.98)); overflow: hidden; }
+.C .champ::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .8;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat; }
+.C .boss-art { position: absolute; right: -14px; top: -6px; width: 170px; height: 170px; object-fit: contain; image-rendering: pixelated; opacity: .85; filter: drop-shadow(0 0 18px rgba(0,0,0,.9)); -webkit-mask: linear-gradient(90deg, transparent, #000 35%); mask: linear-gradient(90deg, transparent, #000 35%); }
+.C .crown { display: flex; align-items: center; gap: 6px; font-size: 9px; letter-spacing: .3em; color: var(--gold); }
+.C .big { position: relative; font: 700 46px/1 'Cinzel', serif; color: var(--gold-hi); margin: 8px 0 2px; text-shadow: 0 0 22px rgba(230,207,154,.3); }
+.C .big small { font-size: 11px; letter-spacing: .26em; color: var(--text); font-weight: 600; display: block; margin-bottom: 4px; }
+.C .cmeta { position: relative; font-size: 15px; font-style: italic; color: var(--text); margin-bottom: 12px; max-width: 200px; }
+.C .cmeta b { color: var(--text-h); font-style: normal; font-weight: 600; }
+.C .champ .statline { position: relative; }
+.C .champ .strip { position: relative; }
+.C .list li { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; padding: 9px 4px; min-height: 48px; border-bottom: 1px solid var(--line); }
+.C .rank { font: 600 15px/1 'Cinzel', serif; color: var(--gold); text-align: center; }
+.C .list li:nth-child(n+3) .rank { color: var(--ash); }
+.C .head { font: 600 12px/1.1 'Cinzel', serif; letter-spacing: .14em; text-transform: uppercase; color: var(--text-h); }
+.C .meta { font-size: 13px; font-style: italic; color: var(--text); display: block; margin-top: 2px; }
+.C .mini { display: flex; gap: 2px; }
+.C .mini .item { --s: 18px; }
+
+/* ---------- D: Epitaphs ---------- */
+.D .stone { display: grid; grid-template-columns: 64px 1fr; gap: 0 12px; align-items: center; padding: 10px 8px 10px 4px; border-bottom: 1px solid var(--line); min-height: 76px; }
+.D .pic { position: relative; width: 64px; height: 64px; display: grid; place-items: center; }
+.D .pic::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: 6px; height: 8px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0,0,0,.8), transparent 70%); }
+.D .pic img { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; filter: grayscale(.85) brightness(.7) drop-shadow(0 0 6px rgba(0,0,0,.8)); position: relative; z-index: 1; }
+.D .stone:first-child .pic img { filter: grayscale(.2) brightness(.95) drop-shadow(0 0 10px rgba(230,207,154,.25)); }
+.D .nm { display: flex; align-items: baseline; gap: 8px; }
+.D .nm .n { font: 600 14px/1.1 'Cinzel', serif; letter-spacing: .1em; color: var(--text-h); }
+.D .nm .r { margin-left: auto; font: 600 12px/1 'Cinzel', serif; color: var(--gold); }
+.D .stone:nth-child(n+4) .nm .r { color: var(--ash); }
+.D .ep { font-size: 15px; font-style: italic; color: var(--text); line-height: 1.2; margin-top: 2px; }
+.D .ep b { color: var(--blood); font-style: normal; font-weight: 600; }
+.D .tail { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.D .tail .mini { display: flex; gap: 2px; }
+.D .tail .item { --s: 18px; }
+.D .tail .dates { margin-left: auto; font: 600 9px/1 'Cinzel', serif; letter-spacing: .16em; color: var(--ash); }
+
+.note { margin-top: 10px; font-size: 13px; font-style: italic; color: var(--ash); }
+
+/* Shared gear list (icon, name, bonuses) for the opened views. */
+.gearlist li { display: flex; align-items: center; gap: 9px; padding: 3px 0; font-size: 15px; }
+.gearlist .item { --s: 28px; }
+.gearlist .nm { color: var(--text-h); font-weight: 600; line-height: 1.1; }
+.gearlist .bn { display: block; color: var(--text); font-size: 13px; font-style: italic; font-weight: 500; line-height: 1.2; }
+.gearlist .bn.ench { color: var(--gold); }
+.pack { display: flex; flex-wrap: wrap; gap: 4px; }
+.pack .item { --s: 20px; opacity: .55; }
+.strip.gear-lg { gap: 6px; }
+.strip.gear-lg .item { --s: 32px; }
+
+/* ---------- D1: opens in place ---------- */
+.D .stone.open { border-bottom: 0; }
+.D .open-body { padding: 2px 8px 16px 80px; border-bottom: 1px solid var(--line); }
+.D .open-body .when { font: 600 9px/1 'Cinzel', serif; letter-spacing: .18em; color: var(--ash); margin-bottom: 10px; }
+
+/* ---------- D2: opens as a gravestone sheet ---------- */
+.sheet-wrap { position: relative; }
+.sheet-wrap > .D { position: absolute; left: 0; right: 0; top: 0; filter: blur(1.5px) brightness(.35); pointer-events: none; }
+.sheet { position: relative; margin-top: 40px; padding: 16px 14px 14px; background: linear-gradient(180deg, rgba(27,24,21,.98), rgba(14,13,11,.99)); border: 1px solid var(--line); box-shadow: 0 20px 50px -10px rgba(0,0,0,.95); }
+.sheet::before { content: ''; position: absolute; inset: -1px; pointer-events: none; opacity: .75;
+  background:
+    linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat, linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat; }
+.sheet .x { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; display: grid; place-items: center; color: var(--text); font: 500 22px/1 'Cormorant Garamond', serif; }
+.sheet .rk { text-align: center; font: 600 9px/1 'Cinzel', serif; letter-spacing: .3em; color: var(--gold); }
+/* Hero and the boss that ended them, facing each other on the fog. */
+.duel { position: relative; height: 128px; margin: 4px -4px 6px; background: radial-gradient(ellipse 40% 60% at 78% 55%, rgba(200,64,47,.18), transparent 70%), radial-gradient(ellipse 35% 50% at 24% 70%, rgba(215,205,185,.08), transparent 70%); }
+.duel img { position: absolute; bottom: 4px; object-fit: contain; image-rendering: pixelated; }
+.duel .h { left: 18px; width: 92px; height: 92px; transform: scaleX(-1); filter: grayscale(.85) brightness(.75) drop-shadow(0 0 8px rgba(0,0,0,.9)); }
+.duel .b { right: 6px; width: 132px; height: 132px; filter: drop-shadow(0 0 14px rgba(0,0,0,.9)); }
+.duel::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 26px; background: linear-gradient(transparent, rgba(14,13,11,.95)); }
+.sheet .who { text-align: center; font: 600 18px/1.1 'Cinzel', serif; letter-spacing: .14em; color: var(--text-h); }
+.sheet .ep { text-align: center; font-size: 16px; font-style: italic; color: var(--text); margin-top: 3px; }
+.sheet .ep b { color: var(--blood); font-style: normal; font-weight: 600; }
+.sheet .when { text-align: center; font: 600 9px/1 'Cinzel', serif; letter-spacing: .18em; color: var(--ash); margin: 8px 0 12px; }
+.sheet .statline { justify-content: center; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">High scores</h1>
+  <p>Option D, closed and two ways to open a run. Phone width.</p>
+  <div class="opts" id="opts"></div>
+</div>
+
+<script>
+const K = { physical: '#d0604f', magic: '#ab8dd8', healing: '#92bf88', trueDamage: '#f1e9d6', crit: '#d6a24f', ember: '#e0783a', gold: '#c8a96e', ash: '#8a8173' };
+const G = {
+  physical: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  magic: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  healing: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  trueDamage: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  crit: '<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>',
+  skull: '<path d="m12.5 17-.5-1-.5 1h1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/>',
+  flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
+  hourglass: '<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
+  crown: '<path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>',
+};
+const ic = (name, color, size) => `<span class="ic" style="--k:${color || K[name] || 'currentColor'}${size ? ';--s:' + size + 'px' : ''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${G[name]}</svg></span>`;
+const ITEMS = '../../public/sprites/items/';
+const SPR = '../../public/sprites/';
+
+// Sample runs. hero/cls/bossName/bossArt aren't in the run snapshot today (see the note on D and C).
+const RUNS = [
+  { hero: 'Aldric', cls: 'warrior', boss: 17, bossName: 'Gorrath the Unbowed', bossArt: 'brute4x', level: 42, days: 63, start: 'Aug 12', end: 'Oct 13',
+    stats: { physical: '48.2K', magic: '6.1K', healing: '9.4K', trueDamage: '3.2K', crit: '34%' },
+    items: [['godslayer-greatblade','epic','Godslayer Greatblade','Physical +42%, Health +10%, Lifesteal +3% · +30% damage to bosses above 75% HP.',1,1],['executioners-axe','rare','Executioner\'s Axe','Physical +22%, Armor +150',1],['berserkers-fury','rare','Molten Fury','Physical +44%, Crit +30%, Health −10%',1,0,1],['vampiric-fang','uncommon','Vampiric Fang','Physical +6%, Lifesteal +3%',1],['eagle-eye-lens','uncommon','Seeker\'s Compass','Crit +10%',1],['runed-warblade','uncommon','Frostguard Blade','Physical +10%, Armor +75',0],['steel-sword','common','Steel Sword','Physical +5%',0],['lucky-dagger','common','Lucky Dagger','Crit +2%',0],['rusty-blade','common','Rusty Hatchet','Physical +3%',0]],
+    skills: [['physical','Morning run','daily',58],['physical','Lift','weekly',8],['healing','Meditate','daily',41],['magic','Read 20 pages','daily',22],['trueDamage','No sugar','daily',13]] },
+  { hero: 'Wren', cls: 'ranger', boss: 14, bossName: 'The Hollow Choir', bossArt: 'arcane4x', level: 37, days: 51, start: 'Jun 02', end: 'Jul 22',
+    items: [['truthseekers-bow','rare'],['silver-stiletto','uncommon'],['eagle-eye-lens','uncommon'],['bone-needle','common'],['assassins-edge','common'],['lucky-dagger','common']] },
+  { hero: 'Mirelle', cls: 'cleric', boss: 11, bossName: 'Vessel of Ash', bossArt: 'warded3x', level: 31, days: 40, start: 'Apr 19', end: 'May 28',
+    items: [['voidcallers-scepter','epic'],['stormcaller-staff','rare'],['archmages-rod','uncommon'],['apprentice-wand','common']] },
+  { hero: 'Aldric', cls: 'warrior', boss: 9, bossName: 'Iron Warden', bossArt: 'armored3x', level: 26, days: 33, start: 'Mar 08', end: 'Apr 09',
+    items: [['warlords-greatsword','uncommon'],['vampiric-fang','uncommon'],['steel-sword','common']] },
+  { hero: 'Wren', cls: 'ranger', boss: 6, bossName: 'Mossback', bossArt: 'tank', level: 18, days: 21, start: 'Feb 11', end: 'Mar 03',
+    items: [['silver-stiletto','uncommon'],['bone-needle','common']] },
+  { hero: 'Sela', cls: 'cleric', boss: 3, bossName: 'Grave Rat', bossArt: 'balanced', level: 9, days: 8, start: 'Jan 30', end: 'Feb 06',
+    items: [['apprentice-wand','common']] },
+];
+const R = { common: 'var(--common)', uncommon: 'var(--uncommon)', rare: 'var(--rare)', epic: 'var(--epic)', relic: 'var(--relic)' };
+const item = (it, extra = '') => `<span class="item ${extra}" style="--r:${R[it[1]]}"><img src="${ITEMS}${it[0]}.png" alt=""></span>`;
+const statline = (s) => `<div class="statline">${['physical','magic','healing','trueDamage','crit'].map((k) => `<span>${ic(k)}${s[k]}</span>`).join('')}</div>`;
+const skills = (list) => `<ul class="skills">${list.map(([t, n, p, st]) => `<li>${ic(t)}${n} <span class="per">${p}</span><span class="streak">${ic('flame', K.ember, 13)}${st}</span></li>`).join('')}</ul>`;
+const equipped = (r) => r.items.filter((it, i) => it[4] ?? i < 6);
+
+function optA() {
+  return `<ol class="A">${RUNS.map((r, i) => `<li class="row">
+    <button class="sum"><span class="rank">${i + 1}</span>
+      <span><span class="head">Boss ${r.boss}</span><br><span class="meta">${r.days} days · ${r.start} – ${r.end}</span></span>
+      <span class="lv">LV ${r.level}</span></button>
+    ${i === 0 ? `<div class="det">${statline(r.stats)}
+      <div class="sec">Gear</div><div class="strip">${r.items.map((it) => item(it, it[4] ? '' : 'dim')).join('')}</div>
+      <div class="sec">Skills</div>${skills(r.skills)}</div>` : ''}
+  </li>`).join('')}</ol>
+  <p class="note">Items only appear once opened, as a strip of icons (equipped bright, the rest dim). No item text at all.</p>`;
+}
+
+function optB() {
+  return `<ol class="B">${RUNS.map((r, i) => {
+    const eq = equipped(r);
+    return `<li class="row">
+    <button class="sum"><span class="rank">${i + 1}</span>
+      <span class="head">Boss ${r.boss} · Lv ${r.level}</span><span class="meta">${r.days} days</span>
+      <span class="gear">${eq.slice(0, 6).map((it) => item(it)).join('')}${r.items.length > 6 ? `<span class="more">+${r.items.length - 6}</span>` : ''}</span></button>
+    ${i === 0 ? `<div class="det">${statline(r.stats)}
+      <div class="sec">Equipped</div><ul class="gearlist">${r.items.filter((it) => it[4]).map((it) => `<li>${item(it)}<span><span class="nm">${it[2]}</span><span class="bn ${it[6] ? 'ench' : ''}">${it[3]}</span></span></li>`).join('')}</ul>
+      <div class="sec">Skills</div>${skills(r.skills)}</div>` : ''}
+  </li>`; }).join('')}</ol>
+  <p class="note">The equipped set rides along on every row, small. Opening a run lists the equipped items with their bonuses; the pack stays out.</p>`;
+}
+
+function optC() {
+  const top = RUNS[0];
+  return `<div class="C">
+    <div class="champ"><img class="boss-art" src="${SPR}bosses/${top.bossArt}.png" alt="">
+      <div class="crown engraved">${ic('crown', K.gold, 12)}Best run</div>
+      <div class="big"><small>Boss</small>${top.boss}</div>
+      <div class="cmeta">Fell to <b>${top.bossName}</b> at level ${top.level}, after ${top.days} days.</div>
+      ${statline(top.stats)}
+      <div class="sec">Gear</div><div class="strip">${equipped(top).map((it) => item(it)).join('')}</div>
+    </div>
+    <ol class="list">${RUNS.slice(1).map((r, i) => `<li><span class="rank">${i + 2}</span>
+      <span><span class="head">Boss ${r.boss} · Lv ${r.level}</span><span class="meta">${r.days} days · ${r.end}</span></span>
+      <span class="mini">${equipped(r).slice(0, 4).map((it) => item(it)).join('')}</span></li>`).join('')}</ol>
+  </div>
+  <p class="note">The record gets a stage of its own with the boss that ended it. The rest are one line each with up to 4 gear icons. Needs the boss name/art saved with the run.</p>`;
+}
+
+function optD() {
+  return `<ol class="D">${RUNS.map((r, i) => `<li class="stone">
+    <span class="pic"><img src="${SPR}player/${r.cls}.png" alt=""></span>
+    <span><span class="nm"><span class="n">${r.hero}</span><span class="r">#${i + 1}</span></span>
+      <span class="ep">Fell before <b>Boss ${r.boss}</b> at level ${r.level}.</span>
+      <span class="tail"><span class="mini">${equipped(r).slice(0, 6).map((it) => item(it)).join('')}</span><span class="dates">${r.days} days</span></span></span>
+  </li>`).join('')}</ol>
+  <p class="note">A wall of the fallen: each run is the hero who made it, greyed out (the record keeps its colour). Needs hero name and class saved with the run.</p>`;
+}
+
+const stoneRow = (r, i) => `<li class="stone">
+    <span class="pic"><img src="${SPR}player/${r.cls}.png" alt=""></span>
+    <span><span class="nm"><span class="n">${r.hero}</span><span class="r">#${i + 1}</span></span>
+      <span class="ep">Fell before <b>Boss ${r.boss}</b> at level ${r.level}.</span>
+      <span class="tail"><span class="mini">${equipped(r).slice(0, 6).map((it) => item(it)).join('')}</span><span class="dates">${r.days} days</span></span></span>
+  </li>`;
+const gearlist = (r) => `<ul class="gearlist">${r.items.filter((it) => it[4]).map((it) => `<li>${item(it)}<span><span class="nm">${it[2]}</span><span class="bn ${it[6] ? 'ench' : ''}">${it[3]}</span></span></li>`).join('')}</ul>`;
+const pack = (r) => `<div class="pack">${r.items.filter((it) => !it[4]).map((it) => item(it)).join('')}</div>`;
+
+// Opens in place: the row's gear icons give way to the full record below it.
+function optD1() {
+  const r = RUNS[0];
+  return `<ol class="D">${stoneRow(r, 0).replace('class="stone"', 'class="stone open"')}
+  <li class="open-body"><div class="when">${r.start} – ${r.end}</div>
+    ${statline(r.stats)}
+    <div class="sec">Skills</div>${skills(r.skills)}
+  </li>
+  ${RUNS.slice(1, 4).map((x, i) => stoneRow(x, i + 1)).join('')}</ol>
+  <p class="note">The row stays exactly as it is closed; tapping it drops the rest down beneath: dates, stats, skills with streaks.</p>`;
+}
+
+// Opens as a sheet over the list: the hero faces the boss that ended them.
+function optD2() {
+  const r = RUNS[0];
+  return `<div class="sheet-wrap"><ol class="D">${RUNS.map(stoneRow).join('')}</ol>
+    <div class="sheet"><button class="x" aria-label="Close">×</button>
+      <div class="rk">Rank 1</div>
+      <div class="duel"><img class="h" src="${SPR}player/${r.cls}.png" alt=""><img class="b" src="${SPR}bosses/${r.bossArt}.png" alt=""></div>
+      <div class="who">${r.hero}</div>
+      <div class="ep">Fell to <b>${r.bossName}</b>, Boss ${r.boss}, at level ${r.level}.</div>
+      <div class="when">${r.start} – ${r.end} · ${r.days} days</div>
+      ${statline(r.stats)}
+      <div class="sec">Equipped</div>${gearlist(r)}
+      <div class="sec">Skills</div>${skills(r.skills)}
+    </div></div>
+  <p class="note">Tap a stone, a sheet rises over the list. The fallen hero (greyed) faces the boss that ended the run, then the record. Needs boss name and art saved with the run.</p>`;
+}
+
+const OPTS = [
+  ['D', 'Epitaphs · closed', 'The list as before.', optD],
+  ['D1', 'Opens in place', 'The run unfolds under its row; the rest of the list pushes down.', optD1],
+  ['D2', 'Opens as a sheet', 'A gravestone sheet over the list, with the hero facing their killer.', optD2],
+];
+document.getElementById('opts').innerHTML = OPTS.map(([k, n, d, f]) => `<section class="opt"><h2 class="engraved"><b>${k}</b>${n}</h2><p>${d}</p>
+  <div class="screen"><div class="title engraved">High Scores</div><div class="subtitle">Your ten deepest runs.</div>${f()}</div></section>`).join('');
+</script>
+</body>
+</html>

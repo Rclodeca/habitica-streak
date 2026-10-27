@@ -487,6 +487,9 @@ export function useCombatActions() {
             },
           ];
         }),
+        heroName: character.name ?? DEFAULT_HERO_NAME,
+        heroClass: heroClassFor(character),
+        bossPersonality: bossStore.boss.personality,
       });
 
       // The fresh character is unnamed, so the new-hero screen shows next and

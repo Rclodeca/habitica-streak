@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { availableRelics, createRng, dailyPeriodKey, dayOfWeekIndex, effectiveStat, expToNextLevel, periodKeyFor, PERSONALITY_NAME, questSlotExp, weeklyPeriodKey } from '../game-engine';
+import { availableRelics, createRng, dailyPeriodKey, dayOfWeekIndex, effectiveStat, expToNextLevel, heroClassFor, periodKeyFor, PERSONALITY_NAME, questSlotExp, weeklyPeriodKey } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
@@ -506,9 +506,10 @@ describe('useCombatActions', () => {
     const { checkMissedHabit, restart } = useCombatActions();
 
     const habit = habitStore.addHabit('Exercise', 'daily', 'hard', false, createRng());
-    characterStore.character = { ...characterStore.character, currentHealth: 1, level: 4 };
-    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3 });
+    characterStore.character = { ...characterStore.character, currentHealth: 1, level: 4, name: 'Aldric' };
+    bossStore.setBoss({ ...bossStore.boss, physicalAttack: 1000, magicAttack: 1000, index: 3, personality: 'brute4x' });
     checkMissedHabit(habit.id);
+    const characterAtDeath = characterStore.character;
     const habitAtDeath = habitStore.habits.find((h) => h.id === habit.id)!;
 
     restart();
@@ -528,6 +529,9 @@ describe('useCombatActions', () => {
     ]);
     expect(run.items).toEqual([]); // no items dropped in this test
     expect(run.stats.health).toBeGreaterThan(0);
+    expect(run.heroName).toBe('Aldric');
+    expect(run.heroClass).toBe(heroClassFor(characterAtDeath));
+    expect(run.bossPersonality).toBe('brute4x'); // the boss that ended the run
   });
 
   it('checkOffHabit on a bad habit damages the player (penalty), resets its streak, and stamps completed', () => {
