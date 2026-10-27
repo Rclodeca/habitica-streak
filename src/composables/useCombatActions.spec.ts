@@ -149,7 +149,10 @@ describe('useCombatActions', () => {
       expect(hurt.hp).toBeCloseTo(-hurt.amount);
       expect(characterStore.character.currentHealth).toBeCloseTo(500 + strike.lifesteal!.amount - hurt.amount);
       const entries = useActivityLogStore().entries;
+      // Lifesteal rides on the blow's own entry, not a row of its own.
       expect(entries[0]).toMatchObject({ kind: 'skill-damage' });
+      expect((entries[0] as { lifesteal: number }).lifesteal).toBeCloseTo(strike.lifesteal!.amount);
+      expect(entries.some((e) => e.kind === 'lifesteal')).toBe(false);
       expect(entries[1]).toMatchObject({ kind: 'boss-skill', skill: 'rend', outcome: 'landed' });
       expect((entries[1] as { amount: number }).amount).toBeCloseTo(hurt.amount);
     });

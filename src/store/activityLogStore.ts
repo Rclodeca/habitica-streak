@@ -12,9 +12,12 @@ export type ActivityLogEntry =
   // for the same physical/magic/healing/trueDamage color scheme.
   // milestoneExp is the streak-milestone EXP bonus granted alongside this
   // action (see useCombatActions/applyReward) — undefined/0 when none fired.
-  | { id: string; kind: 'skill-damage'; habitName: string; amount: number; isTrueDamage?: boolean; milestoneExp?: number }
+  // crit/lifesteal/reflected ride on the blow's own entry and render as chips
+  // under it; lifesteal is what the hero healed, reflected what bounced back.
+  | { id: string; kind: 'skill-damage'; habitName: string; amount: number; isTrueDamage?: boolean; milestoneExp?: number; crit?: boolean; lifesteal?: number; reflected?: number }
   | { id: string; kind: 'heal'; habitName: string; amount: number; milestoneExp?: number }
-  | { id: string; kind: 'hit'; habitName: string; amount: number; attackType: 'physical' | 'magic' }
+  // crit/lifesteal here are the boss's: its crit, and what it healed off the blow.
+  | { id: string; kind: 'hit'; habitName: string; amount: number; attackType: 'physical' | 'magic'; crit?: boolean; lifesteal?: number }
   | {
       id: string;
       kind: 'level-up';
@@ -28,6 +31,8 @@ export type ActivityLogEntry =
         trueDamage: number;
       };
     }
+  // Legacy: crit/lifesteal/reflect are now folded into their blow's entry;
+  // these kinds stay only so entries in older saves still render.
   | { id: string; kind: 'crit'; by: 'player' | 'boss' }
   | { id: string; kind: 'lifesteal'; amount: number; healedWho: 'player' | 'boss' }
   | { id: string; kind: 'reflect'; amount: number }

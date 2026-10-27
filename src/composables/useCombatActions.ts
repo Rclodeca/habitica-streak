@@ -233,15 +233,8 @@ export function useCombatActions() {
         milestoneExp: result.milestoneExp,
       });
     } else if (result.damageDealt !== undefined) {
-      // Sub-effect entries pushed before the main one so the main "skill
-      // used" entry — the headline of this action — lands on top (newest).
-      if (result.wasCrit) activityLogStore.addEntry({ kind: 'crit', by: 'player' });
-      if (result.lifestealHealed) {
-        activityLogStore.addEntry({ kind: 'lifesteal', amount: result.lifestealHealed, healedWho: 'player' });
-      }
-      if (result.reflectedDamage) {
-        activityLogStore.addEntry({ kind: 'reflect', amount: result.reflectedDamage });
-      }
+      // Boss skill pushed first so the "skill used" entry — the headline of
+      // this action — lands on top (newest).
       if (bossSkill) logBossSkill(bossSkill);
       activityLogStore.addEntry({
         kind: 'skill-damage',
@@ -249,6 +242,9 @@ export function useCombatActions() {
         amount: result.damageDealt,
         isTrueDamage: habit.damageType === 'trueDamage',
         milestoneExp: result.milestoneExp,
+        ...(result.wasCrit && { crit: true }),
+        ...(result.lifestealHealed && { lifesteal: result.lifestealHealed }),
+        ...(result.reflectedDamage && { reflected: result.reflectedDamage }),
       });
     }
     if ((result.updatedHabit.rank ?? 0) > (habit.rank ?? 0)) {
@@ -327,17 +323,13 @@ export function useCombatActions() {
       ...(result.bossLifestealHealed ? { lifesteal: { amount: result.bossLifestealHealed, hp: result.bossLifestealHealed } } : {}),
     });
 
-    // Sub-effect entries pushed before the main one so the main "hit" entry
-    // — the headline of this action — lands on top (newest).
-    if (result.wasCrit) activityLogStore.addEntry({ kind: 'crit', by: 'boss' });
-    if (result.bossLifestealHealed) {
-      activityLogStore.addEntry({ kind: 'lifesteal', amount: result.bossLifestealHealed, healedWho: 'boss' });
-    }
     activityLogStore.addEntry({
       kind: 'hit',
       habitName: habit.name,
       amount: dealt,
       attackType: result.attackType,
+      ...(result.wasCrit && { crit: true }),
+      ...(result.bossLifestealHealed && { lifesteal: result.bossLifestealHealed }),
     });
 
     // Rounded, not the raw float: the health bar already displays

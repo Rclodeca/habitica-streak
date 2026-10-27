@@ -16,9 +16,12 @@ const activityLogStore = useActivityLogStore();
           <StatIcon :name="entry.isTrueDamage ? 'true' : 'physical'" class="log-icon" /> Used "{{ entry.habitName }}" — dealt
           <span :class="entry.isTrueDamage ? 'log-true-damage' : 'log-damage'">{{ formatCompact(entry.amount) }}</span>
           damage
-          <template v-if="entry.milestoneExp">
-            · <span class="log-exp">+{{ formatCompact(entry.milestoneExp) }}</span> EXP
-          </template>
+          <span v-if="entry.crit || entry.lifesteal || entry.reflected || entry.milestoneExp" class="log-chips">
+            <span v-if="entry.crit" class="log-chip crit"><StatIcon name="crit" :size="11" />Crit</span>
+            <span v-if="entry.lifesteal" class="log-chip"><StatIcon name="lifesteal" :size="11" /><span class="log-heal">+{{ formatCompact(entry.lifesteal) }}</span>&nbsp;HP</span>
+            <span v-if="entry.reflected" class="log-chip"><StatIcon name="reflect" :size="11" /><span class="log-damage">−{{ formatCompact(entry.reflected) }}</span>&nbsp;HP</span>
+            <span v-if="entry.milestoneExp" class="log-chip"><span class="log-exp">+{{ formatCompact(entry.milestoneExp) }}</span>&nbsp;EXP</span>
+          </span>
         </template>
         <template v-else-if="entry.kind === 'heal'">
           <StatIcon name="healing" class="log-icon" /> Healed <span class="log-heal">+{{ formatCompact(entry.amount) }}</span> HP using "{{ entry.habitName }}"
@@ -27,8 +30,12 @@ const activityLogStore = useActivityLogStore();
           </template>
         </template>
         <template v-else-if="entry.kind === 'hit'">
-          <StatIcon :name="entry.attackType === 'physical' ? 'physical' : 'magic'" class="log-icon" /> {{ entry.attackType === 'physical' ? 'Physical' : 'Magic' }} hit for
-          <span class="log-damage">{{ formatCompact(entry.amount) }}</span> damage (missed "{{ entry.habitName }}")
+          <StatIcon :name="entry.attackType === 'physical' ? 'physical' : 'magic'" class="log-icon" /> Missed "{{ entry.habitName }}" — took
+          <span class="log-damage">{{ formatCompact(entry.amount) }}</span> damage
+          <span v-if="entry.crit || entry.lifesteal" class="log-chips">
+            <span v-if="entry.crit" class="log-chip crit"><StatIcon name="crit" :size="11" />Crit</span>
+            <span v-if="entry.lifesteal" class="log-chip"><StatIcon name="lifesteal" :size="11" />Boss&nbsp;<span class="log-heal">+{{ formatCompact(entry.lifesteal) }}</span>&nbsp;HP</span>
+          </span>
         </template>
         <template v-else-if="entry.kind === 'level-up'">
           <StatIcon name="levelUp" class="log-icon" /> Leveled up to Lv. {{ entry.newLevel }}! Healed
@@ -198,6 +205,31 @@ const activityLogStore = useActivityLogStore();
   margin-left: 1.4rem;
   color: var(--text);
   font-style: italic;
+}
+
+/* A blow's crit, lifesteal, reflect and EXP, on a row under it. */
+.log-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.2rem 0 0 1.4rem;
+}
+
+.log-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--accent-border);
+  font-size: 0.75rem;
+  font-style: normal;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.log-chip.crit {
+  border-color: color-mix(in srgb, var(--icon-crit) 50%, transparent);
+  color: var(--icon-crit);
 }
 
 .log-true-damage {

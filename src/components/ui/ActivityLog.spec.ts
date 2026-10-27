@@ -33,6 +33,9 @@ describe('ActivityLog — boss skills', () => {
     [{ kind: 'boss-skill', skill: 'doom', outcome: 'failed' }, 'A boss skill fails'],
     [{ kind: 'doom-landed', amount: 512.6 }, 'Doom — took 513 damage'],
     [{ kind: 'rank-up', habitName: 'Run', rank: 5 }, '"Run" · Rank V'],
+    [{ kind: 'skill-damage', habitName: 'Run', amount: 500, crit: true, lifesteal: 80, reflected: 120, milestoneExp: 42 }, 'Used "Run" — dealt 500 damage Crit+80 HP−120 HP+42 EXP'],
+    [{ kind: 'skill-damage', habitName: 'Run', amount: 500 }, 'Used "Run" — dealt 500 damage'],
+    [{ kind: 'hit', habitName: 'Run', amount: 412, attackType: 'magic', crit: true, lifesteal: 95 }, 'Missed "Run" — took 412 damage CritBoss +95 HP'],
   ] as const)('renders %o as "%s"', (entry, text) => {
     expect(lineFor(entry)).toBe(text);
   });
