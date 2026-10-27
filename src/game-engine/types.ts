@@ -69,6 +69,10 @@ export interface Character {
   // bands): undefined means applyRankRebalance still has to cut physical,
   // magic and true damage and rescale the boss; createCharacter sets it true.
   rankRebalanceApplied?: boolean;
+  // Same one-time marker for the healing boost (BASE_STATS.healing
+  // 188 -> 235): undefined means applyHealBoost still has to raise healing;
+  // createCharacter sets it true.
+  healBoostApplied?: boolean;
   // Events mechanic (see events.ts). `takenEventIds` holds one-time events
   // already picked this run; `pendingEventPicks` is how many level-ups are
   // still waiting for the player to choose an event. Both optional so an

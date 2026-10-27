@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyDamagePoolRebalance,
+  applyHealBoost,
   applyHealingRebalance,
   applyRankRebalance,
   createCharacter,
@@ -263,6 +264,32 @@ describe('applyHealingRebalance', () => {
     const character = { ...createCharacter(createRng(3)), healingRebalanceApplied: undefined };
     const once = applyHealingRebalance(character);
     expect(applyHealingRebalance(once)).toEqual(once);
+  });
+});
+
+describe('applyHealBoost', () => {
+  it('raises only healing by ONE_TIME_HEAL_BOOST_FACTOR on a pre-boost character', () => {
+    const character = { ...createCharacter(createRng(1)), healBoostApplied: undefined };
+
+    const boosted = applyHealBoost(character);
+
+    expect(boosted.starterStats.healing).toBeCloseTo(character.starterStats.healing * TUNING.ONE_TIME_HEAL_BOOST_FACTOR, 10);
+    expect(boosted.starterStats.physicalDamage).toBe(character.starterStats.physicalDamage);
+    expect(boosted.starterStats.magicDamage).toBe(character.starterStats.magicDamage);
+    expect(boosted.starterStats.health).toBe(character.starterStats.health);
+    expect(boosted.starterStats.trueDamage).toBe(character.starterStats.trueDamage);
+    expect(boosted.healBoostApplied).toBe(true);
+  });
+
+  it('is a no-op on a fresh character (already at the boosted baseline)', () => {
+    const character = createCharacter(createRng(2));
+    expect(applyHealBoost(character)).toEqual(character);
+  });
+
+  it('is idempotent when called twice in a row', () => {
+    const character = { ...createCharacter(createRng(3)), healBoostApplied: undefined };
+    const once = applyHealBoost(character);
+    expect(applyHealBoost(once)).toEqual(once);
   });
 });
 

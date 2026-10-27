@@ -137,10 +137,10 @@ describe('skill ranks', () => {
   it('a miss resets the streak but never the rank', () => {
     expect(resetHabitStreak(makeHabit({ streakCount: 40, rank: 3 }))).toMatchObject({ streakCount: 0, rank: 3 });
   });
-  it('multiplies by 1 + rank + 1% a day (healing +25% a rank, weeklies 3% a week)', () => {
+  it('multiplies by 1 + rank + 1% a day (healing +50% a rank, weeklies 3% a week)', () => {
     expect(rankMultiplier(makeHabit({ rank: 5, streakCount: 112 }))).toBeCloseTo(7.12);
     expect(rankMultiplier(makeHabit({ rank: 8, streakCount: 500 }))).toBeCloseTo(14);
-    expect(rankMultiplier(makeHabit({ rank: 2, streakCount: 23, damageType: 'healing' }))).toBeCloseTo(1.73);
+    expect(rankMultiplier(makeHabit({ rank: 2, streakCount: 23, damageType: 'healing' }))).toBeCloseTo(2.23);
     expect(rankMultiplier(makeHabit({ rank: 2, streakCount: 9, period: 'weekly' }))).toBeCloseTo(3.27);
     expect(rankMultiplier(makeHabit({ streakCount: 0 }))).toBe(1); // no rank field
   });

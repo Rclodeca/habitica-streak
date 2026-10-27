@@ -4,7 +4,7 @@ export const TUNING = {
   // Per-skill stats: every skill hits for its type's full stat (no pools),
   // at 60% of the old pooled values; 8 skills is the reference loadout.
   // Sim: SKILLS=8 POOLS=0 node scripts/balance-sim.mjs
-  BASE_STATS: { physicalDamage: 336, magicDamage: 336, healing: 188, health: 1250, trueDamage: 288 },
+  BASE_STATS: { physicalDamage: 336, magicDamage: 336, healing: 235, health: 1250, trueDamage: 288 },
   // An earlier ~30% cut (from the daily/weekly pool split), applied once to
   // an in-progress run's physicalDamage/magicDamage/healing via
   // character.ts's applyDamagePoolRebalance. health/trueDamage untouched.
@@ -12,6 +12,9 @@ export const TUNING = {
   // An earlier healing-only cut (269 -> 188), applied once to an in-progress
   // run's existing healing via character.ts's applyHealingRebalance.
   ONE_TIME_HEALING_REBALANCE_PCT: 30,
+  // The later healing boost (188 -> 235), applied once to an in-progress
+  // run's existing healing via character.ts's applyHealBoost.
+  ONE_TIME_HEAL_BOOST_FACTOR: 1.25,
   // Crowding: the FULL_POWER_SKILLS oldest skills hit in full; the next ones
   // hit for these factors, the last for every later one (see crowdingFactor).
   FULL_POWER_SKILLS: 15,
@@ -25,9 +28,9 @@ export const TUNING = {
     weekly: [3, 7, 10, 17, 33, 67, 100, 167],
   } as Record<Period, number[]>,
   // A hit's multiplier is 1 + RANK_BONUS * rank + STREAK_BONUS * streak
-  // (see rankMultiplier in streaks.ts). Healing ranks are worth a quarter.
+  // (see rankMultiplier in streaks.ts). Healing ranks are worth half.
   RANK_BONUS: 1.0,
-  HEAL_RANK_BONUS: 0.25,
+  HEAL_RANK_BONUS: 0.5,
   STREAK_BONUS: 0.01,
   WEEKLY_STREAK_BONUS: 0.03,
   // Boss health at index 1, and its growth bands: each row's rate applies

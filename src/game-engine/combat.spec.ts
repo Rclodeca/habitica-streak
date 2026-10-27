@@ -731,11 +731,11 @@ describe('completeHabit — rank multiplier', () => {
     expect(result.updatedHabit.rank).toBe(1);
   });
 
-  it('a healing rank is worth +25%', () => {
+  it('a healing rank is worth +50%', () => {
     const wounded = makeCharacter({ currentHealth: 1 });
     const habit = makeHabit({ damageType: 'healing', rank: 4, streakCount: 0 });
     const result = completeHabit(wounded, habit, [habit], boss, DAY_KEY, noCritRng);
-    expect(result.character.currentHealth - 1).toBeCloseTo(statAtLevel(wounded.starterStats.healing, 1) * 2, 10);
+    expect(result.character.currentHealth - 1).toBeCloseTo(statAtLevel(wounded.starterStats.healing, 1) * 3, 10);
   });
 
   it('a weekly streak is worth 3% a week', () => {

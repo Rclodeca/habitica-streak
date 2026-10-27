@@ -40,6 +40,7 @@ export function createCharacter(rng: Rng): Character {
     damagePoolRebalanceApplied: true,
     healingRebalanceApplied: true,
     rankRebalanceApplied: true,
+    healBoostApplied: true,
   };
 }
 
@@ -190,6 +191,24 @@ export function applyHealingRebalance(character: Character): Character {
       healing: character.starterStats.healing * factor,
     },
     healingRebalanceApplied: true,
+  };
+}
+
+/**
+ * One-time migration for a run that predates the healing boost — see
+ * `healBoostApplied` on `Character`. Raises only `healing` by
+ * ONE_TIME_HEAL_BOOST_FACTOR, from whatever value is already on the
+ * character (like applyHealingRebalance, not a re-roll from BASE_STATS).
+ */
+export function applyHealBoost(character: Character): Character {
+  if (character.healBoostApplied) return character;
+  return {
+    ...character,
+    starterStats: {
+      ...character.starterStats,
+      healing: character.starterStats.healing * TUNING.ONE_TIME_HEAL_BOOST_FACTOR,
+    },
+    healBoostApplied: true,
   };
 }
 
