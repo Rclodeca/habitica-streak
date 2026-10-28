@@ -30,13 +30,11 @@ onBeforeUnmount(unlock);
 
 // A popup that shows queued entries one after another passes the entry as
 // `scrollKey`, so each new one opens at the top, not where the last was left.
-// Either box can be the one scrolling (see `.has-footer`), so reset both.
-const contentEl = ref<HTMLElement | null>(null);
 const scrollEl = ref<HTMLElement | null>(null);
 watch(
   () => props.scrollKey,
   () => {
-    for (const el of [contentEl.value, scrollEl.value]) if (el) el.scrollTop = 0;
+    if (scrollEl.value) scrollEl.value.scrollTop = 0;
   },
   { flush: 'post' },
 );
@@ -50,7 +48,7 @@ function close() {
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="modal-backdrop" @click="close">
-      <div ref="contentEl" class="modal-content" :class="{ 'has-footer': $slots.footer }" :style="{ maxWidth }" @click.stop>
+      <div class="modal-content" :class="{ 'has-footer': $slots.footer }" :style="{ maxWidth }" @click.stop>
         <div ref="scrollEl" class="modal-scroll">
           <div class="modal-header">
             <h3 v-if="title">{{ title }}</h3>
@@ -85,28 +83,26 @@ function close() {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 1rem 1.25rem;
   width: 100%;
   max-height: 80vh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   box-shadow: var(--shadow);
 }
 
-/* With a footer, only the header and body scroll; the footer stays pinned
-   to the bottom edge. */
-.modal-content.has-footer {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  overflow: hidden;
+/* The frame never scrolls, only the header and body do, so anything drawn on
+   the frame (a theme's corner brackets) stays locked to its border. A footer
+   stays pinned to the bottom edge. */
+.modal-scroll {
+  min-height: 0;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .has-footer .modal-scroll {
-  min-height: 0;
-  padding: 1rem 1.25rem 0.75rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  padding-bottom: 0.75rem;
 }
 
 .modal-footer {

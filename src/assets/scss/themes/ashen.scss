@@ -1936,10 +1936,13 @@ $caps-lg: 0.85rem; // panel and popup titles
   }
 
   .modal-content:has(.death) {
-    padding-block: 2.2rem 2rem;
     border: 0;
     background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.96) 8%, rgba(0, 0, 0, 0.96) 92%, transparent);
     box-shadow: none;
+  }
+
+  .modal-content:has(.death) .modal-scroll {
+    padding-block: 2.2rem 2rem;
   }
 
   .modal-content:has(.death)::before {
