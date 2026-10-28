@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ChevronsUp, Dices, Sword, Swords, WandSparkl
 import { DEFAULT_HERO_NAME, HERO_CLASSES, heroClassFor, MAX_HERO_NAME_LENGTH } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import type { HeroPick } from '../../composables/useCombatActions';
+import type { HeroClass } from '../../game-engine';
 import { useFallenHero } from '../../composables/useFallenHero';
 import { useCharacterStore } from '../../store/characterStore';
 import { HERO_PICK_PLACEMENT } from '../character/heroArt';
@@ -41,10 +42,10 @@ const choosing = computed(() => characterStore.character.heroPending === true);
 const pick = ref<HeroPick>(heroClassFor(characterStore.character));
 // Fate shows the warrior's shape, darkened.
 const shownClass = computed(() => (pick.value === 'fate' ? 'warrior' : pick.value));
-const placement = computed(() => {
-  const { width, left, bottom } = HERO_PICK_PLACEMENT[shownClass.value];
+function placementFor(heroClass: HeroClass) {
+  const { width, left, bottom } = HERO_PICK_PLACEMENT[heroClass];
   return { width: `${width}px`, height: `${width}px`, left: `${left}px`, bottom: `${bottom}px` };
-});
+}
 
 function turn(step: number) {
   pick.value = PICKS[(PICKS.indexOf(pick.value) + step + PICKS.length) % PICKS.length];
@@ -90,7 +91,17 @@ function begin() {
         </button>
         <div class="bonfire">
           <div class="pick-hero" :class="{ fated: pick === 'fate' }">
-            <img :src="`${baseUrl}sprites/player/${shownClass}.png`" :style="placement" alt="" draggable="false" />
+            <!-- Every hero is drawn up front and only the picked one shown: swapping
+                 one img's src resized it before the new art had loaded. -->
+            <img
+              v-for="heroClass in HERO_CLASSES"
+              v-show="heroClass === shownClass"
+              :key="heroClass"
+              :src="`${baseUrl}sprites/player/${heroClass}.png`"
+              :style="placementFor(heroClass)"
+              alt=""
+              draggable="false"
+            />
             <span v-if="pick === 'fate'" class="fate-mark">?</span>
           </div>
         </div>
