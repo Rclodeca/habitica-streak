@@ -7,7 +7,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyTheme, useThemeStore } from './themeStore';
 
-const STORAGE_KEY = 'habitica-streak:theme:v1';
+const STORAGE_KEY = 'streak-slayer:theme:v1';
 
 describe('themeStore', () => {
   beforeEach(() => {

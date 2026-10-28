@@ -11,9 +11,9 @@ import { defineStore } from 'pinia';
 import { daysBetweenDayKeys, DEFAULT_HERO_NAME, heroClassFor, rankForStreak } from '../game-engine';
 import type { DamageType, HeroClass, Period, Personality } from '../game-engine';
 
-export const STORAGE_KEY = 'habitica-streak:highscore:v1';
-export const RUNS_KEY = 'habitica-streak:highscore:runs:v1';
-export const RUN_START_KEY = 'habitica-streak:highscore:runstart:v1';
+export const STORAGE_KEY = 'streak-slayer:highscore:v1';
+export const RUNS_KEY = 'streak-slayer:highscore:runs:v1';
+export const RUN_START_KEY = 'streak-slayer:highscore:runstart:v1';
 const MAX_RUNS = 10;
 
 export interface HighScoreRunHabit {

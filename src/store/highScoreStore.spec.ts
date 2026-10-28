@@ -22,7 +22,7 @@ describe('highScoreStore', () => {
     const store = useHighScoreStore();
     store.recordBossIndex(5);
     expect(store.highestBossIndex).toBe(5);
-    expect(localStorage.getItem('habitica-streak:highscore:v1')).toBe('5');
+    expect(localStorage.getItem('streak-slayer:highscore:v1')).toBe('5');
   });
 
   it('ignores an index that does not beat the current record', () => {
@@ -33,13 +33,13 @@ describe('highScoreStore', () => {
   });
 
   it('loads a previously persisted record on a fresh store instance', () => {
-    localStorage.setItem('habitica-streak:highscore:v1', '7');
+    localStorage.setItem('streak-slayer:highscore:v1', '7');
     const store = useHighScoreStore();
     expect(store.highestBossIndex).toBe(7);
   });
 
   it('falls back to 1 for corrupt/non-numeric persisted data', () => {
-    localStorage.setItem('habitica-streak:highscore:v1', 'not-a-number');
+    localStorage.setItem('streak-slayer:highscore:v1', 'not-a-number');
     const store = useHighScoreStore();
     expect(store.highestBossIndex).toBe(1);
   });
@@ -87,7 +87,7 @@ describe('highScoreStore', () => {
     expect(store.topRuns[0].bossIndex).toBe(11); // highest first
     expect(store.topRuns.at(-1)?.bossIndex).toBe(2); // bossIndex 1 dropped off the bottom
 
-    const persisted = JSON.parse(localStorage.getItem('habitica-streak:highscore:runs:v1') as string);
+    const persisted = JSON.parse(localStorage.getItem('streak-slayer:highscore:runs:v1') as string);
     expect(persisted).toHaveLength(10);
   });
 
@@ -108,7 +108,7 @@ describe('highScoreStore', () => {
     delete older.heroClass;
     delete older.bossPersonality;
     localStorage.setItem(
-      'habitica-streak:highscore:runs:v1',
+      'streak-slayer:highscore:runs:v1',
       JSON.stringify([{ ...older, id: 'old', startedDayKey: '2026-01-01', endedDayKey: '2026-01-02', daysLived: 2 }]),
     );
     const store = useHighScoreStore();

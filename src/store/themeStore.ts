@@ -13,7 +13,7 @@ export const THEMES: { id: Theme; label: string }[] = [
   { id: 'minimalist', label: 'Minimalist' },
 ];
 
-export const STORAGE_KEY = 'habitica-streak:theme:v1';
+export const STORAGE_KEY = 'streak-slayer:theme:v1';
 const DEFAULT_THEME: Theme = 'ashen';
 
 function loadTheme(): Theme {

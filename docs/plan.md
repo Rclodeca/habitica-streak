@@ -1,4 +1,4 @@
-# Habitica Streak — Gamified Habit Tracker (Core Loop MVP)
+# StreakSlayer — Gamified Habit Tracker (Core Loop MVP)
 
 _This is a committed copy of the implementation plan used to build the MVP (originally authored at `~/.claude/plans/large-task-let-s-work-splendid-whale.md`, outside this repo). Kept here so the spec survives independently of any external plan-file store. See `PROGRESS.md` at the repo root for current status, deviations, and what's deferred._
 

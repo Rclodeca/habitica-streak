@@ -81,7 +81,7 @@ function begin() {
 <template>
   <form class="new-hero" @submit.prevent="begin">
     <p class="eyebrow">{{ fallen ? 'The fire still burns.' : 'Every habit is a weapon.' }}</p>
-    <h1 class="game-title">Habitica Streak</h1>
+    <h1 class="game-title">StreakSlayer</h1>
 
     <template v-if="choosing">
       <div class="hero-pick" @pointerdown="startSwipe" @pointerup="endSwipe" @pointercancel="cancelSwipe">

@@ -1,4 +1,4 @@
-# Habitica Streak
+# StreakSlayer
 
 ## Long-term goal: native iOS/Android release
 

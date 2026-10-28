@@ -8,7 +8,7 @@ import type { ActivityLogEntry } from '../activityLogStore';
 // No migration in MVP — a v4 save simply mismatches and the player starts
 // fresh, per the existing pattern below.
 export const CURRENT_SCHEMA_VERSION = 5;
-export const STORAGE_KEY = 'habitica-streak:save:v5';
+export const STORAGE_KEY = 'streak-slayer:save:v5';
 
 export interface SaveStateV5 {
   schemaVersion: 5;

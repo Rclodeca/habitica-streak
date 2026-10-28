@@ -4,14 +4,14 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/habitica-streak/',
+  base: '/streak-slayer/',
   plugins: [
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Habitica Streak',
-        short_name: 'HabitStreak',
+        name: 'StreakSlayer',
+        short_name: 'StreakSlayer',
         description: 'A gamified habit tracker — check off habits to damage a boss and level up.',
         display: 'standalone',
         theme_color: '#aa3bff',

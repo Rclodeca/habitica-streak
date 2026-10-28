@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import { initializeStores, pinia } from './store';
+import { migrateLegacyStorageKeys } from './store/plugins/legacyStorageKeys';
 import { applyTheme, useThemeStore } from './store/themeStore';
 // Ashen's typefaces, bundled so the installed PWA doesn't depend on a font CDN.
 import '@fontsource/cinzel/500.css';
@@ -12,6 +13,8 @@ import '@fontsource/cormorant-garamond/700.css';
 import './style.css';
 import './assets/scss/main.scss';
 import './assets/scss/themes/ashen.scss';
+
+migrateLegacyStorageKeys();
 
 const app = createApp(App);
 
