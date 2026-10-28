@@ -1705,10 +1705,15 @@ $caps-lg: 0.85rem; // panel and popup titles
     color: $ember;
   }
 
-  .revive-toast {
+  .revive-toast,
+  .save-toast {
     background: #0e0d0b;
     border-color: $line-mid;
     font-style: italic;
+  }
+
+  .save-toast.bad {
+    border-color: rgba(200, 64, 47, 0.65);
   }
 
   // ---------- New-hero screen: the hero by a fire ----------

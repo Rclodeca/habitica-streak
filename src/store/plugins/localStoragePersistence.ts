@@ -20,6 +20,16 @@ const DEBOUNCE_MS = 250;
 // timer — on top of the first.
 const wiredPinias = new WeakSet<Pinia>();
 
+// Set by `suspendPersistence` while an imported save is being written, so a
+// write still pending from before the import can't land on top of it before
+// the app reloads.
+let suspended = false;
+
+/** Stops every pending and future save write until the page reloads. */
+export function suspendPersistence(): void {
+  suspended = true;
+}
+
 /**
  * Subscribes to all three stores and, on any mutation, debounce-writes the
  * combined save shape to localStorage. Idempotent per `pinia` instance —
@@ -42,6 +52,7 @@ export function setupPersistence(pinia: Pinia): void {
     if (timeoutId !== undefined) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       timeoutId = undefined;
+      if (suspended) return;
       writeSaveState({
         character: characterStore.character,
         boss: bossStore.boss,
