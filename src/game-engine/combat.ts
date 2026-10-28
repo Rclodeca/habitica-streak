@@ -1,4 +1,4 @@
-import { applyResist, baseResistStatForIndex, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
+import { applyResist, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
 import { activeSunder, bloodlustActive, reflectActive, resolveBreakpoints, spendPassedBreakpoints } from './bossSkills';
 import type { FiredBossSkill } from './bossSkills';
 import { createCharacter, heroClassFor } from './character';
@@ -286,10 +286,7 @@ function resolveCompletion(
   // Hunter's Eye crits ignore them too.
   let dealt = critAmount;
   if (habit.damageType !== 'trueDamage' && !(wasCrit && hasItemEffect(character, 'hunters-eye'))) {
-    const bossResist = habit.damageType === 'physical' ? boss.armor : boss.magicResist;
-    // Worldbreaker: an armored boss's extra armor doesn't count against physical hits.
-    const resistStat =
-      habit.damageType === 'physical' && hasItemEffect(character, 'worldbreaker') ? Math.min(bossResist, baseResistStatForIndex(boss.index)) : bossResist;
+    const resistStat = habit.damageType === 'physical' ? boss.armor : boss.magicResist;
     const penStat = habit.damageType === 'physical' ? 'armorPen' : 'magicPen';
     const effectiveResistStat = effectiveResistAfterPen(resistStat, itemBonusPercent(character, penStat));
     dealt = applyResist(critAmount, effectiveResistStat);

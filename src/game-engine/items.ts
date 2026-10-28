@@ -38,7 +38,6 @@ export type ItemEffectId =
   | 'titans-mending'
   | 'sages-insight'
   | 'starfall'
-  | 'worldbreaker'
   | 'ember-heart'
   | 'soul-lantern'
   | 'first-blood'

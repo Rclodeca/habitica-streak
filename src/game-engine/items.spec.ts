@@ -99,9 +99,9 @@ describe('ITEM_CATALOG', () => {
     }
   });
 
-  it('gives every epic an effect and effectText, except the three stat-only epics', () => {
+  it('gives every epic an effect and effectText, except the four stat-only epics', () => {
     const epics = ITEM_CATALOG.filter((i) => i.rarity === 'epic');
-    expect(epics.filter((i) => !i.effect).map((i) => i.id).sort()).toEqual(['archons-halo', 'colossus-plate', 'sunpiercer-bow']);
+    expect(epics.filter((i) => !i.effect).map((i) => i.id).sort()).toEqual(['archons-halo', 'colossus-plate', 'sunpiercer-bow', 'worldbreaker-maul']);
     for (const item of epics.filter((i) => i.effect)) {
       expect(item.effectText, item.id).toBeTruthy();
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyResist, baseResistStatForIndex, bossExpReward } from './boss';
+import { applyResist, bossExpReward } from './boss';
 import { MILESTONE_EXP } from './constants/milestones';
 import { TUNING } from './constants/tuning';
 import { ITEM_CATALOG, itemBonusPercent, itemFlatBonus } from './items';
@@ -1266,14 +1266,6 @@ describe('completeHabit — item effects', () => {
     const bare = hit(['hunters-eye'], {}, { armor: 0 }, alwaysCritRng).damageDealt ?? 0;
     expect(armored).toBeCloseTo(bare, 10);
     expect(hit(['hunters-eye'], {}, { armor: 1000 }).damageDealt ?? 0).toBeLessThan(hit(['hunters-eye'], {}, { armor: 0 }).damageDealt ?? 0);
-  });
-
-  it("Worldbreaker caps a boss's armor at the normal armor for its index", () => {
-    const base = baseResistStatForIndex(30);
-    const vsArmored = hit(['worldbreaker-maul'], {}, { index: 30, armor: base * 10 }).damageDealt ?? 0;
-    const vsNormal = hit(['worldbreaker-maul'], {}, { index: 30, armor: base }).damageDealt ?? 0;
-    expect(vsArmored).toBeCloseTo(vsNormal, 10);
-    expect(hit([], {}, { index: 30, armor: base * 10 }).damageDealt ?? 0).toBeLessThan(hit([], {}, { index: 30, armor: base }).damageDealt ?? 0);
   });
 
   it('Dynamo Core makes an Overdrive use deal full damage', () => {

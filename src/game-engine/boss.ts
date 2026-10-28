@@ -53,11 +53,6 @@ function resistStatForReduction(reductionPct: number): number {
   return (TUNING.RESIST_K * reductionPct) / (1 - reductionPct);
 }
 
-/** The un-jittered armor/magicResist stat of a boss at `index` with no armored/warded emphasis. */
-export function baseResistStatForIndex(index: number): number {
-  return resistStatForReduction(resistPctForIndex(index));
-}
-
 /**
  * Rolls a new hidden per-run difficulty modifier: a multiplier applied to
  * every boss's health for the rest of this run, so some runs are

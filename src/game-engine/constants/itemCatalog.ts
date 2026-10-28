@@ -96,9 +96,9 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'titans-lifeblood', name: "Titan's Lifeblood", icon: 'items/titans-lifeblood', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'healing', percent: 30 }, { stat: 'health', percent: 20 }], effect: 'titans-mending', effectText: 'Heals 50% more while below half HP.' },
   { id: 'sages-codex', name: "Sage's Codex", icon: 'items/sages-codex', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'expGain', percent: 15 }, { stat: 'healing', percent: 15 }], effect: 'sages-insight', effectText: 'Level-ups heal 40% of max HP instead of 20%.' },
 
-  // --- Endgame epics: the two strongest, and three stat-only ---
+  // --- Endgame epics: the two strongest (Worldbreaker is stat-only), and three more stat-only ---
   { id: 'starfall-staff', name: 'Moonstar Staff', icon: 'items/starfall-staff', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'magicDamage', percent: 75 }, { stat: 'health', percent: -20 }], effect: 'starfall', effectText: 'First magic skill each day always crits.' },
-  { id: 'worldbreaker-maul', name: 'Worldbreaker Maul', icon: 'items/worldbreaker-maul', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 55 }, { stat: 'health', percent: 20 }, { stat: 'lifesteal', percent: 3 }], effect: 'worldbreaker', effectText: 'Physical hits ignore the extra armor of armored bosses.' },
+  { id: 'worldbreaker-maul', name: 'Worldbreaker Maul', icon: 'items/worldbreaker-maul', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 55 }, { stat: 'health', percent: 20 }, { stat: 'lifesteal', percent: 3 }, { stat: 'armorPen', percent: 25 }] },
   { id: 'colossus-plate', name: 'Colossus Plate', icon: 'items/colossus-plate', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'health', percent: 45 }, { stat: 'armor', flat: 350 }] },
   { id: 'archons-halo', name: "Archon's Crown", icon: 'items/archons-halo', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'healing', percent: 40 }, { stat: 'expGain', percent: 15 }] },
   { id: 'sunpiercer-bow', name: 'Frostpiercer Crossbow', icon: 'items/sunpiercer-bow', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'trueDamage', percent: 40 }, { stat: 'critChance', percent: 12 }] },
