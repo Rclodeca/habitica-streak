@@ -96,7 +96,7 @@ function onZoneClick(event: MouseEvent) {
 </script>
 
 <template>
-  <li class="habit-item" :class="{ bad: habit.isBad, resting: isResting, flare: flareRank > 0 }" :style="{ '--c': damageTypeColor }" @click="$emit('open')">
+  <li class="habit-item" :class="{ bad: habit.isBad, resting: isResting, flare: flareRank > 0 }" :data-habit-id="habit.id" :style="{ '--c': damageTypeColor }" @click="$emit('open')">
     <label class="check-zone" @click="onZoneClick">
       <input
         type="checkbox"

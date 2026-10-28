@@ -9,6 +9,7 @@ import { useBossStore } from './bossStore';
 import { useCharacterStore } from './characterStore';
 import { useDebugClockStore } from './debugClockStore';
 import { useHabitStore } from './habitStore';
+import { useHintStore } from './hintStore';
 import { useQuestStore } from './questStore';
 import { setupHighScoreTracking } from './plugins/highScoreTracking';
 import { setupPersistence } from './plugins/localStoragePersistence';
@@ -64,6 +65,7 @@ export function initializeStores(targetPinia: Pinia = getActivePinia() ?? pinia)
   characterStore.setCharacter(migrateQuestUnlock(characterStore.character, questStore.quests.length > 0));
 
   setupHighScoreTracking(targetPinia, dailyPeriodKey(useDebugClockStore(targetPinia).now()));
+  useHintStore(targetPinia).settle(habitStore.habits.length > 0);
 
   return { characterStore, bossStore, habitStore, activityLogStore, questStore };
 }

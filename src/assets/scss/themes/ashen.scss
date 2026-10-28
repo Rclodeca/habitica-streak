@@ -2053,6 +2053,67 @@ $caps-lg: 0.85rem; // panel and popup titles
   .death .ember.cold .streak {
     color: $ash-deep;
   }
+
+  // ---------- Spotlight hints ----------
+
+  .hint-hole {
+    border-radius: 0;
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.78),
+      0 0 0 4px rgba(230, 207, 154, 0.25),
+      0 0 26px rgba(230, 207, 154, 0.55);
+  }
+
+  .hint-hole::after {
+    border-color: var(--accent-solid);
+  }
+
+  .hint-callout {
+    padding: 1.1rem 1.1rem 0.4rem;
+    background: linear-gradient(180deg, $frame-top, $frame-bottom);
+    border-color: $line-mid;
+    border-radius: 0;
+    box-shadow: 0 20px 50px -10px #000;
+  }
+
+  .hint-arrow {
+    background: $frame-top;
+    border-color: $line-mid;
+  }
+
+  .hint-callout.above .hint-arrow {
+    background: $frame-bottom;
+  }
+
+  .hint-title {
+    @include engraved($caps-sm, 0.18em);
+    color: var(--accent);
+  }
+
+  .hint-text {
+    font-size: 1.05rem;
+  }
+
+  .hint-rules {
+    font-size: 1rem;
+    font-style: italic;
+  }
+
+  .hint-action {
+    @include engraved($caps-xs, 0.18em);
+    color: var(--accent);
+  }
+
+  .hint-action.quiet {
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--text);
+  }
+
 }
 
 @keyframes ashen-embers {

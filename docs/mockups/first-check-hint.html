@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StreakSlayer — first check-off hint (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* The spotlight hint, round two: shown once, right after the player adds their
+   very first habit, pointing at its checkbox. Same look as the built
+   "Start here" hint (FirstHabitHint.vue). Phone width. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a; --ember: #e0783a; --blood: #a8231d;
+  --dmg-healing: #92bf88;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+
+.page { max-width: 1700px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font-size: 14px; letter-spacing: .32em; color: var(--gold-hi); margin-bottom: 6px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin: 0 auto 26px; max-width: 760px; }
+.opts { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; }
+.opt { width: 375px; max-width: 100%; }
+.opt > h2 { font-size: 12px; letter-spacing: .2em; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 12px; min-height: 62px; }
+
+.screen { position: relative; height: 740px; background: #0b0a09; border: 1px solid rgba(200,169,110,.18); border-radius: 22px; overflow: hidden; }
+.stage { position: relative; height: 250px; background: radial-gradient(ellipse 70% 60% at 50% 70%, rgba(80,50,30,.35), transparent 70%), linear-gradient(180deg, #14110e, #0b0a09); border-bottom: 1px solid var(--line); }
+.stage .hero { position: absolute; left: 26px; bottom: 14px; width: 120px; image-rendering: pixelated; }
+.stage .boss { position: absolute; right: 18px; bottom: 30px; width: 150px; image-rendering: pixelated; transform: scaleX(-1); }
+.panel { position: relative; margin: 16px; padding: 14px 16px; border: 1px solid var(--line); }
+.panel-h { display: flex; align-items: center; justify-content: space-between; }
+.panel-h h3 { font: 600 13px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text-h); }
+.add { padding: 9px 13px; font: 600 11px/1 'Cinzel', serif; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-hi); border: 1px solid var(--line-mid); }
+.group { margin-top: 16px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); }
+.row { position: relative; display: flex; align-items: center; gap: 12px; min-height: 50px; margin-top: 6px; padding: 0 10px 0 4px; border-left: 2px solid var(--c); background: linear-gradient(90deg, rgba(146,191,136,.07), transparent 60%); }
+.chk { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; }
+.chk i { width: 13px; height: 13px; transform: rotate(45deg); background: rgba(0,0,0,.45); border: 1px solid var(--gold); }
+.row .nm { flex: 1; font-size: 18px; color: var(--text-h); }
+.row .rk { display: inline-flex; gap: 3px; }
+.row .rk i { width: 6px; height: 6px; transform: rotate(45deg); border: 1px solid rgba(200,169,110,.45); }
+.dim-panel { opacity: .6; }
+.row.bad { --c: #c8402f; background: linear-gradient(90deg, rgba(200,64,47,.08), transparent 60%); }
+.row.bad .chk i { border-color: #c8402f; }
+.fold { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 4px; padding: 0 8px 0 4px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .24em; text-transform: uppercase; color: var(--text); }
+.fold b { color: var(--gold); font-weight: 600; }
+.fold::after { content: ''; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.empty { margin-top: 6px; font-size: 15px; color: var(--text); }
+.tag { display: inline-block; margin-left: 8px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .18em; color: var(--gold); vertical-align: middle; }
+
+/* The spotlight, as built: a hole whose huge shadow darkens everything else. */
+.hole { position: absolute; z-index: 2; box-shadow: 0 0 0 9999px rgba(0,0,0,.78), 0 0 0 4px rgba(230,207,154,.25), 0 0 26px rgba(230,207,154,.55); }
+.hole::after { content: ''; position: absolute; inset: -6px; border: 1px solid var(--gold); opacity: 0; animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse { from { transform: scale(.9); opacity: .8; } to { transform: scale(1.2); opacity: 0; } }
+.tip { position: absolute; z-index: 3; left: 16px; right: 16px; padding: 18px 18px 6px; text-align: left; border: 1px solid var(--line-mid); background: linear-gradient(180deg, rgb(27,24,21), rgb(14,13,11)); box-shadow: 0 20px 50px -10px #000; }
+.tip .arrow { position: absolute; top: -7px; width: 12px; height: 12px; margin-left: -6px; transform: rotate(45deg); background: rgb(27,24,21); border-left: 1px solid var(--line-mid); border-top: 1px solid var(--line-mid); }
+.tip h3 { font: 600 12px/1.2 'Cinzel', serif; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-hi); }
+.tip .t { margin-top: 6px; font-size: 18px; color: var(--text-h); }
+.tip .r { margin-top: 4px; font-size: 16px; font-style: italic; color: var(--text); }
+.tip .acts { display: flex; justify-content: flex-end; gap: 4px; }
+.tip .acts button { min-height: 44px; padding: 0 8px; font-style: italic; color: var(--text); }
+.tip .acts .go { font: 600 11px/1 'Cinzel', serif; font-style: normal; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-hi); }
+.mini { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 15px; color: var(--text); }
+.mini i { width: 9px; height: 9px; transform: rotate(45deg); flex-shrink: 0; background: radial-gradient(circle, #fff3d0 0, #e6c77f 38%, #a8832f 82%); box-shadow: 0 0 8px rgba(230,180,90,.55); }
+.mini i.d { background: var(--blood); box-shadow: 0 0 8px rgba(168,35,29,.6); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="engraved">First check-off hint · round 2</h1>
+  <p>Shown once, after the very first habit is added: A for a good habit, A2 for a bad one. R1 and R2 are two ways to handle a habit added on one of its off days.</p>
+  <div class="opts" id="opts"></div>
+</div>
+
+<script>
+const SPR = '../../public/sprites/';
+const ROWS = {
+  good: `<div class="group">Daily</div>
+    <div class="row" style="--c: var(--dmg-healing)"><span class="chk"><i></i></span><span class="nm">Drink water</span><span class="rk"><i></i><i></i><i></i></span></div>`,
+  bad: `<div class="group">Daily</div>
+    <div class="row bad"><span class="chk"><i></i></span><span class="nm">Doomscroll</span><span class="rk"><i></i><i></i><i></i></span></div>`,
+  resting: `<div class="group">Daily</div>
+    <p class="empty">No daily habits due today.</p>
+    <span class="fold">Resting <b>1</b></span>`,
+};
+const dash = (rows) => `
+  <div class="stage">
+    <img class="hero" src="${SPR}player/warrior.png" alt="">
+    <img class="boss" src="${SPR}bosses/brute.png" alt="">
+  </div>
+  <div class="panel">
+    <div class="panel-h"><h3>Skills</h3><button class="add">+ New habit</button></div>
+    ${rows}
+  </div>
+  <div class="panel dim-panel"><div class="panel-h"><h3>Quests</h3></div></div>`;
+
+const OPTS = [
+  {
+    k: 'A', name: 'Good habit', tag: 'picked',
+    note: 'The one you picked, unchanged. Tapping the lit diamond checks the habit off.',
+    rows: ROWS.good, lit: '.chk', point: '.chk',
+    body: `<h3>When it’s done</h3>
+      <p class="t">Check it off.</p>
+      <p class="r">Each check strikes the boss.</p>
+      <div class="acts"><button class="go">Got it</button></div>`,
+  },
+  {
+    k: 'A2', name: 'Bad habit',
+    note: 'Same spot, with the meaning flipped: a check here means you gave in. The red diamond already matches how bad habits look.',
+    rows: ROWS.bad, lit: '.chk', point: '.chk',
+    body: `<h3>If you give in</h3>
+      <p class="t">Check it off.</p>
+      <p class="r">Resist it all day, and you strike the boss.</p>
+      <div class="acts"><button class="go">Got it</button></div>`,
+  },
+  {
+    k: 'R1', name: 'Off day · light Resting',
+    note: 'The new habit goes straight into the closed Resting fold, which could look like it vanished. So the hint lights the fold and says when the habit comes back. The check-off hint then shows again on its first due day.',
+    rows: ROWS.resting, lit: '.fold', point: '.fold',
+    body: `<h3>Resting today</h3>
+      <p class="t">It returns on Wed.</p>
+      <p class="r">Check it off then, once it’s done.</p>
+      <div class="acts"><button class="go">Got it</button></div>`,
+  },
+  {
+    k: 'R2', name: 'Off day · wait',
+    note: 'Nothing shows today. The usual hint (A or A2) appears the first time the habit is due, so the lit diamond can always be tapped. Simpler, but the player isn’t told why the new habit went into Resting.',
+    rows: ROWS.resting, lit: null,
+    body: '',
+  },
+];
+
+document.getElementById('opts').innerHTML = OPTS.map((o) => `
+  <div class="opt">
+    <h2 class="engraved"><b>${o.k}</b>${o.name}${o.tag ? `<span class="tag">${o.tag}</span>` : ''}</h2>
+    <p>${o.note}</p>
+    <div class="screen">
+      ${dash(o.rows)}
+      ${o.lit ? `<div class="hole" data-lit="${o.lit}"></div>
+      <div class="tip" data-point="${o.point}"><span class="arrow"></span>${o.body}</div>` : ''}
+    </div>
+  </div>`).join('');
+
+// Lay each hole over its target and hang the callout under it, as the app does.
+function place() {
+  document.querySelectorAll('.screen').forEach((screen) => {
+    const s = screen.getBoundingClientRect();
+    const hole = screen.querySelector('.hole');
+    if (!hole) return;
+    const t = screen.querySelector(hole.dataset.lit).getBoundingClientRect();
+    const pad = 6;
+    Object.assign(hole.style, { left: `${t.left - s.left - pad}px`, top: `${t.top - s.top - pad}px`, width: `${t.width + pad * 2}px`, height: `${t.height + pad * 2}px` });
+    const tip = screen.querySelector('.tip');
+    tip.style.top = `${t.bottom - s.top + pad + 14}px`;
+    const chk = screen.querySelector(tip.dataset.point).getBoundingClientRect();
+    tip.querySelector('.arrow').style.left = `${chk.left + chk.width / 2 - tip.getBoundingClientRect().left}px`;
+  });
+}
+place();
+document.fonts.ready.then(place);
+window.addEventListener('resize', place);
+</script>
+</body>
+</html>

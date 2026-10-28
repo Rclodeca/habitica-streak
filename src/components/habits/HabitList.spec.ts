@@ -9,6 +9,7 @@ import type { Habit } from '../../game-engine';
 import { TUNING } from '../../game-engine/constants/tuning';
 import { useDebugClockStore } from '../../store/debugClockStore';
 import { useHabitStore } from '../../store/habitStore';
+import { useHintStore } from '../../store/hintStore';
 import HabitList from './HabitList.vue';
 import { WEEKDAY_SHORT } from './weekdays';
 
@@ -87,5 +88,72 @@ describe('HabitList', () => {
     await nextTick();
     expect(wrapper.find('details.rest-fold').exists()).toBe(true);
     expect(document.body.querySelector('.skill-days')).not.toBeNull();
+  });
+
+  it('points a player with no habits at + New habit until they tap Later', async () => {
+    const wrapper = mountList();
+    await nextTick();
+    expect(document.body.querySelector('.spotlight-hint')?.textContent).toContain('Miss it, and the boss strikes you.');
+
+    document.body.querySelector<HTMLButtonElement>('.hint-action')!.click();
+    await nextTick();
+    expect(document.body.querySelector('.spotlight-hint')).toBeNull();
+    expect(wrapper.find('.add-button').exists()).toBe(true);
+  });
+
+  it('tapping the lit button opens Add habit, and the hint comes back if it closes empty', async () => {
+    mountList();
+    await nextTick();
+    document.body.querySelector<HTMLButtonElement>('.hint-hole')!.click();
+    await nextTick();
+    expect(document.body.querySelector('.spotlight-hint')).toBeNull();
+    expect(document.body.textContent).toContain('Forge a habit');
+
+    document.body.querySelector<HTMLButtonElement>('.modal-close')!.click();
+    await nextTick();
+    expect(document.body.querySelector('.spotlight-hint')).not.toBeNull();
+  });
+
+  it('points at the first good habit due today with a one-time "check it off" hint', async () => {
+    const habit = addDaily();
+    mountList();
+    await nextTick();
+    const hint = document.body.querySelector('.spotlight-hint');
+    expect(hint?.textContent).toContain('When it’s done');
+    expect(hint?.textContent).not.toContain('Start here');
+
+    document.body.querySelector<HTMLButtonElement>('.hint-hole')!.click();
+    await nextTick();
+    expect(useHabitStore().habits.find((h) => h.id === habit.id)!.lastCompletedPeriodKey).not.toBeNull();
+    expect(useHintStore().seen.checkGood).toBe(true);
+    expect(document.body.querySelector('.spotlight-hint')).toBeNull();
+  });
+
+  it('gives a bad habit its own hint once the good one is seen, worded for giving in', async () => {
+    useHintStore().markSeen('checkGood');
+    addDaily(undefined, { isBad: true });
+    mountList();
+    await nextTick();
+    expect(document.body.querySelector('.spotlight-hint')?.textContent).toContain('If you give in');
+
+    document.body.querySelector<HTMLButtonElement>('.hint-action')!.click();
+    await nextTick();
+    expect(useHintStore().seen.checkBad).toBe(true);
+    expect(document.body.querySelector('.spotlight-hint')).toBeNull();
+  });
+
+  it('waits for a habit resting today to come due before pointing at it', async () => {
+    addDaily([(today + 2) % 7]);
+    mountList();
+    await nextTick();
+    expect(document.body.querySelector('.spotlight-hint')).toBeNull();
+  });
+
+  it('shows no check-off hint to a player who has seen it', async () => {
+    useHintStore().markSeen('checkGood');
+    addDaily();
+    mountList();
+    await nextTick();
+    expect(document.body.querySelector('.spotlight-hint')).toBeNull();
   });
 });
