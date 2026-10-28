@@ -704,6 +704,20 @@ onBeforeUnmount(() => {
     0 0 14px -6px var(--rarity);
 }
 
+/* Smaller on dense screens, at the hero's sizes: 3 device px per art pixel
+   on 2x screens (item 51px), 5 on 3x (item 57px). */
+@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+  .gear-icon {
+    zoom: 0.75;
+  }
+}
+
+@media (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3) {
+  .gear-icon {
+    zoom: 0.8333;
+  }
+}
+
 /* Clips the art's transparent padding, which overflows the slot. */
 .gear-art {
   position: absolute;
@@ -714,7 +728,8 @@ onBeforeUnmount(() => {
 
 /* Each art pixel as an even 2x2 block, so one-pixel lines (staffs, blades)
    don't come out thin and blotchy: the 240px file is 80 art pixels at 3x,
-   which puts the item itself at 68px. The rim is a dark rarity tone around
+   which puts the item itself at 68px (less on dense screens, see
+   .gear-icon). The rim is a dark rarity tone around
    the silhouette, which thickens thin items. */
 .gear-art img {
   --rim: color-mix(in srgb, var(--rarity) 55%, #000);

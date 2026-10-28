@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Habitica Streak — gear icon size (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* Equipment rows in the character modal at three sizes. Every item file is
+   240px: 34 x 34 art pixels (32 grid + outline), 3 file px each, centred.
+   An art pixel stays sharp only when it covers a whole number of device
+   pixels, so the only safe sizes are 34px x a whole number of device px. */
+:root {
+  --text: #a1988a; --text-h: #ece3cd; --bone: #d8cdb5;
+  --gold: #c8a96e; --gold-hi: #e6cf9a;
+  --rarity-common: #8d8475; --rarity-uncommon: #86b08b; --rarity-rare: #7f9fd1; --rarity-epic: #ae8bd6;
+  --line: rgba(200, 169, 110, 0.2); --line-mid: rgba(200, 169, 110, 0.4);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; color: var(--bone); background: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(200,169,110,.1), transparent 70%), #070606; font: 500 17px/1.35 'Cormorant Garamond', Garamond, Georgia, serif; }
+h1, h2, h3, h4, p { margin: 0; font-weight: inherit; }
+
+.page { max-width: 1300px; margin: 0 auto; padding: 30px 16px 60px; }
+.page > h1 { text-align: center; font: 600 14px/1 'Cinzel', serif; letter-spacing: .32em; text-transform: uppercase; color: var(--gold-hi); margin-bottom: 8px; }
+.page > p { text-align: center; font-style: italic; color: var(--text); margin-bottom: 26px; }
+.page > p b { color: var(--gold-hi); font-style: normal; }
+.cards { display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; }
+.opt { width: 375px; max-width: 100%; }
+.opt > h2 { font: 600 12px/1.2 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text-h); margin-bottom: 4px; }
+.opt > h2 b { color: var(--gold); margin-right: 8px; }
+.opt > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 10px; min-height: 80px; }
+
+.modal { padding: 14px 12px; background: linear-gradient(180deg, rgba(27,24,21,.97), rgba(14,13,11,.99)); border: 1px solid var(--line); }
+.group-label { display: flex; align-items: center; gap: 12px; margin: 0 0 8px; font: 600 10px/1 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text); }
+.group-label::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.gear-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.gear-row { display: flex; align-items: center; gap: 10px; padding: 5px 10px; background: rgba(0,0,0,.25); border: 1px solid var(--line); border-left: 2px solid var(--r); border-radius: 8px; }
+
+/* The slot, as live. --slot, --img and --rimw change per option. */
+.gear-icon { position: relative; flex-shrink: 0; width: var(--slot); height: var(--slot); border-radius: 4px; border: 1px solid color-mix(in srgb, var(--r) 55%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--r) 22%, transparent), rgba(0,0,0,.55) 72%);
+  box-shadow: inset 0 0 0 var(--bevel, 3px) rgba(0,0,0,.55), inset 0 0 0 calc(var(--bevel, 3px) + 1px) color-mix(in srgb, var(--r) 22%, transparent), 0 0 14px -6px var(--r); }
+.gear-art { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+.gear-art img { --rim: color-mix(in srgb, var(--r) 55%, #000); position: absolute; left: 50%; top: 50%; width: var(--img); height: var(--img); transform: translate(-50%, -50%); image-rendering: pixelated;
+  filter: drop-shadow(var(--rimw) 0 0 var(--rim)) drop-shadow(calc(-1 * var(--rimw)) 0 0 var(--rim)) drop-shadow(0 var(--rimw) 0 var(--rim)) drop-shadow(0 calc(-1 * var(--rimw)) 0 var(--rim)) drop-shadow(0 0 var(--glow, 6px) color-mix(in srgb, var(--r) 45%, transparent)); }
+.gear-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gear-name { color: var(--text-h); font-weight: 700; font-size: 18px; line-height: 1.15; }
+.gear-rarity { margin-left: 6px; font: 600 9px/1 'Cinzel', serif; letter-spacing: .16em; text-transform: uppercase; color: var(--r); }
+.gear-bonus { font-size: 15px; color: var(--text-h); }
+.gear-bonus span { color: var(--text); }
+.gear-effect { font-size: 14px; font-style: italic; color: var(--r); }
+
+/* A: today. 2 screen px per art pixel everywhere: item 68px, slot 80px. */
+.a { --slot: 80px; --img: 160px; --rimw: 2px; }
+
+/* B: the hero's trick. Same as A on 1x screens; on dense screens the slot is
+   zoomed to the nearest whole-device-pixel size under 2: 3 device px per art
+   pixel on 2x (item 51px), 5 on 3x (item 57px). */
+.b { --slot: 80px; --img: 160px; --rimw: 2px; }
+@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) { .b .gear-icon { zoom: 0.75; } }
+@media (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3) { .b .gear-icon { zoom: 0.8333; } }
+
+/* C: half. 1 screen px per art pixel: item 34px in a 44px slot. Whole
+   device pixels on every screen (1, 2 or 3 per art pixel). */
+.c { --slot: 44px; --img: 80px; --rimw: 1px; --bevel: 2px; --glow: 4px; }
+
+/* What breaks: sizes between the safe steps. */
+.breaks { margin: 40px auto 0; max-width: 1000px; padding: 16px; border: 1px solid var(--line); background: rgba(0,0,0,.3); }
+.breaks h2 { font: 600 12px/1.2 'Cinzel', serif; letter-spacing: .2em; text-transform: uppercase; color: var(--text-h); margin-bottom: 4px; }
+.breaks > p { font-style: italic; color: var(--text); font-size: 15px; margin-bottom: 14px; }
+.strip { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; }
+.sample { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.sample .pair { display: flex; gap: 4px; align-items: flex-end; }
+.sample img { display: block; }
+.sample span { font: 600 9px/1.3 'Cinzel', serif; letter-spacing: .12em; text-transform: uppercase; color: var(--text); text-align: center; }
+.sample.ok span b { color: #86b08b; }
+.sample.bad span b { color: #d2694f; }
+/* Each sample is clipped to just the item so the canvas padding doesn't show. */
+.crop { position: relative; display: block; overflow: hidden; }
+.crop img { position: absolute; max-width: none; image-rendering: pixelated; }
+.crop.smooth img { image-rendering: auto; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Gear Icon Size</h1>
+  <p>The art is <b>34 × 34</b> pixels. Each one must land on whole screen pixels, so the sharp sizes are 34px steps: <b>34 · 51 · 68</b>.<br><span id="dpr"></span></p>
+
+  <div class="cards">
+    <div class="opt a">
+      <h2><b>A</b>Today · 68px</h2>
+      <p>2 screen px per art pixel. Sharp on every screen. The slot is 80px, which sets the row height.</p>
+      <div class="modal"><h4 class="group-label">Equipment</h4><ul class="gear-list"></ul></div>
+    </div>
+    <div class="opt b">
+      <h2><b>B</b>Three quarters · 51–57px</h2>
+      <p>The trick the hero portrait already uses. 51px on 2× phones, 57px on 3× phones, 68px on plain desktop screens. Sharp on each, but the size depends on the screen.</p>
+      <div class="modal"><h4 class="group-label">Equipment</h4><ul class="gear-list"></ul></div>
+    </div>
+    <div class="opt c">
+      <h2><b>C</b>Half · 34px</h2>
+      <p>1 screen px per art pixel. Sharp on every screen, same size everywhere. Fine detail gets small; the row is set by the text, not the icon.</p>
+      <div class="modal"><h4 class="group-label">Equipment</h4><ul class="gear-list"></ul></div>
+    </div>
+  </div>
+
+  <div class="breaks">
+    <h2>What breaks</h2>
+    <p>Sizes between the steps. "Pixelated" keeps hard edges but some art pixels come out a screen pixel wider than others, so thin lines wobble. "Smooth" blurs it. Look at the staff shafts.</p>
+    <div class="strip" id="strip"></div>
+  </div>
+</div>
+
+<script>
+const ITEMS = [
+  { icon: 'godslayer-greatblade', name: 'Godslayer Greatblade', rarity: 'epic', bonuses: [['+42%', 'physical'], ['+10%', 'health'], ['+3%', 'lifesteal']], effect: '+30% damage to bosses above 75% HP.' },
+  { icon: 'arcane-staff', name: 'Opal Staff', rarity: 'common', bonuses: [['+6%', 'magic']] },
+  { icon: 'bulwark-plate', name: 'Bulwark Plate', rarity: 'rare', bonuses: [['+25%', 'health'], ['+10%', 'healing']] },
+  { icon: 'silver-stiletto', name: 'Frost Stiletto', rarity: 'uncommon', bonuses: [['+12%', 'true']] },
+]
+const src = (icon) => `../../public/sprites/items/${icon}.png`
+const rows = ITEMS.map((it) => `
+  <li class="gear-row" style="--r: var(--rarity-${it.rarity})">
+    <span class="gear-icon"><span class="gear-art"><img src="${src(it.icon)}" alt="${it.name}" /></span></span>
+    <div class="gear-text">
+      <span class="gear-name">${it.name}<span class="gear-rarity">${it.rarity}</span></span>
+      <span class="gear-bonus">${it.bonuses.map(([v, l]) => `${v} <span>${l}</span>`).join(' &nbsp; ')}</span>
+      ${it.effect ? `<span class="gear-effect">${it.effect}</span>` : ''}
+    </div>
+  </li>`).join('')
+document.querySelectorAll('.gear-list').forEach((ul) => { ul.innerHTML = rows })
+
+// item px = 34 art px * css px per art px; the file is 80 art px across.
+const SAMPLES = [
+  { item: 34, ok: true, label: '34px · 1×' },
+  { item: 42.5, ok: false, label: '42px · pixelated' },
+  { item: 42.5, ok: false, smooth: true, label: '42px · smooth' },
+  { item: 51, ok: true, label: '51px · 1.5×', note: 'sharp on 2× only' },
+  { item: 60, ok: false, label: '60px · pixelated' },
+  { item: 68, ok: true, label: '68px · 2×' },
+]
+document.getElementById('strip').innerHTML = SAMPLES.map((s) => {
+  const img = (s.item / 34) * 80
+  const off = (s.item - img) / 2
+  const crop = (icon) => `<span class="crop${s.smooth ? ' smooth' : ''}" style="width:${s.item}px;height:${s.item}px"><img src="${src(icon)}" style="width:${img}px;height:${img}px;left:${off}px;top:${off}px" alt="" /></span>`
+  return `<div class="sample ${s.ok ? 'ok' : 'bad'}"><span class="pair">${crop('arcane-staff')}${crop('godslayer-greatblade')}</span>
+    <span><b>${s.ok ? 'sharp' : 'breaks'}</b><br>${s.label}${s.note ? `<br>${s.note}` : ''}</span></div>`
+}).join('')
+
+const dpr = window.devicePixelRatio
+const b = dpr >= 3 ? '57px' : dpr >= 2 ? '51px' : '68px (same as A)'
+document.getElementById('dpr').textContent = `This screen is ${dpr}×, so B draws at ${b} here.`
+</script>
+</body>
+</html>
