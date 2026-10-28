@@ -1,20 +1,71 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { ChevronsUp, Sword, Swords } from 'lucide-vue-next';
-import { DEFAULT_HERO_NAME, MAX_HERO_NAME_LENGTH } from '../../game-engine';
+import { computed, ref } from 'vue';
+import type { Component } from 'vue';
+import { ChevronLeft, ChevronRight, ChevronsUp, Dices, Sword, Swords, WandSparkles, Zap } from 'lucide-vue-next';
+import { DEFAULT_HERO_NAME, HERO_CLASSES, heroClassFor, MAX_HERO_NAME_LENGTH } from '../../game-engine';
+import { useCombatActions } from '../../composables/useCombatActions';
+import type { HeroPick } from '../../composables/useCombatActions';
 import { useFallenHero } from '../../composables/useFallenHero';
 import { useCharacterStore } from '../../store/characterStore';
+import { HERO_PICK_PLACEMENT } from '../character/heroArt';
 import PlayerSprite from '../character/PlayerSprite.vue';
 import RuleList from '../ui/RuleList.vue';
 import type { Rule } from '../ui/RuleList.vue';
 
 // Full-screen greeting shown in place of the dashboard while the hero is
 // unnamed (see Character.name): the very first launch, and every new run after
-// "Start new run". Naming the hero is what dismisses it.
+// "Start new run". Naming the hero is what dismisses it. A new run also picks
+// its hero here, turning through them by the fire; a run already under way
+// (an old save named late) just gets its name.
 const characterStore = useCharacterStore();
-const { fallen, clearFallen } = useFallenHero();
+const { fallen } = useFallenHero();
+const { beginRun } = useCombatActions();
 
+const baseUrl = import.meta.env.BASE_URL;
 const name = ref('');
+
+const PICKS: HeroPick[] = [...HERO_CLASSES, 'fate'];
+// The cleric art reads as a mage, so that's its name here.
+const PICK_LOOK: Record<HeroPick, { name: string; icon: Component }> = {
+  warrior: { name: 'Warrior', icon: Sword },
+  cleric: { name: 'Mage', icon: WandSparkles },
+  ranger: { name: 'Ranger', icon: Zap },
+  fate: { name: 'Fate', icon: Dices },
+};
+// A horizontal drag at least this long turns the wheel.
+const SWIPE_PX = 40;
+
+const choosing = computed(() => characterStore.character.heroPending === true);
+// Opens on the hero the run was rolled as: a warrior on the first run, the
+// fallen hero after a death.
+const pick = ref<HeroPick>(heroClassFor(characterStore.character));
+// Fate shows the warrior's shape, darkened.
+const shownClass = computed(() => (pick.value === 'fate' ? 'warrior' : pick.value));
+const placement = computed(() => {
+  const { width, left, bottom } = HERO_PICK_PLACEMENT[shownClass.value];
+  return { width: `${width}px`, height: `${width}px`, left: `${left}px`, bottom: `${bottom}px` };
+});
+
+function turn(step: number) {
+  pick.value = PICKS[(PICKS.indexOf(pick.value) + step + PICKS.length) % PICKS.length];
+}
+
+let swipeFromX: number | null = null;
+
+function startSwipe(event: PointerEvent) {
+  swipeFromX = event.clientX;
+}
+
+function cancelSwipe() {
+  swipeFromX = null;
+}
+
+function endSwipe(event: PointerEvent) {
+  if (swipeFromX === null) return;
+  const dx = event.clientX - swipeFromX;
+  swipeFromX = null;
+  if (Math.abs(dx) >= SWIPE_PX) turn(dx < 0 ? 1 : -1);
+}
 
 const RULES: Rule[] = [
   { icon: Sword, tone: 'accent', title: 'Keep', text: 'A habit kept strikes the boss.' },
@@ -23,8 +74,7 @@ const RULES: Rule[] = [
 ];
 
 function begin() {
-  characterStore.setName(name.value);
-  clearFallen();
+  beginRun(name.value, pick.value);
 }
 </script>
 
@@ -33,7 +83,29 @@ function begin() {
     <p class="eyebrow">{{ fallen ? 'The fire still burns.' : 'Every habit is a weapon.' }}</p>
     <h1 class="game-title">Habitica Streak</h1>
 
-    <div class="bonfire">
+    <template v-if="choosing">
+      <div class="hero-pick" @pointerdown="startSwipe" @pointerup="endSwipe" @pointercancel="cancelSwipe">
+        <button type="button" class="turn turn-prev" aria-label="Previous hero" @click="turn(-1)">
+          <ChevronLeft :size="26" :stroke-width="1.4" />
+        </button>
+        <div class="bonfire">
+          <div class="pick-hero" :class="{ fated: pick === 'fate' }">
+            <img :src="`${baseUrl}sprites/player/${shownClass}.png`" :style="placement" alt="" draggable="false" />
+            <span v-if="pick === 'fate'" class="fate-mark">?</span>
+          </div>
+        </div>
+        <button type="button" class="turn turn-next" aria-label="Next hero" @click="turn(1)">
+          <ChevronRight :size="26" :stroke-width="1.4" />
+        </button>
+      </div>
+      <p class="pick-name" :class="`pick-${pick}`" aria-live="polite">
+        <component :is="PICK_LOOK[pick].icon" class="pick-icon" :size="15" />{{ PICK_LOOK[pick].name }}
+      </p>
+      <div class="pick-dots" aria-hidden="true">
+        <i v-for="p in PICKS" :key="p" :class="{ on: p === pick }" />
+      </div>
+    </template>
+    <div v-else class="bonfire">
       <PlayerSprite :character="characterStore.character" />
     </div>
 
@@ -80,8 +152,9 @@ function begin() {
 .bonfire {
   position: relative;
   isolation: isolate;
-  width: 340px;
-  max-width: 100%;
+  /* Full width up to 340px: a fixed 340px forced the page wider than a 320px phone. */
+  width: 100%;
+  max-width: 340px;
   height: 210px;
   margin: 0.75rem 0 0.25rem;
   display: flex;
@@ -94,7 +167,8 @@ function begin() {
   position: absolute;
   z-index: -1;
   inset: 12% 18% 0;
-  background: radial-gradient(ellipse at 50% 70%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03) 55%, transparent 72%);
+  /* Fades out inside its box, so the glow has no hard bottom edge. */
+  background: radial-gradient(closest-side at 50% 62%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03) 70%, transparent);
 }
 
 .bonfire::after {
@@ -117,6 +191,122 @@ function begin() {
 
 .bonfire :deep(.layer) {
   image-rendering: pixelated;
+}
+
+.hero-pick {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  justify-content: center;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hero-pick .bonfire {
+  margin-bottom: 0;
+}
+
+.turn {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  margin-top: -24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.turn-prev {
+  left: 0;
+}
+
+.turn-next {
+  right: 0;
+}
+
+.pick-hero {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin-bottom: 8px;
+}
+
+.pick-hero img {
+  position: absolute;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.pick-hero.fated img {
+  filter: brightness(0) drop-shadow(0 0 10px rgba(224, 120, 58, 0.35));
+  opacity: 0.85;
+}
+
+.fate-mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding-bottom: 20px;
+  color: var(--accent);
+  font-size: 2.75rem;
+}
+
+.pick-name {
+  margin: 0.4rem 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--text-h);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.pick-warrior .pick-icon {
+  color: var(--dmg-physical);
+}
+
+.pick-cleric .pick-icon {
+  color: var(--dmg-magic);
+}
+
+.pick-ranger .pick-icon {
+  color: var(--dmg-true);
+}
+
+.pick-fate .pick-icon {
+  color: var(--accent);
+}
+
+.pick-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0.5rem 0 1rem;
+}
+
+.pick-dots i {
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+}
+
+.pick-dots i.on {
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .oath {

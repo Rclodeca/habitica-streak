@@ -30,6 +30,7 @@
 import {
   addExpAndResolveLevelUps,
   availableRelics,
+  chooseHero,
   completeHabit,
   createRng,
   dailyPeriodKey,
@@ -37,6 +38,7 @@ import {
   effectiveCritChance,
   effectiveStat,
   describeItemBonus,
+  HERO_CLASSES,
   heroClassFor,
   ITEM_CATALOG,
   isDueOn,
@@ -46,6 +48,7 @@ import {
   overdriveUsesRemaining,
   periodKeyFor,
   PERSONALITY_NAME,
+  pickRandom,
   questMissDamage,
   questRewardExp,
   questWeekFor,
@@ -58,7 +61,7 @@ import {
   unlockQuests,
   weeklyPeriodKey,
 } from '../game-engine';
-import type { Character, Difficulty, FiredBossSkill, Habit, ItemDef, Period } from '../game-engine';
+import type { Character, Difficulty, FiredBossSkill, Habit, HeroClass, ItemDef, Period } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
@@ -76,6 +79,9 @@ import { useItemDropQueue } from './useItemDropQueue';
 import { useReviveNotice } from './useReviveNotice';
 
 /** What a reward resolved to: any boss-kill drops, and the name of the boss that dropped them. */
+/** A pick on the new-hero screen: one of the heroes, or Fate for a random one. */
+export type HeroPick = HeroClass | 'fate';
+
 export interface RewardResult {
   itemsDropped: ItemDef[];
   droppedBy?: string;
@@ -95,7 +101,7 @@ export function useCombatActions() {
   const debugClockStore = useDebugClockStore();
   const highScoreStore = useHighScoreStore();
   const { triggerDeath, dismiss: dismissDeathScreen } = useDeathScreen();
-  const { recordFallen } = useFallenHero();
+  const { recordFallen, clearFallen } = useFallenHero();
   const { showReviveNotice } = useReviveNotice();
   const { enqueueDrops, clear: clearItemDrops } = useItemDropQueue();
   const { celebrateBossKill, celebrateLevelUp, clear: clearCelebration } = useCelebration();
@@ -502,6 +508,20 @@ export function useCombatActions() {
   }
 
   /**
+   * Starts the run from the new-hero screen: a new run gets the picked hero
+   * (Fate rolls one; see chooseHero), then the hero is named, which closes
+   * that screen.
+   */
+  function beginRun(name: string, pick: HeroPick): void {
+    const heroClass = pick === 'fate' ? pickRandom(HERO_CLASSES, rng) : pick;
+    const chosen = chooseHero(characterStore.character, habitStore.habits, heroClass, rng);
+    characterStore.setCharacter(chosen.character);
+    habitStore.setHabits(chosen.habits);
+    characterStore.setName(name);
+    clearFallen();
+  }
+
+  /**
    * Completes a quest — used both for an on-time checkbox tap (QuestSection)
    * and an "I actually did this" override from the missed-deadline gate (see
    * useQuestMissGate); the two cases resolve identically.
@@ -598,6 +618,7 @@ export function useCombatActions() {
     landDoom,
     addHabit,
     restart,
+    beginRun,
     completeQuest,
     failQuest,
   };

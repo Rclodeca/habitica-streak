@@ -8,6 +8,7 @@ import {
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
   discardUnknownItems,
+  HERO_CLASSES,
   heroClassFor,
   MAX_HERO_NAME_LENGTH,
   migrateCharacter,
@@ -119,6 +120,44 @@ describe('createCharacter', () => {
     const characterA = createCharacter(createRng(1));
     const characterB = createCharacter(createRng(2));
     expect(characterA).not.toEqual(characterB);
+  });
+});
+
+describe('createCharacter — a picked hero', () => {
+  const damagePool = TUNING.BASE_STATS.physicalDamage + TUNING.BASE_STATS.magicDamage;
+
+  it.each(HERO_CLASSES)('rolls a %s whose split reads as that hero', (heroClass) => {
+    const rng = createRng(7);
+    for (let i = 0; i < 100; i++) expect(heroClassFor(createCharacter(rng, heroClass))).toBe(heroClass);
+  });
+
+  it.each([
+    ['warrior', [0.6, 0.7]],
+    ['cleric', [0.3, 0.4]],
+  ] as const)('rolls both of a %s\'s leaning splits', (heroClass, shares) => {
+    const seen = new Set<number>();
+    for (let seed = 0; seed < 100; seed++) {
+      const share = createCharacter(createRng(seed), heroClass).starterStats.physicalDamage / damagePool;
+      seen.add(shares.reduce((best, s) => (Math.abs(s - share) < Math.abs(best - share) ? s : best)));
+    }
+    expect([...seen].sort()).toEqual([...shares]);
+  });
+
+  it('gives a ranger an even split and its true damage boost', () => {
+    const rng = createRng(3);
+    const trueBase = TUNING.BASE_STATS.trueDamage * TUNING.RANGER_TRUE_DAMAGE_MULTIPLIER;
+    for (let i = 0; i < 100; i++) {
+      const { physicalDamage, trueDamage } = createCharacter(rng, 'ranger').starterStats;
+      expect(physicalDamage).toBeGreaterThanOrEqual(damagePool * 0.5 * 0.95);
+      expect(physicalDamage).toBeLessThanOrEqual(damagePool * 0.5 * 1.05);
+      expect(trueDamage).toBeGreaterThanOrEqual(trueBase * 0.95);
+      expect(trueDamage).toBeLessThanOrEqual(trueBase * 1.05);
+    }
+  });
+
+  it('starts waiting on the hero pick', () => {
+    expect(createCharacter(createRng(1)).heroPending).toBe(true);
+    expect(createCharacter(createRng(1), 'warrior').heroPending).toBe(true);
   });
 });
 

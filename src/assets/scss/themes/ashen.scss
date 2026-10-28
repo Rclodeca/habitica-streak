@@ -1738,8 +1738,30 @@ $caps-lg: 0.85rem; // panel and popup titles
     }
   }
 
-  .new-hero .player-sprite {
+  .new-hero .player-sprite,
+  .new-hero .pick-hero {
     filter: drop-shadow(0 0 14px rgba(0, 0, 0, 0.9));
+  }
+
+  // The hero pick: engraved name, ember-lit Fate mark, diamond markers.
+  .new-hero .pick-name {
+    @include engraved($caps-lg, 0.3em);
+    color: var(--text-h);
+  }
+
+  .new-hero .fate-mark {
+    font-family: var(--heading);
+    text-shadow: 0 0 18px rgba(224, 120, 58, 0.7);
+  }
+
+  .new-hero .pick-dots i {
+    transform: rotate(45deg);
+    border-color: $line-mid;
+
+    &.on {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
   }
 
   // Title between two fading gold rules, like the popup headers.

@@ -2,6 +2,7 @@ import { applyResist, bossAttackAnchorHealth, bossExpReward, generateBoss } from
 import { activeSunder, bloodlustActive, reflectActive, resolveBreakpoints, spendPassedBreakpoints } from './bossSkills';
 import type { FiredBossSkill } from './bossSkills';
 import { createCharacter, heroClassFor } from './character';
+import type { HeroClass } from './character';
 import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { crowdingFactor, rerollAllDamageTypes, resetLevelRewards, skillBaseDamage } from './habits';
@@ -531,11 +532,36 @@ export function resolvePlayerDeathIfDead(
   // positive health remainder would make `restart()` dismiss the death
   // screen without actually resetting the run.
   if (Math.round(character.currentHealth) > 0) return { character, boss, habits, died: false };
-  const freshCharacter = createCharacter(rng);
+  // Rolled as the fallen hero, which the new-hero screen then offers first.
+  const freshCharacter = createCharacter(rng, heroClassFor(character));
   return {
     character: freshCharacter,
     boss: generateBoss(1, rng, undefined, bossAttackAnchorHealth(1, freshCharacter.starterStats.health, freshCharacter.level)),
     habits: rerollAllDamageTypes(habits, rng, heroClassFor(freshCharacter)).map(resetLevelRewards),
     died: true,
+  };
+}
+
+/**
+ * Gives a new run the hero picked on the new-hero screen. Picking the hero the
+ * run was rolled as keeps everything; another hero re-rolls the physical/magic
+ * split and true damage for it, and the skills' damage types too (a ranger
+ * rolls true damage more often). Health and healing keep their roll, so boss 1,
+ * made against this health, still fits. No-op unless the run is waiting on a
+ * pick (Character.heroPending).
+ */
+export function chooseHero(
+  character: Character,
+  habits: Habit[],
+  heroClass: HeroClass,
+  rng: Rng,
+): { character: Character; habits: Habit[] } {
+  if (!character.heroPending) return { character, habits };
+  const picked = { ...character, heroPending: false };
+  if (heroClassFor(character) === heroClass) return { character: picked, habits };
+  const { physicalDamage, magicDamage, trueDamage } = createCharacter(rng, heroClass).starterStats;
+  return {
+    character: { ...picked, starterStats: { ...character.starterStats, physicalDamage, magicDamage, trueDamage } },
+    habits: rerollAllDamageTypes(habits, rng, heroClass),
   };
 }

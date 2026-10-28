@@ -6,9 +6,11 @@ import { ITEM_CATALOG, itemBonusPercent, itemFlatBonus } from './items';
 import { addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
 import { createRng } from './rng';
 import { rankMultiplier } from './streaks';
+import { createCharacter, heroClassFor } from './character';
 import {
   activeWoundsEffect,
   bossMissDamage,
+  chooseHero,
   completeHabit,
   effectiveResistAfterPen,
   expectedMediumDailyDamage,
@@ -1093,6 +1095,57 @@ describe('resolvePlayerDeathIfDead', () => {
     expect(differentFromOriginal).toBeGreaterThan(iterations * 0.3);
     expect(counts.magic).toBeGreaterThan(0);
     expect(counts.healing).toBeGreaterThan(0);
+  });
+});
+
+describe('resolvePlayerDeathIfDead — the next hero', () => {
+  it('rolls the new hero as the fallen one, waiting on the pick', () => {
+    const warrior = makeCharacter({ currentHealth: 0, starterStats: { physicalDamage: 14, magicDamage: 6, healing: 6, health: 50, trueDamage: 6 } });
+    const mage = makeCharacter({ currentHealth: 0, starterStats: { physicalDamage: 6, magicDamage: 14, healing: 6, health: 50, trueDamage: 6 } });
+    for (const [fallen, heroClass] of [[warrior, 'warrior'], [mage, 'cleric']] as const) {
+      const result = resolvePlayerDeathIfDead(fallen, makeBoss(), [], createRng(2));
+      expect(heroClassFor(result.character)).toBe(heroClass);
+      expect(result.character.heroPending).toBe(true);
+    }
+  });
+});
+
+describe('chooseHero', () => {
+  const skills = () => Array.from({ length: 12 }, (_, i) => makeHabit({ id: `s${i}`, damageType: 'physical', rank: i % 3, streakCount: i }));
+
+  it('keeps the rolled hero and its skills when the pick matches it', () => {
+    const character = createCharacter(createRng(3), 'warrior');
+    const habits = skills();
+    const result = chooseHero(character, habits, 'warrior', createRng(4));
+    expect(result.character.starterStats).toEqual(character.starterStats);
+    expect(result.character.heroPending).toBe(false);
+    expect(result.habits).toBe(habits);
+  });
+
+  it('rolls another pick\'s split and true damage, keeping health and healing', () => {
+    const character = { ...createCharacter(createRng(3), 'warrior'), currentHealth: 900 };
+    const result = chooseHero(character, [], 'ranger', createRng(4));
+    expect(heroClassFor(result.character)).toBe('ranger');
+    expect(result.character.starterStats.trueDamage).toBeGreaterThan(TUNING.BASE_STATS.trueDamage * 1.1);
+    expect(result.character.starterStats.health).toBe(character.starterStats.health);
+    expect(result.character.starterStats.healing).toBe(character.starterStats.healing);
+    expect(result.character.currentHealth).toBe(900);
+    expect(result.character.heroPending).toBe(false);
+  });
+
+  it('re-rolls the skills\' damage types for another hero, keeping ranks and streaks', () => {
+    const habits = skills();
+    const result = chooseHero(createCharacter(createRng(3), 'warrior'), habits, 'cleric', createRng(4));
+    expect(result.habits.map((h) => [h.id, h.rank, h.streakCount])).toEqual(habits.map((h) => [h.id, h.rank, h.streakCount]));
+    expect(result.habits.some((h) => h.damageType !== 'physical')).toBe(true);
+  });
+
+  it('changes nothing for a run not waiting on a pick (a save from before it)', () => {
+    const character = { ...createCharacter(createRng(3), 'warrior'), heroPending: undefined };
+    const habits = skills();
+    const result = chooseHero(character, habits, 'cleric', createRng(4));
+    expect(result.character).toBe(character);
+    expect(result.habits).toBe(habits);
   });
 });
 

@@ -9,11 +9,19 @@ export function randomizeStat(base: number, rng: Rng): number {
   return base * (1 + jitter);
 }
 
-export function createCharacter(rng: Rng): Character {
+/**
+ * A fresh, unnamed hero at level 1. `heroClass` limits the physical/magic
+ * split to the ones that read as that hero (see heroClassFor); without it,
+ * any split can roll.
+ */
+export function createCharacter(rng: Rng, heroClass?: HeroClass): Character {
   // Randomizes how the combined physical+magic pool is split so some runs
   // are balanced and others lean hard into one damage type — see
   // TUNING.DAMAGE_SPLIT_RATIOS.
-  const [physicalShare, magicShare] = pickRandom(TUNING.DAMAGE_SPLIT_RATIOS, rng);
+  const splits = heroClass
+    ? TUNING.DAMAGE_SPLIT_RATIOS.filter(([physical, magic]) => heroClassForShare(physical / (physical + magic)) === heroClass)
+    : TUNING.DAMAGE_SPLIT_RATIOS;
+  const [physicalShare, magicShare] = pickRandom(splits, rng);
   const damagePool = TUNING.BASE_STATS.physicalDamage + TUNING.BASE_STATS.magicDamage;
   const rolled = {
     physicalDamage: randomizeStat(damagePool * physicalShare, rng),
@@ -37,6 +45,7 @@ export function createCharacter(rng: Rng): Character {
     takenEventIds: [],
     pendingEventPicks: 0,
     questsUnlocked: false,
+    heroPending: true,
     // Already at the post-rebalance baseline (BASE_STATS is already the
     // reduced value) — must be set here, not left undefined, or this fresh
     // character would get double-cut by applyDamagePoolRebalance the next
@@ -50,6 +59,10 @@ export function createCharacter(rng: Rng): Character {
 
 export type HeroClass = 'warrior' | 'cleric' | 'ranger';
 
+// In the order the new-hero screen offers them. The cleric art reads as a
+// mage, so it is called Mage on screen.
+export const HERO_CLASSES: readonly HeroClass[] = ['warrior', 'cleric', 'ranger'];
+
 // Physical share of the starting physical+magic pool past which a run reads
 // as leaning one way. DAMAGE_SPLIT_RATIOS only rolls 50/50, 60/40 or 70/30
 // (either way) before ±5% jitter, so these cut cleanly between the even
@@ -57,10 +70,13 @@ export type HeroClass = 'warrior' | 'cleric' | 'ranger';
 const WARRIOR_MIN_PHYSICAL_SHARE = 0.55;
 const CLERIC_MAX_PHYSICAL_SHARE = 0.45;
 
-/** The hero art for a run, read off its rolled starting stats: physical-leaning is a warrior, magic-leaning a cleric, an even split a ranger. */
+/** The hero for a run, read off its starting stats: physical-leaning is a warrior, magic-leaning a cleric, an even split a ranger. A picked hero always rolls a split that reads as itself (see createCharacter). */
 export function heroClassFor(character: Pick<Character, 'starterStats'>): HeroClass {
   const { physicalDamage, magicDamage } = character.starterStats;
-  const physicalShare = physicalDamage / (physicalDamage + magicDamage);
+  return heroClassForShare(physicalDamage / (physicalDamage + magicDamage));
+}
+
+function heroClassForShare(physicalShare: number): HeroClass {
   if (physicalShare >= WARRIOR_MIN_PHYSICAL_SHARE) return 'warrior';
   if (physicalShare <= CLERIC_MAX_PHYSICAL_SHARE) return 'cleric';
   return 'ranger';

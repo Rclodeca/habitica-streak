@@ -6,7 +6,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { availableRelics, createCharacter, createRng, effectiveStat } from '../game-engine';
+import { availableRelics, createCharacter, createRng, effectiveStat, heroClassFor } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
 import { useCharacterStore } from './characterStore';
 
@@ -138,6 +138,15 @@ describe('characterStore equip/discard', () => {
 describe('characterStore.initFromSave', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+  });
+
+  it('bootstraps a warrior waiting on the hero pick when there is no save', () => {
+    const store = useCharacterStore();
+    for (let seed = 1; seed <= 20; seed++) {
+      store.initFromSave(null, createRng(seed));
+      expect(heroClassFor(store.character)).toBe('warrior');
+      expect(store.character.heroPending).toBe(true);
+    }
   });
 
   it('loads a save whose current health exceeds its (now lower) max health at the new max', () => {

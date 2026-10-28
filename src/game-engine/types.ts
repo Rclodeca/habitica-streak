@@ -33,6 +33,10 @@ export interface Character {
   // new run after a death show that screen until the hero is named. A save
   // from before names existed loads unnamed too, so it gets asked once.
   name?: string;
+  // True from createCharacter until the hero is picked on the new-hero screen
+  // (see chooseHero), then false. A save from before the pick has none: its
+  // run is already under way, so it isn't offered a new hero.
+  heroPending?: boolean;
   level: number;
   exp: number;
   starterStats: {

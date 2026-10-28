@@ -31,11 +31,11 @@ export const useCharacterStore = defineStore('character', {
     character: createCharacter(createRng()) as Character,
   }),
   actions: {
-    /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character. */
+    /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character: a warrior, the new-hero screen's first offer. */
     initFromSave(saved: Character | null, rng: Rng) {
       this.character = saved
         ? clampHealthToMax(discardUnequippedItems(discardUnknownItems(applyHealBoost(applyHealingRebalance(applyDamagePoolRebalance(migrateCharacter(saved, rng)))))))
-        : createCharacter(rng);
+        : createCharacter(rng, 'warrior');
     },
 
     /** Rolls one boss-kill's worth of item drops for `bossIndex`, adds them to owned items, and returns them. */

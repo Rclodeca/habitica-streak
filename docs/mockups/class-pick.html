@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Habitica Streak — pick a hero (Ashen)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" />
+<style>
+/* The new-hero screen with a hero pick: Warrior, Mage, Ranger, or Fate (random).
+   A = three at the fire, B = turn through them, C = tiles under the fire, D = cards with a lean bar. */
+:root {
+  --bg: #0b0a09;
+  --text: #a1988a;
+  --text-h: #ece3cd;
+  --bone: #d4cab5;
+  --gold: #c8a96e;
+  --gold-hi: #e6cf9a;
+  --ember: #e0783a;
+  --dmg-physical: #d0604f;
+  --dmg-magic: #ab8dd8;
+  --dmg-true: #f1e9d6;
+  --line: rgba(200, 169, 110, 0.2);
+  --line-mid: rgba(200, 169, 110, 0.4);
+  --line-faint: rgba(200, 169, 110, 0.08);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; color: var(--bone);
+  font: 500 19px/1.4 'Cormorant Garamond', Garamond, Georgia, serif;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 30%, rgba(224, 120, 58, 0.1), transparent 70%),
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(200, 169, 110, 0.12), transparent 70%),
+    var(--bg);
+}
+button, input { font: inherit; color: inherit; }
+h1, h2, p { margin: 0; font-weight: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+img { display: block; image-rendering: pixelated; }
+
+.engraved { font-family: 'Cinzel', Georgia, serif; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+.lined { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--gold-hi); }
+.lined::before, .lined::after { content: ''; flex: 1; min-width: 16px; height: 1px; background: linear-gradient(90deg, transparent, var(--line-mid)); }
+.lined::after { background: linear-gradient(270deg, transparent, var(--line-mid)); }
+
+.screen {
+  max-width: 390px; margin: 0 auto; min-height: 100vh;
+  padding: calc(4vh + env(safe-area-inset-top)) 16px 150px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.eyebrow { font-style: italic; color: var(--text); }
+.game-title { margin-top: 6px; font-size: 30px; font-weight: 500; letter-spacing: 0.14em; color: var(--text-h); text-shadow: 0 0 30px rgba(224, 120, 58, 0.25); }
+
+/* The fire. */
+.bonfire {
+  position: relative; isolation: isolate; overflow: hidden;
+  width: 100%; height: 210px; margin: 10px 0 0;
+  display: flex; align-items: flex-end; justify-content: center;
+  background:
+    radial-gradient(ellipse 50% 55% at 50% 74%, rgba(224, 120, 58, 0.24), transparent 72%),
+    radial-gradient(ellipse 45% 60% at 50% 55%, rgba(215, 205, 185, 0.12), transparent 70%);
+  -webkit-mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 70%, transparent 100%);
+  mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 70%, transparent 100%);
+}
+.bonfire::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 200%; z-index: -1;
+  background-image:
+    radial-gradient(1.6px 1.6px at 20% 30%, #ffb06a 50%, transparent 55%), radial-gradient(1.2px 1.2px at 34% 68%, #ffd08f 50%, transparent 55%),
+    radial-gradient(1.8px 1.8px at 48% 40%, #ff9a52 50%, transparent 55%), radial-gradient(1.1px 1.1px at 60% 82%, #ffc27a 50%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 72% 26%, #ffad66 50%, transparent 55%), radial-gradient(1.2px 1.2px at 84% 60%, #ffd59a 50%, transparent 55%);
+  background-size: 100% 50%; animation: rise 12s linear infinite;
+}
+.bonfire::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 12px; height: 10px; z-index: -1; border-radius: 50%; background: radial-gradient(ellipse, rgba(0, 0, 0, 0.75), transparent 70%); }
+.hero-big { position: relative; width: 150px; height: 150px; margin-bottom: 8px; filter: drop-shadow(0 0 14px rgba(0, 0, 0, 0.9)); transition: opacity 0.2s; }
+/* Each hero sized so the bodies (not the art boxes) stand the same height, feet on the box's floor, centered by body weight. */
+.hero-big img { position: absolute; width: var(--w); height: var(--w); left: var(--dx); bottom: var(--dy); }
+
+/* A hero not (yet) shown: a dark shape by the fire. */
+.shade { filter: brightness(0) drop-shadow(0 0 10px rgba(224, 120, 58, 0.35)); opacity: 0.85; }
+.qmark {
+  position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: 20px;
+  font-family: 'Cinzel', serif; font-size: 44px; color: var(--gold-hi); text-shadow: 0 0 18px rgba(224, 120, 58, 0.7);
+}
+
+/* Class name under the fire. */
+.picked-name { margin-top: 6px; min-height: 26px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; letter-spacing: 0.3em; color: var(--text-h); }
+.ico { display: inline-grid; place-items: center; line-height: 0; color: var(--k, var(--gold)); }
+.ico svg { display: block; }
+.k-warrior { --k: var(--dmg-physical); }
+.k-mage { --k: var(--dmg-magic); }
+.k-ranger { --k: var(--dmg-true); }
+.k-fate { --k: var(--gold-hi); }
+
+/* Fate (random) button, shared by A and B. */
+.fate {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; margin-top: 6px; cursor: pointer;
+  background: transparent; border: 1px solid var(--line); color: var(--text);
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase;
+}
+.fate[aria-pressed='true'] { color: var(--gold-hi); border-color: var(--gold); box-shadow: 0 0 18px -6px rgba(230, 199, 127, 0.6); }
+
+/* A: three heroes at the fire, tap one. */
+.trio { gap: 0; align-items: flex-end; }
+.trio button { position: relative; width: 112px; height: 170px; padding: 0; border: 0; background: none; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; }
+.trio button img { width: 104px; height: 104px; margin-bottom: 14px; transition: transform 0.25s, filter 0.25s, opacity 0.25s; }
+.trio button:not([aria-pressed='true']) img { filter: brightness(0.25) saturate(0.4); opacity: 0.8; }
+.trio button[aria-pressed='true'] img { transform: scale(1.32) translateY(-6px); filter: drop-shadow(0 0 14px rgba(0, 0, 0, 0.9)); }
+.trio.fated button img { filter: brightness(0) drop-shadow(0 0 8px rgba(224, 120, 58, 0.4)); opacity: 0.9; transform: none; }
+
+/* B: one hero, turn through them. */
+.wheel { position: relative; width: 100%; display: flex; align-items: center; justify-content: space-between; }
+.turn { width: 48px; height: 48px; display: grid; place-items: center; background: none; border: 0; color: var(--gold); cursor: pointer; z-index: 2; }
+.turn:active { color: var(--gold-hi); }
+.dots { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.dots i { width: 6px; height: 6px; transform: rotate(45deg); border: 1px solid var(--line-mid); }
+.dots i.on { background: var(--gold-hi); border-color: var(--gold-hi); }
+.wheel-row { display: flex; gap: 10px; justify-content: center; align-items: center; }
+
+/* C: tiles under the fire. */
+.tiles { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0 18px; }
+.tile {
+  position: relative; min-height: 84px; padding: 6px 2px 8px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px;
+  background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line-faint);
+}
+.tile .face { width: 56px; height: 44px; overflow: hidden; }
+.tile .face img { width: 112px; height: 112px; margin: -14px 0 0 -28px; }
+.tile .face.dice { display: grid; place-items: center; }
+.tile b { font-family: 'Cinzel', serif; font-size: 9.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text); }
+.tile:not([aria-pressed='true']) .face img { filter: brightness(0.5) saturate(0.6); }
+.tile[aria-pressed='true'] { border-color: var(--gold); background: linear-gradient(180deg, rgba(146, 124, 80, 0.18), rgba(0, 0, 0, 0.35)); box-shadow: 0 0 18px -6px rgba(230, 199, 127, 0.55); }
+.tile[aria-pressed='true'] b { color: var(--gold-hi); }
+.tile[aria-pressed='true']::before { content: ''; position: absolute; top: -4px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px; transform: rotate(45deg); background: var(--gold-hi); }
+
+/* D: cards, each with its lean. */
+.cards { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 8px; }
+.card {
+  position: relative; padding: 0 6px 12px; cursor: pointer; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line-faint);
+}
+.card .art { position: relative; width: 100%; height: 118px; display: flex; align-items: flex-end; justify-content: center; }
+.card .art img { width: 104px; height: 104px; transition: filter 0.25s; }
+.card:not([aria-pressed='true']) .art img { filter: brightness(0.4) saturate(0.5); }
+.card[aria-pressed='true'] { border-color: var(--gold); box-shadow: 0 0 20px -6px rgba(230, 199, 127, 0.55); }
+.card[aria-pressed='true'] .art { background: radial-gradient(ellipse 60% 55% at 50% 85%, rgba(224, 120, 58, 0.3), transparent 72%); }
+.card b { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text); }
+.card[aria-pressed='true'] b { color: var(--gold-hi); }
+.cards.fated .card .art img { filter: brightness(0); }
+/* The physical/magic lean: a blurred seam, since the exact split is still rolled. */
+.lean { position: relative; width: 82%; height: 4px; background: linear-gradient(90deg, var(--dmg-physical) 0 calc(var(--p) - 8%), var(--dmg-magic) calc(var(--p) + 8%) 100%); opacity: 0.85; }
+.lean.even::after { content: ''; position: absolute; left: 50%; top: -3px; width: 2px; height: 10px; margin-left: -1px; background: var(--dmg-true); box-shadow: 0 0 6px var(--dmg-true); }
+.fate-row {
+  width: 100%; min-height: 44px; margin-bottom: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: transparent; border: 1px dashed var(--line); color: var(--text);
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase;
+}
+.fate-row[aria-pressed='true'] { border-style: solid; border-color: var(--gold); color: var(--gold-hi); box-shadow: 0 0 18px -6px rgba(230, 199, 127, 0.6); }
+
+/* The rest of the screen, as built. */
+.oath { width: 100%; margin-top: 16px; }
+.oath h2 { font-size: 13px; letter-spacing: 0.3em; margin-bottom: 16px; }
+.field { display: block; margin-bottom: 20px; text-align: left; }
+.label { display: block; margin-bottom: 8px; font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; letter-spacing: 0.26em; text-transform: uppercase; color: var(--text); }
+.name-input { width: 100%; padding: 12px 14px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--line-mid); border-radius: 0; color: var(--text-h); font-size: 22px; font-weight: 600; outline: none; }
+.name-input::placeholder { color: #5c554a; font-style: italic; font-weight: 500; }
+.rules { margin: 0 0 22px; text-align: left; border-top: 1px solid var(--line-faint); }
+.rules li { display: grid; grid-template-columns: 22px 64px 1fr; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--line-faint); }
+.rules b { font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-h); }
+.rules span { font-style: italic; line-height: 1.3; }
+.k-keep { --k: var(--gold-hi); } .k-break { --k: var(--dmg-physical); } .k-rise { --k: var(--gold); }
+.btn {
+  display: block; width: 100%; min-height: 50px; cursor: pointer;
+  font-family: 'Cinzel', Georgia, serif; font-size: 12px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--text-h); background: linear-gradient(180deg, rgba(146, 124, 80, 0.25), rgba(60, 48, 28, 0.25));
+  border: 1px solid var(--line-mid);
+}
+.btn:disabled { color: #5c554a; background: transparent; border-color: var(--line-faint); cursor: default; }
+
+/* Mockup chrome — not part of the design. */
+.mock-bar {
+  position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 99;
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+  font: 600 12px/1 system-ui, -apple-system, sans-serif; letter-spacing: 0;
+}
+.mock-switcher { display: flex; gap: 3px; padding: 4px; background: rgba(17, 17, 21, 0.9); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
+.mock-switcher span { align-self: center; padding: 0 6px 0 8px; color: #8a8f99; }
+.mock-switcher button { border: 0; background: transparent; color: #cbd0da; padding: 8px 11px; border-radius: 999px; font: inherit; cursor: pointer; }
+.mock-switcher button[aria-pressed='true'] { background: #f3f4f6; color: #111; }
+
+@keyframes rise { to { transform: translateY(-50%); } }
+@keyframes flick { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+.flicker { animation: flick 0.09s linear 4; }
+@media (prefers-reduced-motion: reduce) { .bonfire::before { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="mock-bar">
+  <nav class="mock-switcher" aria-label="Option">
+    <span>Option</span>
+    <button type="button" data-opt="A">A · Fire</button>
+    <button type="button" data-opt="B">B · Turn</button>
+    <button type="button" data-opt="C">C · Tiles</button>
+    <button type="button" data-opt="D">D · Cards</button>
+  </nav>
+  <nav class="mock-switcher" aria-label="Preselected">
+    <span>Starts on</span>
+    <button type="button" data-preset="warrior">Warrior</button>
+    <button type="button" data-preset="fate">Fate</button>
+    <button type="button" data-preset="none">Nothing</button>
+  </nav>
+</div>
+
+<main class="screen">
+  <p class="eyebrow">Every habit is a weapon.</p>
+  <h1 class="game-title engraved">Habitica Streak</h1>
+
+  <div id="picker" style="width:100%"></div>
+
+  <div class="oath">
+    <h2 class="engraved lined">A new hero</h2>
+    <label class="field">
+      <span class="label">Name</span>
+      <input class="name-input" maxlength="16" placeholder="Nameless" autocomplete="off" />
+    </label>
+    <ul class="rules">
+      <li><i class="ico k-keep" data-i="sword"></i><b>Keep</b><span>A habit kept strikes the boss.</span></li>
+      <li><i class="ico k-break" data-i="swords"></i><b>Break</b><span>A habit broken, the boss strikes back.</span></li>
+      <li><i class="ico k-rise" data-i="chevrons-up"></i><b>Rise</b><span>Each boss slain makes you stronger.</span></li>
+    </ul>
+    <button type="button" class="btn" id="begin">Begin</button>
+  </div>
+</main>
+
+<script>
+const LUCIDE = {
+  sword: '<path d="m11 19-6-6"/><path d="m5 21-2-2"/><path d="m8 16-4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/>',
+  swords: '<polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/>',
+  'chevrons-up': '<path d="m17 11-5-5-5 5"/><path d="m17 18-5-5-5 5"/>',
+  wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  zap: '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  dices: '<rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01"/><path d="M10 14h.01"/><path d="M15 6h.01"/><path d="M18 9h.01"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+};
+const svg = (name, size = 14, stroke = 1.5) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[name]}</svg>`;
+document.querySelectorAll('.ico[data-i]').forEach((el) => { el.innerHTML = svg(el.dataset.i); });
+
+// The art files are still named warrior/cleric/ranger; "cleric" is shown as Mage.
+// fit: drawn width, left and bottom offset (px) in the 150px hero box. Body heights
+// (head to feet, the mage's star left out) are 169/155/171 art px, so each is
+// scaled to a 138px body; feet sit on the box floor, center of mass at its middle.
+const HEROES = [
+  { id: 'warrior', name: 'Warrior', icon: 'sword', src: '../../public/sprites/player/warrior.png', lean: 68, fit: [150, 14, -5] },
+  { id: 'mage', name: 'Mage', icon: 'wand', src: '../../public/sprites/player/cleric.png', lean: 32, fit: [178, -8, -7] },
+  { id: 'ranger', name: 'Ranger', icon: 'zap', src: '../../public/sprites/player/ranger.png', lean: 50, fit: [148, 4, -3] },
+];
+const fitStyle = (h) => `--w:${h.fit[0]}px;--dx:${h.fit[1]}px;--dy:${h.fit[2]}px`;
+const byId = (id) => HEROES.find((h) => h.id === id);
+const state = { opt: 'B', preset: 'warrior', pick: 'warrior' };
+
+const nameLine = () => {
+  if (state.pick === 'fate') return `<i class="ico k-fate">${svg('dices', 15)}</i><span class="engraved">Fate</span>`;
+  if (!state.pick) return `<span class="engraved" style="color:var(--text);font-size:12px">Choose</span>`;
+  const h = byId(state.pick);
+  return `<i class="ico k-${h.id}">${svg(h.icon, 15)}</i><span class="engraved">${h.name}</span>`;
+};
+const bigHero = () => {
+  if (!state.pick || state.pick === 'fate') {
+    return `<div class="hero-big"><img class="shade" style="${fitStyle(HEROES[0])}" src="${HEROES[0].src}" alt="" />${state.pick === 'fate' ? '<span class="qmark">?</span>' : ''}</div>`;
+  }
+  const h = byId(state.pick);
+  return `<div class="hero-big"><img style="${fitStyle(h)}" src="${h.src}" alt="${h.name}" /></div>`;
+};
+const fateBtn = () => `<button type="button" class="fate" data-pick="fate" aria-pressed="${state.pick === 'fate'}">${svg('dices', 15)}Fate</button>`;
+
+const RENDER = {
+  // Three at the fire: tap a hero to bring it forward. Fate darkens all three.
+  A: () => `
+    <div class="bonfire trio ${state.pick === 'fate' ? 'fated' : ''}">
+      ${HEROES.map((h) => `<button type="button" data-pick="${h.id}" aria-pressed="${state.pick === h.id}" aria-label="${h.name}"><img src="${h.src}" alt="" /></button>`).join('')}
+    </div>
+    <div class="picked-name">${nameLine()}</div>
+    ${fateBtn()}`,
+  // One hero by the fire; chevrons (or a swipe) turn through them. Fate is a step on the wheel too.
+  B: () => {
+    const ring = [...HEROES.map((h) => h.id), 'fate'];
+    const i = Math.max(0, ring.indexOf(state.pick));
+    return `
+    <div class="wheel">
+      <button type="button" class="turn" data-turn="-1" aria-label="Previous">${svg('left', 26, 1.4)}</button>
+      <div class="bonfire" style="position:absolute;inset:0;z-index:0">${bigHero()}</div>
+      <div style="height:210px"></div>
+      <button type="button" class="turn" data-turn="1" aria-label="Next">${svg('right', 26, 1.4)}</button>
+    </div>
+    <div class="picked-name">${nameLine()}</div>
+    <div class="dots">${ring.map((_, j) => `<i class="${state.pick && j === i ? 'on' : ''}"></i>`).join('')}</div>`;
+  },
+  // The picked hero by the fire, four tiles below it.
+  C: () => `
+    <div class="bonfire">${bigHero()}</div>
+    <div class="picked-name">${nameLine()}</div>
+    <div class="tiles">
+      ${HEROES.map((h) => `<button type="button" class="tile" data-pick="${h.id}" aria-pressed="${state.pick === h.id}"><span class="face"><img src="${h.src}" alt="" /></span><b>${h.name}</b></button>`).join('')}
+      <button type="button" class="tile" data-pick="fate" aria-pressed="${state.pick === 'fate'}"><span class="face dice ico k-fate">${svg('dices', 26, 1.3)}</span><b>Fate</b></button>
+    </div>`,
+  // No big fire: three cards, each with its physical/magic lean; Fate below.
+  D: () => `
+    <div class="cards ${state.pick === 'fate' ? 'fated' : ''}">
+      ${HEROES.map((h) => `
+        <button type="button" class="card" data-pick="${h.id}" aria-pressed="${state.pick === h.id}">
+          <span class="art"><img src="${h.src}" alt="" /></span>
+          <b>${h.name}</b>
+          <span class="lean ${h.lean === 50 ? 'even' : ''}" style="--p:${h.lean}%"></span>
+        </button>`).join('')}
+    </div>
+    <button type="button" class="fate-row" data-pick="fate" aria-pressed="${state.pick === 'fate'}">${svg('dices', 15)}Fate</button>`,
+};
+
+function render(flicker) {
+  const picker = document.getElementById('picker');
+  picker.innerHTML = RENDER[state.opt]();
+  if (flicker) picker.querySelector('.hero-big, .trio, .cards')?.classList.add('flicker');
+  document.getElementById('begin').disabled = !state.pick;
+  document.querySelectorAll('[data-opt]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.opt === state.opt)));
+  document.querySelectorAll('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === state.preset)));
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.opt) { state.opt = t.dataset.opt; render(); }
+  else if (t.dataset.preset) { state.preset = t.dataset.preset; state.pick = t.dataset.preset === 'none' ? null : t.dataset.preset; render(); }
+  else if (t.dataset.pick) { state.pick = t.dataset.pick; render(t.dataset.pick === 'fate'); }
+  else if (t.dataset.turn) {
+    const ring = [...HEROES.map((h) => h.id), 'fate'];
+    const i = state.pick ? ring.indexOf(state.pick) : (t.dataset.turn === '1' ? -1 : 0);
+    state.pick = ring[(i + Number(t.dataset.turn) + ring.length) % ring.length];
+    render();
+  } else if (t.id === 'begin' && state.pick === 'fate') {
+    // Fate is only revealed on Begin: flash the roll by the fire.
+    const roll = HEROES[Math.floor(Math.random() * 3)];
+    state.pick = roll.id; render(true);
+  }
+});
+render();
+</script>
+</body>
+</html>

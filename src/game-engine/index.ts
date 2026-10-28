@@ -34,6 +34,7 @@ export {
   DEFAULT_HERO_NAME,
   discardUnequippedItems,
   discardUnknownItems,
+  HERO_CLASSES,
   heroClassFor,
   MAX_HERO_NAME_LENGTH,
   migrateCharacter,
@@ -122,6 +123,7 @@ export type { CombatResult, HabitDamageBreakdown } from './combat';
 export {
   activeWoundsEffect,
   bossMissDamage,
+  chooseHero,
   completeHabit,
   DAMAGE_TYPE_STARTER_STAT,
   effectiveResistAfterPen,

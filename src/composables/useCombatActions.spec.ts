@@ -7,7 +7,7 @@
 
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { availableRelics, createRng, dailyPeriodKey, dayOfWeekIndex, effectiveStat, expToNextLevel, heroClassFor, periodKeyFor, PERSONALITY_NAME, questSlotExp, weeklyPeriodKey } from '../game-engine';
+import { availableRelics, createCharacter, createRng, dailyPeriodKey, dayOfWeekIndex, effectiveStat, expToNextLevel, heroClassFor, periodKeyFor, PERSONALITY_NAME, questSlotExp, weeklyPeriodKey } from '../game-engine';
 import { TUNING } from '../game-engine/constants/tuning';
 import { useActivityLogStore } from '../store/activityLogStore';
 import { useBossStore } from '../store/bossStore';
@@ -492,6 +492,45 @@ describe('useCombatActions', () => {
     expect(fallen.value).toEqual({ name: 'Aria', bossIndex: 7 });
     expect(characterStore.character.name).toBeUndefined();
     clearFallen();
+  });
+
+  it('beginRun names the hero and gives a new run the picked hero', () => {
+    const characterStore = useCharacterStore();
+    const { beginRun } = useCombatActions();
+    useFallenHero().recordFallen({ name: 'Aria', bossIndex: 4 });
+    characterStore.character = createCharacter(createRng(5), 'warrior');
+
+    beginRun('Brand', 'ranger');
+
+    expect(characterStore.character.name).toBe('Brand');
+    expect(heroClassFor(characterStore.character)).toBe('ranger');
+    expect(characterStore.character.heroPending).toBe(false);
+    expect(useFallenHero().fallen.value).toBeNull();
+  });
+
+  it('beginRun re-rolls the skills\' damage types for a different hero', () => {
+    const characterStore = useCharacterStore();
+    const habitStore = useHabitStore();
+    const { beginRun } = useCombatActions();
+    characterStore.character = createCharacter(createRng(5), 'warrior');
+    for (let i = 0; i < 12; i++) habitStore.updateHabit({ ...habitStore.addHabit(`Skill ${i}`, 'daily', 'medium', false, createRng(i)), damageType: 'physical' });
+
+    beginRun('Brand', 'cleric');
+
+    expect(habitStore.habits).toHaveLength(12);
+    expect(habitStore.habits.some((h) => h.damageType !== 'physical')).toBe(true);
+  });
+
+  it('beginRun with fate picks one of the three heroes at random', () => {
+    const characterStore = useCharacterStore();
+    const { beginRun } = useCombatActions();
+    const seen = new Set<string>();
+    for (let i = 0; i < 30; i++) {
+      characterStore.character = createCharacter(createRng(5), 'warrior');
+      beginRun('Brand', 'fate');
+      seen.add(heroClassFor(characterStore.character));
+    }
+    expect(seen.size).toBeGreaterThan(1);
   });
 
   it('restart opens quests for the new run only when quests carried over', () => {

@@ -293,10 +293,11 @@ export const TUNING = {
     [30, { common: 0, uncommon: 35, rare: 48, epic: 17 }],
   ] as [number, { common: number; uncommon: number; rare: number; epic: number }][],
   // Physical/magic starting-stat split: createCharacter picks one of these
-  // [physical share, magic share] pairs uniformly at random, so some runs
-  // are balanced and others lean hard into one damage type. Applied to the
-  // combined physicalDamage+magicDamage pool from BASE_STATS before the
-  // usual ±5% jitter.
+  // [physical share, magic share] pairs uniformly at random from the ones that
+  // read as the picked hero (see heroClassFor), so a warrior or a cleric leans
+  // a little or hard and a ranger is even. Applied to the combined
+  // physicalDamage+magicDamage pool from BASE_STATS before the usual ±5%
+  // jitter.
   DAMAGE_SPLIT_RATIOS: [
     [0.5, 0.5],
     [0.6, 0.4],
