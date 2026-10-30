@@ -1304,8 +1304,13 @@ $caps-lg: 0.85rem; // panel and popup titles
       inset 0 0 0 5px color-mix(in srgb, var(--rarity) 35%, transparent);
   }
 
+  // Undoes the frame's rotation, at 2 CSS px per art pixel on every screen
+  // (whole device pixels at 1x, 2x and 3x): the larger --item-card-art sizes
+  // push the bigger items past the diamond's edges.
   .icon-frame .icon {
-    transform: rotate(-45deg) scale(1.4);
+    width: 240px;
+    height: 240px;
+    transform: rotate(-45deg);
   }
 
   .hero .rarity {

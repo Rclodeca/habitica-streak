@@ -61,6 +61,9 @@ const enchanted = computed(() => props.factor > 1);
   border-radius: 12px;
   box-shadow: 0 0 18px -6px var(--rarity);
   text-align: center;
+  /* The icon's transparent padding is wider than the card; without this it
+     makes the modal scroll sideways. */
+  overflow: hidden;
 }
 
 .icon-frame {
