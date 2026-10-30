@@ -1298,6 +1298,20 @@ describe('completeHabit — item effects', () => {
     expect(staleDay.damageDealt).toBeCloseTo(fresh.damageDealt ?? 0, 10);
   });
 
+  it("Spellweave doesn't count a physical skill", () => {
+    const physical = hit(['runeforged-spellblade'], { damageType: 'physical' }, {}, noCritRng, { spellweave: { dayKey: DAY_KEY, count: 2 } });
+    expect(physical.character.spellweave).toEqual({ dayKey: DAY_KEY, count: 2 });
+  });
+
+  it('Void Arbalest counts a crit toward later hits, and only a crit', () => {
+    const crit = hit(['void-arbalest'], {}, {}, alwaysCritRng);
+    expect(crit.wasCrit).toBe(true);
+    expect(crit.character.critStreak).toEqual({ dayKey: DAY_KEY, count: 1 });
+    const plain = hit(['void-arbalest'], {}, {}, noCritRng);
+    expect(plain.wasCrit).toBe(false);
+    expect(plain.character.critStreak).toBeUndefined();
+  });
+
   it('Temperance Seal makes a resisted bad skill hit ×1.5', () => {
     const bad = hit(['temperance-seal'], { isBad: true }, {}).damageDealt ?? 0;
     const good = hit(['temperance-seal'], {}, {}).damageDealt ?? 0;

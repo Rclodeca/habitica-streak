@@ -7,7 +7,7 @@ import { DIFFICULTY_WEIGHT } from './constants/difficulty';
 import { TUNING } from './constants/tuning';
 import { crowdingFactor, rerollAllDamageTypes, resetLevelRewards, skillBaseDamage } from './habits';
 import { activeHealBoost, addExpAndResolveLevelUps, effectiveCritChance, effectiveStat, itemStatMultiplier, statAtLevel } from './leveling';
-import { bumpSpellweave, critMultiplierFor, effectDamageMultiplier, effectUsedToday, hasItemEffect, isForcedCrit, stampEffectDay, starfallReady } from './itemEffects';
+import { bumpCritStreak, bumpSpellweave, critMultiplierFor, effectDamageMultiplier, effectUsedToday, hasItemEffect, isForcedCrit, stampEffectDay, starfallReady } from './itemEffects';
 import { itemBonusPercent, itemFlatBonus, rollItemDrops } from './items';
 import type { ItemDef } from './items';
 import type { Rng } from './rng';
@@ -253,8 +253,8 @@ function resolveCompletion(
   const overdriveFactor = isOverdriveUse && !hasItemEffect(character, 'dynamo') ? TUNING.OVERDRIVE_DAMAGE_FACTOR : 1;
   const effectMultiplier = effectDamageMultiplier(character, habit, boss, currentDayKey);
   const amount = baseDamage * itemMultiplier * multiplier * weeklyMult * bonusMultiplier * overdriveFactor * effectMultiplier;
-  // Counts this use toward Spellweave's stacks for the rest of today (no-op without it).
-  const wovenCharacter = bumpSpellweave(character, currentDayKey);
+  // Counts a magic use toward Spellweave's stacks for the rest of today (no-op otherwise).
+  const wovenCharacter = bumpSpellweave(character, habit, currentDayKey);
 
   if (habit.damageType === 'healing') {
     const maxHealth = effectiveStat(character, 'health');
@@ -314,7 +314,9 @@ function resolveCompletion(
   const netHealthChange = healed - reflected;
   const newHealth = Math.min(Math.max(character.currentHealth + netHealthChange, 0), maxHealth);
   const stampedCharacter = starfall ? stampEffectDay(wovenCharacter, 'starfall', currentDayKey) : wovenCharacter;
-  const newCharacter = netHealthChange !== 0 ? { ...stampedCharacter, currentHealth: newHealth } : stampedCharacter;
+  // A crit raises Void Arbalest's crit chance for the rest of today's hits, not this one.
+  const streakCharacter = wasCrit ? bumpCritStreak(stampedCharacter, currentDayKey) : stampedCharacter;
+  const newCharacter = netHealthChange !== 0 ? { ...streakCharacter, currentHealth: newHealth } : streakCharacter;
 
   return {
     character: newCharacter,

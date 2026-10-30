@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TUNING } from './constants/tuning';
 import { effectiveStat } from './leveling';
-import { applyDailyRegen, bumpSpellweave, critMultiplierFor, effectDamageMultiplier, hasItemEffect, isForcedCrit, spellweaveStacks } from './itemEffects';
+import { applyDailyRegen, bumpCritStreak, bumpSpellweave, critMultiplierFor, effectDamageMultiplier, hasItemEffect, isForcedCrit, spellweaveStacks } from './itemEffects';
 import type { Boss, Character, Habit } from './types';
 
 const DAY_KEY = '2026-01-01';
@@ -103,14 +103,35 @@ describe('effectDamageMultiplier', () => {
 });
 
 describe('bumpSpellweave', () => {
-  it('counts skills per day while Spellweave is equipped, and is a no-op otherwise', () => {
+  const magic = makeHabit({ damageType: 'magic' });
+
+  it('counts magic skills per day while Spellweave is equipped, and is a no-op otherwise', () => {
     const plain = makeCharacter();
-    expect(bumpSpellweave(plain, DAY_KEY)).toBe(plain);
+    expect(bumpSpellweave(plain, magic, DAY_KEY)).toBe(plain);
     const c = makeCharacter({ equippedItemIds: ['runeforged-spellblade'] });
-    const once = bumpSpellweave(c, DAY_KEY);
+    const once = bumpSpellweave(c, magic, DAY_KEY);
     expect(once.spellweave).toEqual({ dayKey: DAY_KEY, count: 1 });
-    expect(bumpSpellweave(once, DAY_KEY).spellweave).toEqual({ dayKey: DAY_KEY, count: 2 });
-    expect(bumpSpellweave(once, '2026-01-02').spellweave).toEqual({ dayKey: '2026-01-02', count: 1 });
+    expect(bumpSpellweave(once, magic, DAY_KEY).spellweave).toEqual({ dayKey: DAY_KEY, count: 2 });
+    expect(bumpSpellweave(once, magic, '2026-01-02').spellweave).toEqual({ dayKey: '2026-01-02', count: 1 });
+  });
+
+  it('ignores physical, true and healing skills', () => {
+    const c = makeCharacter({ equippedItemIds: ['runeforged-spellblade'] });
+    for (const damageType of ['physical', 'trueDamage', 'healing'] as const) {
+      expect(bumpSpellweave(c, makeHabit({ damageType }), DAY_KEY)).toBe(c);
+    }
+  });
+});
+
+describe('bumpCritStreak', () => {
+  it("counts crits per day while Void Arbalest is equipped, and is a no-op otherwise", () => {
+    const plain = makeCharacter();
+    expect(bumpCritStreak(plain, DAY_KEY)).toBe(plain);
+    const c = makeCharacter({ equippedItemIds: ['void-arbalest'] });
+    const once = bumpCritStreak(c, DAY_KEY);
+    expect(once.critStreak).toEqual({ dayKey: DAY_KEY, count: 1 });
+    expect(bumpCritStreak(once, DAY_KEY).critStreak).toEqual({ dayKey: DAY_KEY, count: 2 });
+    expect(bumpCritStreak(once, '2026-01-02').critStreak).toEqual({ dayKey: '2026-01-02', count: 1 });
   });
 });
 

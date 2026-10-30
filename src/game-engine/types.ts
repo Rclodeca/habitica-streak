@@ -107,8 +107,10 @@ export interface Character {
   // The day key each once-a-day item effect last fired on (Dawnguard's halved
   // hit, Starfall's crit, Ember Heart's heal) — see itemEffects.ts.
   effectDayKeys?: { dawnguard?: string; starfall?: string; emberHeart?: string };
-  // Skills used today while Spellweave is equipped (see spellweaveStacks).
+  // Magic skills used today while Spellweave is equipped (see spellweaveStacks).
   spellweave?: { dayKey: string; count: number };
+  // Crits landed today while Void Arbalest is equipped (see critStreakStacks).
+  critStreak?: { dayKey: string; count: number };
   // Consecutive level-up picks where the side-quest event was eligible but
   // not offered — drives the guarantee in rollEventChoices.
   sideQuestPicksMissed?: number;

@@ -32,6 +32,7 @@ export type ItemEffectId =
   | 'void-crits'
   | 'bloodthorn'
   | 'spellweave'
+  | 'crit-streak'
   | 'wound-immune'
   | 'bloodbound'
   | 'dawnguard'

@@ -146,6 +146,7 @@ export {
 
 export {
   applyDailyRegen,
+  bumpCritStreak,
   bumpSpellweave,
   critMultiplierFor,
   effectDamageMultiplier,

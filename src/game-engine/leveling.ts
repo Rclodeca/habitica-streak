@@ -106,16 +106,28 @@ export function clampHealthToMax(character: Character): Character {
 }
 
 /**
- * The character's crit chance (0-1) after equipped-item bonuses, capped at
- * TUNING.CRIT_CHANCE_CAP so a hit is never guaranteed no matter how many
- * crit items are stacked. Pass `currentDayKey` to include an active Crit boost.
+ * The character's crit chance (0-1) after equipped-item bonuses, topping out
+ * at 100% (every hit crits). Pass `currentDayKey` to include an active Crit
+ * boost and Void Arbalest's crits today.
  */
 export function effectiveCritChance(character: Character, currentDayKey?: string): number {
   // Blind (a boss skill) stops rolled crits; forced ones (isForcedCrit) still land.
   if (currentDayKey && activeBlind(character, currentDayKey)) return 0;
   const boost = currentDayKey ? (activeCritBoost(character, currentDayKey)?.bonus ?? 0) : 0;
-  const raw = character.critChance + itemBonusPercent(character, 'critChance') / 100 + boost;
-  return Math.min(raw, TUNING.CRIT_CHANCE_CAP);
+  const streak = currentDayKey ? critStreakStacks(character, currentDayKey) * TUNING.ITEM_EFFECTS.CRIT_STREAK_PER_CRIT : 0;
+  const raw = character.critChance + itemBonusPercent(character, 'critChance') / 100 + boost + streak;
+  return Math.min(raw, 1);
+}
+
+/**
+ * Void Arbalest stacks for a hit now: crits already landed today, capped; 0
+ * when it isn't equipped. Lives here rather than in itemEffects.ts because
+ * itemEffects imports this module. bumpCritStreak counts the crits.
+ */
+export function critStreakStacks(character: Character, currentDayKey: string): number {
+  const streak = character.critStreak;
+  if (!streak || streak.dayKey !== currentDayKey || !hasItemEffect(character, 'crit-streak')) return 0;
+  return Math.min(streak.count, TUNING.ITEM_EFFECTS.CRIT_STREAK_MAX_STACKS);
 }
 
 /**

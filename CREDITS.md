@@ -122,6 +122,8 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/azure-staff.png` | `rpg-gem-staff-precious-jewel-090-v2-2026-03-03T17-02-45.png` |
 | `items/crescent-crook.png` | `rpg-silver-staff-moon-crescent-109-v3-2026-03-03T17-02-45.png` |
 | `items/wellspring-crown.png` | `8bit-crown-royal-headwear-072-v4-2026-03-10T18-57-54.png` |
+| `items/crystal-longbow.png` | `crystal-longbow.png` |
+| `items/void-arbalest.png` | `enchanted-crossbow-void-enchantment-dark-bolts-shadow_20260217_170455.png` |
 
 ### Player heroes
 

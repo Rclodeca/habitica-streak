@@ -31,17 +31,24 @@ export function spellweaveStacks(character: Character, currentDayKey: string): n
   return weave && weave.dayKey === currentDayKey ? Math.min(weave.count, E.SPELLWEAVE_MAX_STACKS) : 0;
 }
 
-/** Counts one more skill used today for Spellweave; the same character when it isn't equipped. */
-export function bumpSpellweave(character: Character, currentDayKey: string): Character {
-  if (!hasItemEffect(character, 'spellweave')) return character;
+/** Counts one more magic skill used today for Spellweave; the same character for other skills or when it isn't equipped. */
+export function bumpSpellweave(character: Character, habit: Habit, currentDayKey: string): Character {
+  if (habit.damageType !== 'magic' || !hasItemEffect(character, 'spellweave')) return character;
   const count = character.spellweave?.dayKey === currentDayKey ? character.spellweave.count : 0;
   return { ...character, spellweave: { dayKey: currentDayKey, count: count + 1 } };
+}
+
+/** Counts one more crit landed today for Void Arbalest (see critStreakStacks); the same character when it isn't equipped. */
+export function bumpCritStreak(character: Character, currentDayKey: string): Character {
+  if (!hasItemEffect(character, 'crit-streak')) return character;
+  const count = character.critStreak?.dayKey === currentDayKey ? character.critStreak.count : 0;
+  return { ...character, critStreak: { dayKey: currentDayKey, count: count + 1 } };
 }
 
 /**
  * Product of the conditional damage/healing effects for this use of `habit`:
  * Giantslayer and Headsman's Mark (damage skills, by boss health), Moonwell
- * (weekly skills of any type), Spellweave (magic, by skills used today) and
+ * (weekly skills of any type), Spellweave (magic, by magic skills used today) and
  * Temperance Seal (a resisted bad skill). 1 when none apply.
  */
 export function effectDamageMultiplier(character: Character, habit: Habit, boss: Boss, currentDayKey: string): number {

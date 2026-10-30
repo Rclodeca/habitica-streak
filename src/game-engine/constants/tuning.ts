@@ -175,8 +175,8 @@ export const TUNING = {
   LEVEL_UP_HEAL_PCT: 20,
   // The Heal event restores this % of max health.
   EVENT_HEAL_PCT: 10,
-  // The Crit boost event adds CRIT_BOOST_BONUS to crit chance (still subject
-  // to CRIT_CHANCE_CAP) for CRIT_BOOST_DAYS days, counting the day it's picked.
+  // The Crit boost event adds CRIT_BOOST_BONUS to crit chance (crit chance
+  // tops out at 100%) for CRIT_BOOST_DAYS days, counting the day it's picked.
   CRIT_BOOST_BONUS: 0.2,
   CRIT_BOOST_DAYS: 3,
   // The Healing boost event multiplies healing by (1 + HEAL_BOOST_BONUS) for
@@ -191,7 +191,6 @@ export const TUNING = {
   DOUBLE_ITEM_MAX: 2,
   DOUBLED_ITEM_MULTIPLIER: 2,
   BASE_CRIT_CHANCE: 0.01, // 1% base crit chance for the player (see leveling.ts effectiveCritChance)
-  CRIT_CHANCE_CAP: 0.75, // crit chance (after item bonuses) can never exceed this, so hits are never guaranteed
   CRIT_MULTIPLIER: 2, // crit hits deal 2x damage
   // A flat reward bump for weekly habits — see weeklyBonusMultiplier in
   // combat.ts. Deliberately kept OUT of baseDamage (unlike the old,
@@ -283,7 +282,7 @@ export const TUNING = {
   BOSS_LIFESTEAL_WEIGHTS: { '0': 80, '0.05': 15, '0.1': 4, '0.15': 1 },
   // Total armorPen/magicPen percent from equipped items is clamped to this
   // before reducing a boss's effective armor/magicResist (see combat.ts) —
-  // mirrors how CRIT_CHANCE_CAP keeps crit under 100%. A boss always
+  // a boss always
   // retains at least 10% of its true resist no matter how much pen is stacked.
   ARMOR_MAGIC_PEN_CAP_PCT: 90,
   // Late-game boss skills, fired at HP breakpoints (see bossSkills.ts).
@@ -362,6 +361,8 @@ export const TUNING = {
     BLOODTHORN_CRIT_HEAL_PCT: 5,
     SPELLWEAVE_PER_SKILL: 0.05,
     SPELLWEAVE_MAX_STACKS: 5,
+    CRIT_STREAK_PER_CRIT: 0.05,
+    CRIT_STREAK_MAX_STACKS: 5,
     TITANS_MENDING_BELOW_PCT: 0.5,
     TITANS_MENDING_MULTIPLIER: 1.5,
     CENSER_DAMAGE_FRACTION: 0.5,

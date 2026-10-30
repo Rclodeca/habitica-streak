@@ -257,13 +257,25 @@ describe('effectiveCritChance', () => {
     expect(effectiveCritChance(character)).toBeCloseTo(0.01 + 0.02, 10);
   });
 
-  it('caps at TUNING.CRIT_CHANCE_CAP even when base + item bonuses would exceed it', () => {
+  it('can reach 100% but never goes past it', () => {
     const character = makeCharacter({
-      critChance: 0.9, // synthetic — real base is always TUNING.BASE_CRIT_CHANCE, but the cap must hold regardless
+      critChance: 0.9, // synthetic — real base is always TUNING.BASE_CRIT_CHANCE
       ownedItemIds: ['eagle-eye-lens'],
       equippedItemIds: ['eagle-eye-lens'],
     });
-    expect(effectiveCritChance(character)).toBe(TUNING.CRIT_CHANCE_CAP);
+    expect(effectiveCritChance(character)).toBe(1);
+  });
+
+  it("Void Arbalest adds crit chance per crit today, capped, and only on today's key", () => {
+    const E = TUNING.ITEM_EFFECTS;
+    const twoCrits = makeCharacter({ equippedItemIds: ['void-arbalest'], critStreak: { dayKey: '2026-01-01', count: 2 } });
+    const itemOnly = effectiveCritChance(twoCrits);
+    expect(effectiveCritChance(twoCrits, '2026-01-01')).toBeCloseTo(itemOnly + 2 * E.CRIT_STREAK_PER_CRIT, 10);
+    expect(effectiveCritChance(twoCrits, '2026-01-02')).toBeCloseTo(itemOnly, 10);
+    const many = { ...twoCrits, critStreak: { dayKey: '2026-01-01', count: 50 } };
+    expect(effectiveCritChance(many, '2026-01-01')).toBeCloseTo(itemOnly + E.CRIT_STREAK_MAX_STACKS * E.CRIT_STREAK_PER_CRIT, 10);
+    const unequipped = { ...twoCrits, equippedItemIds: [] };
+    expect(effectiveCritChance(unequipped, '2026-01-01')).toBeCloseTo(0.01, 10);
   });
 });
 
