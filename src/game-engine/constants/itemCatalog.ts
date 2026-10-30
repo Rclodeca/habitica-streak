@@ -123,5 +123,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   // Exception: physical + magic hybrid.
   { id: 'echoing-blade', name: 'Echoing Blade', icon: 'items/echoing-blade', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'physicalDamage', percent: 20 }, { stat: 'magicDamage', percent: 20 }], effect: 'echoing-blade', effectText: 'Overkill damage carries into the next boss.' },
   // Exception: all damage types, paid for in health.
+  { id: 'scales-of-fate', name: 'Scales of Fate', icon: 'items/scales-of-fate', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'health', percent: 15 }, { stat: 'expGain', percent: 10 }], effect: 'scales-of-fate', effectText: 'Boss skills have a 50% chance to fail.' },
+  { id: 'omen-hourglass', name: 'Omen Hourglass', icon: 'items/omen-hourglass', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'health', percent: 30 }], effect: 'omen-hourglass', effectText: 'Rend, Ravage and Doom take half as much.' },
   { id: 'glass-crown', name: 'Glass Crown', icon: 'items/glass-crown', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'allDamage', percent: 40 }, { stat: 'health', percent: -30 }] },
 ];

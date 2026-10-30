@@ -118,22 +118,22 @@ These are calls made while writing the spec, not decisions the user made. They'r
 - **Wounds refreshes.** If Wounds is still active (from an earlier boss), the new one replaces it with a fresh 2 days.
 - **Names for the HP hits** in the log and modal: **Rend** for the 20% hit and **Ravage** for the 40% hit. They're placeholders that keep the copy terse.
 
-### Hushing Bell and Omen Hourglass (new relics)
+### Scales of Fate and Omen Hourglass (new relics)
 
 | Relic | Theme | Effect text | Base stats |
 |---|---|---|---|
-| Hushing Bell | Support | Boss skills have a 50% chance to fail. | +15% health, +10% EXP |
+| Scales of Fate | Support | Boss skills have a 50% chance to fail. | +15% health, +10% EXP |
 | Omen Hourglass | Tank | Rend, Ravage and Doom take half as much. | +30% health |
 
-- Hushing Bell rolls once when a skill fires. On a fail, the breakpoint is spent and nothing happens except a log line.
+- Scales of Fate (first planned as Hushing Bell; renamed 2026-10-29 to match the art the user picked, effect id `scales-of-fate`) rolls once when a skill fires. On a fail, the breakpoint is spent and nothing happens except a log line.
 - Omen Hourglass halves the HP hits only: the 20% hit becomes 10%, the 40% hit 20% and Doom 25%. It doesn't touch the other skills.
 - They're side-quest relics like the others and follow whatever relic unlock rule is current when they're built. It's fine that they don't matter before boss #15 (relic rule: some relics won't apply to a run).
-- Stats raised in the 2026-10-29 relic review (were +10% health/+5% EXP and +20% health/+100 armor): relics are offered from level 1 and an unequipped item is dropped, so a Bell earned early sits idle for ~15 bosses (the Hourglass ~20) and has to be worth wearing on its stats alone, like Null Mirror. The Hourglass is pure health so it doesn't mirror Null Mirror's health + MR, and its text names the three skills it halves (Reflect also hurts and isn't halved).
-- Art is still needed. Source it the usual way (`npm run item-icon`, credited in CREDITS.md). The engine and UI work can land before the art; the relics join the catalog when their icons exist.
+- Stats raised in the 2026-10-29 relic review (were +10% health/+5% EXP and +20% health/+100 armor): relics are offered from level 1 and an unequipped item is dropped, so the Scales earned early sits idle for ~15 bosses (the Hourglass ~20) and has to be worth wearing on its stats alone, like Null Mirror. The Hourglass is pure health so it doesn't mirror Null Mirror's health + MR, and its text names the three skills it halves (Reflect also hurts and isn't halved).
+- Art: Scales of Fate from `alchemy-scale.png`, Omen Hourglass from `hourglass-golden-ornate-sand-flowing-magical_20260225_190653.png` (`npm run item-icon`, credited in CREDITS.md). Both joined the catalog 2026-10-29.
 
 ### Existing items
 
-- **Resisted skills** (updated 2026-10-29): an item can stop a skill outright when it fires; the breakpoint is spent and the card and log say "<Skill> resisted". **Aegis of the Unbroken** (Immune to Wounds and Sunder, effect `unbroken`, was `wound-immune`) resists Wounds and Sunder. **Bloodbound Carapace** (Bosses can't heal) resists Bloodlust and Mend, and still blocks the boss's lifesteal and the heal of a Bloodlust that fired before it was equipped (`missHabit`). **Null Mirror** (Immune to Reflect and Blind) resists Reflect and Blind, and still blocks a Reflect that fired before it was equipped (`completeHabit`). Sever stays unblockable (Hushing Bell can still make it fail). The map lives in `RESISTED_BY` in `bossSkills.ts`.
+- **Resisted skills** (updated 2026-10-29): an item can stop a skill outright when it fires; the breakpoint is spent and the card and log say "<Skill> resisted". **Aegis of the Unbroken** (Immune to Wounds and Sunder, effect `unbroken`, was `wound-immune`) resists Wounds and Sunder. **Bloodbound Carapace** (Bosses can't heal) resists Bloodlust and Mend, and still blocks the boss's lifesteal and the heal of a Bloodlust that fired before it was equipped (`missHabit`). **Null Mirror** (Immune to Reflect and Blind) resists Reflect and Blind, and still blocks a Reflect that fired before it was equipped (`completeHabit`). Sever stays unblockable (Scales of Fate can still make it fail). The map lives in `RESISTED_BY` in `bossSkills.ts`.
 - **Blind:** First Blood and Starfall still force crits, and anything that keys off a crit follows from those forced crits only. That covers Bloodcrystal's crit heal, Hunter's Eye and Voidcaller's 3× crits.
 - **Sunder** halves the armor and MR from your items. That's the only player armor/MR source today.
 - **Wounds** keeps its current reach: it only cuts healing *skills*. Lifesteal, level-up heals, Ember Heart, Soul Lantern and Bloodcrystal's crit heal are unaffected.
@@ -147,7 +147,7 @@ Mock these in Ashen first, quickly, and let the user pick before building. Minim
 - **Bar markers.** Every unfired skill gets a marker at its breakpoint, on both the fight stage's boss HP bar (`FightStage.vue`) and the drop-down bar (`BossBar.vue`). **Markers are generic: they never show which skill waits there. The skill is a surprise until it fires.** A marker disappears when its breakpoint is spent. Markers are status only, not tap targets: tapping the boss still opens the boss modal. Mockup: `docs/mockups/boss-skill-markers.html`, option **B (Diamond)**: Ashen's diamond on the bar's top edge, flaring as it fires. The HP numbers inside the stage bar sit above the markers.
 - **Boss modal** (`BossPanel.vue`). Never reveals which skills a boss has. It shows only active boss-side effects once they've fired: Bloodlust and Reflect (with days left), Undying, and Doom's countdown.
 - **Hero status chips** (`CharacterPanel.vue`'s effects list, the same place as Wounds). Wounds, Blind, Sunder and the Doom countdown, each in the existing `bane` tone with days left. Wounds no longer needs its rate in the label, since it's always half.
-- **Activity log.** One terse entry per fired skill, one when Hushing Bell makes a skill fail, and one when Doom lands. Reuse the existing `wounds-applied` entry kind for Wounds.
+- **Activity log.** One terse entry per fired skill, one when Scales of Fate makes a skill fail, and one when Doom lands. Reuse the existing `wounds-applied` entry kind for Wounds.
 - **HP hits** show as a boss hit on the hero, through the existing hit popup and hit feed.
 - **Icons.** Use lucide icons through `statIcons.ts`, matching the existing set.
 
@@ -174,5 +174,5 @@ Engine specs alongside the existing ones (`boss.spec.ts`, `combat.spec.ts`, `ite
 - each skill's effect and duration
 - the HP-hit 1 HP floor
 - Doom's countdown and its "dies first" cancel
-- Hushing Bell, Omen Hourglass, and the existing item interactions listed above
+- Scales of Fate, Omen Hourglass, and the existing item interactions listed above
 - an old save with no stored skills and a leftover `woundsAbility`

@@ -50,11 +50,11 @@ function hasPositive(item: ItemDef, stat: BoostableStat): boolean {
 }
 
 describe('ITEM_CATALOG', () => {
-  it('has 93 items with unique ids: 16 common, 17 uncommon, 29 rare, 16 epic, 15 relics', () => {
-    expect(ITEM_CATALOG).toHaveLength(93);
-    expect(new Set(ITEM_CATALOG.map((i) => i.id)).size).toBe(93);
+  it('has 95 items with unique ids: 16 common, 17 uncommon, 29 rare, 16 epic, 17 relics', () => {
+    expect(ITEM_CATALOG).toHaveLength(95);
+    expect(new Set(ITEM_CATALOG.map((i) => i.id)).size).toBe(95);
     const count = (rarity: string) => ITEM_CATALOG.filter((i) => i.rarity === rarity).length;
-    expect(['common', 'uncommon', 'rare', 'epic', 'relic'].map(count)).toEqual([16, 17, 29, 16, 15]);
+    expect(['common', 'uncommon', 'rare', 'epic', 'relic'].map(count)).toEqual([16, 17, 29, 16, 17]);
   });
 
   it('has no level gates left on any item', () => {

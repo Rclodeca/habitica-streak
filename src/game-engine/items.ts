@@ -53,7 +53,7 @@ export type ItemEffectId =
   | 'banner'
   | 'null-mirror'
   | 'echoing-blade'
-  | 'hushing-bell'
+  | 'scales-of-fate'
   | 'omen-hourglass'
   | 'wellspring';
 

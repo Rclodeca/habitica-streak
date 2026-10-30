@@ -1,19 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { doomPct, resolveBreakpoints, resolveDoom } from './bossSkills';
 import type { Boss, BossSkillSlot, Character } from './types';
-
-// Hushing Bell and Omen Hourglass have no art yet, so they aren't in the
-// catalog; this file alone adds them, so the effects can be tested now.
-vi.mock('./constants/itemCatalog', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('./constants/itemCatalog')>();
-  return {
-    ITEM_CATALOG: [
-      ...mod.ITEM_CATALOG,
-      { id: 'hushing-bell', name: 'Hushing Bell', icon: 'items/hushing-bell', type: 'equipment', rarity: 'relic', bonuses: [], effect: 'hushing-bell', effectText: 'Boss skills have a 50% chance to fail.' },
-      { id: 'omen-hourglass', name: 'Omen Hourglass', icon: 'items/omen-hourglass', type: 'equipment', rarity: 'relic', bonuses: [], effect: 'omen-hourglass', effectText: 'Boss skills deal half damage.' },
-    ],
-  };
-});
 
 const DAY = '2026-01-01';
 
@@ -42,9 +29,9 @@ const hitBoss = (skill: BossSkillSlot['skill']): Boss => ({
   skills: [{ at: 0.5, skill }],
 });
 
-describe('Hushing Bell', () => {
+describe('Scales of Fate', () => {
   it('makes a skill fail on a roll under 50%, spending its breakpoint', () => {
-    const character = hero(['hushing-bell']);
+    const character = hero(['scales-of-fate']);
     const result = resolveBreakpoints(600, hitBoss('rend'), character, DAY, () => 0.3);
     expect(result.fired).toEqual({ skill: 'rend', outcome: 'failed' });
     expect(result.character).toBe(character);
@@ -52,7 +39,7 @@ describe('Hushing Bell', () => {
   });
 
   it('lets the skill land on a roll of 50% or more', () => {
-    const result = resolveBreakpoints(600, hitBoss('rend'), hero(['hushing-bell']), DAY, () => 0.7);
+    const result = resolveBreakpoints(600, hitBoss('rend'), hero(['scales-of-fate']), DAY, () => 0.7);
     expect(result.fired?.outcome).toBe('landed');
     expect(result.character.currentHealth).toBeCloseTo(400, 10);
   });
