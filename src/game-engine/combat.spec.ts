@@ -1483,14 +1483,14 @@ describe('resolveBossDefeatIfDead — item effects', () => {
     expect(without.itemHealed).toBeUndefined();
   });
 
-  it('Echoing Blade carries overkill into the next boss', () => {
+  it('Echoing Scythe carries overkill into the next boss', () => {
     const withBlade = resolveBossDefeatIfDead(makeCharacter({ equippedItemIds: ['echoing-blade'] }), makeBoss({ health: 0, overkill: 50 }), createRng(1));
     const without = resolveBossDefeatIfDead(makeCharacter(), makeBoss({ health: 0, overkill: 50 }), createRng(1));
     expect(withBlade.boss.health).toBeCloseTo(withBlade.boss.maxHealth - 50, 10);
     expect(without.boss.health).toBe(without.boss.maxHealth);
   });
 
-  it('Echoing Blade never kills the next boss outright, however big the overkill', () => {
+  it('Echoing Scythe never kills the next boss outright, however big the overkill', () => {
     const result = resolveBossDefeatIfDead(makeCharacter({ equippedItemIds: ['echoing-blade'] }), makeBoss({ health: 0, overkill: 1e12 }), createRng(1));
     expect(result.defeated).toBe(true);
     expect(result.boss.index).toBe(2);

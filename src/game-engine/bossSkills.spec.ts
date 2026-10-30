@@ -477,7 +477,7 @@ describe('boss skills through combat', () => {
     expect(lost(risen, '2026-02-15')).toBeCloseTo(2 * lost(base, DAY), 10);
   });
 
-  it('Echoing Blade carry spends the lines it passes on the next boss, without firing them', () => {
+  it('Echoing Scythe carry spends the lines it passes on the next boss, without firing them', () => {
     let found = 0;
     for (let seed = 0; seed < 200 && found < 3; seed++) {
       const character = hero({ equippedItemIds: ['echoing-blade'] });

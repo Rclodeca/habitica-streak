@@ -516,7 +516,7 @@ export function resolveBossDefeatIfDead(
   // the cap upward and cancel itself out.
   const baseMaxHealth = bossAttackAnchorHealth(boss.index + 1, withItems.starterStats.health, withItems.level);
   const generated = generateBoss(boss.index + 1, rng, boss.difficultyModifier, baseMaxHealth);
-  // Echoing Blade: the killing blow's overkill carries into the next boss —
+  // Echoing Scythe: the killing blow's overkill carries into the next boss —
   // that boss only, and never down past 1 health, so kills can't chain.
   const carried = hasItemEffect(withItems, 'echoing-blade') ? Math.min(boss.overkill ?? 0, generated.health - 1) : 0;
   // Breakpoints the carry passes are spent without firing.

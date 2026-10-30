@@ -278,7 +278,7 @@ export function resolveBreakpoints(
   return applySkill(first.skill, spent, character, currentDayKey, rng);
 }
 
-/** Spends, without firing, every breakpoint at or above the boss's health — for a boss that starts below some (Echoing Blade's carry). */
+/** Spends, without firing, every breakpoint at or above the boss's health — for a boss that starts below some (Echoing Scythe's carry). */
 export function spendPassedBreakpoints(boss: Boss): Boss {
   if (!boss.skills) return boss;
   return { ...boss, skills: boss.skills.map((slot) => (!slot.spent && slot.at * boss.maxHealth >= boss.health ? { ...slot, spent: true } : slot)) };

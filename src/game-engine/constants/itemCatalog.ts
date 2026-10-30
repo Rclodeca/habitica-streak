@@ -38,7 +38,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'lucky-dagger', name: 'Lucky Dagger', icon: 'items/lucky-dagger', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'critChance', percent: 2 }] },
   { id: 'assassins-edge', name: "Assassin's Edge", icon: 'items/assassins-edge', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'critChance', percent: 5 }] },
   { id: 'eagle-eye-lens', name: "Seeker's Compass", icon: 'items/eagle-eye-lens', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'critChance', percent: 10 }] },
-  // --- The only two physical+magic hybrids that drop (Echoing Blade is the third, a relic) ---
+  // --- The only two physical+magic hybrids that drop (Echoing Scythe is the third, a relic) ---
   { id: 'battlemage-gauntlets', name: 'Battlemage Gauntlets', icon: 'items/battlemage-gauntlets', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'physicalDamage', percent: 4 }, { stat: 'magicDamage', percent: 4 }] },
   { id: 'chaos-blade', name: 'Chaos Blade', icon: 'items/chaos-blade', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 15 }, { stat: 'magicDamage', percent: 15 }] },
   // --- Tank ---
@@ -121,7 +121,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'banner-of-endurance', name: 'Banner of Endurance', icon: 'items/banner-of-endurance', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'physicalDamage', percent: 20 }, { stat: 'health', percent: 20 }], effect: 'banner', effectText: 'Streak milestones give double EXP.' },
   { id: 'null-mirror', name: 'Null Mirror', icon: 'items/null-mirror', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'magicResist', flat: 300 }, { stat: 'health', percent: 25 }], effect: 'null-mirror', effectText: 'Immune to Reflect and Blind.' },
   // Exception: physical + magic hybrid.
-  { id: 'echoing-blade', name: 'Echoing Blade', icon: 'items/echoing-blade', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'physicalDamage', percent: 20 }, { stat: 'magicDamage', percent: 20 }], effect: 'echoing-blade', effectText: 'Overkill damage carries into the next boss.' },
+  { id: 'echoing-blade', name: 'Echoing Scythe', icon: 'items/echoing-blade', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'physicalDamage', percent: 20 }, { stat: 'magicDamage', percent: 20 }], effect: 'echoing-blade', effectText: 'Overkill damage carries into the next boss.' },
   // Exception: all damage types, paid for in health.
   { id: 'scales-of-fate', name: 'Scales of Fate', icon: 'items/scales-of-fate', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'health', percent: 15 }, { stat: 'expGain', percent: 10 }], effect: 'scales-of-fate', effectText: 'Boss skills have a 50% chance to fail.' },
   { id: 'omen-hourglass', name: 'Omen Hourglass', icon: 'items/omen-hourglass', type: 'equipment', rarity: 'relic', bonuses: [{ stat: 'health', percent: 30 }], effect: 'omen-hourglass', effectText: 'Rend, Ravage and Doom take half as much.' },

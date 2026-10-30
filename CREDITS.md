@@ -44,7 +44,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/serrated-ripper.png` | `crystal-claws-wolverine.png` |
 | `items/duelists-signet.png` | `rpg-ring-mail-armor-large-123-v3-2026-03-03T17-02-45.png` |
 | `items/bloodthorn-blade.png` | `crystal-rocket-launcher.png` |
-| `items/worldbreaker-maul.png` | `enchanted-war-hammer-lightning-enchantment-thunder-head_20260217_163706.png` |
+| `items/worldbreaker-maul.png` | `war-hammer (1).png` |
 | `items/apprentice-wand.png` | `rpg-amethyst-staff-purple-gem-045-2026-03-03T17-02-45.png` |
 | `items/arcane-staff.png` | `rpg-opal-staff-rainbow-gem-047-2026-03-03T17-02-45.png` |
 | `items/archmages-rod.png` | `rpg-holy-staff-golden-light-114-v3-2026-03-03T17-02-45.png` |
@@ -84,7 +84,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/adventurers-sigil.png` | `rpg-gold-trimmed-armor-ornate-013-2026-03-03T17-02-45.png` |
 | `items/sages-codex.png` | `open-spell-book-pages-glowing-golden-light-magic_20260225_180610.png` |
 | `items/ember-heart.png` | `crystal-orb-red-sphere-fire-swirling-inside_20260225_183401.png` |
-| `items/first-blood.png` | `enchanted-sword-fire-enchantment-blazing-blade-orange_20260217_160223.png` |
+| `items/first-blood.png` | `golden-war-hammer.png` |
 | `items/censer-of-wrath.png` | `rpg-lava-staff-molten-rock-189-v4-2026-03-03T17-02-45.png` |
 | `items/temperance-seal.png` | `scroll-rolled-parchment-red-ribbon-sealed_20260225_190957.png` |
 | `items/quill-of-oaths.png` | `spell-scroll-purple-arcane-glowing-runes_20260225_191200.png` |
@@ -92,7 +92,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/moonwell.png` | `enchanted-staff-ice-enchantment-frost-crystal-top-frozen_20260217_162309.png` |
 | `items/dynamo-core.png` | `enchanted-wand-lightning-enchantment-spark-tip-electric_20260217_185643.png` |
 | `items/null-mirror.png` | `crystal-round-shield.png` |
-| `items/echoing-blade.png` | `crystal-flamethrower.png` |
+| `items/echoing-blade.png` | `scythe-double-blade.png` |
 | `items/titans-lifeblood.png` | `items_consumables_0010_20260216_202850.png` |
 | `items/soul-lantern.png` | `horror-lantern-oil-flickering-dim-warm_20260217_105633.png` |
 | `items/dragons-heart.png` | `items_consumables_0077_20260216_205020.png` |

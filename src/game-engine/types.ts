@@ -194,7 +194,7 @@ export interface Boss {
   physicalShare?: number;
   // Set once the player first damages this boss (First Blood reads it).
   playerHasHit?: boolean;
-  // Damage past 0 health on the killing blow (Echoing Blade carries it over).
+  // Damage past 0 health on the killing blow (Echoing Scythe carries it over).
   overkill?: number;
   // Hidden skills waiting at HP breakpoints, rolled once at generation from
   // boss 15 (see rollBossSkills in bossSkills.ts). Optional so an existing
