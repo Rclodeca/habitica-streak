@@ -13,11 +13,11 @@ describe('habitStore.addHabit damage type', () => {
     setActivePinia(createPinia());
   });
 
-  it('makes the first habit physical or magic, whatever the roll', () => {
+  it('never makes the first habit healing, whatever the roll', () => {
     for (let seed = 1; seed <= 200; seed++) {
       setActivePinia(createPinia());
       const store = useHabitStore();
-      expect(['physical', 'magic']).toContain(store.addHabit('First', 'daily', 'easy', false, createRng(seed)).damageType);
+      expect(['physical', 'magic', 'trueDamage']).toContain(store.addHabit('First', 'daily', 'easy', false, createRng(seed)).damageType);
     }
   });
 
@@ -47,7 +47,7 @@ describe('habitStore.addHabit damage type', () => {
       setActivePinia(createPinia());
       const store = useHabitStore();
       store.removeHabit(store.addHabit('Gone', 'daily', 'easy', false, createRng(seed)).id);
-      expect(['physical', 'magic']).toContain(store.addHabit('Again', 'daily', 'easy', false, createRng(seed)).damageType);
+      expect(['physical', 'magic', 'trueDamage']).toContain(store.addHabit('Again', 'daily', 'easy', false, createRng(seed)).damageType);
     }
   });
 });

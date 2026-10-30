@@ -7,10 +7,9 @@ import type { DamageType, Difficulty, Habit, Period } from './types';
 
 /**
  * What a brand-new player's first habit can roll: healing has nothing to heal
- * at full HP and no way to hurt the boss, and true damage is confusing as a
- * first hit. Keeps the tuned physical:magic ratio.
+ * at full HP and no way to hurt the boss. Keeps the tuned odds among the rest.
  */
-const FIRST_HABIT_DAMAGE_TYPES: readonly DamageType[] = ['physical', 'magic'];
+const FIRST_HABIT_DAMAGE_TYPES: readonly DamageType[] = ['physical', 'magic', 'trueDamage'];
 
 /** The damage type roll odds for `heroClass`: a ranger rolls true damage more often. */
 function classDamageTypeWeights(heroClass?: HeroClass): Record<DamageType, number> {
@@ -47,7 +46,7 @@ export function healingRequired(otherHabits: Habit[]): boolean {
 }
 
 /**
- * `isFirstHabit` limits the damage type to physical or magic; pass it only
+ * `isFirstHabit` limits the damage type to physical, magic or true damage; pass it only
  * when the player has no habits yet. `excludeHealing` keeps it off healing
  * (see healingAllowed) and `forceHealing` makes it healing (see
  * healingRequired). `heroClass` picks the roll odds (see

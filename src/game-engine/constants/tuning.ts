@@ -217,10 +217,10 @@ export const TUNING = {
   // Level-up picks that can pass with the side-quest event eligible but not
   // offered before it is forced into the next pick.
   SIDE_QUEST_GUARANTEE_LEVELS: 5,
-  HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.38, magic: 0.38, healing: 0.16, trueDamage: 0.08 },
+  HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.35, magic: 0.35, healing: 0.15, trueDamage: 0.15 },
   // A ranger rolls true damage twice as often, taken equally from physical
   // and magic.
-  RANGER_HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.34, magic: 0.34, healing: 0.16, trueDamage: 0.16 },
+  RANGER_HABIT_DAMAGE_TYPE_WEIGHTS: { physical: 0.275, magic: 0.275, healing: 0.15, trueDamage: 0.3 },
   // At most this share of skills (rounded up) can roll healing — on new rolls
   // only (see healingAllowed).
   HEAL_SKILL_CAP_SHARE: 0.25,
