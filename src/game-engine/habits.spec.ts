@@ -60,7 +60,7 @@ describe('createHabit', () => {
     expect(a.id.length).toBeGreaterThan(0);
   });
 
-  it('picks damageType roughly 35/35/15/15 physical/magic/healing/trueDamage over many runs, never expGain', () => {
+  it('picks damageType roughly 38/38/12/12 physical/magic/healing/trueDamage over many runs, never expGain', () => {
     const rng = createRng(123);
     const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0, trueDamage: 0 };
     const iterations = 2000;
@@ -68,14 +68,14 @@ describe('createHabit', () => {
       const habit = createHabit('H', 'daily', 'easy', false, rng);
       counts[habit.damageType] += 1;
     }
-    expect(counts.physical / iterations).toBeCloseTo(0.35, 1);
-    expect(counts.magic / iterations).toBeCloseTo(0.35, 1);
-    expect(counts.healing / iterations).toBeCloseTo(0.15, 1);
-    expect(counts.trueDamage / iterations).toBeCloseTo(0.15, 1);
+    expect(counts.physical / iterations).toBeCloseTo(0.38, 1);
+    expect(counts.magic / iterations).toBeCloseTo(0.38, 1);
+    expect(counts.healing / iterations).toBeCloseTo(0.12, 1);
+    expect(counts.trueDamage / iterations).toBeCloseTo(0.12, 1);
     expect(Object.keys(counts)).not.toContain('expGain');
   });
 
-  it('rolls true damage about twice as often for a ranger, 27.5/27.5/15/30', () => {
+  it('rolls true damage about twice as often for a ranger, 32/32/12/24', () => {
     const rng = createRng(123);
     const counts: Record<string, number> = { physical: 0, magic: 0, healing: 0, trueDamage: 0 };
     const iterations = 4000;
@@ -83,11 +83,11 @@ describe('createHabit', () => {
       const habit = createHabit('H', 'daily', 'easy', false, rng, undefined, false, false, 'ranger');
       counts[habit.damageType] += 1;
     }
-    expect(counts.physical / iterations).toBeCloseTo(0.275, 1);
-    expect(counts.magic / iterations).toBeCloseTo(0.275, 1);
-    expect(counts.healing / iterations).toBeCloseTo(0.15, 1);
-    expect(counts.trueDamage / iterations).toBeGreaterThan(0.26);
-    expect(counts.trueDamage / iterations).toBeLessThan(0.34);
+    expect(counts.physical / iterations).toBeCloseTo(0.32, 1);
+    expect(counts.magic / iterations).toBeCloseTo(0.32, 1);
+    expect(counts.healing / iterations).toBeCloseTo(0.12, 1);
+    expect(counts.trueDamage / iterations).toBeGreaterThan(0.2);
+    expect(counts.trueDamage / iterations).toBeLessThan(0.28);
   });
 
   it('never picks healing for a first habit, and splits physical, magic and true damage by their odds', () => {
@@ -99,9 +99,9 @@ describe('createHabit', () => {
       counts[habit.damageType] += 1;
     }
     expect(counts.healing).toBe(0);
-    expect(counts.physical / iterations).toBeCloseTo(0.41, 1);
-    expect(counts.magic / iterations).toBeCloseTo(0.41, 1);
-    expect(counts.trueDamage / iterations).toBeCloseTo(0.18, 1);
+    expect(counts.physical / iterations).toBeCloseTo(0.43, 1);
+    expect(counts.magic / iterations).toBeCloseTo(0.43, 1);
+    expect(counts.trueDamage / iterations).toBeCloseTo(0.14, 1);
   });
 });
 
