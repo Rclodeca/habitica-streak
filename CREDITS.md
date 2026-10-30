@@ -37,7 +37,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/runed-warblade.png` | `rpg-greatsword-massive-twohanded-blade-214-v5-2026-03-03T17-02-45.png` |
 | `items/vampiric-fang.png` | `enchanted-dagger-fire-enchantment-flame-kissed-blade-red_20260217_160838.png` |
 | `items/executioners-axe.png` | `steel-battle-axe.png` |
-| `items/berserkers-fury.png` | `enchanted-battle-axe-fire-enchantment-burning-edge-molten_20260217_160437.png` |
+| `items/berserkers-fury.png` | `rpg-flaming-sword-fire-enchanted-048-2026-03-03T17-02-45.png` |
 | `items/godslayer-greatblade.png` | `golden-freeze-ray.png` |
 | `items/warded-longsword.png` | `sai.png` |
 | `items/berserkers-war-axe.png` | `battle-axe.png` |
