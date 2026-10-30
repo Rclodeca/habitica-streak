@@ -7,8 +7,10 @@ import {
   addExpAndResolveLevelUps,
   ITEM_CATALOG,
   applyDamagePoolRebalance,
+  applyHealBaseCut,
   applyHealBoost,
   applyHealingRebalance,
+  applyHealthGrowthBump,
   clampHealthToMax,
   discardUnequippedItems,
   discardUnknownItems,
@@ -34,7 +36,7 @@ export const useCharacterStore = defineStore('character', {
     /** Hydrates from a save slice (migrating in any stats added since it was written), or bootstraps a fresh character: a warrior, the new-hero screen's first offer. */
     initFromSave(saved: Character | null, rng: Rng) {
       this.character = saved
-        ? clampHealthToMax(discardUnequippedItems(discardUnknownItems(applyHealBoost(applyHealingRebalance(applyDamagePoolRebalance(migrateCharacter(saved, rng)))))))
+        ? clampHealthToMax(discardUnequippedItems(discardUnknownItems(applyHealBaseCut(applyHealthGrowthBump(applyHealBoost(applyHealingRebalance(applyDamagePoolRebalance(migrateCharacter(saved, rng)))))))))
         : createCharacter(rng, 'warrior');
     },
 

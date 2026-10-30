@@ -129,7 +129,7 @@ export function habitDamageBreakdown(
   currentDayKey?: string,
 ): HabitDamageBreakdown {
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
-  const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
+  const rawStat = statAtLevel(character.starterStats[statField], character.level, statField) + itemFlatBonus(character, statField);
   const baseDamage = skillBaseDamage(habit, allHabits, rawStat);
   const itemMultiplier = itemStatMultiplier(character, statField);
   const rankMult = rankMultiplier(habit);
@@ -157,7 +157,7 @@ export function habitDamageBreakdown(
  */
 export function expectedMediumDailyDamage(character: Character, damageType: DamageType): number {
   const statField = DAMAGE_TYPE_STARTER_STAT[damageType];
-  const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
+  const rawStat = statAtLevel(character.starterStats[statField], character.level, statField) + itemFlatBonus(character, statField);
   return rawStat * itemStatMultiplier(character, statField);
 }
 
@@ -198,7 +198,8 @@ export function effectiveResistAfterPen(resistStat: number, penPct: number): num
  * (healing type — boss untouched) or damages the boss (physical/magic
  * type — reduced by the boss's matching resist stat and, on
  * a crit roll, doubled). Healing habits never crit. A lifesteal item bonus
- * heals the character for a percent of the damage actually dealt, while the
+ * heals the character for a percent of the damage actually dealt (cut by
+ * Wounds and raised by a Healing boost, like any heal), while the
  * boss's Reflect skill (while it runs) damages the character back for a percent
  * of that same damage — both computed off the same `dealt` amount, then netted
  * into a single health change. Any boss skill the hit knocks loose fires
@@ -233,7 +234,7 @@ function resolveCompletion(
 ): CombatResult {
   const isOverdriveUse = options.isOverdriveUse ?? false;
   const statField = DAMAGE_TYPE_STARTER_STAT[habit.damageType];
-  const rawStat = statAtLevel(character.starterStats[statField], character.level) + itemFlatBonus(character, statField);
+  const rawStat = statAtLevel(character.starterStats[statField], character.level, statField) + itemFlatBonus(character, statField);
   const baseDamage = skillBaseDamage(habit, allHabits, rawStat);
   const itemMultiplier = itemStatMultiplier(character, statField);
   // An Overdrive activation is an extra use of an already-checked-off habit:
@@ -266,13 +267,18 @@ function resolveCompletion(
     // Censer of Wrath: the heal (before the max-health cap, so it works at
     // full health) also hits the boss, as true damage — no crit, no resist.
     const censerDamage = hasItemEffect(character, 'censer-of-wrath') ? woundedAmount * TUNING.ITEM_EFFECTS.CENSER_DAMAGE_FRACTION : 0;
-    const newBoss = censerDamage > 0 ? { ...boss, health: Math.max(0, boss.health - censerDamage) } : boss;
+    // Wellspring Crown: whatever the heal overshoots max health by hits the
+    // boss too, also as true damage (on top of Censer of Wrath's share).
+    const overheal = Math.max(0, character.currentHealth + woundedAmount - maxHealth);
+    const wellspringDamage = hasItemEffect(character, 'wellspring') ? overheal * TUNING.ITEM_EFFECTS.WELLSPRING_DAMAGE_FRACTION : 0;
+    const bossDamage = censerDamage + wellspringDamage;
+    const newBoss = bossDamage > 0 ? { ...boss, health: Math.max(0, boss.health - bossDamage) } : boss;
     return {
       character: { ...wovenCharacter, currentHealth: healed },
       boss: newBoss,
       updatedHabit,
       milestoneExp,
-      damageDealt: censerDamage > 0 ? censerDamage : undefined,
+      damageDealt: bossDamage > 0 ? bossDamage : undefined,
     };
   }
 
@@ -302,7 +308,7 @@ function resolveCompletion(
   const lifestealPct = itemBonusPercent(character, 'lifesteal');
   const maxHealth = effectiveStat(character, 'health');
   const bloodthornHeal = wasCrit && hasItemEffect(character, 'bloodthorn') ? maxHealth * (TUNING.ITEM_EFFECTS.BLOODTHORN_CRIT_HEAL_PCT / 100) : 0;
-  const healed = dealt * (lifestealPct / 100) + bloodthornHeal;
+  const healed = dealt * (lifestealPct / 100) * healingMultiplier(character, currentDayKey) + bloodthornHeal;
   const reflected =
     hasItemEffect(character, 'null-mirror') || !reflectActive(boss, currentDayKey) ? 0 : dealt * (TUNING.BOSS_SKILLS.REFLECT_PCT / 100);
   const netHealthChange = healed - reflected;

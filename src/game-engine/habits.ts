@@ -38,9 +38,19 @@ export function healingAllowed(otherHabits: Habit[], skillCount: number): boolea
 }
 
 /**
+ * Whether the next skill rolled must be healing: there are already
+ * GUARANTEED_HEAL_SKILL - 1 `otherHabits` (daily or weekly) and none of
+ * them heals.
+ */
+export function healingRequired(otherHabits: Habit[]): boolean {
+  return otherHabits.length >= TUNING.GUARANTEED_HEAL_SKILL - 1 && !otherHabits.some((h) => h.damageType === 'healing');
+}
+
+/**
  * `isFirstHabit` limits the damage type to physical or magic; pass it only
  * when the player has no habits yet. `excludeHealing` keeps it off healing
- * (see healingAllowed). `heroClass` picks the roll odds (see
+ * (see healingAllowed) and `forceHealing` makes it healing (see
+ * healingRequired). `heroClass` picks the roll odds (see
  * classDamageTypeWeights).
  */
 export function createHabit(
@@ -53,6 +63,7 @@ export function createHabit(
   isFirstHabit = false,
   excludeHealing = false,
   heroClass?: HeroClass,
+  forceHealing = false,
 ): Habit {
   const dueDays = period === 'daily' ? normalizeDays(days) : undefined;
   return {
@@ -60,7 +71,7 @@ export function createHabit(
     name,
     period,
     difficulty,
-    damageType: pickWeighted<DamageType>(damageTypeWeights(isFirstHabit, excludeHealing, heroClass), rng),
+    damageType: forceHealing ? 'healing' : pickWeighted<DamageType>(damageTypeWeights(isFirstHabit, excludeHealing, heroClass), rng),
     isBad,
     streakCount: 0,
     rank: 0,
@@ -93,8 +104,9 @@ export function nextDueDay(days: number[], today: number): number {
 
 /**
  * Re-rolls a habit's damage type; with `excludeCurrent`, the result is
- * guaranteed to differ from the current type, and with `excludeHealing` it's
- * never healing. `heroClass` picks the roll odds.
+ * guaranteed to differ from the current type, with `excludeHealing` it's
+ * never healing, and with `forceHealing` it's always healing. `heroClass`
+ * picks the roll odds.
  */
 export function rerollDamageType(
   habit: Habit,
@@ -102,7 +114,9 @@ export function rerollDamageType(
   excludeCurrent = false,
   excludeHealing = false,
   heroClass?: HeroClass,
+  forceHealing = false,
 ): Habit {
+  if (forceHealing) return { ...habit, damageType: 'healing' };
   const weights: Record<string, number> = { ...classDamageTypeWeights(heroClass) };
   if (excludeCurrent) delete weights[habit.damageType];
   if (excludeHealing) delete weights.healing;
@@ -115,12 +129,13 @@ export function rerollDamageType(
 /**
  * Re-rolls every habit's damage type in order (a run reset) at `heroClass`'s
  * odds, keeping healing out once the habits rerolled so far fill the cap for
- * `habits.length`. Order, ranks and streaks are kept.
+ * `habits.length`, and forcing it on the GUARANTEED_HEAL_SKILL-th if none
+ * before it healed. Order, ranks and streaks are kept.
  */
 export function rerollAllDamageTypes(habits: Habit[], rng: Rng, heroClass?: HeroClass): Habit[] {
   const rerolled: Habit[] = [];
   for (const habit of habits) {
-    rerolled.push(rerollDamageType(habit, rng, false, !healingAllowed(rerolled, habits.length), heroClass));
+    rerolled.push(rerollDamageType(habit, rng, false, !healingAllowed(rerolled, habits.length), heroClass, healingRequired(rerolled)));
   }
   return rerolled;
 }
@@ -157,20 +172,25 @@ export function difficultyFactor(difficulty: Difficulty): number {
 /**
  * Crowding by creation order: the FULL_POWER_SKILLS oldest skills hit in
  * full, later ones by CROWDED_SKILL_FACTORS (the last factor for every one
- * past the end). A habit not in `allHabits` counts as the next one added.
+ * past the end). A healing skill past the FULL_POWER_HEAL_SKILLS oldest
+ * healing ones is also cut to CROWDED_HEAL_SKILL_FACTOR. A habit not in
+ * `allHabits` counts as the next one added.
  */
 export function crowdingFactor(habit: Habit, allHabits: Habit[]): number {
   const found = allHabits.findIndex((h) => h.id === habit.id);
   const index = found === -1 ? allHabits.length : found;
-  if (index < TUNING.FULL_POWER_SKILLS) return 1;
+  const olderHeals = allHabits.slice(0, index).filter((h) => h.damageType === 'healing').length;
+  const healFactor = habit.damageType === 'healing' && olderHeals >= TUNING.FULL_POWER_HEAL_SKILLS ? TUNING.CROWDED_HEAL_SKILL_FACTOR : 1;
+  if (index < TUNING.FULL_POWER_SKILLS) return healFactor;
   const factors = TUNING.CROWDED_SKILL_FACTORS;
-  return factors[Math.min(index - TUNING.FULL_POWER_SKILLS, factors.length - 1)];
+  return factors[Math.min(index - TUNING.FULL_POWER_SKILLS, factors.length - 1)] * healFactor;
 }
 
 /**
  * What a skill hits for before items, rank, streak and bonuses: its type's
  * full stat, weighted by difficulty and crowding. No pools — adding a skill
- * never changes another skill's number, unless it's crowded past the 15th.
+ * never changes another skill's number, unless it's crowded past the 15th
+ * (or, for healing, past the second healing skill).
  * Computed fresh every time; never stored on the Habit.
  */
 export function skillBaseDamage(habit: Habit, allHabits: Habit[], statValue: number): number {

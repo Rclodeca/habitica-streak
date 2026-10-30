@@ -77,6 +77,15 @@ export interface Character {
   // 188 -> 235): undefined means applyHealBoost still has to raise healing;
   // createCharacter sets it true.
   healBoostApplied?: boolean;
+  // Same one-time marker for the faster health growth
+  // (LEVEL_HEALTH_HEALING_GROWTH_RATE): undefined means applyHealthGrowthBump
+  // still has to scale currentHealth up with the bigger max health;
+  // createCharacter sets it true.
+  healthGrowthBumpApplied?: boolean;
+  // Same one-time marker for the steeper heal ranks' base cut
+  // (BASE_STATS.healing 235 -> 141): undefined means applyHealBaseCut still
+  // has to cut healing; createCharacter sets it true.
+  healBaseCutApplied?: boolean;
   // Events mechanic (see events.ts). `takenEventIds` holds one-time events
   // already picked this run; `pendingEventPicks` is how many level-ups are
   // still waiting for the player to choose an event. Both optional so an

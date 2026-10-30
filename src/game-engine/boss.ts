@@ -227,8 +227,8 @@ export function expectedLevelForBossIndex(index: number): number {
  * starterStats.health keeps per-run variation.
  */
 export function bossAttackAnchorHealth(index: number, starterHealth: number, level: number): number {
-  const expected = statAtLevel(starterHealth, expectedLevelForBossIndex(index));
-  const actual = statAtLevel(starterHealth, level);
+  const expected = statAtLevel(starterHealth, expectedLevelForBossIndex(index), 'health');
+  const actual = statAtLevel(starterHealth, level, 'health');
   return expected * Math.pow(actual / expected, TUNING.BOSS_ATTACK_LEVEL_FOLLOW);
 }
 

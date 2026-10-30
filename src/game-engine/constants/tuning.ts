@@ -4,7 +4,7 @@ export const TUNING = {
   // Per-skill stats: every skill hits for its type's full stat (no pools),
   // at 60% of the old pooled values; 8 skills is the reference loadout.
   // Sim: SKILLS=8 POOLS=0 node scripts/balance-sim.mjs
-  BASE_STATS: { physicalDamage: 336, magicDamage: 336, healing: 235, health: 1250, trueDamage: 288 },
+  BASE_STATS: { physicalDamage: 336, magicDamage: 336, healing: 141, health: 1250, trueDamage: 288 },
   // An earlier ~30% cut (from the daily/weekly pool split), applied once to
   // an in-progress run's physicalDamage/magicDamage/healing via
   // character.ts's applyDamagePoolRebalance. health/trueDamage untouched.
@@ -15,6 +15,14 @@ export const TUNING = {
   // The later healing boost (188 -> 235), applied once to an in-progress
   // run's existing healing via character.ts's applyHealBoost.
   ONE_TIME_HEAL_BOOST_FACTOR: 1.25,
+  // The steeper heal ranks' base cut (235 -> 141, with HEAL_RANK_BONUS
+  // 0.35 -> 1), applied once to an in-progress run's existing healing via
+  // character.ts's applyHealBaseCut.
+  ONE_TIME_HEAL_BASE_CUT_FACTOR: 0.6,
+  // The health growth rate before LEVEL_HEALTH_HEALING_GROWTH_RATE, so
+  // character.ts's applyHealthGrowthBump can scale an in-progress run's
+  // currentHealth up with its (level-computed) max health.
+  ONE_TIME_OLD_HEALTH_GROWTH_RATE: 0.06,
   // A ranger's (an even physical/magic split, see heroClassFor) starting
   // true damage multiplier.
   RANGER_TRUE_DAMAGE_MULTIPLIER: 1.25,
@@ -22,8 +30,19 @@ export const TUNING = {
   // hit for these factors, the last for every later one (see crowdingFactor).
   FULL_POWER_SKILLS: 15,
   CROWDED_SKILL_FACTORS: [0.7, 0.5, 0.35, 0.25],
+  // Healing skills crowd on their own: the FULL_POWER_HEAL_SKILLS oldest
+  // (daily or weekly) heal in full, every later one at CROWDED_HEAL_SKILL_FACTOR,
+  // so how many heal skills a run rolled matters less than how high they rank.
+  FULL_POWER_HEAL_SKILLS: 2,
+  CROWDED_HEAL_SKILL_FACTOR: 0.5,
   STAT_RANDOMIZATION_PCT: 0.05, // ±5% at character creation
-  LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level
+  LEVEL_STAT_GROWTH_RATE: 0.06, // +6% compounding per level (damage stats)
+  // Health and healing grow faster than damage, so lifesteal (a share of
+  // damage dealt) shrinks against max HP over a run while heal skills keep
+  // pace. Boss attacks follow, being sized against level-scaled health.
+  // 9.5% puts a level-30 hero near 20k max HP (+20% health items) against a
+  // ~230k boss.
+  LEVEL_HEALTH_HEALING_GROWTH_RATE: 0.095,
   // Streak milestones that earn a skill's ranks I-VIII (weeklies count weeks).
   // A rank is permanent: a miss drops the streak to 0, never the rank.
   RANK_MILESTONES: {
@@ -31,9 +50,13 @@ export const TUNING = {
     weekly: [3, 7, 10, 17, 33, 67, 100, 167],
   } as Record<Period, number[]>,
   // A hit's multiplier is 1 + RANK_BONUS * rank + STREAK_BONUS * streak
-  // (see rankMultiplier in streaks.ts). Healing ranks are worth half.
+  // (see rankMultiplier in streaks.ts). Healing ranks are worth as much as
+  // damage ranks, on a base heal cut to 60%: unranked heals are small and a
+  // well-ranked heal skill matters more to survival than having a second one.
+  // Picked with a balance sim (decent player, 1 heal skill of 8: same deaths
+  // as the old 235 base / +35% ranks; ranks off: ~2x the deaths at 99%).
   RANK_BONUS: 1.0,
-  HEAL_RANK_BONUS: 0.5,
+  HEAL_RANK_BONUS: 1.0,
   STREAK_BONUS: 0.01,
   WEEKLY_STREAK_BONUS: 0.03,
   // Boss health at index 1, and its growth bands: each row's rate applies
@@ -202,6 +225,10 @@ export const TUNING = {
   // At most this share of skills (rounded up) can roll healing — on new rolls
   // only (see healingAllowed).
   HEAL_SKILL_CAP_SHARE: 0.25,
+  // A skill rolled as the GUARANTEED_HEAL_SKILL-th or later while no other
+  // skill heals always rolls healing (see healingRequired), so no run goes
+  // without one.
+  GUARANTEED_HEAL_SKILL: 4,
   // Each stat-emphasis family (armored/warded/brute/arcane) escalates
   // 2x -> 3x -> 4x -> 5x, and each tier is 5x rarer than the one below it,
   // so a boss with an extreme multiplier is a rare, memorable spike rather
@@ -338,6 +365,7 @@ export const TUNING = {
     TITANS_MENDING_BELOW_PCT: 0.5,
     TITANS_MENDING_MULTIPLIER: 1.5,
     CENSER_DAMAGE_FRACTION: 0.5,
+    WELLSPRING_DAMAGE_FRACTION: 1, // of the overhealing, as true damage
     HUSHING_BELL_FAIL_CHANCE: 0.5,
     OMEN_HOURGLASS_FACTOR: 0.5,
     TEMPERANCE_MULTIPLIER: 1.5,

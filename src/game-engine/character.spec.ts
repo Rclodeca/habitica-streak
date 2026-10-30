@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyDamagePoolRebalance,
+  applyHealBaseCut,
   applyHealBoost,
   applyHealingRebalance,
+  applyHealthGrowthBump,
   applyRankRebalance,
   createCharacter,
   DEFAULT_HERO_NAME,
@@ -337,6 +339,53 @@ describe('applyHealBoost', () => {
     const character = { ...createCharacter(createRng(3)), healBoostApplied: undefined };
     const once = applyHealBoost(character);
     expect(applyHealBoost(once)).toEqual(once);
+  });
+});
+
+describe('applyHealBaseCut', () => {
+  it('cuts only healing by ONE_TIME_HEAL_BASE_CUT_FACTOR on a pre-cut character', () => {
+    const character = { ...createCharacter(createRng(1)), healBaseCutApplied: undefined };
+
+    const cut = applyHealBaseCut(character);
+
+    expect(cut.starterStats.healing).toBeCloseTo(character.starterStats.healing * TUNING.ONE_TIME_HEAL_BASE_CUT_FACTOR, 10);
+    expect({ ...cut.starterStats, healing: 0 }).toEqual({ ...character.starterStats, healing: 0 });
+    expect(cut.healBaseCutApplied).toBe(true);
+  });
+
+  it('is a no-op on a fresh character (already at the cut baseline)', () => {
+    const character = createCharacter(createRng(2));
+    expect(applyHealBaseCut(character)).toEqual(character);
+  });
+
+  it('is idempotent when called twice in a row', () => {
+    const character = { ...createCharacter(createRng(3)), healBaseCutApplied: undefined };
+    const once = applyHealBaseCut(character);
+    expect(applyHealBaseCut(once)).toEqual(once);
+  });
+});
+
+describe('applyHealthGrowthBump', () => {
+  it('scales currentHealth up with the faster health growth on a pre-bump character', () => {
+    const character = { ...createCharacter(createRng(1)), level: 11, currentHealth: 1000, healthGrowthBumpApplied: undefined };
+
+    const bumped = applyHealthGrowthBump(character);
+
+    const ratio = (1 + TUNING.LEVEL_HEALTH_HEALING_GROWTH_RATE) / (1 + TUNING.ONE_TIME_OLD_HEALTH_GROWTH_RATE);
+    expect(bumped.currentHealth).toBeCloseTo(1000 * Math.pow(ratio, 10), 10);
+    expect(bumped.starterStats).toEqual(character.starterStats);
+    expect(bumped.healthGrowthBumpApplied).toBe(true);
+  });
+
+  it('is a no-op on a fresh character', () => {
+    const character = createCharacter(createRng(2));
+    expect(applyHealthGrowthBump(character)).toEqual(character);
+  });
+
+  it('is idempotent when called twice in a row', () => {
+    const character = { ...createCharacter(createRng(3)), level: 8, healthGrowthBumpApplied: undefined };
+    const once = applyHealthGrowthBump(character);
+    expect(applyHealthGrowthBump(once)).toEqual(once);
   });
 });
 

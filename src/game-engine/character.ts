@@ -54,6 +54,8 @@ export function createCharacter(rng: Rng, heroClass?: HeroClass): Character {
     healingRebalanceApplied: true,
     rankRebalanceApplied: true,
     healBoostApplied: true,
+    healthGrowthBumpApplied: true,
+    healBaseCutApplied: true,
   };
 }
 
@@ -230,6 +232,36 @@ export function applyHealBoost(character: Character): Character {
     },
     healBoostApplied: true,
   };
+}
+
+/**
+ * One-time migration for a run that predates the steeper heal ranks — see
+ * `healBaseCutApplied` on `Character`. Cuts only `healing` by
+ * ONE_TIME_HEAL_BASE_CUT_FACTOR, from whatever value is already on the
+ * character (like applyHealBoost, not a re-roll from BASE_STATS).
+ */
+export function applyHealBaseCut(character: Character): Character {
+  if (character.healBaseCutApplied) return character;
+  return {
+    ...character,
+    starterStats: {
+      ...character.starterStats,
+      healing: character.starterStats.healing * TUNING.ONE_TIME_HEAL_BASE_CUT_FACTOR,
+    },
+    healBaseCutApplied: true,
+  };
+}
+
+/**
+ * One-time migration for a run that predates the faster health growth — see
+ * `healthGrowthBumpApplied` on `Character`. Max health is computed from
+ * level, so it already grew; this scales currentHealth by the same factor so
+ * the hero keeps the share of max health it had.
+ */
+export function applyHealthGrowthBump(character: Character): Character {
+  if (character.healthGrowthBumpApplied) return character;
+  const ratio = (1 + TUNING.LEVEL_HEALTH_HEALING_GROWTH_RATE) / (1 + TUNING.ONE_TIME_OLD_HEALTH_GROWTH_RATE);
+  return { ...character, currentHealth: character.currentHealth * Math.pow(ratio, character.level - 1), healthGrowthBumpApplied: true };
 }
 
 /**

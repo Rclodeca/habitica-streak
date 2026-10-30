@@ -31,6 +31,17 @@ describe('habitStore.addHabit damage type', () => {
     expect(later).toContain('trueDamage');
   });
 
+  it('rolls healing for the 4th habit when none of the first three heal', () => {
+    for (let seed = 1; seed <= 100; seed++) {
+      setActivePinia(createPinia());
+      const store = useHabitStore();
+      for (let i = 0; i < 3; i++) store.addHabit(`H${i}`, 'daily', 'easy', false, createRng(seed * 10 + i));
+      const fourth = store.addHabit('Fourth', 'weekly', 'easy', false, createRng(seed));
+      expect(store.habits.some((h) => h.damageType === 'healing')).toBe(true);
+      if (store.habits.slice(0, 3).every((h) => h.damageType !== 'healing')) expect(fourth.damageType).toBe('healing');
+    }
+  });
+
   it('treats the list as empty again once every habit is removed', () => {
     for (let seed = 1; seed <= 200; seed++) {
       setActivePinia(createPinia());

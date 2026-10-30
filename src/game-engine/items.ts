@@ -53,7 +53,8 @@ export type ItemEffectId =
   | 'null-mirror'
   | 'echoing-blade'
   | 'hushing-bell'
-  | 'omen-hourglass';
+  | 'omen-hourglass'
+  | 'wellspring';
 
 // A negative percent is a drawback (e.g. -10 max health); enchanting never doubles it.
 export interface ItemBonus {

@@ -150,10 +150,10 @@ describe('HabitStatsModal', () => {
       expect(text('.rank-caption')).not.toContain(' at ');
     });
 
-    it('a healing rank is worth half', () => {
+    it('a healing rank is worth as much as a damage rank', () => {
       addHabit('daily', { damageType: 'healing', rank: 2 });
       mountPopup();
-      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('×2.0');
+      expect(sumRow('Rank')?.querySelector('dd')?.textContent).toBe('×3.0');
     });
 
     it('marks the 16th skill\'s Base crowded, and not the first\'s', () => {

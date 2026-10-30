@@ -4,6 +4,7 @@ import {
   crowdingFactor,
   difficultyFactor,
   healingAllowed,
+  healingRequired,
   isDueOn,
   migrateHabitDamageType,
   nextDueDay,
@@ -153,6 +154,18 @@ describe('per-skill base damage', () => {
     expect(habits.map((h) => crowdingFactor(h, habits))).toEqual([...Array(15).fill(1), 0.7, 0.5, 0.35, 0.25, 0.25]);
     expect(crowdingFactor(makeHabit({ id: 'new' }), habits.slice(0, 15))).toBe(0.7);
   });
+  it('heals past the second healing skill (daily or weekly) at half power', () => {
+    const habits = [
+      makeHabit({ id: 'a', damageType: 'healing', period: 'weekly' }),
+      makeHabit({ id: 'b' }),
+      makeHabit({ id: 'c', damageType: 'healing' }),
+      makeHabit({ id: 'd', damageType: 'healing' }),
+      makeHabit({ id: 'e', damageType: 'healing', period: 'weekly' }),
+    ];
+    expect(habits.map((h) => crowdingFactor(h, habits))).toEqual([1, 1, 1, 0.5, 0.5]);
+    expect(crowdingFactor(makeHabit({ id: 'new', damageType: 'healing' }), habits.slice(0, 3))).toBe(0.5);
+    expect(crowdingFactor(habits[3], habits.filter((h) => h.id !== 'a'))).toBe(1);
+  });
   it('deleting one of the 15 oldest moves the 16th up to full power', () => {
     const habits = Array.from({ length: 16 }, (_, i) => makeHabit({ id: `h${i}` }));
     const after = habits.filter((h) => h.id !== 'h3');
@@ -242,6 +255,29 @@ describe('heal-skill cap', () => {
       const out = rerollAllDamageTypes(habits, createRng(seed));
       expect(out.filter((h) => h.damageType === 'healing').length).toBeLessThanOrEqual(2);
       expect(out.map((h) => [h.id, h.rank, h.streakCount])).toEqual(habits.map((h) => [h.id, h.rank, h.streakCount]));
+    }
+  });
+
+  it('requires healing from the 4th skill on while none heals', () => {
+    expect(healingRequired(others(2))).toBe(false);
+    expect(healingRequired(others(3))).toBe(true);
+    expect(healingRequired(others(7))).toBe(true);
+    expect(healingRequired([...heals(1), ...others(5)])).toBe(false);
+  });
+
+  it('forces healing when asked', () => {
+    for (let seed = 1; seed <= 50; seed++) {
+      expect(createHabit('H', 'daily', 'easy', false, createRng(seed), undefined, false, false, undefined, true).damageType).toBe('healing');
+      expect(rerollDamageType(makeHabit(), createRng(seed), true, false, undefined, true).damageType).toBe('healing');
+    }
+  });
+
+  it('rerolls a loadout of 4 or more with at least one healing skill', () => {
+    for (const n of [4, 8]) {
+      const habits = Array.from({ length: n }, (_, i) => makeHabit({ id: `h${i}` }));
+      for (let seed = 1; seed <= 200; seed++) {
+        expect(rerollAllDamageTypes(habits, createRng(seed)).some((h) => h.damageType === 'healing')).toBe(true);
+      }
     }
   });
 });

@@ -67,8 +67,10 @@ export function skillCompletionExp(level: number, habit: Habit, habits: Habit[],
   return (expToNextLevel(level) * TUNING.DAILY_SKILL_LEVEL_SHARE) / Math.max(1, dailies);
 }
 
-export function statAtLevel(starterStatValue: number, level: number): number {
-  return starterStatValue * Math.pow(1 + TUNING.LEVEL_STAT_GROWTH_RATE, level - 1);
+/** A starter stat grown to `level`: health and healing at LEVEL_HEALTH_HEALING_GROWTH_RATE, the damage stats at LEVEL_STAT_GROWTH_RATE. */
+export function statAtLevel(starterStatValue: number, level: number, stat: keyof Character['starterStats']): number {
+  const rate = stat === 'health' || stat === 'healing' ? TUNING.LEVEL_HEALTH_HEALING_GROWTH_RATE : TUNING.LEVEL_STAT_GROWTH_RATE;
+  return starterStatValue * Math.pow(1 + rate, level - 1);
 }
 
 /**
@@ -89,7 +91,7 @@ export function effectiveStat(
   character: Character,
   stat: 'physicalDamage' | 'magicDamage' | 'healing' | 'health' | 'trueDamage',
 ): number {
-  const baseWithFlat = statAtLevel(character.starterStats[stat], character.level) + itemFlatBonus(character, stat);
+  const baseWithFlat = statAtLevel(character.starterStats[stat], character.level, stat) + itemFlatBonus(character, stat);
   return baseWithFlat * itemStatMultiplier(character, stat);
 }
 

@@ -121,6 +121,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/ironstride-greaves.png` | `mediev-greaves-leg-leg-armor-087-v9-2026-03-25T19-14-54.png` |
 | `items/azure-staff.png` | `rpg-gem-staff-precious-jewel-090-v2-2026-03-03T17-02-45.png` |
 | `items/crescent-crook.png` | `rpg-silver-staff-moon-crescent-109-v3-2026-03-03T17-02-45.png` |
+| `items/wellspring-crown.png` | `8bit-crown-royal-headwear-072-v4-2026-03-10T18-57-54.png` |
 
 ### Player heroes
 

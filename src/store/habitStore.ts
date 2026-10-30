@@ -2,7 +2,7 @@
 // randomization live here — everything delegates into `game-engine`.
 
 import { defineStore } from 'pinia';
-import { createHabit, healingAllowed, migrateHabitDamageType, migrateHabitRank, normalizeDays } from '../game-engine';
+import { createHabit, healingAllowed, healingRequired, migrateHabitDamageType, migrateHabitRank, normalizeDays } from '../game-engine';
 import type { Difficulty, Habit, HeroClass, Period, Rng } from '../game-engine';
 
 export const useHabitStore = defineStore('habit', {
@@ -27,7 +27,7 @@ export const useHabitStore = defineStore('habit', {
      */
     addHabit(name: string, period: Period, difficulty: Difficulty, isBad: boolean, rng: Rng, days?: number[], heroClass?: HeroClass): Habit {
       const excludeHealing = !healingAllowed(this.habits, this.habits.length + 1);
-      const habit = createHabit(name, period, difficulty, isBad, rng, days, this.habits.length === 0, excludeHealing, heroClass);
+      const habit = createHabit(name, period, difficulty, isBad, rng, days, this.habits.length === 0, excludeHealing, heroClass, healingRequired(this.habits));
       this.habits.push(habit);
       return habit;
     },

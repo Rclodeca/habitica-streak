@@ -27,8 +27,10 @@ export type {
 
 export {
   applyDamagePoolRebalance,
+  applyHealBaseCut,
   applyHealBoost,
   applyHealingRebalance,
+  applyHealthGrowthBump,
   applyRankRebalance,
   createCharacter,
   DEFAULT_HERO_NAME,
@@ -61,6 +63,7 @@ export {
   crowdingFactor,
   difficultyFactor,
   healingAllowed,
+  healingRequired,
   isDueOn,
   migrateHabitDamageType,
   nextDueDay,

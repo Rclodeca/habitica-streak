@@ -116,11 +116,11 @@ const doomDays = computed(() => doomDaysLeft(bossStore.boss, currentDayKey.value
 
 // Pre-item-bonus values, shown alongside the buffed (post-item) ones in the
 // details modal so the player can see how much their gear is helping.
-const baseHealth = computed(() => statAtLevel(character.value.starterStats.health, character.value.level));
-const basePhysicalDamage = computed(() => statAtLevel(character.value.starterStats.physicalDamage, character.value.level));
-const baseMagicDamage = computed(() => statAtLevel(character.value.starterStats.magicDamage, character.value.level));
-const baseHealing = computed(() => statAtLevel(character.value.starterStats.healing, character.value.level));
-const baseTrueDamage = computed(() => statAtLevel(character.value.starterStats.trueDamage, character.value.level));
+const baseHealth = computed(() => statAtLevel(character.value.starterStats.health, character.value.level, 'health'));
+const basePhysicalDamage = computed(() => statAtLevel(character.value.starterStats.physicalDamage, character.value.level, 'physicalDamage'));
+const baseMagicDamage = computed(() => statAtLevel(character.value.starterStats.magicDamage, character.value.level, 'magicDamage'));
+const baseHealing = computed(() => statAtLevel(character.value.starterStats.healing, character.value.level, 'healing'));
+const baseTrueDamage = computed(() => statAtLevel(character.value.starterStats.trueDamage, character.value.level, 'trueDamage'));
 const baseCritChance = computed(() => character.value.critChance);
 
 function gain(buffed: number, base: number, scale = 1) {

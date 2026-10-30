@@ -616,7 +616,7 @@ describe('bossAttackAnchorHealth / boss attack vs. player level', () => {
   const attackFor = (level: number, health: number = starterHealth) =>
     generateBoss(INDEX, createRng(7), 1, bossAttackAnchorHealth(INDEX, health, level)).physicalAttack;
   const hitPctOfMaxHp = (level: number, health: number = starterHealth) =>
-    (attackFor(level, health) * TUNING.MISS_DAMAGE_FACTOR) / statAtLevel(health, level);
+    (attackFor(level, health) * TUNING.MISS_DAMAGE_FACTOR) / statAtLevel(health, level, 'health');
 
   it('FOLLOW = 0: the attack ignores the player level entirely', () => {
     withFollow(0, () => {
@@ -627,7 +627,7 @@ describe('bossAttackAnchorHealth / boss attack vs. player level', () => {
   it("FOLLOW = 1: reproduces the old behaviour (anchor is the player's real level-scaled health)", () => {
     withFollow(1, () => {
       for (const level of [1, 8, 25]) {
-        expect(bossAttackAnchorHealth(INDEX, starterHealth, level)).toBeCloseTo(statAtLevel(starterHealth, level), 8);
+        expect(bossAttackAnchorHealth(INDEX, starterHealth, level)).toBeCloseTo(statAtLevel(starterHealth, level, 'health'), 8);
       }
     });
   });
@@ -651,7 +651,7 @@ describe('bossAttackAnchorHealth / boss attack vs. player level', () => {
 
   it('at exactly the expected level the anchor equals the expected-level health', () => {
     const level = expectedLevelForBossIndex(INDEX);
-    expect(bossAttackAnchorHealth(INDEX, starterHealth, level)).toBeCloseTo(statAtLevel(starterHealth, level), 8);
+    expect(bossAttackAnchorHealth(INDEX, starterHealth, level)).toBeCloseTo(statAtLevel(starterHealth, level, 'health'), 8);
   });
 
   it("scales with the character's own starterStats.health (per-run variation)", () => {

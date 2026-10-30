@@ -98,7 +98,7 @@ describe('addExpAndResolveLevelUps', () => {
     const result = addExpAndResolveLevelUps(character, 25); // exactly enough for 1 level
 
     expect(result.levelsGained).toBe(1);
-    const maxHealthAtNewLevel = statAtLevel(character.starterStats.health, result.character.level);
+    const maxHealthAtNewLevel = statAtLevel(character.starterStats.health, result.character.level, 'health');
     const expectedHeal = maxHealthAtNewLevel * (TUNING.LEVEL_UP_HEAL_PCT / 100);
     expect(result.character.currentHealth).toBeCloseTo(10 + expectedHeal, 10);
   });
@@ -123,7 +123,7 @@ describe('addExpAndResolveLevelUps', () => {
     const result = addExpAndResolveLevelUps(character, 25);
 
     expect(result.levelsGained).toBe(1);
-    const maxHealthAtNewLevel = statAtLevel(character.starterStats.health, result.character.level);
+    const maxHealthAtNewLevel = statAtLevel(character.starterStats.health, result.character.level, 'health');
     const expectedHeal = maxHealthAtNewLevel * (TUNING.LEVEL_UP_HEAL_PCT / 100);
     expect(result.character.currentHealth).toBeCloseTo(10 + expectedHeal, 10);
   });
@@ -156,13 +156,22 @@ describe('addExpAndResolveLevelUps', () => {
 
 describe('statAtLevel', () => {
   it('equals the starter value exactly at level 1', () => {
-    expect(statAtLevel(37.5, 1)).toBe(37.5);
+    expect(statAtLevel(37.5, 1, 'physicalDamage')).toBe(37.5);
+    expect(statAtLevel(37.5, 1, 'health')).toBe(37.5);
   });
 
   it('matches the compounding formula at level 10', () => {
     const starter = 37.5;
     const expected = starter * Math.pow(1 + TUNING.LEVEL_STAT_GROWTH_RATE, 9);
-    expect(statAtLevel(starter, 10)).toBeCloseTo(expected, 10);
+    expect(statAtLevel(starter, 10, 'physicalDamage')).toBeCloseTo(expected, 10);
+  });
+
+  it('grows health and healing at their own, faster rate', () => {
+    const starter = 37.5;
+    const expected = starter * Math.pow(1 + TUNING.LEVEL_HEALTH_HEALING_GROWTH_RATE, 9);
+    expect(statAtLevel(starter, 10, 'health')).toBeCloseTo(expected, 10);
+    expect(statAtLevel(starter, 10, 'healing')).toBeCloseTo(expected, 10);
+    expect(statAtLevel(starter, 10, 'health')).toBeGreaterThan(statAtLevel(starter, 10, 'magicDamage'));
   });
 });
 
@@ -183,14 +192,14 @@ describe('effectiveStat', () => {
   it('equals statAtLevel with no equipped items', () => {
     const character = makeCharacter();
     expect(effectiveStat(character, 'physicalDamage')).toBeCloseTo(
-      statAtLevel(character.starterStats.physicalDamage, character.level),
+      statAtLevel(character.starterStats.physicalDamage, character.level, 'physicalDamage'),
       10,
     );
   });
 
   it('scales up by the equipped item bonus percent', () => {
     const character = makeCharacter({ ownedItemIds: ['rusty-blade'], equippedItemIds: ['rusty-blade'] });
-    const base = statAtLevel(character.starterStats.physicalDamage, character.level);
+    const base = statAtLevel(character.starterStats.physicalDamage, character.level, 'physicalDamage');
     expect(effectiveStat(character, 'physicalDamage')).toBeCloseTo(base * 1.03, 10);
   });
 
@@ -199,7 +208,7 @@ describe('effectiveStat', () => {
       ownedItemIds: ['rusty-blade', 'steel-sword'],
       equippedItemIds: ['rusty-blade', 'steel-sword'],
     });
-    const base = statAtLevel(character.starterStats.physicalDamage, character.level);
+    const base = statAtLevel(character.starterStats.physicalDamage, character.level, 'physicalDamage');
     expect(effectiveStat(character, 'physicalDamage')).toBeCloseTo(base * 1.08, 10);
   });
 });
