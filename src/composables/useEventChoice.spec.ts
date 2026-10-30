@@ -142,10 +142,10 @@ describe('useEventChoice', () => {
     const characterStore = useCharacterStore();
     const habitStore = useHabitStore();
     habitStore.addHabit('Daily good', 'daily', 'medium', false, createRng(1));
-    const [onlyItem, ...rest] = availableRelics({ ...characterStore.character, level: 1 }, []).map((i) => i.id);
+    const [onlyItem, ...rest] = availableRelics({ ...characterStore.character, level: 3 }, []).map((i) => i.id);
     characterStore.setCharacter({
       ...characterStore.character,
-      level: 1,
+      level: 3,
       pendingEventPicks: 1,
       takenEventIds: [],
       earnedRelicIds: rest,

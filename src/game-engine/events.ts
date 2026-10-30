@@ -9,6 +9,7 @@ import { availableRelics, doublableItems, equippedDoubledItemIds, unownedDroppab
 import type { ItemDef } from './items';
 import { effectiveStat } from './leveling';
 import { assignSpecialIfEligible, assignUltIfEligible, grantOverdrive } from './levelRewards';
+import { questsOpen } from './quests';
 import { shuffle, type Rng } from './rng';
 import type { Character, CritBoostStatusEffect, Habit, HealBoostStatusEffect, Quest } from './types';
 
@@ -34,7 +35,7 @@ export const EVENT_DEFS: readonly EventDef[] = [
     description: 'Earn a rare and powerful item.',
     minLevel: 1,
     oneTime: false,
-    isEligible: (character, _habits, quests) => availableRelics(character, quests).length > 0,
+    isEligible: (character, _habits, quests) => questsOpen(character) && availableRelics(character, quests).length > 0,
   },
   {
     id: 'special',
