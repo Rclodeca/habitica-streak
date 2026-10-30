@@ -2,7 +2,7 @@
 
 ## FreePixel art
 
-Every boss sprite, item icon and player hero comes from [FreePixel](https://freepixel.art/), used under the [FreePixel Asset License](https://freepixel.art/license/): free for personal and commercial games and apps, modification allowed, no attribution required (credited here anyway). The raw asset files themselves must not be redistributed, so only the processed sprites live in the repo. Processing: items are cropped, reduced to a 32px grid with 12 colours and a 1px dark outline (`npm run item-icon -- <source.png> <item-id>`, see `scripts/item-icons/`); bosses are reduced by averaging 2x2 blocks with 48 colours.
+Every boss sprite, item icon and player hero comes from [FreePixel](https://freepixel.art/), used under the [FreePixel Asset License](https://freepixel.art/license/): free for personal and commercial games and apps, modification allowed, no attribution required (credited here anyway). The raw asset files themselves must not be redistributed, so only the processed sprites live in the repo. Processing: items are cropped, reduced to a 48px grid with 12 colours and a 1px dark outline (`npm run item-icon -- <source.png> <item-id>`, see `scripts/item-icons/`); bosses are reduced by averaging 2x2 blocks with 48 colours.
 
 ### Boss sprites
 

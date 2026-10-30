@@ -1,6 +1,6 @@
 // npm run item-icon -- <source.png> <item-id> [--clean-bg] [--thin]
 // Turns a raw art download into public/sprites/items/<item-id>.png with the
-// settings every item icon uses: 32px grid, 12 colours, 3px pixels on a 240px
+// settings every item icon uses: 48px grid, 12 colours, 2px pixels on a 240px
 // canvas, 1px dark outline (see pixel-icon.cjs). --clean-bg first clears a
 // flat backdrop colour (see clean-bg.cjs), for art that isn't transparent.
 // --thin keeps grid cells only 30% covered instead of 50%, so thin parts
@@ -26,4 +26,4 @@ if (cleanBg) {
   input = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'item-icon-')), 'clean.png')
   execFileSync('node', [path.join(__dirname, 'clean-bg.cjs'), source, input], { stdio: 'inherit' })
 }
-execFileSync('node', [path.join(__dirname, 'pixel-icon.cjs'), input, out, '32', '12', '3', '240', 'outline', cutoff], { stdio: 'inherit' })
+execFileSync('node', [path.join(__dirname, 'pixel-icon.cjs'), input, out, '48', '12', '2', '240', 'outline', cutoff], { stdio: 'inherit' })

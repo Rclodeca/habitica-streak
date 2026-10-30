@@ -173,8 +173,8 @@ const isCurrentEquipped = computed(
 .gear-icon {
   position: relative;
   flex-shrink: 0;
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border: 1px solid color-mix(in srgb, var(--rarity) 55%, transparent);
   border-radius: 4px;
   background: radial-gradient(circle, color-mix(in srgb, var(--rarity) 22%, transparent), rgba(0, 0, 0, 0.55) 72%);
@@ -192,16 +192,16 @@ const isCurrentEquipped = computed(
   border-radius: inherit;
 }
 
-/* Each art pixel as an even 2x2 block, so one-pixel lines (staffs, blades)
-   don't come out thin and blotchy. The rim is a dark rarity tone around the
-   silhouette, which thickens thin items. */
+/* One CSS px per art pixel, as on the character modal's gear rows: the item
+   is 50px and sharp on 1x, 2x and 3x screens. The rim is a dark rarity tone
+   around the silhouette, which thickens thin items. */
 .gear-art img {
   --rim: color-mix(in srgb, var(--rarity) 55%, #000);
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 160px;
-  height: 160px;
+  width: 120px;
+  height: 120px;
   transform: translate(-50%, -50%);
   image-rendering: pixelated;
   pointer-events: none;
