@@ -94,3 +94,28 @@ body {
     filter: brightness(1.08);
   }
 }
+
+// Item icon sizes for the grid the icons were built at (src/assets/item-icon-grid.json,
+// set on <html> by main.ts; switch with npm run item-icons). Each keeps a whole number
+// of screen pixels per art pixel. --item-art sizes the 240px file in an item slot.
+:root {
+  // 48 grid: the item (50 art pixels with its outline) at 50px, sharp on every screen.
+  --item-slot: 60px;
+  --item-art: 120px;
+  --item-gear-zoom: 1;
+}
+
+:root[data-item-grid='32'] {
+  // 32 grid: the item (34 art pixels) at 68px; the character modal's gear rows
+  // shrink it on dense screens to 3 device px per art pixel on 2x (51px), 5 on 3x (57px).
+  --item-slot: 80px;
+  --item-art: 160px;
+
+  @media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+    --item-gear-zoom: 0.75;
+  }
+
+  @media (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3) {
+    --item-gear-zoom: 0.8333;
+  }
+}

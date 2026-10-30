@@ -700,8 +700,8 @@ onBeforeUnmount(() => {
 .gear-icon {
   position: relative;
   flex-shrink: 0;
-  width: 60px;
-  height: 60px;
+  width: var(--item-slot);
+  height: var(--item-slot);
   border: 1px solid color-mix(in srgb, var(--rarity) 55%, transparent);
   border-radius: 4px;
   background: radial-gradient(circle, color-mix(in srgb, var(--rarity) 22%, transparent), rgba(0, 0, 0, 0.55) 72%);
@@ -709,6 +709,8 @@ onBeforeUnmount(() => {
     inset 0 0 0 3px rgba(0, 0, 0, 0.55),
     inset 0 0 0 4px color-mix(in srgb, var(--rarity) 22%, transparent),
     0 0 14px -6px var(--rarity);
+  /* 1 for 48-grid icons; 32-grid ones shrink on dense screens (see main.scss). */
+  zoom: var(--item-gear-zoom);
 }
 
 /* Clips the art's transparent padding, which overflows the slot. */
@@ -719,17 +721,16 @@ onBeforeUnmount(() => {
   border-radius: inherit;
 }
 
-/* One CSS px per art pixel, so every pixel is a whole number of device
-   pixels on 1x, 2x and 3x screens: the 240px file is 120 art pixels at 2x,
-   which puts the item itself (48 cells plus its outline) at 50px. The rim is
-   a dark rarity tone around the silhouette, which thickens thin items. */
+/* Sized for the icons' grid (see main.scss) so every art pixel is a whole
+   number of device pixels: a 48-grid item is 50px on every screen. The rim
+   is a dark rarity tone around the silhouette, which thickens thin items. */
 .gear-art img {
   --rim: color-mix(in srgb, var(--rarity) 55%, #000);
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 120px;
-  height: 120px;
+  width: var(--item-art);
+  height: var(--item-art);
   transform: translate(-50%, -50%);
   image-rendering: pixelated;
   pointer-events: none;
