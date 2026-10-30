@@ -1,7 +1,7 @@
 // npm run item-icon -- <source.png> <item-id> [--clean-bg] [--thin] [--erase-corner=x,y]
 // Turns a raw art download into public/sprites/items/<item-id>.png with the
 // settings every item icon uses: the grid in src/assets/item-icon-grid.json
-// (48: 2px pixels, 32: 3px pixels, the same footprint either way), 12
+// (48 or 40: 2px pixels, 32: 3px pixels), 12
 // colours, a 240px canvas and a 1px dark outline (see pixel-icon.cjs).
 // --clean-bg first clears a flat backdrop colour (see clean-bg.cjs), for art
 // that isn't transparent. --thin keeps grid cells only 30% covered instead of
@@ -16,7 +16,7 @@ const { execFileSync } = require('child_process')
 const { decode, encode } = require('./pnglib.cjs')
 
 // Art pixel size on the 240px canvas for each grid.
-const SCALE = { 32: 3, 48: 2 }
+const SCALE = { 32: 3, 40: 2, 48: 2 }
 
 const args = process.argv.slice(2)
 const flag = (name) => args.find((a) => a === name || a.startsWith(`${name}=`))

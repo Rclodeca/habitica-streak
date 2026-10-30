@@ -76,12 +76,12 @@ const enchanted = computed(() => props.factor > 1);
 /* The rim is a dark rarity tone around the silhouette, as on the gear rows. */
 .icon {
   --rim: color-mix(in srgb, var(--rarity) 55%, #000);
-  /* The file at its own size, a whole number of CSS px per art pixel for
-     either grid (2 at 48, 3 at 32): the item is about 100px and sharp on every
-     screen. Its transparent padding overflows the frame. */
+  /* Sized for the icons' grid (see main.scss) so every art pixel is a whole
+     number of device pixels: the item is about 100px. Its transparent padding
+     overflows the frame. */
   flex-shrink: 0;
-  width: 240px;
-  height: 240px;
+  width: var(--item-card-art);
+  height: var(--item-card-art);
   image-rendering: pixelated;
   filter:
     drop-shadow(2px 0 0 var(--rim))

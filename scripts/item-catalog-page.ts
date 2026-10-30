@@ -6,8 +6,8 @@ import type { DropRarity, ItemDef } from '../src/game-engine/items';
 import itemIconGrid from '../src/assets/item-icon-grid.json';
 
 const SPRITES = '../../public/sprites/';
-// The item's slot and the 240px file's size for the icons' grid, as in the app's gear rows (see main.scss).
-const [SLOT, ART] = itemIconGrid.grid === 32 ? [80, 160] : [60, 120];
+// The item's slot and the 240px file's size for the icons' grid, as in the app's gear rows on a 2x screen (see main.scss).
+const [SLOT, ART] = ({ 32: [80, 160], 40: [76, 180], 48: [60, 120] } as Record<number, [number, number]>)[itemIconGrid.grid];
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'relic'];
 const THEME_OF: Record<string, string> = {
   physicalDamage: 'Physical', magicDamage: 'Magic', trueDamage: 'True', critChance: 'Crit', allDamage: 'All damage',

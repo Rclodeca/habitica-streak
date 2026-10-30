@@ -1,4 +1,4 @@
-// npm run item-icons -- --grid <32|48>
+// npm run item-icons -- --grid <32|40|48>
 // Rebuilds every item icon at one grid, each from its source in assets/ (as
 // CREDITS.md lists it) with the options it needs, then records the grid in
 // src/assets/item-icon-grid.json. New icons (npm run item-icon), the app's
@@ -17,8 +17,8 @@ const OPTIONS = {
 const root = path.join(__dirname, '../..')
 const args = process.argv.slice(2)
 const grid = Number(args.find((a) => a.startsWith('--grid='))?.slice('--grid='.length) ?? args[args.indexOf('--grid') + 1])
-if (grid !== 32 && grid !== 48) {
-  console.error('usage: npm run item-icons -- --grid <32|48>')
+if (![32, 40, 48].includes(grid)) {
+  console.error('usage: npm run item-icons -- --grid <32|40|48>')
   process.exit(1)
 }
 

@@ -97,12 +97,35 @@ body {
 
 // Item icon sizes for the grid the icons were built at (src/assets/item-icon-grid.json,
 // set on <html> by main.ts; switch with npm run item-icons). Each keeps a whole number
-// of screen pixels per art pixel. --item-art sizes the 240px file in an item slot.
+// of screen pixels per art pixel. --item-art sizes the 240px file in an item slot,
+// --item-card-art in the item card (ItemHero).
 :root {
   // 48 grid: the item (50 art pixels with its outline) at 50px, sharp on every screen.
   --item-slot: 60px;
   --item-art: 120px;
+  --item-card-art: 240px;
   --item-gear-zoom: 1;
+}
+
+:root[data-item-grid='40'] {
+  // 40 grid (42 art pixels with its outline): 1 CSS px per art pixel on 1x (item 42px),
+  // 3 device px on 2x phones (63px, the hero's pixel size there), 4 on 3x (56px).
+  // The item card: 2 CSS px per art pixel on 1x (84px), 5 device px on 2x, 7 on 3x.
+  --item-slot: 52px;
+  --item-art: 120px;
+  --item-card-art: 240px;
+
+  @media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+    --item-slot: 76px;
+    --item-art: 180px;
+    --item-card-art: 300px;
+  }
+
+  @media (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3) {
+    --item-slot: 68px;
+    --item-art: 160px;
+    --item-card-art: 280px;
+  }
 }
 
 :root[data-item-grid='32'] {

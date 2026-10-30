@@ -709,7 +709,7 @@ onBeforeUnmount(() => {
     inset 0 0 0 3px rgba(0, 0, 0, 0.55),
     inset 0 0 0 4px color-mix(in srgb, var(--rarity) 22%, transparent),
     0 0 14px -6px var(--rarity);
-  /* 1 for 48-grid icons; 32-grid ones shrink on dense screens (see main.scss). */
+  /* 1 except for 32-grid icons, which shrink on dense screens (see main.scss). */
   zoom: var(--item-gear-zoom);
 }
 
@@ -722,8 +722,8 @@ onBeforeUnmount(() => {
 }
 
 /* Sized for the icons' grid (see main.scss) so every art pixel is a whole
-   number of device pixels: a 48-grid item is 50px on every screen. The rim
-   is a dark rarity tone around the silhouette, which thickens thin items. */
+   number of device pixels. The rim is a dark rarity tone around the
+   silhouette, which thickens thin items. */
 .gear-art img {
   --rim: color-mix(in srgb, var(--rarity) 55%, #000);
   position: absolute;

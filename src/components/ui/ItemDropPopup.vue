@@ -193,8 +193,8 @@ const isCurrentEquipped = computed(
 }
 
 /* Sized for the icons' grid, as on the character modal's gear rows (see
-   main.scss): a 48-grid item is 50px and sharp on 1x, 2x and 3x screens. The
-   rim is a dark rarity tone around the silhouette, which thickens thin items. */
+   main.scss), so every art pixel is a whole number of device pixels. The rim
+   is a dark rarity tone around the silhouette, which thickens thin items. */
 .gear-art img {
   --rim: color-mix(in srgb, var(--rarity) 55%, #000);
   position: absolute;
