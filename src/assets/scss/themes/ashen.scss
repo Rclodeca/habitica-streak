@@ -901,13 +901,8 @@ $caps-lg: 0.85rem; // panel and popup titles
     @include engraved($caps-xs, 0.14em);
   }
 
-  .reward-icon,
   .reward-exp {
     filter: drop-shadow(0 0 6px rgba(230, 199, 127, 0.35));
-  }
-
-  .reward-icon {
-    background: radial-gradient(circle, rgba(230, 199, 127, 0.28), transparent 65%);
   }
 
   // The glow sits behind the icon itself, not the icon + label block.

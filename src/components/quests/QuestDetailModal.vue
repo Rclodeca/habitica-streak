@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { ITEM_CATALOG, questRewardTier } from '../../game-engine';
+import { questRewardTier } from '../../game-engine';
 import type { Quest } from '../../game-engine';
-import ItemHero from '../ui/ItemHero.vue';
 import Modal from '../ui/Modal.vue';
 
-const props = defineProps<{ quest: Quest | null }>();
+defineProps<{ quest: Quest | null }>();
 const emit = defineEmits<{ close: [] }>();
 
 const PIPS = { easy: 1, medium: 2, hard: 3 };
-const item = computed(() => ITEM_CATALOG.find((i) => i.id === props.quest?.rewardItemId) ?? null);
 </script>
 
 <template>
@@ -22,8 +19,9 @@ const item = computed(() => ITEM_CATALOG.find((i) => i.id === props.quest?.rewar
         </span>
         <span>Due {{ quest.dueDateKey }}</span>
       </div>
-      <ItemHero v-if="quest.kind === 'side' && item" :item="item" />
-      <p v-else-if="quest.kind === 'regular'" class="reward">{{ questRewardTier(quest.difficulty) }} EXP</p>
+      <!-- A side quest's item stays hidden until it's earned. -->
+      <p v-if="quest.kind === 'side'" class="reward">An unknown item</p>
+      <p v-else class="reward">{{ questRewardTier(quest.difficulty) }} EXP</p>
     </div>
   </Modal>
 </template>

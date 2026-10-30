@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Lock } from 'lucide-vue-next';
-import { dailyPeriodKey, ITEM_CATALOG, questRewardTier, questsOpen, QUESTS_UNLOCK_LEVEL } from '../../game-engine';
-import type { Difficulty, ItemDef, Quest } from '../../game-engine';
+import { dailyPeriodKey, questRewardTier, questsOpen, QUESTS_UNLOCK_LEVEL } from '../../game-engine';
+import type { Difficulty, Quest } from '../../game-engine';
 import { useCombatActions } from '../../composables/useCombatActions';
 import { useQuestCompleteQueue } from '../../composables/useQuestCompleteQueue';
 import { useCharacterStore } from '../../store/characterStore';
@@ -24,7 +24,6 @@ const { enqueue: enqueueCompletion } = useQuestCompleteQueue();
 
 const PIPS: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
 const MS_PER_DAY = 86_400_000;
-const baseUrl = import.meta.env.BASE_URL;
 
 const todayKey = computed(() => dailyPeriodKey(debugClockStore.now()));
 const showAdd = ref(false);
@@ -47,10 +46,6 @@ function dueText(quest: Quest): string {
   if (days === 0) return 'Due today';
   if (days === 1) return 'Due tomorrow';
   return `${days} days left`;
-}
-
-function rewardItem(quest: Quest): ItemDef | null {
-  return ITEM_CATALOG.find((item) => item.id === quest.rewardItemId) ?? null;
 }
 
 function onAdd(description: string, difficulty: Difficulty, dueDateKey: string) {
@@ -91,7 +86,10 @@ function onCheckOff(quest: Quest) {
             <span class="due">{{ dueText(quest) }}</span>
           </span>
         </button>
-        <img v-if="quest.kind === 'side' && rewardItem(quest)" class="reward-icon" :src="`${baseUrl}sprites/${rewardItem(quest)!.icon}.png`" alt="" />
+        <!-- A side quest's item stays hidden until it's earned. -->
+        <span v-if="quest.kind === 'side'" class="reward-exp">
+          <StatIcon name="gift" :size="20" /><span class="exp-label">+Item</span>
+        </span>
         <!-- The exact EXP depends on the week's slot, so only the vague tier is offered, on hover. -->
         <span v-else-if="quest.kind === 'regular'" class="reward-exp" :title="`${questRewardTier(quest.difficulty)} EXP`">
           <StatIcon name="exp" :size="20" /><span class="exp-label">+EXP</span>
@@ -323,16 +321,7 @@ function onCheckOff(quest: Quest) {
   color: var(--damage-color);
 }
 
-.reward-icon {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  margin: -0.4rem 0;
-  image-rendering: pixelated;
-}
-
-/* Same width as .reward-icon. Icon and label are centred in the row as one
-   tight unit — line-height 1 matters: the inherited one is a fixed ~26px
+/* Icon and label are centred in the row as one tight unit — line-height 1 matters: the inherited one is a fixed ~26px
    (see style.css) and would make the label far taller than its text. */
 .reward-exp {
   flex-shrink: 0;
