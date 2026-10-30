@@ -1,10 +1,22 @@
 <script setup lang="ts">
 import { bossSkillEffectText, formatCompact } from '../../game-engine';
+import type { BossSkillId } from '../../game-engine';
 import { useActivityLogStore } from '../../store/activityLogStore';
 import { rankNumeral } from '../habits/habitDisplay';
 import StatIcon from './StatIcon.vue';
+import type { StatIconName } from './statIcons';
 
 const activityLogStore = useActivityLogStore();
+
+// The skills an item can resist (Aegis, Bloodbound, Null Mirror).
+const RESISTED: Partial<Record<BossSkillId, { name: string; icon: StatIconName }>> = {
+  wounds: { name: 'Wounds', icon: 'wounds' },
+  sunder: { name: 'Sunder', icon: 'sunder' },
+  bloodlust: { name: 'Bloodlust', icon: 'bloodlust' },
+  mend: { name: 'Mend', icon: 'mend' },
+  reflect: { name: 'Reflect', icon: 'reflect' },
+  blind: { name: 'Blind', icon: 'blind' },
+};
 </script>
 
 <template>
@@ -106,8 +118,8 @@ const activityLogStore = useActivityLogStore();
         <template v-else-if="entry.kind === 'boss-skill' && entry.outcome === 'failed'">
           <StatIcon name="skillFailed" class="log-icon" /> A boss skill fails
         </template>
-        <template v-else-if="entry.kind === 'boss-skill' && entry.outcome === 'resisted'">
-          <StatIcon name="wounds" class="log-icon" /> Wounds resisted
+        <template v-else-if="entry.kind === 'boss-skill' && entry.outcome === 'resisted' && RESISTED[entry.skill]">
+          <StatIcon :name="RESISTED[entry.skill]!.icon" class="log-icon" /> {{ RESISTED[entry.skill]!.name }} resisted
         </template>
         <template v-else-if="entry.kind === 'boss-skill' && (entry.skill === 'rend' || entry.skill === 'ravage')">
           <StatIcon name="bossHit" class="log-icon" /> {{ entry.skill === 'rend' ? 'Rend' : 'Ravage' }} — took

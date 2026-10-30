@@ -1282,7 +1282,7 @@ describe('completeHabit — item effects', () => {
     expect(low / half).toBeCloseTo(E.HEADSMAN_MULTIPLIER, 10);
   });
 
-  it('Moonwell makes a weekly skill hit ×1.5 and leaves dailies alone', () => {
+  it('Moonwell makes a weekly skill hit ×2 and leaves dailies alone', () => {
     const weeklyWith = hit(['moonwell'], { period: 'weekly' }, {}).damageDealt ?? 0;
     const weeklyWithout = hit([], { period: 'weekly' }, {}).damageDealt ?? 0;
     expect(weeklyWith / weeklyWithout).toBeCloseTo(E.MOONWELL_MULTIPLIER, 10);
@@ -1473,7 +1473,7 @@ describe('missHabit — item effects', () => {
 describe('resolveBossDefeatIfDead — item effects', () => {
   const E = TUNING.ITEM_EFFECTS;
 
-  it('Soul Lantern heals 15% of max health when a boss falls', () => {
+  it('Soul Lantern heals 30% of max health when a boss falls', () => {
     const character = makeCharacter({ currentHealth: 10, equippedItemIds: ['soul-lantern'] });
     const result = resolveBossDefeatIfDead(character, makeBoss({ health: 0 }), createRng(1));
     const lantern = (effectiveStat(result.character, 'health') * E.SOUL_LANTERN_HEAL_PCT) / 100;

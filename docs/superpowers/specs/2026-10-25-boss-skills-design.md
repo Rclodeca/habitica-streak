@@ -122,18 +122,18 @@ These are calls made while writing the spec, not decisions the user made. They'r
 
 | Relic | Theme | Effect text | Base stats |
 |---|---|---|---|
-| Hushing Bell | Support | Boss skills have a 50% chance to fail. | +10% health, +5% EXP |
-| Omen Hourglass | Tank | Boss skills deal half damage. | +20% health, +100 armor |
+| Hushing Bell | Support | Boss skills have a 50% chance to fail. | +15% health, +10% EXP |
+| Omen Hourglass | Tank | Rend, Ravage and Doom take half as much. | +30% health |
 
 - Hushing Bell rolls once when a skill fires. On a fail, the breakpoint is spent and nothing happens except a log line.
 - Omen Hourglass halves the HP hits only: the 20% hit becomes 10%, the 40% hit 20% and Doom 25%. It doesn't touch the other skills.
 - They're side-quest relics like the others and follow whatever relic unlock rule is current when they're built. It's fine that they don't matter before boss #15 (relic rule: some relics won't apply to a run).
+- Stats raised in the 2026-10-29 relic review (were +10% health/+5% EXP and +20% health/+100 armor): relics are offered from level 1 and an unequipped item is dropped, so a Bell earned early sits idle for ~15 bosses (the Hourglass ~20) and has to be worth wearing on its stats alone, like Null Mirror. The Hourglass is pure health so it doesn't mirror Null Mirror's health + MR, and its text names the three skills it halves (Reflect also hurts and isn't halved).
 - Art is still needed. Source it the usual way (`npm run item-icon`, credited in CREDITS.md). The engine and UI work can land before the art; the relics join the catalog when their icons exist.
 
 ### Existing items
 
-- **Aegis of the Unbroken** (Immune to Wounds) blocks skill Wounds. The existing `wound-immune` check carries over.
-- **Bloodbound Carapace** (Bosses can't lifesteal) blocks Bloodlust's heal too. It's a separate heal from boss lifesteal, so this needs its own check next to the existing one in `missHabit`.
+- **Resisted skills** (updated 2026-10-29): an item can stop a skill outright when it fires; the breakpoint is spent and the card and log say "<Skill> resisted". **Aegis of the Unbroken** (Immune to Wounds and Sunder, effect `unbroken`, was `wound-immune`) resists Wounds and Sunder. **Bloodbound Carapace** (Bosses can't heal) resists Bloodlust and Mend, and still blocks the boss's lifesteal and the heal of a Bloodlust that fired before it was equipped (`missHabit`). **Null Mirror** (Immune to Reflect and Blind) resists Reflect and Blind, and still blocks a Reflect that fired before it was equipped (`completeHabit`). Sever stays unblockable (Hushing Bell can still make it fail). The map lives in `RESISTED_BY` in `bossSkills.ts`.
 - **Blind:** First Blood and Starfall still force crits, and anything that keys off a crit follows from those forced crits only. That covers Bloodcrystal's crit heal, Hunter's Eye and Voidcaller's 3× crits.
 - **Sunder** halves the armor and MR from your items. That's the only player armor/MR source today.
 - **Wounds** keeps its current reach: it only cuts healing *skills*. Lifesteal, level-up heals, Ember Heart, Soul Lantern and Bloodcrystal's crit heal are unaffected.

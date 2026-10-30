@@ -34,6 +34,8 @@ describe('ActivityLog — boss skills', () => {
     [{ kind: 'boss-skill', skill: 'empower', outcome: 'landed', stat: 'magicAttack' }, 'Empower Magic attack doubled'],
     [{ kind: 'boss-skill', skill: 'ascend', outcome: 'landed' }, 'Ascend All stats doubled'],
     [{ kind: 'boss-skill', skill: 'wounds', outcome: 'resisted' }, 'Wounds resisted'],
+    [{ kind: 'boss-skill', skill: 'mend', outcome: 'resisted' }, 'Mend resisted'],
+    [{ kind: 'boss-skill', skill: 'blind', outcome: 'resisted' }, 'Blind resisted'],
     [{ kind: 'boss-skill', skill: 'doom', outcome: 'failed' }, 'A boss skill fails'],
     [{ kind: 'doom-landed', amount: 512.6 }, 'Doom — took 513 damage'],
     [{ kind: 'rank-up', habitName: 'Run', rank: 5 }, '"Run" · Rank V'],

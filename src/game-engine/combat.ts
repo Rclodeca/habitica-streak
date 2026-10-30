@@ -311,6 +311,8 @@ function resolveCompletion(
   const bloodthornHeal = wasCrit && hasItemEffect(character, 'bloodthorn') ? maxHealth * (TUNING.ITEM_EFFECTS.BLOODTHORN_CRIT_HEAL_PCT / 100) : 0;
   // Both heals are cut by Wounds and raised by a Healing boost.
   const healed = (dealt * (lifestealPct / 100) + bloodthornHeal) * healingMultiplier(character, currentDayKey);
+  // Null Mirror resists Reflect when it fires (see bossSkills.ts); this also
+  // covers a Reflect that fired before the mirror was equipped.
   const reflected =
     hasItemEffect(character, 'null-mirror') || !reflectActive(boss, currentDayKey) ? 0 : dealt * (TUNING.BOSS_SKILLS.REFLECT_PCT / 100);
   const netHealthChange = healed - reflected;
@@ -413,8 +415,10 @@ export function missHabit(
   const dawnguard = hasItemEffect(character, 'dawnguard') && !effectUsedToday(character, 'dawnguard', currentDayKey);
   const mitigatedDamage = applyResist(damage, playerResistStat) * (dawnguard ? TUNING.ITEM_EFFECTS.DAWNGUARD_FACTOR : 1);
   const newHealth = Math.max(0, character.currentHealth - mitigatedDamage);
-  // Bloodbound Carapace blocks both the boss's lifesteal and Bloodlust's
-  // flat heal (a boss skill), which the log and popup show as lifesteal too.
+  // Bloodbound Carapace (bosses can't heal) blocks both the boss's lifesteal
+  // and Bloodlust's flat heal, which the log and popup show as lifesteal too.
+  // It resists Bloodlust and Mend when they fire (see bossSkills.ts); the
+  // Bloodlust check here covers one that fired before it was equipped.
   const bloodbound = hasItemEffect(character, 'bloodbound');
   const bossLifestealPct = bloodbound ? 0 : boss.lifestealPct;
   const bloodlustHeal =

@@ -5,6 +5,7 @@
 
 import { TUNING } from './constants/tuning';
 import { hasItemEffect } from './items';
+import type { ItemEffectId } from './items';
 import { pickRandom, pickWeighted } from './rng';
 import type { Rng } from './rng';
 import { addDaysToDayKey, daysBetweenDayKeys } from './time';
@@ -178,8 +179,22 @@ function doubleStats(boss: Boss, stats: readonly BossStat[]): Boss {
   return doubled;
 }
 
-/** Applies a fired skill's effect to the hero or the boss. */
+// Skills an equipped item stops outright: Aegis of the Unbroken (Wounds,
+// Sunder), Bloodbound Carapace (Bloodlust, Mend: bosses can't heal) and Null
+// Mirror (Reflect, Blind).
+const RESISTED_BY: Partial<Record<BossSkillId, ItemEffectId>> = {
+  wounds: 'unbroken',
+  sunder: 'unbroken',
+  bloodlust: 'bloodbound',
+  mend: 'bloodbound',
+  reflect: 'null-mirror',
+  blind: 'null-mirror',
+};
+
+/** Applies a fired skill's effect to the hero or the boss, unless an equipped item resists it. */
 function applySkill(skill: BossSkillId, boss: Boss, character: Character, currentDayKey: string, rng: Rng): { boss: Boss; character: Character; fired: FiredBossSkill } {
+  const resistedBy = RESISTED_BY[skill];
+  if (resistedBy && hasItemEffect(character, resistedBy)) return { boss, character, fired: { skill, outcome: 'resisted' } };
   const halved = hasItemEffect(character, 'omen-hourglass') ? TUNING.ITEM_EFFECTS.OMEN_HOURGLASS_FACTOR : 1;
   const landed = (changes: { boss?: Boss; character?: Character; amount?: number; pct?: number; stat?: BossStat } = {}) => ({
     boss: changes.boss ?? boss,
@@ -194,8 +209,6 @@ function applySkill(skill: BossSkillId, boss: Boss, character: Character, curren
   });
   switch (skill) {
     case 'wounds':
-      // Aegis of the Unbroken: Wounds can't take hold.
-      if (hasItemEffect(character, 'wound-immune')) return { boss, character, fired: { skill, outcome: 'resisted' } };
       return landed({
         character: withStatus(character, { type: 'wounds', appliedDayKey: currentDayKey, durationDays: S.DURATION_DAYS, effectRate: S.WOUNDS_EFFECT_RATE }),
       });

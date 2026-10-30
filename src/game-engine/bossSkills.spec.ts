@@ -392,6 +392,20 @@ describe('resolveBreakpoints', () => {
     expect(wounds.boss.skills?.[0]).toEqual({ at: 0.5, skill: 'wounds', spent: true, fired: true });
   });
 
+  it.each([
+    ['aegis-of-the-unbroken', 'sunder'],
+    ['bloodbound-carapace', 'bloodlust'],
+    ['bloodbound-carapace', 'mend'],
+    ['null-mirror', 'reflect'],
+    ['null-mirror', 'blind'],
+  ] as const)('%s resists %s, leaving hero and boss untouched', (itemId, skill) => {
+    const boss = foe({ skills: [{ at: 0.5, skill }], health: 400 });
+    const result = resolveBreakpoints(600, boss, hero({ equippedItemIds: [itemId] }), DAY, neverRng);
+    expect(result.fired).toEqual({ skill, outcome: 'resisted' });
+    expect(result.character.statusEffects ?? []).toEqual([]);
+    expect(result.boss).toEqual({ ...boss, skills: [{ at: 0.5, skill, spent: true, fired: true }] });
+  });
+
   it('Blind and Sunder land for 2 days', () => {
     const sunder = resolveBreakpoints(600, foe({ skills: [{ at: 0.5, skill: 'sunder' }], health: 400 }), hero(), DAY, neverRng);
     expect(sunder.character.statusEffects).toEqual([{ type: 'sunder', appliedDayKey: DAY, durationDays: 2 }]);
