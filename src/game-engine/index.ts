@@ -22,6 +22,7 @@ export type {
   HealBoostStatusEffect,
   WoundsStatusEffect,
   BlindStatusEffect,
+  SeverStatusEffect,
   SunderStatusEffect,
 } from './types';
 
@@ -198,6 +199,7 @@ export { addDaysToDayKey, dailyPeriodKey, dayOfWeekIndex, daysBetweenDayKeys, pe
 
 export {
   activeBlind,
+  activeSever,
   activeSunder,
   bloodlustActive,
   bloodlustDaysLeft,

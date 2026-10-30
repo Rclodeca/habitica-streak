@@ -8,7 +8,7 @@ import { hasItemEffect } from './items';
 import { pickRandom, pickWeighted } from './rng';
 import type { Rng } from './rng';
 import { addDaysToDayKey, daysBetweenDayKeys } from './time';
-import type { BlindStatusEffect, Boss, BossSkillId, BossSkillSlot, BossStat, Breakpoint, Character, StatusEffect, SunderStatusEffect } from './types';
+import type { BlindStatusEffect, Boss, BossSkillId, BossSkillSlot, BossStat, Breakpoint, Character, SeverStatusEffect, StatusEffect, SunderStatusEffect } from './types';
 
 const S = TUNING.BOSS_SKILLS;
 const STAT_LABEL: Record<BossStat, string> = { physicalAttack: 'Physical attack', magicAttack: 'Magic attack', armor: 'Armor', magicResist: 'Magic resist' };
@@ -60,6 +60,12 @@ export function hpHitDamage(currentHealth: number, pct: number): number {
 export function activeBlind(character: Character, currentDayKey: string): BlindStatusEffect | undefined {
   const blind = character.statusEffects?.find((e): e is BlindStatusEffect => e.type === 'blind');
   return blind && daysBetweenDayKeys(blind.appliedDayKey, currentDayKey) < blind.durationDays ? blind : undefined;
+}
+
+/** The character's active Sever as of `currentDayKey`, or undefined. */
+export function activeSever(character: Character, currentDayKey: string): SeverStatusEffect | undefined {
+  const sever = character.statusEffects?.find((e): e is SeverStatusEffect => e.type === 'sever');
+  return sever && daysBetweenDayKeys(sever.appliedDayKey, currentDayKey) < sever.durationDays ? sever : undefined;
 }
 
 /** The character's active Sunder as of `currentDayKey`, or undefined. */
@@ -129,6 +135,8 @@ export function bossSkillEffectText(skill: BossSkillId, doomShare: number = S.DO
       return `Reflects ${S.REFLECT_PCT}% of your damage`;
     case 'blind':
       return 'No crits';
+    case 'sever':
+      return 'No lifesteal';
     case 'sunder':
       return 'Armor & resist halved';
     case 'doom':
@@ -192,6 +200,7 @@ function applySkill(skill: BossSkillId, boss: Boss, character: Character, curren
         character: withStatus(character, { type: 'wounds', appliedDayKey: currentDayKey, durationDays: S.DURATION_DAYS, effectRate: S.WOUNDS_EFFECT_RATE }),
       });
     case 'blind':
+    case 'sever':
     case 'sunder':
       return landed({ character: withStatus(character, { type: skill, appliedDayKey: currentDayKey, durationDays: S.DURATION_DAYS }) });
     case 'bloodlust':

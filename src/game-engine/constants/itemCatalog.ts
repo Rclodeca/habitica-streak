@@ -18,7 +18,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'executioners-axe', name: "Executioner's Axe", icon: 'items/executioners-axe', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 26 }, { stat: 'armor', flat: 150 }] },
   // Exception: reckless physical, trades health for damage.
   { id: 'berserkers-fury', name: 'Molten Fury', icon: 'items/berserkers-fury', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 28 }, { stat: 'critChance', percent: 15 }, { stat: 'health', percent: -10 }] },
-  { id: 'godslayer-greatblade', name: 'Godslayer Greatblade', icon: 'items/godslayer-greatblade', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 42 }, { stat: 'health', percent: 20 }], effect: 'giantslayer', effectText: '+30% damage to bosses above 75% HP.' },
+  { id: 'godslayer-greatblade', name: 'Godslayer Greatblade', icon: 'items/godslayer-greatblade', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 42 }, { stat: 'health', percent: 20 }, { stat: 'lifesteal', percent: 2 }], effect: 'giantslayer', effectText: '+30% damage to bosses above 75% HP.' },
   // --- Magic (more damage, no survivability, sometimes a drawback) ---
   { id: 'apprentice-wand', name: 'Apprentice Wand', icon: 'items/apprentice-wand', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'magicDamage', percent: 4 }] },
   { id: 'arcane-staff', name: 'Opal Staff', icon: 'items/arcane-staff', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'magicDamage', percent: 6 }] },
@@ -67,7 +67,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'serrated-ripper', name: 'Crystal Ripper', icon: 'items/serrated-ripper', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 24 }, { stat: 'armorPen', percent: 20 }, { stat: 'health', percent: 10 }] },
   { id: 'piercing-fang-gauntlets', name: 'Piercing Fang Gauntlets', icon: 'items/piercing-fang-gauntlets', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 20 }, { stat: 'armorPen', percent: 35 }, { stat: 'armor', flat: 150 }] },
   { id: 'duelists-signet', name: "Duelist's Signet", icon: 'items/duelists-signet', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 18 }, { stat: 'critChance', percent: 10 }, { stat: 'lifesteal', percent: 1 }] },
-  { id: 'bloodthorn-blade', name: 'Bloodcrystal Blade', icon: 'items/bloodthorn-blade', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 45 }, { stat: 'health', percent: 10 }, { stat: 'lifesteal', percent: 2 }], effect: 'bloodthorn', effectText: 'Crits heal 5% of max HP.' },
+  { id: 'bloodthorn-blade', name: 'Bloodcrystal Blade', icon: 'items/bloodthorn-blade', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 45 }, { stat: 'health', percent: 10 }, { stat: 'critChance', percent: 8 }], effect: 'bloodthorn', effectText: 'Crits heal 5% of max HP.' },
   // --- Second set: magic ---
   { id: 'scholars-grimoire', name: "Scholar's Grimoire", icon: 'items/scholars-grimoire', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'magicDamage', percent: 10 }, { stat: 'magicPen', percent: 5 }, { stat: 'expGain', percent: 10 }] },
   { id: 'hexed-ring', name: 'Hexed Ring', icon: 'items/hexed-ring', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'magicDamage', percent: 16 }, { stat: 'health', percent: -5 }] },

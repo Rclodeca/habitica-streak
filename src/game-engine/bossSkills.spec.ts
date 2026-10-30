@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateBoss } from './boss';
 import { completeHabit, missHabit, overdriveHabit, resolveBossDefeatIfDead } from './combat';
-import { activeBlind, activeSunder, bloodlustActive, bloodlustDaysLeft, bossSkillEffectText, bossSkillMarks, doomDaysLeft, doomPct, hpHitDamage, reflectActive, reflectDaysLeft, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
+import { activeBlind, activeSever, activeSunder, bloodlustActive, bloodlustDaysLeft, bossSkillEffectText, bossSkillMarks, doomDaysLeft, doomPct, hpHitDamage, reflectActive, reflectDaysLeft, resolveBreakpoints, resolveDoom, rollBossSkills, spendPassedBreakpoints, undyingActive } from './bossSkills';
 import { createRng } from './rng';
 import type { Boss, BossSkillId, BossSkillSlot, Character, Habit } from './types';
 
@@ -63,7 +63,7 @@ describe('rollBossSkills', () => {
 
   it('only picks skills unlocked at that boss', () => {
     for (const slots of [...sample(15), ...sample(19)]) {
-      for (const slot of slots) expect(['wounds', 'bloodlust', 'blind', 'mend', 'reflect']).toContain(slot.skill);
+      for (const slot of slots) expect(['wounds', 'bloodlust', 'blind', 'sever', 'mend', 'reflect']).toContain(slot.skill);
     }
     for (const slots of sample(24)) {
       for (const slot of slots) expect(slot.skill).not.toBe('ravage');
@@ -185,10 +185,11 @@ describe('hpHitDamage', () => {
 });
 
 describe('lasting skill effects', () => {
-  it('Blind and Sunder last the day they land and the next', () => {
+  it('Blind, Sever and Sunder last the day they land and the next', () => {
     const effects = [
       { type: 'blind' as const, appliedDayKey: '2026-01-01', durationDays: 2 },
       { type: 'sunder' as const, appliedDayKey: '2026-01-01', durationDays: 2 },
+      { type: 'sever' as const, appliedDayKey: '2026-01-01', durationDays: 2 },
     ];
     const character = hero({ statusEffects: effects });
     expect(activeBlind(character, '2026-01-01')).toEqual(effects[0]);
@@ -196,6 +197,8 @@ describe('lasting skill effects', () => {
     expect(activeBlind(character, '2026-01-03')).toBeUndefined();
     expect(activeSunder(character, '2026-01-02')).toEqual(effects[1]);
     expect(activeSunder(character, '2026-01-03')).toBeUndefined();
+    expect(activeSever(character, '2026-01-02')).toEqual(effects[2]);
+    expect(activeSever(character, '2026-01-03')).toBeUndefined();
     expect(activeBlind(hero(), '2026-01-01')).toBeUndefined();
   });
 
@@ -513,6 +516,7 @@ describe('bossSkillEffectText', () => {
     expect(bossSkillEffectText('bloodlust')).toBe('Boss heals 3% per hit');
     expect(bossSkillEffectText('reflect')).toBe('Reflects 5% of your damage');
     expect(bossSkillEffectText('blind')).toBe('No crits');
+    expect(bossSkillEffectText('sever')).toBe('No lifesteal');
     expect(bossSkillEffectText('sunder')).toBe('Armor & resist halved');
     expect(bossSkillEffectText('undying')).toBe("Can't fall below 10%");
   });

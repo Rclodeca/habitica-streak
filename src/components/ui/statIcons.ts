@@ -7,6 +7,7 @@ import {
   Crosshair,
   Dices,
   Droplet,
+  DropletOff,
   Droplets,
   EyeOff,
   Flame,
@@ -73,6 +74,7 @@ export const STAT_ICONS = {
   // Boss skills (see game-engine/bossSkills.ts).
   bloodlust: { icon: Droplets, color: 'var(--dmg-physical)' },
   blind: { icon: EyeOff, color: 'var(--icon-crit)' },
+  sever: { icon: DropletOff, color: 'var(--icon-lifesteal)' },
   sunder: { icon: ShieldX, color: 'var(--icon-steel)' },
   mend: { icon: HeartPlus, color: 'var(--dmg-physical)' },
   bossHit: { icon: Swords, color: 'var(--dmg-physical)' },

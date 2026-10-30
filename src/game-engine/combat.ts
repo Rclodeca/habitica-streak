@@ -1,5 +1,5 @@
 import { applyResist, bossAttackAnchorHealth, bossExpReward, generateBoss } from './boss';
-import { activeSunder, bloodlustActive, reflectActive, resolveBreakpoints, spendPassedBreakpoints } from './bossSkills';
+import { activeSever, activeSunder, bloodlustActive, reflectActive, resolveBreakpoints, spendPassedBreakpoints } from './bossSkills';
 import type { FiredBossSkill } from './bossSkills';
 import { createCharacter, heroClassFor } from './character';
 import type { HeroClass } from './character';
@@ -199,7 +199,7 @@ export function effectiveResistAfterPen(resistStat: number, penPct: number): num
  * type — reduced by the boss's matching resist stat and, on
  * a crit roll, doubled). Healing habits never crit. A lifesteal item bonus
  * heals the character for a percent of the damage actually dealt (cut by
- * Wounds and raised by a Healing boost, like any heal), while the
+ * Wounds and raised by a Healing boost, like any heal; none while Severed), while the
  * boss's Reflect skill (while it runs) damages the character back for a percent
  * of that same damage — both computed off the same `dealt` amount, then netted
  * into a single health change. Any boss skill the hit knocks loose fires
@@ -305,10 +305,12 @@ function resolveCompletion(
     ...(dealt > boss.health && { overkill: dealt - boss.health }),
   };
 
-  const lifestealPct = itemBonusPercent(character, 'lifesteal');
+  // Sever (a boss skill) stops item lifesteal; Bloodcrystal's crit heal isn't lifesteal and still lands.
+  const lifestealPct = activeSever(character, currentDayKey) ? 0 : itemBonusPercent(character, 'lifesteal');
   const maxHealth = effectiveStat(character, 'health');
   const bloodthornHeal = wasCrit && hasItemEffect(character, 'bloodthorn') ? maxHealth * (TUNING.ITEM_EFFECTS.BLOODTHORN_CRIT_HEAL_PCT / 100) : 0;
-  const healed = dealt * (lifestealPct / 100) * healingMultiplier(character, currentDayKey) + bloodthornHeal;
+  // Both heals are cut by Wounds and raised by a Healing boost.
+  const healed = (dealt * (lifestealPct / 100) + bloodthornHeal) * healingMultiplier(character, currentDayKey);
   const reflected =
     hasItemEffect(character, 'null-mirror') || !reflectActive(boss, currentDayKey) ? 0 : dealt * (TUNING.BOSS_SKILLS.REFLECT_PCT / 100);
   const netHealthChange = healed - reflected;

@@ -57,6 +57,7 @@ Added 2026-10-26. A permanent 5% reflect on a boss 20+ nearly killed a player wh
 | Bloodlust | 15 | For 2 days, each time the boss hits you it heals 3% of its own max HP | boss |
 | Reflect | 15 | For 2 days, 5% of the damage you deal is thrown back at you | boss |
 | Blind | 15 | You can't crit for 2 days. Guaranteed crits (First Blood, Starfall) still land | character |
+| Sever | 15 | No lifesteal for 2 days. No item counters it; Bloodcrystal's crit heal isn't lifesteal and still lands (added 2026-10-29) | character |
 | Mend | 15 | The boss heals 10% of its max HP, once | instant |
 | 20% hit | 20 | The boss hits you for 20% of your current HP | instant |
 | Doom | 20 | A countdown starts. In 3 days the boss hits you for 50% of your current HP, unless it dies first | boss |
@@ -113,7 +114,7 @@ These are calls made while writing the spec, not decisions the user made. They'r
 
 - **Doom lands after the day's outcomes.** The countdown is stored on the boss with its landing day: 3 days after it fired, so a Monday Doom lands Thursday. It lands at the first rollover on or after that day, once that rollover's missed and avoided habits have resolved. If the missed-skills popup is up, it lands when the player clicks OK (`useMissedSkillsGate.acknowledge()`). If nothing is queued, it lands at rollover. Resolving the misses and rewards first means two things: an avoided bad habit that day can still kill the boss and cancel Doom, and the hit shows in the hit popup rather than behind the missed-skills popup. If the app stays closed past the landing day, Doom lands once, at the next rollover.
 - **Undying clamps the hit that triggers it.** If that hit leaves the boss between 0% and 10%, the boss is set to 10%. If the hit would have killed the boss, it dies and Undying never fires (the kill rule). A bigger hit still wins.
-- **Effects on the hero outlast the boss.** Wounds, Blind and Sunder run their full days even if the boss dies, as Wounds does today. Effects on the boss (Bloodlust, Reflect, Undying, Doom) end with it.
+- **Effects on the hero outlast the boss.** Wounds, Blind, Sever and Sunder run their full days even if the boss dies, as Wounds does today. Effects on the boss (Bloodlust, Reflect, Undying, Doom) end with it.
 - **Wounds refreshes.** If Wounds is still active (from an earlier boss), the new one replaces it with a fresh 2 days.
 - **Names for the HP hits** in the log and modal: **Rend** for the 20% hit and **Ravage** for the 40% hit. They're placeholders that keep the copy terse.
 

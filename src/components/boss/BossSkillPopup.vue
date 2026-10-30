@@ -19,6 +19,7 @@ const SKILL: Record<BossSkillId, { name: string; icon: StatIconName }> = {
   bloodlust: { name: 'Bloodlust', icon: 'bloodlust' },
   reflect: { name: 'Reflect', icon: 'reflect' },
   blind: { name: 'Blind', icon: 'blind' },
+  sever: { name: 'Sever', icon: 'sever' },
   mend: { name: 'Mend', icon: 'mend' },
   rend: { name: 'Rend', icon: 'bossHit' },
   doom: { name: 'Doom', icon: 'doom' },

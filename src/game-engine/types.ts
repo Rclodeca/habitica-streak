@@ -125,11 +125,18 @@ export interface Character {
 // Discriminated on `type`. Intentionally a plain union rather than a
 // registry/plugin system — each effect has its own small lookup helper
 // (activeWoundsEffect in combat.ts, activeCritBoost/activeHealBoost in leveling.ts).
-export type StatusEffect = WoundsStatusEffect | CritBoostStatusEffect | HealBoostStatusEffect | BlindStatusEffect | SunderStatusEffect;
+export type StatusEffect = WoundsStatusEffect | CritBoostStatusEffect | HealBoostStatusEffect | BlindStatusEffect | SunderStatusEffect | SeverStatusEffect;
 
 /** The Blind boss skill: no rolled crits for `durationDays` days (forced crits still land) — see activeBlind. */
 export interface BlindStatusEffect {
   type: 'blind';
+  appliedDayKey: string; // dailyPeriodKey() when the skill fired
+  durationDays: number;
+}
+
+/** The Sever boss skill: no lifesteal for `durationDays` days — see activeSever. */
+export interface SeverStatusEffect {
+  type: 'sever';
   appliedDayKey: string; // dailyPeriodKey() when the skill fired
   durationDays: number;
 }
@@ -206,7 +213,7 @@ export interface Boss {
 
 // Rend is the 20% HP hit, Ravage the 40% one. Empower doubles one boss stat for
 // good, Ascend all four; both only roll in a boss's last slot.
-export type BossSkillId = 'wounds' | 'bloodlust' | 'reflect' | 'blind' | 'mend' | 'rend' | 'doom' | 'sunder' | 'undying' | 'ravage' | 'empower' | 'ascend';
+export type BossSkillId = 'wounds' | 'bloodlust' | 'reflect' | 'blind' | 'sever' | 'mend' | 'rend' | 'doom' | 'sunder' | 'undying' | 'ravage' | 'empower' | 'ascend';
 
 /** The boss stats Empower and Ascend double. */
 export type BossStat = 'physicalAttack' | 'magicAttack' | 'armor' | 'magicResist';

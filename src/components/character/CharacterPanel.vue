@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, onUpdated, ref } from 'vue';
 import {
   activeBlind,
+  activeSever,
   activeCritBoost,
   itemDoubleFactor,
   activeHealBoost,
@@ -102,10 +103,14 @@ const healBoostDaysLeft = computed(() =>
 const woundsDaysLeft = computed(() =>
   woundsEffect.value ? woundsEffect.value.durationDays - daysBetweenDayKeys(woundsEffect.value.appliedDayKey, currentDayKey.value) : 0,
 );
-// Boss skills on the hero: Blind and Sunder, and the boss's Doom counting down to them.
+// Boss skills on the hero: Blind, Sever and Sunder, and the boss's Doom counting down to them.
 const blindEffect = computed(() => activeBlind(character.value, currentDayKey.value));
 const blindDaysLeft = computed(() =>
   blindEffect.value ? blindEffect.value.durationDays - daysBetweenDayKeys(blindEffect.value.appliedDayKey, currentDayKey.value) : 0,
+);
+const severEffect = computed(() => activeSever(character.value, currentDayKey.value));
+const severDaysLeft = computed(() =>
+  severEffect.value ? severEffect.value.durationDays - daysBetweenDayKeys(severEffect.value.appliedDayKey, currentDayKey.value) : 0,
 );
 const sunderEffect = computed(() => activeSunder(character.value, currentDayKey.value));
 const sunderDaysLeft = computed(() =>
@@ -177,7 +182,7 @@ const statTiles = computed<StatTile[]>(() => {
 });
 
 // "Blinded · no crits": a boss skill's name with what it does, lowercased to follow it.
-function effectText(name: string, skill: 'blind' | 'sunder' | 'doom', doomShare?: number): string {
+function effectText(name: string, skill: 'blind' | 'sever' | 'sunder' | 'doom', doomShare?: number): string {
   const effect = bossSkillEffectText(skill, doomShare) ?? '';
   return `${name} · ${effect.charAt(0).toLowerCase()}${effect.slice(1)}`;
 }
@@ -188,6 +193,7 @@ const activeEffects = computed(() => {
   if (healBoost.value) effects.push({ icon: 'healBoost', text: `+${(healBoost.value.bonus * 100).toFixed(0)}% heal`, days: healBoostDaysLeft.value, tone: 'boon' });
   if (woundsEffect.value) effects.push({ icon: 'wounds', text: `Wounded · ${(woundsEffect.value.effectRate * 100).toFixed(0)}% heal`, days: woundsDaysLeft.value, tone: 'bane' });
   if (blindEffect.value) effects.push({ icon: 'blind', text: effectText('Blinded', 'blind'), days: blindDaysLeft.value, tone: 'bane' });
+  if (severEffect.value) effects.push({ icon: 'sever', text: effectText('Severed', 'sever'), days: severDaysLeft.value, tone: 'bane' });
   if (sunderEffect.value) effects.push({ icon: 'sunder', text: effectText('Sundered', 'sunder'), days: sunderDaysLeft.value, tone: 'bane' });
   if (doomDays.value !== undefined) effects.push({ icon: 'doom', text: effectText('Doom', 'doom', doomPct(character.value)), days: doomDays.value, tone: 'bane' });
   return effects;
@@ -267,6 +273,7 @@ onBeforeUnmount(() => {
         <span v-if="healBoost"><StatIcon name="healBoost" />+{{ (healBoost.bonus * 100).toFixed(0) }}% heal · {{ healBoostDaysLeft }}d</span>
         <span v-if="woundsEffect"><StatIcon name="wounds" />{{ (woundsEffect.effectRate * 100).toFixed(0) }}% heal · {{ woundsDaysLeft }}d</span>
         <span v-if="blindEffect"><StatIcon name="blind" />Blinded · {{ blindDaysLeft }}d</span>
+        <span v-if="severEffect"><StatIcon name="sever" />Severed · {{ severDaysLeft }}d</span>
         <span v-if="sunderEffect"><StatIcon name="sunder" />Sundered · {{ sunderDaysLeft }}d</span>
         <span v-if="doomDays !== undefined"><StatIcon name="doom" />Doom · {{ doomDays }}d</span>
       </p>

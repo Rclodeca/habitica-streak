@@ -1370,10 +1370,18 @@ describe('completeHabit — item effects', () => {
     expect(result.character.currentHealth).toBe(50);
   });
 
-  it('Bloodthorn Blade crits also heal 5% of max health', () => {
+  it('Bloodthorn Blade crits heal 5% of max health', () => {
     const result = hit(['bloodthorn-blade'], {}, {}, alwaysCritRng, { currentHealth: 1 });
     const character = makeCharacter({ equippedItemIds: ['bloodthorn-blade'] });
-    const expected = 1 + (result.damageDealt ?? 0) * 0.02 + effectiveStat(character, 'health') * (E.BLOODTHORN_CRIT_HEAL_PCT / 100);
+    const expected = 1 + effectiveStat(character, 'health') * (E.BLOODTHORN_CRIT_HEAL_PCT / 100);
+    expect(result.character.currentHealth).toBeCloseTo(expected, 10);
+  });
+
+  it("Wounds halve Bloodthorn Blade's crit heal, like any heal", () => {
+    const wounds: WoundsStatusEffect = { type: 'wounds', appliedDayKey: DAY_KEY, durationDays: 2, effectRate: 0.5 };
+    const result = hit(['bloodthorn-blade'], {}, {}, alwaysCritRng, { currentHealth: 1, statusEffects: [wounds] });
+    const character = makeCharacter({ equippedItemIds: ['bloodthorn-blade'] });
+    const expected = 1 + effectiveStat(character, 'health') * (E.BLOODTHORN_CRIT_HEAL_PCT / 100) * 0.5;
     expect(result.character.currentHealth).toBeCloseTo(expected, 10);
   });
 
@@ -1493,6 +1501,7 @@ describe('resolveBossDefeatIfDead — item effects', () => {
 describe('boss skill effects in combat', () => {
   const blind = { type: 'blind' as const, appliedDayKey: DAY_KEY, durationDays: 2 };
   const sunder = { type: 'sunder' as const, appliedDayKey: DAY_KEY, durationDays: 2 };
+  const sever = { type: 'sever' as const, appliedDayKey: DAY_KEY, durationDays: 2 };
   const forcePhysicalNoCrit = () => 0.4; // < 0.5 picks 'physical'; beats critChance 0
 
   it('Blind drops crit chance to 0, but only when a day key is given', () => {
@@ -1513,6 +1522,22 @@ describe('boss skill effects in combat', () => {
     const habit = makeHabit();
     const result = completeHabit(character, habit, [habit], makeBoss({ health: 500, maxHealth: 500 }), DAY_KEY, noCritRng);
     expect(result.wasCrit).toBe(true);
+  });
+
+  it('Sever stops lifesteal', () => {
+    const character = makeCharacter({ currentHealth: 1, equippedItemIds: ['vampiric-fang'], statusEffects: [sever] });
+    const habit = makeHabit();
+    const result = completeHabit(character, habit, [habit], makeBoss({ armor: 0, health: 1000 }), DAY_KEY, noCritRng);
+    expect(result.damageDealt).toBeGreaterThan(0);
+    expect(result.lifestealHealed).toBeUndefined();
+    expect(result.character.currentHealth).toBe(1);
+  });
+
+  it("Sever leaves Bloodcrystal's crit heal, which isn't lifesteal", () => {
+    const character = makeCharacter({ currentHealth: 1, equippedItemIds: ['bloodthorn-blade'], statusEffects: [sever] });
+    const habit = makeHabit();
+    const result = completeHabit(character, habit, [habit], makeBoss({ health: 1000, playerHasHit: true }), DAY_KEY, alwaysCritRng);
+    expect(result.character.currentHealth).toBeCloseTo(1 + effectiveStat(character, 'health') * (TUNING.ITEM_EFFECTS.BLOODTHORN_CRIT_HEAL_PCT / 100), 10);
   });
 
   it('Sunder halves the armor a miss is mitigated by', () => {

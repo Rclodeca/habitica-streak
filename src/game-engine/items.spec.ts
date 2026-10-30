@@ -245,7 +245,7 @@ describe('describeItemBonus', () => {
   });
 
   it("appends an epic's effect text", () => {
-    expect(describeItemBonus(itemNamed('godslayer-greatblade'))).toBe('Physical +42%, Health +20% \u00b7 +30% damage to bosses above 75% HP.');
+    expect(describeItemBonus(itemNamed('godslayer-greatblade'))).toBe('Physical +42%, Health +20%, Lifesteal +2% \u00b7 +30% damage to bosses above 75% HP.');
   });
 
   it('describes the consumable distinctly, with no stat percentages', () => {

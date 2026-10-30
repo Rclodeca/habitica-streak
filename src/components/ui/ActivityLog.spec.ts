@@ -25,6 +25,7 @@ describe('ActivityLog — boss skills', () => {
     [{ kind: 'boss-skill', skill: 'bloodlust', outcome: 'landed' }, 'Bloodlust · 2 days Boss heals 3% per hit'],
     [{ kind: 'boss-skill', skill: 'reflect', outcome: 'landed' }, 'Reflect · 2 days Reflects 5% of your damage'],
     [{ kind: 'boss-skill', skill: 'blind', outcome: 'landed' }, 'Blinded · 2 days No crits'],
+    [{ kind: 'boss-skill', skill: 'sever', outcome: 'landed' }, 'Severed · 2 days No lifesteal'],
     [{ kind: 'boss-skill', skill: 'sunder', outcome: 'landed' }, 'Sundered · 2 days Armor & resist halved'],
     [{ kind: 'boss-skill', skill: 'doom', outcome: 'landed', pct: 50 }, 'Doom · 3 days Half your HP'],
     [{ kind: 'boss-skill', skill: 'doom', outcome: 'landed', pct: 25 }, 'Doom · 3 days A quarter of your HP'],
