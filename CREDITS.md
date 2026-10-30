@@ -129,7 +129,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 
 ### Player heroes
 
-Picked per run from the rolled starting stats (`heroClassFor` in `character.ts`). Processed like the bosses: cropped to the figure, then 2x2 blocks with 48 colours.
+Picked per run from the rolled starting stats (`heroClassFor` in `character.ts`). Processed like the bosses: cropped to the figure, then 2x2 blocks with 48 colours, then the item icons' 1-pixel dark outline (`node scripts/item-icons/outline-sprite.cjs <file> 2`). The ranger was rebuilt from its source with a 30% coverage cutoff (like `--thin` for items) so its bowstring survives.
 
 | File | FreePixel source |
 |---|---|
