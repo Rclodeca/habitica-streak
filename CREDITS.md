@@ -46,15 +46,15 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/bloodthorn-blade.png` | `crystal-rocket-launcher.png` |
 | `items/worldbreaker-maul.png` | `war-hammer (1).png` |
 | `items/apprentice-wand.png` | `rpg-amethyst-staff-purple-gem-045-2026-03-03T17-02-45.png` |
-| `items/arcane-staff.png` | `rpg-opal-staff-rainbow-gem-047-2026-03-03T17-02-45.png` |
-| `items/archmages-rod.png` | `rpg-holy-staff-golden-light-114-v3-2026-03-03T17-02-45.png` |
-| `items/stormcaller-staff.png` | `rpg-lightning-staff-crackling-energy-112-v3-2026-03-03T17-02-45.png` |
+| `items/arcane-staff.png` | `rpg-opal-staff-rainbow-gem-197-v4-2026-03-03T17-02-45.png` |
+| `items/archmages-rod.png` | `rpg-gold-staff-ornate-royal-108-v3-2026-03-03T17-02-45.png` |
+| `items/stormcaller-staff.png` | `ice-wizard-staff-frozen-blue-crystal-jagged_20260225_173157.png` |
 | `items/void-crystal.png` | `crystal-orb-purple-sphere-dark-energy-swirling_20260225_183603.png` |
 | `items/voidcallers-scepter.png` | `enchanted-staff-void-enchantment-dark-orb-top-shadow-purple_20260217_162831.png` |
 | `items/scholars-grimoire.png` | `leather-spell-book-red-thick-closed-ornate_20260225_180257.png` |
 | `items/hexed-ring.png` | `wizard-ring-dark-purple-gem-twisted-band_20260225_190319.png` |
 | `items/chaos-conduit.png` | `rpg-dark-staff-purple-shadowy-163-v4-2026-03-03T17-02-45.png` |
-| `items/cinder-crown.png` | `wizard-hat-tall-pointed-red-flame-pattern_20260225_184859.png` |
+| `items/cinder-crown.png` | `wizard-hat-tall-pointed-purple-gold-moons_20260225_184517 (1).png` |
 | `items/runeforged-spellblade.png` | `crystal-kris-dagger.png` |
 | `items/starfall-staff.png` | `crystal-boomerang.png` |
 | `items/bone-needle.png` | `crystal-punch-dagger.png` |
@@ -86,7 +86,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/ember-heart.png` | `crystal-orb-red-sphere-fire-swirling-inside_20260225_183401.png` |
 | `items/first-blood.png` | `golden-war-hammer.png` |
 | `items/censer-of-wrath.png` | `rpg-lava-staff-molten-rock-189-v4-2026-03-03T17-02-45.png` |
-| `items/temperance-seal.png` | `scroll-rolled-parchment-red-ribbon-sealed_20260225_190957.png` |
+| `items/temperance-seal.png` | `wizard-ring-golden-red-gem-ornate-band_20260225_190059.png` |
 | `items/quill-of-oaths.png` | `spell-scroll-purple-arcane-glowing-runes_20260225_191200.png` |
 | `items/headsmans-mark.png` | `enchanted-battle-axe-void-enchantment-shadow-head-dark_20260217_160808.png` |
 | `items/moonwell.png` | `enchanted-staff-ice-enchantment-frost-crystal-top-frozen_20260217_162309.png` |
