@@ -20,7 +20,7 @@ export const ITEM_CATALOG: ItemDef[] = [
   { id: 'berserkers-fury', name: 'Molten Fury', icon: 'items/berserkers-fury', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'physicalDamage', percent: 28 }, { stat: 'critChance', percent: 15 }, { stat: 'health', percent: -10 }] },
   { id: 'godslayer-greatblade', name: 'Godslayer Greatblade', icon: 'items/godslayer-greatblade', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'physicalDamage', percent: 42 }, { stat: 'health', percent: 20 }, { stat: 'lifesteal', percent: 2 }], effect: 'giantslayer', effectText: '+30% damage to bosses above 75% HP.' },
   // --- Magic (more damage, no survivability, sometimes a drawback) ---
-  { id: 'apprentice-wand', name: 'Apprentice Wand', icon: 'items/apprentice-wand', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'magicDamage', percent: 4 }] },
+  { id: 'apprentice-wand', name: "Apprentice's Hat", icon: 'items/apprentice-wand', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'magicDamage', percent: 4 }] },
   { id: 'arcane-staff', name: 'Opal Staff', icon: 'items/arcane-staff', type: 'equipment', rarity: 'common', bonuses: [{ stat: 'magicDamage', percent: 6 }] },
   { id: 'archmages-rod', name: "Archmage's Rod", icon: 'items/archmages-rod', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'magicDamage', percent: 13 }, { stat: 'healing', percent: 5 }] },
   { id: 'stormcaller-staff', name: 'Stormcaller Staff', icon: 'items/stormcaller-staff', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 30 }, { stat: 'critChance', percent: 10 }] },
@@ -71,8 +71,8 @@ export const ITEM_CATALOG: ItemDef[] = [
   // --- Second set: magic ---
   { id: 'scholars-grimoire', name: "Scholar's Grimoire", icon: 'items/scholars-grimoire', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'magicDamage', percent: 10 }, { stat: 'magicPen', percent: 5 }, { stat: 'expGain', percent: 10 }] },
   { id: 'hexed-ring', name: 'Hexed Ring', icon: 'items/hexed-ring', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'magicDamage', percent: 16 }, { stat: 'health', percent: -5 }] },
-  { id: 'chaos-conduit', name: 'Chaos Conduit', icon: 'items/chaos-conduit', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 34 }, { stat: 'magicPen', percent: 20 }] },
-  { id: 'cinder-crown', name: 'Cinder Hat', icon: 'items/cinder-crown', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 38 }] },
+  { id: 'chaos-conduit', name: "Pyromancer's Hat", icon: 'items/chaos-conduit', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 34 }, { stat: 'magicPen', percent: 20 }] },
+  { id: 'cinder-crown', name: 'Astral Hat', icon: 'items/cinder-crown', type: 'equipment', rarity: 'rare', bonuses: [{ stat: 'magicDamage', percent: 38 }] },
   { id: 'runeforged-spellblade', name: 'Runeforged Spellblade', icon: 'items/runeforged-spellblade', type: 'equipment', rarity: 'epic', bonuses: [{ stat: 'magicDamage', percent: 55 }, { stat: 'magicPen', percent: 15 }, { stat: 'healing', percent: 15 }], effect: 'spellweave', effectText: '+10% magic damage per magic skill used today (max +30%).' },
   // --- Second set: tank ---
   { id: 'warding-sigil', name: 'Warding Pendant', icon: 'items/warding-sigil', type: 'equipment', rarity: 'uncommon', bonuses: [{ stat: 'health', percent: 5 }, { stat: 'magicResist', flat: 150 }] },

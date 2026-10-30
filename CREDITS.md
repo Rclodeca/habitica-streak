@@ -45,7 +45,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/duelists-signet.png` | `rpg-ring-mail-armor-large-123-v3-2026-03-03T17-02-45.png` |
 | `items/bloodthorn-blade.png` | `crystal-rocket-launcher.png` |
 | `items/worldbreaker-maul.png` | `war-hammer (1).png` |
-| `items/apprentice-wand.png` | `rpg-amethyst-staff-purple-gem-045-2026-03-03T17-02-45.png` |
+| `items/apprentice-wand.png` | `wizard-hat-tall-pointed-white-silver-elegant_20260225_185631.png` |
 | `items/arcane-staff.png` | `rpg-opal-staff-rainbow-gem-197-v4-2026-03-03T17-02-45.png` |
 | `items/archmages-rod.png` | `rpg-gold-staff-ornate-royal-108-v3-2026-03-03T17-02-45.png` |
 | `items/stormcaller-staff.png` | `ice-wizard-staff-frozen-blue-crystal-jagged_20260225_173157.png` |
@@ -53,7 +53,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/voidcallers-scepter.png` | `enchanted-staff-void-enchantment-dark-orb-top-shadow-purple_20260217_162831.png` |
 | `items/scholars-grimoire.png` | `leather-spell-book-red-thick-closed-ornate_20260225_180257.png` |
 | `items/hexed-ring.png` | `wizard-ring-dark-purple-gem-twisted-band_20260225_190319.png` |
-| `items/chaos-conduit.png` | `rpg-dark-staff-purple-shadowy-163-v4-2026-03-03T17-02-45.png` |
+| `items/chaos-conduit.png` | `wizard-hat-tall-pointed-red-flame-pattern_20260225_184859.png` |
 | `items/cinder-crown.png` | `wizard-hat-tall-pointed-purple-gold-moons_20260225_184517 (1).png` |
 | `items/runeforged-spellblade.png` | `crystal-kris-dagger.png` |
 | `items/starfall-staff.png` | `crystal-boomerang.png` |
@@ -76,7 +76,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/aegis-of-the-unbroken.png` | `rpg-ceremonial-armor-ornate-display-086-v2-2026-03-03T17-02-45.png` |
 | `items/dawnguard-helm.png` | `mediev-knight-helmet-head-protection-094-v10-2026-03-25T19-14-54.png` |
 | `items/colossus-plate.png` | `rpg-black-iron-armor-dark-164-v4-2026-03-03T17-02-45.png` |
-| `items/blessed-censer.png` | `enchanted-staff-lightning-enchantment-charged-orb-top_20260217_162530.png` |
+| `items/blessed-censer.png` | `rpg-phoenix-staff-firebird-wing-117-v3-2026-03-03T17-02-45.png` |
 | `items/shining-star.png` | `rpg-starfish-staff-ocean-star-080-v2-2026-03-03T17-02-45.png` |
 | `items/rebirth-orb.png` | `crystal-orb-blue-sphere-water-swirling-inside_20260225_183429.png` |
 | `items/pilgrims-blessing.png` | `rpg-bear-staff-bear-claw-172-v4-2026-03-03T17-02-45.png` |
@@ -116,7 +116,7 @@ Every boss sprite, item icon and player hero comes from [FreePixel](https://free
 | `items/ward-cloak.png` | `rpg-burgundy-wizard-robe-wine-075-v2-2026-03-03T17-02-45.png` |
 | `items/wyrmsage-staff.png` | `rpg-dragon-staff-dragon-head-116-v3-2026-03-03T17-02-45.png` |
 | `items/galewind-staff.png` | `rpg-wind-staff-swirling-air-237-v5-2026-03-03T17-02-45.png` |
-| `items/firebird-staff.png` | `rpg-phoenix-staff-firebird-wing-117-v3-2026-03-03T17-02-45.png` |
+| `items/firebird-staff.png` | `rpg-phoenix-staff-firebird-wing-017-2026-03-03T17-02-45.png` |
 | `items/tome-of-insight.png` | `items_consumables_0060_20260216_204501.png` |
 | `items/ironstride-greaves.png` | `mediev-greaves-leg-leg-armor-087-v9-2026-03-25T19-14-54.png` |
 | `items/azure-staff.png` | `rpg-gem-staff-precious-jewel-090-v2-2026-03-03T17-02-45.png` |
